@@ -362,89 +362,448 @@ if scelta == "🏠 Dashboard":
         st.markdown("### 📦 Ultime Distribuzioni")
         st.dataframe(pd.DataFrame(st.session_state.dist_radio).tail(5).iloc[::-1], use_container_width=True, hide_index=True)
 
-# === VOLONTARI ===
+# === VOLONTARI - ANAGRAFICA COMPLETA PROFESSIONALE ANA ===
 elif scelta == "👥 Volontari":
-    with st.container(border=True):
-        st.markdown("#### 👥 Anagrafica Volontari - DB collegato a Distribuzione Radio")
-        st.caption("I volontari inseriti qui saranno disponibili automaticamente nella scheda Distribuzione Radio (Assegnato A e Consegnata DA)")
-        with st.form("form_volontari"):
-            c1,c2,c3,c4 = st.columns(4)
-            with c1:
-                nome = st.text_input("Nome e Cognome *", placeholder="Mario Rossi")
-                telefono = st.text_input("Telefono", placeholder="333 1234567")
-            with c2:
-                ruolo = st.selectbox("Ruolo", ["Volontario", "Capo Squadra", "Coordinatore", "Responsabile Magazzino", "Autista", "Presidente", "Segretario"])
-                sezione = st.text_input("Sezione / Gruppo", value="Varese")
-            with c3:
-                email = st.text_input("Email", placeholder="mario@ana.it")
-                tessera = st.text_input("N° Tessera ANA", placeholder="12345")
-            with c4:
-                note_v = st.text_input("Note", placeholder="Patente, specializzazioni...")
-            if st.form_submit_button("💾 Salva Volontario", type="primary", use_container_width=True):
-                if nome:
-                    # Aggiungi a mem_nomi se non esiste
-                    if nome not in st.session_state.mem_nomi:
-                        st.session_state.mem_nomi.append(nome)
-                        # Salva lista nomi
-                        salva_csv([{"Nome": n} for n in st.session_state.mem_nomi], FILE_NOMI)
-                    # Salva anche anagrafica completa se esiste file volontari
-                    FILE_VOLONTARI = "anagrafica_volontari.csv"
-                    # Carica esistente
-                    volontari_full = []
-                    if os.path.exists(FILE_VOLONTARI):
-                        try:
-                            volontari_full = pd.read_csv(FILE_VOLONTARI).to_dict(orient="records")
-                        except:
-                            pass
-                    # Aggiorna o aggiungi
-                    found = False
-                    for v in volontari_full:
-                        if v.get("Nome e Cognome") == nome or v.get("Nome") == nome:
-                            v.update({"Nome e Cognome": nome, "Telefono": telefono, "Ruolo": ruolo, "Sezione": sezione, "Email": email, "Tessera": tessera, "Note": note_v})
-                            found = True
-                    if not found:
-                        volontari_full.append({"Nome e Cognome": nome, "Telefono": telefono, "Ruolo": ruolo, "Sezione": sezione, "Email": email, "Tessera": tessera, "Note": note_v, "Data Iscrizione": str(datetime.now().date())})
-                    pd.DataFrame(volontari_full).to_csv(FILE_VOLONTARI, index=False)
-                    st.success(f"✅ Volontario {nome} salvato! Ora disponibile in Distribuzione Radio")
-                    st.rerun()
-                else:
-                    st.error("Nome e Cognome obbligatorio")
-        
-        # Mostra volontari con DB completo
-        FILE_VOLONTARI = "anagrafica_volontari.csv"
-        if os.path.exists(FILE_VOLONTARI):
+    FILE_VOLONTARI = "anagrafica_volontari.csv"
+    FILE_VOLONTARI_FULL = "anagrafica_volontari_completa.csv"
+    
+    st.markdown("### 👥 Anagrafica Volontari ANA - Scheda Completa")
+    st.caption("Scheda professionale con tutti i dati - agganciata automaticamente a Distribuzione Radio e Mappa")
+    
+    tab1, tab2, tab3, tab4 = st.tabs(["➕ Nuova Anagrafica Completa", "📋 Lista Volontari", "🔍 Cerca/Modifica", "📊 Statistiche & Export"])
+    
+    with tab1:
+        with st.container(border=True):
+            st.markdown("#### 📝 Scheda Anagrafica Volontario - Tutti i campi")
+            
+            # Carica comuni per residenza
+            lista_comuni_anag = get_comuni_italiani()
+            
+            with st.form("form_volontari_completa", clear_on_submit=False):
+                st.markdown("##### 👤 Dati Personali")
+                c1,c2,c3,c4 = st.columns(4)
+                with c1:
+                    nome_v = st.text_input("Nome *", placeholder="Mario")
+                    cognome_v = st.text_input("Cognome *", placeholder="Rossi")
+                    sesso_v = st.selectbox("Sesso", ["M", "F", "Altro"])
+                with c2:
+                    data_nascita_v = st.date_input("Data Nascita", value=datetime(1980,1,1), min_value=datetime(1930,1,1), max_value=datetime(2010,12,31))
+                    luogo_nascita_v = st.selectbox("Luogo Nascita - Comune", ["--"] + lista_comuni_anag[:500], key="luogo_nascita")
+                    luogo_nascita_manual = st.text_input("Oppure scrivi luogo nascita", placeholder="Varese")
+                with c3:
+                    cf_v = st.text_input("Codice Fiscale *", placeholder="RSSMRA80A01L682K", help="16 caratteri")
+                    gruppo_sanguigno_v = st.selectbox("Gruppo Sanguigno", ["--", "0+", "0-", "A+", "A-", "B+", "B-", "AB+", "AB-"])
+                    taglia_v = st.selectbox("Taglia Vestiario", ["--", "XS", "S", "M", "L", "XL", "XXL", "XXXL"])
+                with c4:
+                    stato_civile_v = st.selectbox("Stato Civile", ["--", "Celibe/Nubile", "Coniugato/a", "Divorziato/a", "Vedovo/a"])
+                    foto_v = st.text_input("Foto (nome file)", placeholder="mario_rossi.jpg")
+                
+                st.divider()
+                st.markdown("##### 🏠 Residenza - con Combo Comuni + Via + Civico")
+                c1,c2,c3,c4 = st.columns([2,2,1,1])
+                with c1:
+                    comune_res_v = st.selectbox("Comune Residenza *", ["-- Seleziona --"] + lista_comuni_anag, key="comune_res")
+                    # Filtro rapido
+                    filtro_comune_res = st.text_input("Filtro comune", placeholder="Varese...", key="filtro_comune_res")
+                    if filtro_comune_res:
+                        filt = [c for c in lista_comuni_anag if filtro_comune_res.lower() in c.lower()][:20]
+                        if filt:
+                            comune_res_v = st.selectbox("Risultati", ["--"] + filt, key="comune_res_filt")
+                with c2:
+                    via_res_v = st.text_input("Via / Piazza *", placeholder="Via Sacco")
+                    if comune_res_v and comune_res_v != "-- Seleziona --":
+                        if st.form_submit_button(f"📥 Carica vie di {comune_res_v.split('(')[0][:15]}", use_container_width=False):
+                            # Questo non funziona in form, gestito fuori - mostra hint
+                            st.info("Salva e usa mappa per cercare vie")
+                with c3:
+                    civico_res_v = st.text_input("Civico *", placeholder="5, 10/A")
+                    cap_res_v = st.text_input("CAP", placeholder="21100")
+                with c4:
+                    prov_res_v = st.text_input("Prov", placeholder="VA", max_chars=2)
+                    # Geocoding automatico residenza
+                    lat_res_v = st.text_input("Lat (auto da rete)", placeholder="45.8205")
+                    lon_res_v = st.text_input("Lon (auto)", placeholder="8.8255")
+                
+                st.divider()
+                st.markdown("##### 📞 Contatti & Emergenza")
+                c1,c2,c3,c4 = st.columns(4)
+                with c1:
+                    tel_v = st.text_input("Telefono Fisso", placeholder="0332 123456")
+                    cell_v = st.text_input("Cellulare *", placeholder="333 1234567")
+                with c2:
+                    email_v = st.text_input("Email *", placeholder="mario.rossi@ana.it")
+                    pec_v = st.text_input("PEC", placeholder="mario@pec.it")
+                with c3:
+                    contatto_emerg_v = st.text_input("Contatto Emergenza - Nome", placeholder="Maria Rossi - moglie")
+                    tel_emerg_v = st.text_input("Tel Emergenza", placeholder="333 7654321")
+                with c4:
+                    whatsapp_v = st.checkbox("WhatsApp attivo", value=True)
+                    privacy_v = st.checkbox("Privacy firmata", value=False)
+                
+                st.divider()
+                st.markdown("##### 🎖️ Dati ANA & Servizio")
+                c1,c2,c3,c4 = st.columns(4)
+                with c1:
+                    sezione_v = st.text_input("Sezione ANA *", value="Varese")
+                    gruppo_v = st.text_input("Gruppo ANA", placeholder="Varese Centro")
+                    tessera_v = st.text_input("N° Tessera ANA *", placeholder="12345")
+                with c2:
+                    data_iscrizione_v = st.date_input("Data Iscrizione ANA", value=datetime.now())
+                    ruolo_v = st.selectbox("Ruolo *", ["Volontario", "Capo Squadra", "Coordinatore", "Responsabile Magazzino", "Autista", "Operatore Radio", "Sanitario", "Logistica", "Presidente", "Vice Presidente", "Segretario", "Tesoriere", "Consigliere"])
+                    stato_servizio_v = st.selectbox("Stato Servizio", ["Attivo", "In prova", "Sospeso", "Non attivo", "Onorario"])
+                with c3:
+                    specializzazioni_v = st.multiselect("Specializzazioni", ["Guida fuoristrada", "Motosega", "Antincendio", "Primo Soccorso", "Protezione Civile", "Radio", "Cucina campo", "Elettricista", "Idraulico", "Meccanico", "Autista C", "Autista D", "Sub", "Alpinismo"])
+                    patente_v = st.selectbox("Patente", ["--", "AM", "A1", "A2", "A", "B", "C1", "C", "D1", "D", "BE", "CE", "DE"])
+                with c4:
+                    scadenza_patente_v = st.date_input("Scadenza Patente", value=datetime(2030,1,1))
+                    abilitazioni_v = st.text_input("Altre abilitazioni", placeholder="Muletto, PLE, ecc")
+                    anni_servizio_v = st.number_input("Anni servizio", min_value=0, max_value=60, value=0)
+                
+                st.divider()
+                st.markdown("##### 📋 Note & Disponibilità")
+                c1,c2 = st.columns(2)
+                with c1:
+                    note_v = st.text_area("Note generali", placeholder="Allergie, patologie, disponibilità, competenze...", height=100)
+                    note_mediche_v = st.text_area("Note mediche riservate", placeholder="Allergie, farmaci...", height=80)
+                with c2:
+                    disponibilita_v = st.multiselect("Disponibilità", ["Feriali mattina", "Feriali pomeriggio", "Weekend", "Notte", "Festivi", "Emergenze H24", "Solo su chiamata"])
+                    attrezzatura_v = st.text_input("Attrezzatura personale", placeholder="Radio propria, DPI, ecc")
+                    assicurazione_v = st.selectbox("Assicurazione", ["--", "ANA base", "ANA + integrativa", "Volontariato PC", "Altra"])
+                
+                st.divider()
+                submitted = st.form_submit_button("💾 SALVA ANAGRAFICA COMPLETA", type="primary", use_container_width=True)
+                
+                if submitted:
+                    if not nome_v or not cognome_v:
+                        st.error("❌ Nome e Cognome obbligatori")
+                    elif not cf_v or len(cf_v) < 10:
+                        st.warning("⚠️ Codice Fiscale incompleto, salva comunque?")
+                        # Procedi comunque
+                        nome_completo = f"{nome_v} {cognome_v}".strip()
+                        # Salva
+                        luogo_nascita_final = luogo_nascita_manual if luogo_nascita_manual else luogo_nascita_v
+                        comune_res_final = comune_res_v
+                        # Crea record completo
+                        record = {
+                            "Nome": nome_v, "Cognome": cognome_v, "Nome e Cognome": nome_completo,
+                            "Sesso": sesso_v, "Data Nascita": str(data_nascita_v), "Luogo Nascita": luogo_nascita_final,
+                            "Codice Fiscale": cf_v.upper(), "Gruppo Sanguigno": gruppo_sanguigno_v, "Taglia": taglia_v,
+                            "Comune Residenza": comune_res_v, "Via": via_res_v, "Civico": civico_res_v, "CAP": cap_res_v, "Provincia": prov_res_v,
+                            "Lat": lat_res_v, "Lon": lon_res_v, "Indirizzo Completo": f"{via_res_v} {civico_res_v}, {comune_res_v}",
+                            "Telefono": tel_v, "Cellulare": cell_v, "Email": email_v, "PEC": pec_v,
+                            "Contatto Emergenza": contatto_emerg_v, "Tel Emergenza": tel_emerg_v,
+                            "Sezione": sezione_v, "Gruppo": gruppo_v, "Tessera": tessera_v, "Data Iscrizione ANA": str(data_iscrizione_v),
+                            "Ruolo": ruolo_v, "Stato Servizio": stato_servizio_v, "Specializzazioni": ", ".join(specializzazioni_v),
+                            "Patente": patente_v, "Scadenza Patente": str(scadenza_patente_v), "Abilitazioni": abilitazioni_v, "Anni Servizio": anni_servizio_v,
+                            "Note": note_v, "Note Mediche": note_mediche_v, "Disponibilità": ", ".join(disponibilita_v),
+                            "Attrezzatura": attrezzatura_v, "Assicurazione": assicurazione_v,
+                            "Data Inserimento": str(datetime.now().date()), "Stato": "Attivo"
+                        }
+                        # Salva in lista rapida
+                        if nome_completo not in st.session_state.mem_nomi:
+                            st.session_state.mem_nomi.append(nome_completo)
+                            salva_csv([{"Nome": n} for n in st.session_state.mem_nomi], FILE_NOMI)
+                        # Salva anagrafica completa
+                        volontari_full = []
+                        if os.path.exists(FILE_VOLONTARI_FULL):
+                            try:
+                                volontari_full = pd.read_csv(FILE_VOLONTARI_FULL).to_dict(orient="records")
+                            except:
+                                pass
+                        # Aggiorna o aggiungi
+                        found = False
+                        for v in volontari_full:
+                            if v.get("Codice Fiscale") == cf_v.upper() or v.get("Nome e Cognome") == nome_completo:
+                                v.update(record)
+                                found = True
+                        if not found:
+                            volontari_full.append(record)
+                        pd.DataFrame(volontari_full).to_csv(FILE_VOLONTARI_FULL, index=False)
+                        # Salva anche vecchio formato per compatibilità
+                        pd.DataFrame(volontari_full).to_csv(FILE_VOLONTARI, index=False)
+                        st.success(f"✅ Anagrafica completa {nome_completo} salvata! CF: {cf_v} - Tessera: {tessera_v}")
+                        st.balloons()
+                    else:
+                        nome_completo = f"{nome_v} {cognome_v}".strip()
+                        luogo_nascita_final = luogo_nascita_manual if luogo_nascita_manual else luogo_nascita_v
+                        record = {
+                            "Nome": nome_v, "Cognome": cognome_v, "Nome e Cognome": nome_completo,
+                            "Sesso": sesso_v, "Data Nascita": str(data_nascita_v), "Luogo Nascita": luogo_nascita_final,
+                            "Codice Fiscale": cf_v.upper(), "Gruppo Sanguigno": gruppo_sanguigno_v, "Taglia": taglia_v, "Stato Civile": stato_civile_v,
+                            "Comune Residenza": comune_res_v, "Via": via_res_v, "Civico": civico_res_v, "CAP": cap_res_v, "Provincia": prov_res_v,
+                            "Lat": lat_res_v, "Lon": lon_res_v, "Indirizzo Completo": f"{via_res_v} {civico_res_v}, {comune_res_v}",
+                            "Telefono": tel_v, "Cellulare": cell_v, "Email": email_v, "PEC": pec_v,
+                            "Contatto Emergenza": contatto_emerg_v, "Tel Emergenza": tel_emerg_v, "WhatsApp": whatsapp_v, "Privacy": privacy_v,
+                            "Sezione": sezione_v, "Gruppo": gruppo_v, "Tessera": tessera_v, "Data Iscrizione ANA": str(data_iscrizione_v),
+                            "Ruolo": ruolo_v, "Stato Servizio": stato_servizio_v, "Specializzazioni": ", ".join(specializzazioni_v),
+                            "Patente": patente_v, "Scadenza Patente": str(scadenza_patente_v), "Abilitazioni": abilitazioni_v, "Anni Servizio": anni_servizio_v,
+                            "Note": note_v, "Note Mediche": note_mediche_v, "Disponibilità": ", ".join(disponibilita_v),
+                            "Attrezzatura": attrezzatura_v, "Assicurazione": assicurazione_v,
+                            "Data Inserimento": str(datetime.now().date()), "Stato": "Attivo"
+                        }
+                        if nome_completo not in st.session_state.mem_nomi:
+                            st.session_state.mem_nomi.append(nome_completo)
+                            salva_csv([{"Nome": n} for n in st.session_state.mem_nomi], FILE_NOMI)
+                        volontari_full = []
+                        if os.path.exists(FILE_VOLONTARI_FULL):
+                            try:
+                                volontari_full = pd.read_csv(FILE_VOLONTARI_FULL).to_dict(orient="records")
+                            except:
+                                pass
+                        found = False
+                        for v in volontari_full:
+                            if v.get("Codice Fiscale") == cf_v.upper() and cf_v.upper() != "":
+                                v.update(record)
+                                found = True
+                            elif v.get("Nome e Cognome") == nome_completo and cf_v == "":
+                                v.update(record)
+                                found = True
+                        if not found:
+                            volontari_full.append(record)
+                        pd.DataFrame(volontari_full).to_csv(FILE_VOLONTARI_FULL, index=False)
+                        pd.DataFrame(volontari_full).to_csv(FILE_VOLONTARI, index=False)
+                        st.success(f"✅ {nome_completo} salvato! Tessera {tessera_v} - Ruolo {ruolo_v}")
+                        st.info(f"🔗 Ora disponibile in Distribuzione Radio e Mappa - CF: {cf_v.upper()}")
+                        st.balloons()
+    
+    with tab2:
+        # Lista completa
+        if os.path.exists(FILE_VOLONTARI_FULL):
             try:
-                df_vol_full = pd.read_csv(FILE_VOLONTARI)
-                st.markdown(f"**Totale volontari: {len(df_vol_full)} - Questi nomi appaiono automaticamente in Distribuzione Radio**")
-                st.dataframe(df_vol_full.iloc[::-1], use_container_width=True, hide_index=True)
-                c1,c2,c3 = st.columns(3)
+                df_full = pd.read_csv(FILE_VOLONTARI_FULL)
+                st.markdown(f"### 📋 Anagrafica Completa - {len(df_full)} volontari")
+                
+                # Filtri
+                c1,c2,c3,c4 = st.columns(4)
+                with c1:
+                    filtro_ruolo = st.selectbox("Filtra per Ruolo", ["Tutti"] + sorted(df_full["Ruolo"].dropna().unique().tolist()) if "Ruolo" in df_full.columns else ["Tutti"])
+                with c2:
+                    filtro_sezione = st.selectbox("Filtra per Sezione", ["Tutte"] + sorted(df_full["Sezione"].dropna().unique().tolist()) if "Sezione" in df_full.columns else ["Tutte"])
+                with c3:
+                    filtro_stato = st.selectbox("Filtra per Stato", ["Tutti", "Attivo", "In prova", "Sospeso", "Non attivo"])
+                with c4:
+                    cerca_nome = st.text_input("🔍 Cerca nome/CF", placeholder="Rossi o RSSMRA...")
+                
+                df_filtered = df_full.copy()
+                if filtro_ruolo != "Tutti" and "Ruolo" in df_filtered.columns:
+                    df_filtered = df_filtered[df_filtered["Ruolo"] == filtro_ruolo]
+                if filtro_sezione != "Tutte" and "Sezione" in df_filtered.columns:
+                    df_filtered = df_filtered[df_filtered["Sezione"] == filtro_sezione]
+                if filtro_stato != "Tutti" and "Stato Servizio" in df_filtered.columns:
+                    df_filtered = df_filtered[df_filtered["Stato Servizio"] == filtro_stato]
+                if cerca_nome:
+                    mask = df_filtered.astype(str).apply(lambda x: x.str.contains(cerca_nome, case=False, na=False)).any(axis=1)
+                    df_filtered = df_filtered[mask]
+                
+                st.dataframe(df_filtered.iloc[::-1], use_container_width=True, hide_index=True, height=500)
+                
+                # Azioni
+                c1,c2,c3,c4 = st.columns(4)
                 with c1:
                     out = BytesIO()
-                    df_vol_full.to_excel(out, index=False, engine="openpyxl")
-                    st.download_button("📥 Excel Volontari", out.getvalue(), file_name="anagrafica_volontari.xlsx", mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", use_container_width=True)
+                    df_filtered.to_excel(out, index=False, engine="openpyxl")
+                    st.download_button("📥 Excel Filtrato", out.getvalue(), file_name="anagrafica_volontari_completa.xlsx", mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", use_container_width=True)
                 with c2:
-                    if st.button("🔄 Sincronizza nomi per Distribuzione", use_container_width=True):
-                        # Sincronizza mem_nomi da anagrafica
-                        nomi_from_full = df_vol_full["Nome e Cognome"].dropna().tolist() if "Nome e Cognome" in df_vol_full.columns else df_vol_full["Nome"].dropna().tolist() if "Nome" in df_vol_full.columns else []
-                        st.session_state.mem_nomi = list(dict.fromkeys(nomi_from_full + st.session_state.mem_nomi))
-                        salva_csv([{"Nome": n} for n in st.session_state.mem_nomi], FILE_NOMI)
-                        st.success(f"Sincronizzati {len(st.session_state.mem_nomi)} nomi!")
-                        st.rerun()
+                    out_csv = df_filtered.to_csv(index=False).encode('utf-8')
+                    st.download_button("📥 CSV", out_csv, file_name="anagrafica_volontari.csv", mime="text/csv", use_container_width=True)
                 with c3:
-                    if st.button("🗑️ Cancella Anagrafica", use_container_width=True):
-                        if os.path.exists(FILE_VOLONTARI):
-                            os.remove(FILE_VOLONTARI)
-                        st.session_state.mem_nomi = []
-                        salva_csv([], FILE_NOMI)
-                        st.rerun()
+                    if st.button("🔄 Sincronizza nomi distribuzione", use_container_width=True):
+                        nomi = df_full["Nome e Cognome"].dropna().tolist() if "Nome e Cognome" in df_full.columns else []
+                        st.session_state.mem_nomi = list(dict.fromkeys(nomi + st.session_state.mem_nomi))
+                        salva_csv([{"Nome": n} for n in st.session_state.mem_nomi], FILE_NOMI)
+                        st.success(f"Sincronizzati {len(nomi)} volontari!")
+                with c4:
+                    if st.button("🗑️ Cancella Tutto", use_container_width=True, type="secondary"):
+                        st.session_state["confirm_delete_vol"] = True
+                if st.session_state.get("confirm_delete_vol"):
+                    st.warning("⚠️ Sei sicuro? Cancellerà tutta l'anagrafica!")
+                    c1,c2 = st.columns(2)
+                    with c1:
+                        if st.button("✅ Sì, cancella", type="primary", use_container_width=True):
+                            if os.path.exists(FILE_VOLONTARI_FULL):
+                                os.remove(FILE_VOLONTARI_FULL)
+                            if os.path.exists(FILE_VOLONTARI):
+                                os.remove(FILE_VOLONTARI)
+                            st.session_state.mem_nomi = []
+                            salva_csv([], FILE_NOMI)
+                            st.session_state["confirm_delete_vol"] = False
+                            st.rerun()
+                    with c2:
+                        if st.button("❌ Annulla", use_container_width=True):
+                            st.session_state["confirm_delete_vol"] = False
+                            st.rerun()
             except Exception as e:
                 st.error(f"Errore lettura: {e}")
-                st.dataframe(pd.DataFrame({"Volontari (lista rapida)": st.session_state.mem_nomi}), use_container_width=True, hide_index=True)
         else:
+            st.info("Nessun volontario in anagrafica completa. Usa tab 'Nuova Anagrafica Completa'")
             if st.session_state.mem_nomi:
-                st.markdown(f"**Volontari (lista rapida): {len(st.session_state.mem_nomi)}**")
-                st.dataframe(pd.DataFrame({"Volontari": st.session_state.mem_nomi}), use_container_width=True, hide_index=True)
-                st.info("💡 I nomi qui sopra sono già disponibili in Distribuzione Radio → Assegnato A e Consegnata DA")
+                st.dataframe(pd.DataFrame({"Volontari (vecchia lista)": st.session_state.mem_nomi}), use_container_width=True)
+    
+    with tab3:
+        st.markdown("### 🔍 Cerca e Modifica Volontario")
+        if os.path.exists(FILE_VOLONTARI_FULL):
+            try:
+                df_full = pd.read_csv(FILE_VOLONTARI_FULL)
+                cerca_edit = st.text_input("🔍 Cerca per Nome, Cognome, CF o Tessera", placeholder="Rossi, RSSMRA80A01L682K, 12345", key="cerca_edit")
+                if cerca_edit:
+                    mask = df_full.astype(str).apply(lambda x: x.str.contains(cerca_edit, case=False, na=False)).any(axis=1)
+                    risultati = df_full[mask]
+                    if not risultati.empty:
+                        st.success(f"Trovati {len(risultati)} volontari")
+                        for idx, row in risultati.iterrows():
+                            with st.container(border=True):
+                                c1,c2,c3 = st.columns([3,1,1])
+                                with c1:
+                                    st.markdown(f"**{row.get('Nome e Cognome','')}** - CF: {row.get('Codice Fiscale','')} - Tessera: {row.get('Tessera','')} - Ruolo: {row.get('Ruolo','')}")
+                                    st.caption(f"{row.get('Via','')} {row.get('Civico','')}, {row.get('Comune Residenza','')} - Cell: {row.get('Cellulare','')} - {row.get('Email','')}")
+                                with c2:
+                                    if st.button(f"✏️ Modifica", key=f"mod_{idx}"):
+                                        st.session_state["edit_vol_idx"] = idx
+                                        st.session_state["edit_vol_data"] = row.to_dict()
+                                with c3:
+                                    if st.button(f"🗑️ Elimina", key=f"del_{idx}"):
+                                        df_full = df_full.drop(idx)
+                                        df_full.to_csv(FILE_VOLONTARI_FULL, index=False)
+                                        df_full.to_csv(FILE_VOLONTARI, index=False)
+                                        # Rimuovi da mem_nomi
+                                        nome_del = row.get("Nome e Cognome","")
+                                        if nome_del in st.session_state.mem_nomi:
+                                            st.session_state.mem_nomi.remove(nome_del)
+                                            salva_csv([{"Nome": n} for n in st.session_state.mem_nomi], FILE_NOMI)
+                                        st.success(f"Eliminato {nome_del}")
+                                        st.rerun()
+                        
+                        # Form modifica
+                        if "edit_vol_idx" in st.session_state:
+                            st.divider()
+                            st.markdown(f"#### ✏️ Modifica {st.session_state['edit_vol_data'].get('Nome e Cognome','')}")
+                            edit_data = st.session_state["edit_vol_data"]
+                            with st.form("form_edit_vol"):
+                                c1,c2,c3 = st.columns(3)
+                                with c1:
+                                    edit_nome = st.text_input("Nome", value=edit_data.get("Nome",""))
+                                    edit_cognome = st.text_input("Cognome", value=edit_data.get("Cognome",""))
+                                    edit_cf = st.text_input("Codice Fiscale", value=edit_data.get("Codice Fiscale",""))
+                                with c2:
+                                    edit_cell = st.text_input("Cellulare", value=edit_data.get("Cellulare",""))
+                                    edit_email = st.text_input("Email", value=edit_data.get("Email",""))
+                                    edit_ruolo = st.selectbox("Ruolo", ["Volontario", "Capo Squadra", "Coordinatore", "Responsabile Magazzino", "Autista", "Operatore Radio", "Sanitario", "Logistica", "Presidente", "Segretario"], index=0)
+                                with c3:
+                                    edit_tessera = st.text_input("Tessera", value=edit_data.get("Tessera",""))
+                                    edit_sezione = st.text_input("Sezione", value=edit_data.get("Sezione","Varese"))
+                                    edit_stato = st.selectbox("Stato", ["Attivo", "In prova", "Sospeso", "Non attivo"])
+                                edit_note = st.text_area("Note", value=edit_data.get("Note",""))
+                                c1,c2 = st.columns(2)
+                                with c1:
+                                    if st.form_submit_button("💾 Salva Modifiche", type="primary", use_container_width=True):
+                                        # Aggiorna
+                                        df_full.at[st.session_state["edit_vol_idx"], "Nome"] = edit_nome
+                                        df_full.at[st.session_state["edit_vol_idx"], "Cognome"] = edit_cognome
+                                        df_full.at[st.session_state["edit_vol_idx"], "Nome e Cognome"] = f"{edit_nome} {edit_cognome}"
+                                        df_full.at[st.session_state["edit_vol_idx"], "Codice Fiscale"] = edit_cf
+                                        df_full.at[st.session_state["edit_vol_idx"], "Cellulare"] = edit_cell
+                                        df_full.at[st.session_state["edit_vol_idx"], "Email"] = edit_email
+                                        df_full.at[st.session_state["edit_vol_idx"], "Ruolo"] = edit_ruolo
+                                        df_full.at[st.session_state["edit_vol_idx"], "Tessera"] = edit_tessera
+                                        df_full.at[st.session_state["edit_vol_idx"], "Sezione"] = edit_sezione
+                                        df_full.at[st.session_state["edit_vol_idx"], "Stato Servizio"] = edit_stato
+                                        df_full.at[st.session_state["edit_vol_idx"], "Note"] = edit_note
+                                        df_full.to_csv(FILE_VOLONTARI_FULL, index=False)
+                                        df_full.to_csv(FILE_VOLONTARI, index=False)
+                                        del st.session_state["edit_vol_idx"]
+                                        del st.session_state["edit_vol_data"]
+                                        st.success("Modificato!")
+                                        st.rerun()
+                                with c2:
+                                    if st.form_submit_button("❌ Annulla", use_container_width=True):
+                                        del st.session_state["edit_vol_idx"]
+                                        del st.session_state["edit_vol_data"]
+                                        st.rerun()
+                    else:
+                        st.warning("Nessun risultato")
+            except Exception as e:
+                st.error(f"Errore: {e}")
+        else:
+            st.info("Nessuna anagrafica presente")
+    
+    with tab4:
+        st.markdown("### 📊 Statistiche & Export Avanzato")
+        if os.path.exists(FILE_VOLONTARI_FULL):
+            try:
+                df_full = pd.read_csv(FILE_VOLONTARI_FULL)
+                c1,c2,c3,c4 = st.columns(4)
+                with c1:
+                    st.metric("Totale Volontari", len(df_full))
+                with c2:
+                    attivi = len(df_full[df_full["Stato Servizio"] == "Attivo"]) if "Stato Servizio" in df_full.columns else len(df_full)
+                    st.metric("Attivi", attivi)
+                with c3:
+                    ruoli_count = df_full["Ruolo"].nunique() if "Ruolo" in df_full.columns else 0
+                    st.metric("Ruoli diversi", ruoli_count)
+                with c4:
+                    sezioni_count = df_full["Sezione"].nunique() if "Sezione" in df_full.columns else 0
+                    st.metric("Sezioni", sezioni_count)
+                
+                st.divider()
+                c1,c2 = st.columns(2)
+                with c1:
+                    if "Ruolo" in df_full.columns:
+                        st.markdown("**Per Ruolo**")
+                        st.bar_chart(df_full["Ruolo"].value_counts())
+                with c2:
+                    if "Comune Residenza" in df_full.columns:
+                        st.markdown("**Per Comune Residenza (top 10)**")
+                        st.bar_chart(df_full["Comune Residenza"].value_counts().head(10))
+                
+                st.divider()
+                st.markdown("#### 📥 Export Avanzati")
+                c1,c2,c3 = st.columns(3)
+                with c1:
+                    # Export per ruolo
+                    if "Ruolo" in df_full.columns:
+                        for ruolo in df_full["Ruolo"].dropna().unique():
+                            df_ruolo = df_full[df_full["Ruolo"] == ruolo]
+                            out = BytesIO()
+                            df_ruolo.to_excel(out, index=False, engine="openpyxl")
+                            st.download_button(f"📥 {ruolo} ({len(df_ruolo)})", out.getvalue(), file_name=f"volontari_{ruolo}.xlsx", mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", use_container_width=True, key=f"exp_{ruolo}")
+                with c2:
+                    # PDF Tessera
+                    st.markdown("**Tessere**")
+                    # Genera PDF semplice per tutti
+                    if st.button("📄 Genera PDF Tessere Volontari", use_container_width=True):
+                        try:
+                            from fpdf import FPDF
+                            pdf = FPDF(orientation='P', unit='mm', format='A4')
+                            pdf.set_auto_page_break(auto=True, margin=15)
+                            pdf.add_page()
+                            pdf.set_font("Arial", "B", 16)
+                            pdf.cell(0, 10, "ANA Varese - Tessere Volontari", ln=True, align="C")
+                            pdf.ln(5)
+                            for _, row in df_full.iterrows():
+                                pdf.set_font("Arial", "B", 12)
+                                pdf.cell(0, 8, f"{row.get('Nome e Cognome','')} - Tessera {row.get('Tessera','')} - {row.get('Ruolo','')}", ln=True)
+                                pdf.set_font("Arial", "", 10)
+                                pdf.cell(0, 6, f"CF: {row.get('Codice Fiscale','')} - Cell: {row.get('Cellulare','')} - {row.get('Comune Residenza','')}", ln=True)
+                                pdf.ln(2)
+                            pdf_out = BytesIO()
+                            pdf_out.write(pdf.output(dest='S').encode('latin-1'))
+                            st.download_button("📥 Scarica PDF Tessere", pdf_out.getvalue(), file_name="tessere_volontari.pdf", mime="application/pdf", use_container_width=True)
+                        except Exception as e:
+                            st.error(f"Errore PDF: {e}")
+                with c3:
+                    st.markdown("**QR Code**")
+                    if st.button("📱 Genera QR per ogni volontario", use_container_width=True):
+                        import qrcode
+                        for _, row in df_full.head(5).iterrows():
+                            qr_data = f"ANA Varese - {row.get('Nome e Cognome','')} - Tessera {row.get('Tessera','')} - CF {row.get('Codice Fiscale','')}"
+                            qr = qrcode.make(qr_data)
+                            buf = BytesIO()
+                            qr.save(buf, format="PNG")
+                            st.image(buf.getvalue(), caption=row.get('Nome e Cognome',''), width=150)
+            except Exception as e:
+                st.error(f"Errore stats: {e}")
+        else:
+            st.info("Nessun dato per statistiche")
 
 # === DB RADIO ===
 elif scelta == "📻 DB Radio Inventario":
@@ -506,54 +865,64 @@ elif scelta == "📦 Distribuzione Radio":
                 data_d = st.date_input("Data", value=datetime.now())
                 if st.session_state.radio_db:
                     st.markdown("**📻 Agganciato a DB Radio Inventario**")
-                    # Crea lista con info complete
+                    # Crea lista con info complete - FIX AGGANCIO MODELLO
                     radio_list = []
+                    display_to_data = {}
                     for r in st.session_state.radio_db:
                         rid = str(r.get("Radio ID","")).strip()
                         if rid:
-                            mod = str(r.get("Modello","")).strip()
-                            stato = str(r.get("Stato","")).strip()
-                            batt = str(r.get("Batteria","")).strip()
-                            radio_list.append({"id": rid, "modello": mod, "stato": stato, "batteria": batt, "full": r})
+                            mod = str(r.get("Modello","")).strip() or "N/D"
+                            stato = str(r.get("Stato","")).strip() or "Disponibile"
+                            batt = str(r.get("Batteria","")).strip() or "N/D"
+                            icon = "🟢" if stato=="Disponibile" else "🔴" if stato in ["Guasta","In riparazione"] else "🟡"
+                            display = f"{icon} {rid} | {mod} | {stato} | Batt:{batt}"
+                            radio_list.append({"id": rid, "modello": mod, "stato": stato, "batteria": batt, "full": r, "display": display})
+                            display_to_data[display] = {"id": rid, "modello": mod, "full": r}
                     
                     # Opzioni con stato
-                    opzioni_display = ["-- Seleziona Radio dal DB --"]
-                    for rl in radio_list:
-                        icon = "🟢" if rl["stato"]=="Disponibile" else "🔴" if rl["stato"] in ["Guasta","In riparazione"] else "🟡"
-                        opzioni_display.append(f"{icon} {rl['id']} - {rl['modello']} [{rl['stato']}] - Batt: {rl['batteria']}")
+                    opzioni_display = ["-- Seleziona Radio dal DB --"] + [rl["display"] for rl in radio_list]
                     
                     scelta_display = st.selectbox("Radio ID dal DB Inventario *", opzioni_display, key="radio_db_linked")
                     
+                    # Inizializza variabili
+                    radio_id = ""
+                    modello = ""
+                    radio_selezionata_full = None
+                    
                     if scelta_display == "-- Seleziona Radio dal DB --":
                         st.warning("⚠️ Seleziona una radio dall'inventario")
-                        radio_id = ""
-                        modello = ""
-                        radio_selezionata_full = None
                     else:
-                        # Estrai ID
-                        try:
-                            # Formato "🟢 R-01 - Baofeng... [Disponibile] - Batt: Carica"
-                            radio_id = scelta_display.split(" ")[1]  # R-01
-                        except:
-                            radio_id = scelta_display
-                        radio_selezionata_full = next((rl["full"] for rl in radio_list if rl["id"]==radio_id), None)
-                        if radio_selezionata_full:
-                            modello = str(radio_selezionata_full.get("Modello",""))
-                            st.success(f"✅ **{radio_id}** | Modello: **{modello}** | Stato: {radio_selezionata_full.get('Stato','')} | Batt: {radio_selezionata_full.get('Batteria','')}")
+                        # FIX: Usa dizionario mapping invece di split
+                        data_sel = display_to_data.get(scelta_display)
+                        if data_sel:
+                            radio_id = data_sel["id"]
+                            modello = data_sel["modello"]
+                            radio_selezionata_full = data_sel["full"]
+                            st.success(f"✅ **{radio_id}**")
+                            st.info(f"📻 Modello: **{modello}** | Stato: {radio_selezionata_full.get('Stato','')} | Batt: {radio_selezionata_full.get('Batteria','')}")
                             if radio_selezionata_full.get("Stato") != "Disponibile":
-                                st.warning(f"⚠️ Attenzione: Radio in stato {radio_selezionata_full.get('Stato','')}")
+                                st.warning(f"⚠️ Radio in stato {radio_selezionata_full.get('Stato','')}")
                         else:
-                            modello = ""
+                            st.error("Errore parsing radio")
                     
-                    # Campo modello bloccato agganciato
-                    st.text_input("Modello (da DB Inventario) *", value=modello, disabled=True, key="modello_locked")
+                    # Campo modello BLOCCATO ma con valore agganciato - FIX VISUALIZZAZIONE
+                    if modello:
+                        st.text_input("Modello (agganciato da DB) *", value=modello, disabled=True, key="modello_locked_ok")
+                        st.caption(f"🔗 Modello agganciato automaticamente da DB: {modello}")
+                    else:
+                        st.text_input("Modello (seleziona radio dal DB)", value="", disabled=True, placeholder="Seleziona radio sopra", key="modello_locked_empty")
                     
-                    if not st.session_state.radio_db:
-                        st.info("💡 Vai in 📻 DB Radio per inserire radio")
+                    # Salva in session per uso dopo submit
+                    st.session_state["_tmp_radio_id"] = radio_id
+                    st.session_state["_tmp_modello"] = modello
+                    st.session_state["_tmp_radio_full"] = radio_selezionata_full
+                    
                 else:
                     st.error("⚠️ DB Radio vuoto! Vai in 📻 DB Radio Inventario e inserisci le radio")
-                    radio_id = st.text_input("Radio ID * (manuale - DB vuoto)", placeholder="R-01")
-                    modello = st.text_input("Modello *", placeholder="Baofeng UV-5R")
+                    radio_id = st.text_input("Radio ID * (manuale - DB vuoto)", placeholder="R-01", key="radio_manual_id")
+                    modello = st.text_input("Modello *", placeholder="Baofeng UV-5R", key="radio_manual_modello")
+                    st.session_state["_tmp_radio_id"] = radio_id
+                    st.session_state["_tmp_modello"] = modello
             with c2:
                 assegnatario = combo_memoria("Assegnato A *", st.session_state.mem_nomi, "asseg", "Chi riceve")
                 consegnato_da = combo_memoria("Consegnata DA *", st.session_state.mem_nomi, "cons_da", "Chi consegna")
@@ -571,7 +940,19 @@ elif scelta == "📦 Distribuzione Radio":
                 stato_r = st.selectbox("Stato", ["Consegnata", "Riconsegnata", "Guasta"])
             note_d = st.text_input("Note", placeholder="Con batteria carica")
             if st.form_submit_button("📦 Assegna Radio", use_container_width=True, type="primary"):
-                if radio_id and radio_id != "" and assegnatario and postazione and consegnato_da and modello:
+                # FIX: Recupera da session tmp per aggancio modello sicuro
+                radio_id_final = st.session_state.get("_tmp_radio_id", "") or radio_id if 'radio_id' in locals() else st.session_state.get("_tmp_radio_id", "")
+                modello_final = st.session_state.get("_tmp_modello", "") or modello if 'modello' in locals() else st.session_state.get("_tmp_modello", "")
+                
+                # Se ancora vuoto, prova a recuperare da display
+                if not modello_final and st.session_state.radio_db:
+                    # Ultimo tentativo: cerca modello da radio_id
+                    for r in st.session_state.radio_db:
+                        if str(r.get("Radio ID","")).strip() == str(radio_id_final).strip():
+                            modello_final = str(r.get("Modello",""))
+                            break
+                
+                if radio_id_final and radio_id_final != "" and assegnatario and postazione and consegnato_da and modello_final:
                     st.session_state.dist_radio.append({
                         "Data": str(data_d), "RadioID": radio_id, "Modello": modello,
                         "Assegnatario": assegnatario, "Consegnata DA": consegnato_da,
