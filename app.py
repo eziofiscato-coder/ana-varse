@@ -327,7 +327,12 @@ def crea_pdf_fpdf(df, tipo="radio"):
         pdf.set_y(-12)
         pdf.set_font("Arial", "I", 7)
         pdf.cell(0, 10, f"ANA Varese - Documento ufficiale - Pagina {pdf.page_no()}", align="C")
-        return pdf.output(dest="S").encode("latin-1")
+        out = pdf.output()
+        if isinstance(out, bytearray):
+            out = bytes(out)
+        elif isinstance(out, str):
+            out = out.encode("latin-1")
+        return out
     except Exception as e:
         st.error(f"Errore PDF: {e}")
         return None
