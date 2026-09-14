@@ -196,6 +196,16 @@ FILE_POSTAZIONI = "postazioni_mappa.csv"
 
 if "dist_radio" not in st.session_state:
     st.session_state.dist_radio = pd.read_csv(FILE_DIST_RADIO).to_dict(orient="records") if os.path.exists(FILE_DIST_RADIO) else []
+
+if "selected_postazione" not in st.session_state:
+    st.session_state.selected_postazione = None
+if "selected_from_dist" not in st.session_state:
+    st.session_state.selected_from_dist = None
+
+def vai_a_mappa(nome_postazione):
+    st.session_state.selected_postazione = nome_postazione
+    st.session_state.selected_from_dist = nome_postazione
+
 if "postazioni" not in st.session_state:
     st.session_state.postazioni = pd.read_csv(FILE_POSTAZIONI).to_dict(orient="records") if os.path.exists(FILE_POSTAZIONI) else []
 
@@ -646,7 +656,27 @@ with tab_dist:
         
         if st.session_state.dist_radio:
             df_dist = pd.DataFrame(st.session_state.dist_radio).iloc[::-1]
-            st.dataframe(df_dist, use_container_width=True, hide_index=True)
+            
+            # Rendi ipertestuale: clicca per vedere su mappa
+            st.markdown("**👆 Clicca su una postazione per vederla sulla mappa**")
+            cols = st.columns(min(4, len(df_dist)))
+            for idx, row in df_dist.head(8).iterrows():
+                col_idx = idx % len(cols) if len(cols)>0 else 0
+                if len(cols)>0:
+                    with cols[col_idx]:
+                        post = row.get("Postazione","")
+                        # Cerca se esiste nelle postazioni mappa
+                        trovato = any(p.get("Postazione","").lower() == str(post).lower() for p in st.session_state.postazioni)
+                        icon = "🗺️" if trovato else "📍"
+                        if st.button(f"{icon} {post} - {row.get('RadioID','')} → {row.get('Assegnatario','')[:10]}", key=f"goto_{idx}", use_container_width=True):
+                            st.session_state.selected_postazione = post
+                            st.session_state.selected_from_dist = post
+                            st.info(f"Vai nella scheda 🗺️ Mappa Postazioni - Evidenziata: {post}")
+            
+            st.dataframe(df_dist, use_container_width=True, hide_index=True, 
+                         column_config={
+                             "Postazione": st.column_config.LinkColumn("Postazione (clicca per mappa)", help="Clicca i bottoni sopra per vedere su mappa"),
+                         })
             c1,c2,c3 = st.columns(3)
             with c1:
                 out = BytesIO()
@@ -710,8 +740,28 @@ with tab_mappa:
                     else:
                         st.error("Nome, Latitudine e Longitudine obbligatori")
         
+        # Se arriva da distribuzione, mostra avviso
+        if st.session_state.get("selected_postazione"):
+            st.info(f"📍 Postazione selezionata dalla scheda distribuzione: **{st.session_state.selected_postazione}** - Scorri giù per vederla evidenziata sulla mappa")
+            if st.button("❌ Deseleziona"):
+                st.session_state.selected_postazione = None
+                st.rerun()
+        
         if st.session_state.postazioni:
             df_post = pd.DataFrame(st.session_state.postazioni)
+            
+            # Lista ipertestuale cliccabile
+            st.markdown("**🔗 Postazioni salvate - Clicca per centrare la mappa:**")
+            cols_map = st.columns(3)
+            for idx, p in enumerate(st.session_state.postazioni):
+                with cols_map[idx % 3]:
+                    nome = p.get("Postazione","")
+                    is_selected = st.session_state.get("selected_postazione") == nome
+                    btn_type = "primary" if is_selected else "secondary"
+                    if st.button(f"{'✅ ' if is_selected else '📍 '}{nome} - {p.get('Responsabile','')[:10]} ({p.get('Latitudine','')},{p.get('Longitudine','')})", key=f"map_sel_{idx}", use_container_width=True, type=btn_type):
+                        st.session_state.selected_postazione = nome
+                        st.rerun()
+            
             
             # Mappa con folium se disponibile, altrimenti st.map
             try:
@@ -721,23 +771,49 @@ with tab_mappa:
                 # Centro mappa su Varese
                 m = folium.Map(location=[45.8205, 8.8255], zoom_start=13, tiles="OpenStreetMap")
                 
+                selected = st.session_state.get("selected_postazione")
+                # Se c'è selezionata, centra mappa su quella
+                if selected:
+                    for _, r in df_post.iterrows():
+                        if r.get("Postazione","") == selected:
+                            try:
+                                m.location = [float(r.get("Latitudine")), float(r.get("Longitudine"))]
+                                m.zoom_start = 16
+                            except:
+                                pass
+                
                 for _, r in df_post.iterrows():
                     try:
                         lat_f = float(r.get("Latitudine", 0))
                         lon_f = float(r.get("Longitudine", 0))
+                        nome_p = r.get('Postazione','')
+                        is_sel = nome_p == st.session_state.get("selected_postazione")
                         popup_html = f"""
-                        <b>{r.get('Postazione','')}</b><br>
+                        <b style="color:{'red' if is_sel else 'green'}">{nome_p} {'(SELEZIONATA)' if is_sel else ''}</b><br>
                         Resp: {r.get('Responsabile','')}<br>
                         Radio: {r.get('Radio','')}<br>
                         Tipo: {r.get('Tipo','')}<br>
-                        Note: {r.get('Note','')}
+                        Coord: {lat_f}, {lon_f}<br>
+                        Note: {r.get('Note','')}<br>
+                        <a href="https://www.openstreetmap.org/?mlat={lat_f}&mlon={lon_f}#map=17/{lat_f}/{lon_f}" target="_blank">Apri in OSM</a>
                         """
                         folium.Marker(
                             [lat_f, lon_f],
-                            popup=folium.Popup(popup_html, max_width=250),
-                            tooltip=r.get('Postazione',''),
-                            icon=folium.Icon(color="green", icon="info-sign")
+                            popup=folium.Popup(popup_html, max_width=300),
+                            tooltip=f"{'✅ ' if is_sel else ''}{nome_p} - Clicca per dettagli",
+                            icon=folium.Icon(color="red" if is_sel else "green", icon="star" if is_sel else "info-sign")
                         ).add_to(m)
+                        
+                        # Cerchio evidenza per selezionata
+                        if is_sel:
+                            folium.Circle(
+                                [lat_f, lon_f],
+                                radius=50,
+                                color="red",
+                                fill=True,
+                                fill_color="red",
+                                fill_opacity=0.3
+                            ).add_to(m)
                     except:
                         pass
                 
