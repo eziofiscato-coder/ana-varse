@@ -572,7 +572,8 @@ elif scelta == "📦 Distribuzione Radio":
                         else:
                             if st.button(f"➕ Aggiungi {post_nome} in mappa", key=f"add_map_{idx}", use_container_width=True):
                                 st.session_state.current_page = "🗺️ Mappa Postazioni"
-                                st.session_state.menu_radio = "🗺️ Mappa Postazioni"
+                                st.session_state.current_page = "🗺️ Mappa Postazioni"
+                                # Non settiamo menu_radio direttamente per evitare errore widget
                                 st.rerun()
                     with c4:
                         if coord_info:
@@ -586,7 +587,6 @@ elif scelta == "📦 Distribuzione Radio":
                         if st.button(f"🗺️ VAI ALLA MAPPA", key=f"goto_map_{idx}_{post_nome}", use_container_width=True, type="primary"):
                             st.session_state.selected_postazione = post_nome
                             st.session_state.current_page = "🗺️ Mappa Postazioni"
-                            st.session_state.menu_radio = "🗺️ Mappa Postazioni"
                             st.session_state.geo_lat = coord_info.get("Latitudine","") if coord_info else ""
                             st.session_state.geo_lon = coord_info.get("Longitudine","") if coord_info else ""
                             st.rerun()
@@ -620,9 +620,10 @@ elif scelta == "🗺️ Mappa Postazioni":
                 if comune_filtro:
                     filtrati = [c for c in lista_comuni if comune_filtro.lower() in c.lower()][:50]
                     if filtrati:
-                        comune_input = st.selectbox("Risultati filtro", ["--"] + filtrati, key="comune_filtro_sel")
-                        if comune_input != "--":
-                            st.session_state["comune_combo"] = comune_input
+                        comune_filtrato_sel = st.selectbox("Risultati filtro", ["--"] + filtrati, key="comune_filtro_sel")
+                        if comune_filtrato_sel != "--":
+                            comune_input = comune_filtrato_sel
+                            st.info(f"✅ Comune filtrato selezionato: {comune_input}")
             
             with c_com2:
                 # Vie associate al comune selezionato
