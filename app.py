@@ -191,6 +191,15 @@ def crea_pdf_con_pillow(df, tipo="radio"):
 
 
 
+
+FILE_RADIO_DB = "radio_db.csv"
+if "radio_db" not in st.session_state:
+    st.session_state.radio_db = pd.read_csv(FILE_RADIO_DB).to_dict(orient="records") if os.path.exists(FILE_RADIO_DB) else []
+
+def salva_radio_db():
+    if st.session_state.radio_db:
+        pd.DataFrame(st.session_state.radio_db).to_csv(FILE_RADIO_DB, index=False)
+
 FILE_DIST_RADIO = "distribuzione_radio.csv"
 FILE_POSTAZIONI = "postazioni_mappa.csv"
 
@@ -577,15 +586,160 @@ st.caption("1. Distribuzione Radio - 2. Mappa Postazioni FULLSCREEN OSM")
 tab_dist, tab_mappa = st.tabs(["📻 SCHEDA 1 - Distribuzione Radio", "🗺️ SCHEDA 2 - Mappa Postazioni FULLSCREEN"])
 
 with tab_dist:
-    with st.container(border=True):
-        st.markdown("#### 📻 Scheda Distribuzione Radio")
+    # Sottotab per DB Radio e Distribuzione
+    tab_radio_db, tab_radio_dist = st.tabs(["📻 DB Radio - Inventario", "📦 Distribuzione"])
+    
+    with tab_radio_db:
+        with st.container(border=True):
+            st.markdown("#### 📻 Database Radio - Inserisci le tue radio")
+            st.caption("Inserisci tutte le radio disponibili, poi le assegni nella scheda distribuzione")
+            
+            with st.form("form_radio_db"):
+                c1,c2,c3,c4 = st.columns(4)
+                with c1:
+                    radio_id_db = st.text_input("Radio ID *", placeholder="R-01, R-02...", key="radio_id_db")
+                    modello_db = st.selectbox("Modello *", ["Baofeng UV-5R", "Baofeng BF-888S", "Motorola T82", "Motorola XT460", "Midland G9", "Midland G7", "Intek MT-5050", "Altro"], key="modello_db")
+                with c2:
+                    seriale = st.text_input("Seriale / Matricola", placeholder="Es: SN123456")
+                    frequenza = st.text_input("Frequenza", placeholder="Es: 145.500 MHz")
+                with c3:
+                    batteria = st.selectbox("Stato Batteria", ["Carica", "Da caricare", "Guasta", "Nuova", "50%"], key="bat_db")
+                    accessori = st.text_input("Accessori", placeholder="Auricolare, caricabatterie...")
+                with c4:
+                    stato_radio_db = st.selectbox("Stato Radio", ["Disponibile", "In uso", "Guasta", "In riparazione", "Smarrimento"], key="stato_db")
+                    note_radio_db = st.text_input("Note", placeholder="Note radio")
+                
+                if st.form_submit_button("💾 Salva Radio nel DB", use_container_width=True, type="primary"):
+                    if radio_id_db and modello_db:
+                        # Controlla duplicati
+                        if any(r.get("Radio ID")==radio_id_db for r in st.session_state.radio_db):
+                            st.error(f"Radio ID {radio_id_db} già esistente!")
+                        else:
+                            st.session_state.radio_db.append({
+                                "Radio ID": radio_id_db,
+                                "Modello": modello_db,
+                                "Seriale": seriale,
+                                "Frequenza": frequenza,
+                                "Batteria": batteria,
+                                "Accessori": accessori,
+                                "Stato": stato_radio_db,
+                                "Note": note_radio_db,
+                                "Data Inserimento": str(datetime.now().date())
+                            })
+                            salva_radio_db()
+                            st.success(f"Radio {radio_id_db} aggiunta al DB!")
+                            st.rerun()
+                    else:
+                        st.error("Radio ID e Modello obbligatori")
+            
+            if st.session_state.radio_db:
+                df_radio_db = pd.DataFrame(st.session_state.radio_db).iloc[::-1]
+                st.markdown(f"**Totale radio in DB: {len(df_radio_db)}**")
+                # Filtri
+                col_f1, col_f2 = st.columns(2)
+                with col_f1:
+                    filtro_stato = st.selectbox("Filtra per stato", ["Tutti"] + list(df_radio_db["Stato"].unique()), key="filtro_stato_db")
+                with col_f2:
+                    filtro_mod = st.selectbox("Filtra per modello", ["Tutti"] + list(df_radio_db["Modello"].unique()), key="filtro_mod_db")
+                
+                df_show = df_radio_db.copy()
+                if filtro_stato != "Tutti":
+                    df_show = df_show[df_show["Stato"]==filtro_stato]
+                if filtro_mod != "Tutti":
+                    df_show = df_show[df_show["Modello"]==filtro_mod]
+                
+                st.dataframe(df_show, use_container_width=True, hide_index=True)
+                
+                c1,c2,c3 = st.columns(3)
+                with c1:
+                    out = BytesIO()
+                    df_radio_db.to_excel(out, index=False, engine="openpyxl")
+                    st.download_button("📥 Excel DB Radio", out.getvalue(), file_name="db_radio_inventario.xlsx", mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", use_container_width=True)
+                with c2:
+                    # PDF inventario
+                    try:
+                        from fpdf import FPDF
+                        pdf = FPDF(orientation='L', unit='mm', format='A4')
+                        pdf.add_page()
+                        try:
+                            if os.path.exists("logo.png"):
+                                pdf.image("logo.png", x=8, y=6, w=12)
+                        except:
+                            pass
+                        pdf.set_xy(22, 8)
+                        pdf.set_font("Arial", "B", 11)
+                        pdf.set_text_color(14, 122, 61)
+                        pdf.cell(0, 6, "VOLONTARIATO Varese - INVENTARIO RADIO", ln=True)
+                        pdf.set_x(22)
+                        pdf.set_font("Arial", "", 6)
+                        pdf.cell(0, 4, f"Data: {datetime.now().strftime('%d/%m/%Y')} - Tot: {len(df_radio_db)}", ln=True)
+                        pdf.ln(4)
+                        pdf.set_fill_color(14, 122, 61)
+                        pdf.set_text_color(255,255,255)
+                        pdf.set_font("Arial", "B", 6)
+                        cols = [18, 25, 22, 20, 18, 25, 18, 18, 30]
+                        heads = ["Radio ID","Modello","Seriale","Freq.","Batteria","Accessori","Stato","Data","Note"]
+                        for i,h in enumerate(heads):
+                            pdf.cell(cols[i], 6, h, border=1, fill=True, align="C")
+                        pdf.ln()
+                        pdf.set_text_color(0,0,0)
+                        pdf.set_font("Arial", "", 5.5)
+                        for _, r in df_radio_db.iterrows():
+                            if pdf.get_y() > 185:
+                                pdf.add_page()
+                            pdf.cell(cols[0], 6, str(r.get("Radio ID",""))[:10], border=1)
+                            pdf.cell(cols[1], 6, str(r.get("Modello",""))[:14], border=1)
+                            pdf.cell(cols[2], 6, str(r.get("Seriale",""))[:12], border=1)
+                            pdf.cell(cols[3], 6, str(r.get("Frequenza",""))[:10], border=1)
+                            pdf.cell(cols[4], 6, str(r.get("Batteria",""))[:10], border=1)
+                            pdf.cell(cols[5], 6, str(r.get("Accessori",""))[:14], border=1)
+                            pdf.cell(cols[6], 6, str(r.get("Stato",""))[:10], border=1)
+                            pdf.cell(cols[7], 6, str(r.get("Data Inserimento",""))[:10], border=1)
+                            pdf.cell(cols[8], 6, str(r.get("Note",""))[:16], border=1)
+                            pdf.ln()
+                        out_pdf = pdf.output()
+                        if isinstance(out_pdf, bytearray):
+                            out_pdf = bytes(out_pdf)
+                        elif isinstance(out_pdf, str):
+                            out_pdf = out_pdf.encode("latin-1")
+                        st.download_button("📄 PDF Inventario Radio", out_pdf, file_name=f"Inventario_Radio_{datetime.now().strftime('%Y%m%d')}.pdf", mime="application/pdf", use_container_width=True, type="primary")
+                    except Exception as e:
+                        st.error(f"PDF errore: {e}")
+                with c3:
+                    if st.button("🗑️ Cancella tutto il DB", use_container_width=True):
+                        st.session_state.radio_db = []
+                        salva_radio_db()
+                        st.rerun()
+            else:
+                st.info("Nessuna radio nel DB - Inserisci la prima!")
+    
+    with tab_radio_dist:
+        with st.container(border=True):
+            st.markdown("#### 📦 Distribuzione Radio ai Volontari")
         with st.form("form_dist_radio"):
             c1,c2,c3,c4 = st.columns(4)
             with c1:
                 data_d = st.date_input("Data", value=datetime.now(), key="data_dist")
-                radio_id = st.text_input("Radio ID *", placeholder="R-01")
+                                # Seleziona da DB radio se esiste
+                if st.session_state.radio_db:
+                    opzioni_radio_db = [r.get("Radio ID","") + " - " + r.get("Modello","") + " (" + r.get("Stato","") + ")" for r in st.session_state.radio_db if r.get("Stato")=="Disponibile" or r.get("Stato")=="In uso" or True]
+                    radio_options = ["-- Manuale --"] + [r.get("Radio ID","") for r in st.session_state.radio_db]
+                    scelta_radio_db = st.selectbox("Radio da DB *", radio_options, key="radio_db_sel")
+                    if scelta_radio_db == "-- Manuale --":
+                        radio_id = st.text_input("Radio ID manuale *", placeholder="R-01", key="radio_id_manuale")
+                        # Auto-compila modello se da DB
+                        modello = st.selectbox("Modello", ["Baofeng UV-5R", "Motorola T82", "Midland G9", "Altro"], key="modello_dist_manuale")
+                    else:
+                        radio_id = scelta_radio_db
+                        # Trova modello dal DB
+                        modello_trovato = next((r.get("Modello","") for r in st.session_state.radio_db if r.get("Radio ID")==radio_id), "Altro")
+                        st.caption(f"Modello: {modello_trovato}")
+                        modello = modello_trovato
+                else:
+                    radio_id = st.text_input("Radio ID *", placeholder="R-01", key="radio_id_no_db")
+                    modello = st.selectbox("Modello", ["Baofeng UV-5R", "Motorola T82", "Midland G9", "Altro"], key="modello_no_db")
+                    st.info("💡 Inserisci prima le radio nel DB Inventario")
             with c2:
-                modello = st.selectbox("Modello", ["Baofeng UV-5R", "Motorola T82", "Midland G9", "Altro"])
                 assegnatario = combo_memoria("Assegnatario", st.session_state.mem_nomi if st.session_state.mem_nomi else ["Volontario"], "asseg_radio", "Nome")
             with c3:
                 # Postazione diventa select da mappa + nuovo
@@ -723,24 +877,41 @@ with tab_mappa:
                             except:
                                 pass
                 
-                # Selettore tipo mappa
-                map_type = st.radio("🗺️ Tipo Mappa:", ["OpenStreetMap", "Google Stradale", "Google Satellite", "Google Ibrida", "Google Rilievo"], horizontal=True, key="map_type_selector")
+                # Selettore tipo mappa - FIX
+                if "map_type" not in st.session_state:
+                    st.session_state.map_type = "OpenStreetMap"
                 
+                map_type = st.selectbox("🗺️ Scegli Mappa:", ["OpenStreetMap", "Google Stradale", "Google Satellite", "Google Ibrida", "Google Rilievo"], index=["OpenStreetMap", "Google Stradale", "Google Satellite", "Google Ibrida", "Google Rilievo"].index(st.session_state.map_type), key="map_type_selectbox")
+                st.session_state.map_type = map_type
+                
+                # Crea mappa base
+                m = folium.Map(location=[center_lat, center_lon], zoom_start=zoom, tiles=None, control_scale=True)
+                
+                # Aggiungi tutti i layer
+                folium.TileLayer('OpenStreetMap', name='OpenStreetMap', attr='OSM').add_to(m)
+                folium.TileLayer('https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', attr='Google Maps', name='Google Stradale', max_zoom=20, overlay=False).add_to(m)
+                folium.TileLayer('https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}', attr='Google Maps', name='Google Satellite', max_zoom=20, overlay=False).add_to(m)
+                folium.TileLayer('https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', attr='Google Maps', name='Google Ibrida', max_zoom=20, overlay=False).add_to(m)
+                folium.TileLayer('https://mt1.google.com/vt/lyrs=p&x={x}&y={y}&z={z}', attr='Google Maps', name='Google Rilievo', max_zoom=20, overlay=False).add_to(m)
+                
+                # Seleziona layer attivo in base a scelta
+                # Usa JavaScript per attivare il giusto layer - per ora impostiamo tiles di default
                 if map_type == "OpenStreetMap":
+                    folium.TileLayer('OpenStreetMap', name='OpenStreetMap Default').add_to(m)
                     m = folium.Map(location=[center_lat, center_lon], zoom_start=zoom, tiles="OpenStreetMap")
-                else:
+                elif map_type == "Google Stradale":
                     m = folium.Map(location=[center_lat, center_lon], zoom_start=zoom, tiles=None)
-                    if map_type == "Google Stradale":
-                        folium.TileLayer('https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', attr='Google', name='Google Stradale', max_zoom=20).add_to(m)
-                    elif map_type == "Google Satellite":
-                        folium.TileLayer('https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}', attr='Google', name='Google Satellite', max_zoom=20).add_to(m)
-                    elif map_type == "Google Ibrida":
-                        folium.TileLayer('https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', attr='Google', name='Google Ibrida', max_zoom=20).add_to(m)
-                    elif map_type == "Google Rilievo":
-                        folium.TileLayer('https://mt1.google.com/vt/lyrs=p&x={x}&y={y}&z={z}', attr='Google', name='Google Rilievo', max_zoom=20).add_to(m)
-                    # Aggiungi anche OSM come alternativa
-                    folium.TileLayer('OpenStreetMap', name='OpenStreetMap').add_to(m)
-                    folium.LayerControl().add_to(m)
+                    folium.TileLayer('https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', attr='Google', name='Google Stradale', max_zoom=20).add_to(m)
+                elif map_type == "Google Satellite":
+                    m = folium.Map(location=[center_lat, center_lon], zoom_start=zoom, tiles=None)
+                    folium.TileLayer('https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}', attr='Google', name='Google Satellite', max_zoom=20).add_to(m)
+                elif map_type == "Google Ibrida":
+                    m = folium.Map(location=[center_lat, center_lon], zoom_start=zoom, tiles=None)
+                    folium.TileLayer('https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', attr='Google', name='Google Ibrida', max_zoom=20).add_to(m)
+                elif map_type == "Google Rilievo":
+                    m = folium.Map(location=[center_lat, center_lon], zoom_start=zoom, tiles=None)
+                    folium.TileLayer('https://mt1.google.com/vt/lyrs=p&x={x}&y={y}&z={z}', attr='Google', name='Google Rilievo', max_zoom=20).add_to(m)
+                
                 
                 # Se c'è selezionata, mostra pulsanti navigazione grandi
                 if selected:
@@ -780,7 +951,7 @@ with tab_mappa:
                         pass
                 
                 # FULLSCREEN: altezza grande e width 100%
-                st_folium(m, width=1400, height=700, use_container_width=True)
+                st_folium(m, width=1400, height=700, use_container_width=True, key=f"folium_{map_type}_{center_lat}_{center_lon}")
                 
             except ImportError:
                 st.warning("Installa folium per mappa OSM - uso mappa base")
@@ -807,3 +978,91 @@ with tab_mappa:
         else:
             st.info("Nessuna postazione - Aggiungi la prima!")
             st.map(pd.DataFrame([{"lat": 45.8205, "lon": 8.8255}]), zoom=12, use_container_width=True)
+
+
+
+st.divider()
+st.markdown("## 🔗 LINK PER INSERIRE AGGIORNAMENTI")
+st.caption("Condividi questo link ai volontari per aggiornare postazioni e radio in tempo reale")
+
+col_link1, col_link2 = st.columns([2,1])
+
+with col_link1:
+    # Chiedi URL app Streamlit
+    app_url = st.text_input("🌐 URL della tua app Streamlit (incollalo qui)", 
+                           placeholder="Es: https://ana-varse.streamlit.app",
+                           help="Lo trovi in Streamlit Cloud -> Manage app -> URL")
+    
+    if app_url:
+        st.success(f"Link attivo: {app_url}")
+        
+        # Link diretti alle sezioni
+        st.markdown(f"""
+        **📋 Link condivisibili:**
+        - **App completa:** {app_url}
+        - **Per aggiornare radio:** {app_url} (scheda Distribuzione Radio)
+        - **Per aggiornare mappa:** {app_url} (scheda Mappa Postazioni)
+        """)
+        
+        col_whatsapp, col_telegram = st.columns(2)
+        with col_whatsapp:
+            msg = f"Ciao! Aggiorna le postazioni e le radio qui: {app_url} - ANA Varese"
+            wa_link = f"https://wa.me/?text={msg.replace(' ', '%20')}"
+            st.link_button("📱 Condividi su WhatsApp", wa_link, use_container_width=True)
+        with col_telegram:
+            tg_link = f"https://t.me/share/url?url={app_url}&text=Aggiorna postazioni ANA Varese"
+            st.link_button("✈️ Condividi su Telegram", tg_link, use_container_width=True)
+
+with col_link2:
+    if app_url:
+        try:
+            import qrcode
+            from io import BytesIO
+            qr = qrcode.QRCode(version=1, box_size=10, border=4)
+            qr.add_data(app_url)
+            qr.make(fit=True)
+            img = qr.make_image(fill='black', back_color='white')
+            buf = BytesIO()
+            img.save(buf, format='PNG')
+            st.image(buf.getvalue(), caption="QR Code per accesso rapido", width=200)
+            st.download_button("📥 Scarica QR Code", buf.getvalue(), file_name="qr_ana_varese.png", mime="image/png", use_container_width=True)
+        except ImportError:
+            st.info("Per QR Code aggiungi qrcode[pil] ai requirements")
+            # Fallback con link
+            st.markdown(f"**QR Code:** Cerca su google 'QR Code generator' e incolla: {app_url}")
+        except Exception as e:
+            st.error(f"Errore QR: {e}")
+
+st.markdown("---")
+st.markdown("### 📤 Importa/Esporta Aggiornamenti Rapidi")
+c_imp1, c_imp2 = st.columns(2)
+with c_imp1:
+    st.markdown("**Esporta tutti i dati per backup:**")
+    if st.session_state.postazioni or st.session_state.dist_radio:
+        import json
+        all_data = {
+            "postazioni": st.session_state.postazioni,
+            "distribuzione_radio": st.session_state.dist_radio,
+            "data_export": str(datetime.now())
+        }
+        json_str = json.dumps(all_data, indent=2, ensure_ascii=False)
+        st.download_button("📥 Backup JSON Completo", json_str.encode('utf-8'), file_name=f"backup_ana_varese_{datetime.now().strftime('%Y%m%d_%H%M')}.json", mime="application/json", use_container_width=True)
+
+with c_imp2:
+    st.markdown("**Importa aggiornamenti da file:**")
+    uploaded_backup = st.file_uploader("Carica backup JSON", type=["json"], key="backup_uploader")
+    if uploaded_backup:
+        try:
+            import json
+            data = json.loads(uploaded_backup.read().decode('utf-8'))
+            if st.button("🔄 Importa e Sovrascrivi Dati", type="primary", use_container_width=True):
+                if "postazioni" in data:
+                    st.session_state.postazioni = data["postazioni"]
+                    salva_postazioni()
+                if "distribuzione_radio" in data:
+                    st.session_state.dist_radio = data["distribuzione_radio"]
+                    salva_dist_radio()
+                st.success("Dati importati!")
+                st.rerun()
+        except Exception as e:
+            st.error(f"Errore import: {e}")
