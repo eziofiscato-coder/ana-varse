@@ -6,6 +6,12 @@ from datetime import datetime
 
 st.set_page_config(page_title="ANA Varese", layout="wide")
 
+# Gestione firma
+import os
+FILE_FIRMA = "firma.png"
+FILE_TIMBRO = "timbro.png"
+
+
 if "uscito" not in st.session_state:
     st.session_state["uscito"] = False
 
@@ -27,6 +33,37 @@ if st.session_state.get("uscito"):
         st.session_state["uscito"] = False
         st.rerun()
     st.stop()
+
+# Sidebar firma e timbro
+with st.sidebar:
+    st.markdown("### ✍️ Firma e Timbro PDF")
+    firma_file = st.file_uploader("Carica Firma (PNG/JPG)", type=["png","jpg","jpeg"], key="firma_up")
+    if firma_file:
+        with open(FILE_FIRMA, "wb") as f:
+            f.write(firma_file.getbuffer())
+        st.success("Firma caricata!")
+        st.image(FILE_FIRMA, width=150)
+    elif os.path.exists(FILE_FIRMA):
+        st.image(FILE_FIRMA, width=150, caption="Firma attuale")
+        if st.button("Rimuovi firma"):
+            os.remove(FILE_FIRMA)
+            st.rerun()
+    
+    timbro_file = st.file_uploader("Carica Timbro (PNG/JPG)", type=["png","jpg","jpeg"], key="timbro_up")
+    if timbro_file:
+        with open(FILE_TIMBRO, "wb") as f:
+            f.write(timbro_file.getbuffer())
+        st.success("Timbro caricato!")
+        st.image(FILE_TIMBRO, width=150)
+    elif os.path.exists(FILE_TIMBRO):
+        st.image(FILE_TIMBRO, width=150, caption="Timbro attuale")
+        if st.button("Rimuovi timbro"):
+            os.remove(FILE_TIMBRO)
+            st.rerun()
+    
+    st.divider()
+    nome_coord = st.text_input("Nome Coordinatore", value="Coordinatore Sezione Varese", key="nome_coord")
+    st.session_state["nome_coord"] = nome_coord
 
 FILE_DATI = "dati_iscritti.csv"
 FILE_RADIO = "radio_log.csv"
@@ -182,10 +219,52 @@ def crea_pdf_a4_con_logo(df, tipo="radio"):
                 pdf.cell(25, 7, str(row.get("Note",""))[:15], border=1)
                 pdf.ln()
         
+        # Spazio firma e timbro in fondo
+        pdf.ln(10)
+        if pdf.get_y() > 240:
+            pdf.add_page()
+        
+        pdf.set_font("Arial", "", 10)
+        pdf.set_text_color(0,0,0)
+        y_firma = pdf.get_y()
+        
+        # Box firma
+        pdf.set_xy(20, y_firma)
+        pdf.cell(80, 6, "Il Coordinatore", align="C")
+        pdf.set_xy(110, y_firma)
+        pdf.cell(80, 6, "Timbro Sezione", align="C")
+        
+        # Immagini firma e timbro
+        try:
+            if os.path.exists(FILE_FIRMA):
+                pdf.image(FILE_FIRMA, x=25, y=y_firma+8, w=60)
+        except:
+            pass
+        try:
+            if os.path.exists(FILE_TIMBRO):
+                pdf.image(FILE_TIMBRO, x=115, y=y_firma+8, w=50)
+        except:
+            pass
+        
+        # Linee firma
+        pdf.set_xy(20, y_firma+30)
+        pdf.cell(80, 6, "________________________", align="C")
+        pdf.set_xy(110, y_firma+30)
+        pdf.cell(80, 6, "________________________", align="C")
+        
+        pdf.set_xy(20, y_firma+36)
+        pdf.set_font("Arial", "B", 9)
+        nome_c = st.session_state.get("nome_coord", "Coordinatore Sezione Varese")
+        pdf.cell(80, 6, nome_c, align="C")
+        
+        pdf.set_xy(110, y_firma+36)
+        pdf.set_font("Arial", "", 8)
+        pdf.cell(80, 6, "ANA Varese", align="C")
+        
         # Numerazione pagine
         pdf.set_y(-15)
         pdf.set_font("Arial", "I", 8)
-        pdf.cell(0, 10, f"Pagina {pdf.page_no()}", align="C")
+        pdf.cell(0, 10, f"Pagina {pdf.page_no()} - Documento ufficiale ANA Varese", align="C")
         
         return pdf.output(dest="S").encode("latin-1")
     except ImportError as e:
