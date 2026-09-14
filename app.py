@@ -18,7 +18,7 @@ with st.form("form"):
     nome = st.text_input("Nome e Cognome *")
     assoc = st.text_input("Associazione *")
     cell = st.text_input("Cellulare *")
-    ruolo = st.selectbox("Ruolo *", ["Volontario", "Caposquadra", "Coordinatore", "Autista", "Radio", "Logistica", "Segreteria", "Sanitario", "Altro"])
+    ruolo = st.selectbox("Ruolo *", ["Volontario", "Caposquadra", "Coordinatore", "Autista", "Radio", "Telecomunicazioni", "Logistica", "Segreteria", "Sanitario", "Altro"])
     submitted = st.form_submit_button("✅ Salva", use_container_width=True)
     if submitted:
         if nome and assoc and cell:
