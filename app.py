@@ -1,5 +1,6 @@
 
-import streamlit as st
+
+  import streamlit as st
 import pandas as pd
 from io import BytesIO
 
@@ -35,9 +36,3 @@ if st.session_state.dati:
     st.download_button("📥 Scarica Excel", output.getvalue(), file_name="associazioni.xlsx", mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", use_container_width=True)
 
 Show less
-Scorri giù → Commit changes
-Dopo 1 minuto su https://ana-varese-3dcarznzkzrefca6hgppzc.streamlit.app/ vedrai il tuo logo originale, non più verde!
-
-
-
-Chiedi a Meta AI...
