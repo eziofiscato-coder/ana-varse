@@ -320,18 +320,55 @@ elif scelta == "📦 Distribuzione Radio":
             with c1:
                 data_d = st.date_input("Data", value=datetime.now())
                 if st.session_state.radio_db:
-                    radio_options = ["-- Manuale --"] + [str(r.get("Radio ID","")) for r in st.session_state.radio_db if r.get("Radio ID")]
-                    scelta_radio = st.selectbox("Radio da DB *", radio_options)
-                    if scelta_radio == "-- Manuale --":
-                        radio_id = st.text_input("Radio ID manuale *", placeholder="R-01")
-                        modello = st.selectbox("Modello", ["Baofeng UV-5R", "Motorola T82", "Midland G9", "Altro"])
+                    st.markdown("**📻 Agganciato a DB Radio Inventario**")
+                    # Crea lista con info complete
+                    radio_list = []
+                    for r in st.session_state.radio_db:
+                        rid = str(r.get("Radio ID","")).strip()
+                        if rid:
+                            mod = str(r.get("Modello","")).strip()
+                            stato = str(r.get("Stato","")).strip()
+                            batt = str(r.get("Batteria","")).strip()
+                            radio_list.append({"id": rid, "modello": mod, "stato": stato, "batteria": batt, "full": r})
+                    
+                    # Opzioni con stato
+                    opzioni_display = ["-- Seleziona Radio dal DB --"]
+                    for rl in radio_list:
+                        icon = "🟢" if rl["stato"]=="Disponibile" else "🔴" if rl["stato"] in ["Guasta","In riparazione"] else "🟡"
+                        opzioni_display.append(f"{icon} {rl['id']} - {rl['modello']} [{rl['stato']}] - Batt: {rl['batteria']}")
+                    
+                    scelta_display = st.selectbox("Radio ID dal DB Inventario *", opzioni_display, key="radio_db_linked")
+                    
+                    if scelta_display == "-- Seleziona Radio dal DB --":
+                        st.warning("⚠️ Seleziona una radio dall'inventario")
+                        radio_id = ""
+                        modello = ""
+                        radio_selezionata_full = None
                     else:
-                        radio_id = scelta_radio
-                        modello = next((r.get("Modello","") for r in st.session_state.radio_db if r.get("Radio ID")==radio_id), "Altro")
-                        st.caption(f"Modello: {modello}")
+                        # Estrai ID
+                        try:
+                            # Formato "🟢 R-01 - Baofeng... [Disponibile] - Batt: Carica"
+                            radio_id = scelta_display.split(" ")[1]  # R-01
+                        except:
+                            radio_id = scelta_display
+                        radio_selezionata_full = next((rl["full"] for rl in radio_list if rl["id"]==radio_id), None)
+                        if radio_selezionata_full:
+                            modello = str(radio_selezionata_full.get("Modello",""))
+                            st.success(f"✅ **{radio_id}** | Modello: **{modello}** | Stato: {radio_selezionata_full.get('Stato','')} | Batt: {radio_selezionata_full.get('Batteria','')}")
+                            if radio_selezionata_full.get("Stato") != "Disponibile":
+                                st.warning(f"⚠️ Attenzione: Radio in stato {radio_selezionata_full.get('Stato','')}")
+                        else:
+                            modello = ""
+                    
+                    # Campo modello bloccato agganciato
+                    st.text_input("Modello (da DB Inventario) *", value=modello, disabled=True, key="modello_locked")
+                    
+                    if not st.session_state.radio_db:
+                        st.info("💡 Vai in 📻 DB Radio per inserire radio")
                 else:
-                    radio_id = st.text_input("Radio ID *", placeholder="R-01")
-                    modello = st.selectbox("Modello", ["Baofeng UV-5R", "Motorola T82", "Midland G9", "Altro"])
+                    st.error("⚠️ DB Radio vuoto! Vai in 📻 DB Radio Inventario e inserisci le radio")
+                    radio_id = st.text_input("Radio ID * (manuale - DB vuoto)", placeholder="R-01")
+                    modello = st.text_input("Modello *", placeholder="Baofeng UV-5R")
             with c2:
                 assegnatario = combo_memoria("Assegnato A *", st.session_state.mem_nomi, "asseg", "Chi riceve")
                 consegnato_da = combo_memoria("Consegnata DA *", st.session_state.mem_nomi, "cons_da", "Chi consegna")
@@ -349,7 +386,7 @@ elif scelta == "📦 Distribuzione Radio":
                 stato_r = st.selectbox("Stato", ["Consegnata", "Riconsegnata", "Guasta"])
             note_d = st.text_input("Note", placeholder="Con batteria carica")
             if st.form_submit_button("📦 Assegna Radio", use_container_width=True, type="primary"):
-                if radio_id and assegnatario and postazione and consegnato_da:
+                if radio_id and radio_id != "" and assegnatario and postazione and consegnato_da and modello:
                     st.session_state.dist_radio.append({
                         "Data": str(data_d), "RadioID": radio_id, "Modello": modello,
                         "Assegnatario": assegnatario, "Consegnata DA": consegnato_da,
