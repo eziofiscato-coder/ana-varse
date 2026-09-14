@@ -6,6 +6,61 @@ from datetime import datetime
 
 st.set_page_config(page_title="ANA Varese", layout="wide")
 
+
+if "entered" not in st.session_state:
+    st.session_state.entered = False
+
+if not st.session_state.entered:
+    # Nascondi sidebar nella presentazione
+    st.markdown("""
+    <style>
+    [data-testid="stSidebar"] {display: none;}
+    .main .block-container {max-width: 900px; padding-top: 2rem;}
+    </style>
+    """, unsafe_allow_html=True)
+    
+    col1, col2, col3 = st.columns([1,2,1])
+    with col2:
+        try:
+            st.image("logo.png", width=200)
+        except:
+            pass
+    
+    st.markdown("""
+    <div style="text-align:center; padding:20px;">
+        <h1 style="color:#0e7a3d; font-size:42px; margin-bottom:0;">🎖️ ANA - ASSOCIAZIONE NAZIONALE ALPINI</h1>
+        <h2 style="color:#333; font-size:28px; margin-top:5px;">Sezione di Varese</h2>
+        <h3 style="color:#666; font-size:20px; margin-top:20px;">Sistema Gestione Volontari, Radio e Postazioni</h3>
+        <div style="background:#e8f5e9; padding:20px; border-radius:15px; margin:30px 0; border-left:6px solid #0e7a3d;">
+            <p style="font-size:16px; color:#333; margin:0;">
+            📻 Gestione completa inventario radio<br>
+            🗺️ Mappa postazioni con navigazione Google Maps & Waze<br>
+            👥 Anagrafica volontari e presenze<br>
+            📋 Registro radio e verbali interventi<br>
+            🔗 Condivisione link aggiornamenti in tempo reale
+            </p>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    col_a, col_b, col_c = st.columns([1,1,1])
+    with col_b:
+        if st.button("🚀 ENTRA NEL SISTEMA", use_container_width=True, type="primary"):
+            st.session_state.entered = True
+            st.rerun()
+    
+    st.markdown("<br><br>", unsafe_allow_html=True)
+    st.markdown("""
+    <div style="text-align:center; background:#f8f9fa; padding:15px; border-radius:10px; margin-top:30px;">
+        <p style="font-size:14px; color:#888; margin:0;">Realizzato con ❤️ per la Sezione ANA Varese</p>
+        <p style="font-size:18px; color:#0e7a3d; font-weight:bold; margin:5px 0;">👨‍💻 Realizzato da Ezio Fiscato</p>
+        <p style="font-size:12px; color:#aaa; margin:0;">Versione 2025 - Sistema Gestionale Volontariato</p>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    st.stop()
+
+
 if "uscito" not in st.session_state:
     st.session_state["uscito"] = False
 
