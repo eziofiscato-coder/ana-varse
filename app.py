@@ -5,6 +5,7 @@ import os
 from io import BytesIO
 from datetime import datetime
 import json
+import requests
 
 st.set_page_config(page_title="ANA Varese - Gestionale", page_icon="🎖️", layout="wide")
 
@@ -96,6 +97,32 @@ if "mem_nomi" not in st.session_state or not st.session_state.mem_nomi:
 def salva_csv(data, filename):
     if data:
         pd.DataFrame(data).to_csv(filename, index=False)
+
+
+import requests
+
+def geocode_comune_via(comune, via):
+    """Cerca lat/lon da comune e via usando OSM Nominatim"""
+    try:
+        query = f"{via}, {comune}, Italy" if via and comune else f"{comune}, Italy" if comune else via
+        if not query or query.strip() == ", Italy" or query.strip() == "":
+            return None, None, "Inserisci comune e via"
+        url = "https://nominatim.openstreetmap.org/search"
+        params = {"q": query, "format": "json", "limit": 1, "countrycodes": "it", "addressdetails": 1}
+        headers = {"User-Agent": "ANA-Varese-App/1.0 (eziofiscato@example.com)"}
+        resp = requests.get(url, params=params, headers=headers, timeout=10)
+        resp.raise_for_status()
+        data = resp.json()
+        if data:
+            lat = data[0].get("lat")
+            lon = data[0].get("lon")
+            display = data[0].get("display_name", "")
+            return lat, lon, display
+        else:
+            return None, None, "Nessun risultato trovato"
+    except Exception as e:
+        return None, None, f"Errore rete: {str(e)}"
+
 
 def calc_h(text, max_w=35):
     if not text:
@@ -419,13 +446,54 @@ elif scelta == "🗺️ Mappa Postazioni":
         st.markdown("#### 🗺️ Mappa Postazioni FULLSCREEN")
         if st.session_state.get("selected_postazione"):
             st.success(f"📍 Evidenziata: **{st.session_state.selected_postazione}**")
-        with st.expander("➕ Aggiungi Postazione", expanded=False):
+        with st.expander("➕ Aggiungi Postazione con Comune e Via (agganciato a rete)", expanded=True):
+            st.markdown("##### 🌍 Geocoding automatico da Comune e Via")
+            c_com1, c_com2, c_com3 = st.columns([2,3,1])
+            with c_com1:
+                comune_input = st.text_input("Comune *", placeholder="Es: Varese", key="comune_input")
+            with c_com2:
+                via_input = st.text_input("Via / Indirizzo *", placeholder="Es: Via Sacco 5, Piazza Monte Grappa", key="via_input")
+            with c_com3:
+                st.markdown("<br>", unsafe_allow_html=True)
+                cerca_coord = st.button("🔍 Cerca coordinate da rete", use_container_width=True, type="primary", key="cerca_coord_btn")
+            
+            # Risultato geocoding in session
+            if "geo_lat" not in st.session_state:
+                st.session_state.geo_lat = ""
+                st.session_state.geo_lon = ""
+                st.session_state.geo_display = ""
+            
+            if cerca_coord:
+                if comune_input or via_input:
+                    with st.spinner(f"🌐 Cerco {via_input}, {comune_input} sulla rete OSM..."):
+                        lat_found, lon_found, display = geocode_comune_via(comune_input, via_input)
+                        if lat_found and lon_found:
+                            st.session_state.geo_lat = lat_found
+                            st.session_state.geo_lon = lon_found
+                            st.session_state.geo_display = display
+                            st.success(f"✅ Trovato: {display}")
+                            st.success(f"📍 Lat: {lat_found} | Lon: {lon_found}")
+                        else:
+                            st.error(f"❌ {display}")
+                else:
+                    st.error("Inserisci Comune e/o Via")
+            
+            if st.session_state.geo_display:
+                st.info(f"📍 Risultato rete: **{st.session_state.geo_display}** | Lat: {st.session_state.geo_lat} | Lon: {st.session_state.geo_lon}")
+            
+            st.divider()
             with st.form("form_post"):
                 c1,c2,c3 = st.columns(3)
                 with c1:
                     nome_post = st.text_input("Nome Postazione *", placeholder="Posto 1 - Ingresso")
-                    lat = st.text_input("Latitudine *", placeholder="45.8205")
-                    lon = st.text_input("Longitudine *", placeholder="8.8255")
+                    # Lat/Lon con valori da geocoding se presenti
+                    lat_default = st.session_state.geo_lat if st.session_state.geo_lat else ""
+                    lon_default = st.session_state.geo_lon if st.session_state.geo_lon else ""
+                    lat = st.text_input("Latitudine *", value=lat_default, placeholder="45.8205")
+                    lon = st.text_input("Longitudine *", value=lon_default, placeholder="8.8255")
+                    # Campi comune e via salvati
+                    comune_save = st.text_input("Comune (salvato)", value=comune_input, placeholder="Varese")
+                    via_save = st.text_input("Via (salvata)", value=via_input, placeholder="Via Sacco 5")
                 with c2:
                     resp_post = combo_memoria("Responsabile", st.session_state.mem_nomi, "resp_post", "Nome")
                     radio_post = st.text_input("Radio assegnata", placeholder="R-01")
@@ -438,10 +506,16 @@ elif scelta == "🗺️ Mappa Postazioni":
                             float(lat); float(lon)
                             st.session_state.postazioni.append({
                                 "Data": str(datetime.now().date()), "Postazione": nome_post,
+                                "Comune": comune_save, "Via": via_save,
                                 "Latitudine": lat, "Longitudine": lon,
                                 "Responsabile": resp_post, "Radio": radio_post,
-                                "Tipo": tipo_post, "Note": note_post
+                                "Tipo": tipo_post, "Note": note_post,
+                                "Indirizzo Completo": st.session_state.geo_display
                             })
+                            # Reset geo dopo salvataggio
+                            st.session_state.geo_lat = ""
+                            st.session_state.geo_lon = ""
+                            st.session_state.geo_display = ""
                             salva_csv(st.session_state.postazioni, FILE_POSTAZIONI)
                             st.success(f"{nome_post} aggiunta!")
                             st.rerun()
@@ -516,7 +590,9 @@ elif scelta == "🗺️ Mappa Postazioni":
                         lat_f = float(r.get("Latitudine")); lon_f = float(r.get("Longitudine"))
                         nome_p = r.get('Postazione','')
                         is_sel = nome_p == selected
-                        popup = f"<b>{nome_p}</b><br>Resp: {r.get('Responsabile','')}<br>Radio: {r.get('Radio','')}<br><a href='https://www.google.com/maps/dir/?api=1&destination={lat_f},{lon_f}' target='_blank'>Naviga Google</a>"
+                        comune_p = r.get('Comune','')
+                        via_p = r.get('Via','')
+                        popup = f"<b>{nome_p}</b><br>{comune_p} - {via_p}<br>Resp: {r.get('Responsabile','')}<br>Radio: {r.get('Radio','')}<br><a href='https://www.google.com/maps/dir/?api=1&destination={lat_f},{lon_f}' target='_blank'>Naviga Google</a> | <a href='https://waze.com/ul?ll={lat_f},{lon_f}&navigate=yes' target='_blank'>Waze</a>"
                         folium.Marker([lat_f, lon_f], popup=folium.Popup(popup, max_width=250), tooltip=nome_p, icon=folium.Icon(color="red" if is_sel else "green", icon="star" if is_sel else "info-sign")).add_to(m)
                         if is_sel:
                             folium.Circle([lat_f, lon_f], radius=60, color="red", fill=True, fill_opacity=0.3).add_to(m)
