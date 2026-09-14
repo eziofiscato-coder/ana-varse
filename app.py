@@ -348,8 +348,7 @@ def crea_pdf_fpdf(df, tipo="radio"):
                     chars_per_line = int(col_w * 2.2)
                     lines = (len(text) // chars_per_line) + 1
                     # conta anche a capo manuali
-                    lines += text.count("
-")
+                    lines += text.count(chr(10))
                     return max(8, lines * 4.5)
                 
                 h_ricev = calc_h(ricev, col_widths[5])
