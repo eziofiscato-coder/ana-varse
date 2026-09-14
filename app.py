@@ -613,8 +613,10 @@ elif scelta == "📦 Distribuzione Radio":
                                 lon_c = coord_info.get("Longitudine","")
                                 comune_c = coord_info.get("Comune","")
                                 via_c = coord_info.get("Via","")
-                                st.caption(f"📌 {comune_c} - {via_c}")
+                                st.caption(f"📌 {comune_c} - {via_c} {coord_info.get('Civico','')}")
                                 st.caption(f"Lat: {lat_c} Lon: {lon_c}")
+                                # Test link rapido
+                                st.caption(f"[Test Maps](https://www.google.com/maps/search/?api=1&query={lat_c},{lon_c})")
                             except:
                                 st.caption("Coordinate presenti")
                         else:
@@ -625,7 +627,8 @@ elif scelta == "📦 Distribuzione Radio":
                                 lat_c = coord_info.get("Latitudine")
                                 lon_c = coord_info.get("Longitudine")
                                 # Link diretti che FUNZIONANO
-                                st.link_button(f"📱 Google Maps", f"https://www.google.com/maps/dir/?api=1&destination={lat_c},{lon_c}", use_container_width=True)
+                                # Link Google Maps con marker visibile
+                                st.link_button(f"📱 Google Maps", f"https://www.google.com/maps/search/?api=1&query={lat_c},{lon_c}", use_container_width=True)
                             except:
                                 st.caption("No coord")
                         else:
@@ -639,7 +642,8 @@ elif scelta == "📦 Distribuzione Radio":
                             try:
                                 lat_c = coord_info.get("Latitudine")
                                 lon_c = coord_info.get("Longitudine")
-                                st.link_button(f"🚗 Waze", f"https://waze.com/ul?ll={lat_c},{lon_c}&navigate=yes", use_container_width=True)
+                                # Waze con nome postazione
+                                st.link_button(f"🚗 Waze", f"https://waze.com/ul?ll={lat_c},{lon_c}&navigate=yes&zoom=17", use_container_width=True)
                             except:
                                 pass
                     with c5:
@@ -804,13 +808,14 @@ elif scelta == "🗺️ Mappa Postazioni":
                             st.markdown(f"**🧭 Naviga verso: {st.session_state.selected_postazione}** - {lat_s},{lon_s}")
                             c1,c2,c3,c4 = st.columns(4)
                             with c1:
-                                st.link_button("📱 Google Maps", f"https://www.google.com/maps/dir/?api=1&destination={lat_s},{lon_s}", use_container_width=True, type="primary")
+                                # Questo link MOSTRA la postazione con marker rosso
+                                st.link_button("📍 Vedi Postazione Google", f"https://www.google.com/maps/search/?api=1&query={lat_s},{lon_s}", use_container_width=True, type="primary")
                             with c2:
-                                st.link_button("🚗 Waze", f"https://waze.com/ul?ll={lat_s},{lon_s}&navigate=yes", use_container_width=True)
+                                st.link_button("🧭 Naviga Google", f"https://www.google.com/maps/dir/?api=1&destination={lat_s},{lon_s}", use_container_width=True)
                             with c3:
-                                st.link_button("🗺️ OSM", f"https://www.openstreetmap.org/?mlat={lat_s}&mlon={lon_s}#map=18/{lat_s}/{lon_s}", use_container_width=True)
+                                st.link_button("🚗 Waze", f"https://waze.com/ul?ll={lat_s},{lon_s}&navigate=yes&zoom=17", use_container_width=True)
                             with c4:
-                                st.link_button("🌍 Earth", f"https://earth.google.com/web/search/{lat_s},{lon_s}", use_container_width=True)
+                                st.link_button("🗺️ OSM", f"https://www.openstreetmap.org/?mlat={lat_s}&mlon={lon_s}#map=18/{lat_s}/{lon_s}", use_container_width=True)
                         except:
                             pass
             
@@ -860,7 +865,8 @@ elif scelta == "🗺️ Mappa Postazioni":
                         comune_p = r.get('Comune','')
                         via_p = r.get('Via','')
                         civico_p = r.get('Civico','')
-                        popup = f"<b>{nome_p}</b><br>{via_p} {civico_p}, {comune_p}<br>Resp: {r.get('Responsabile','')}<br>Radio: {r.get('Radio','')}<br><a href='https://www.google.com/maps/dir/?api=1&destination={lat_f},{lon_f}' target='_blank'>Naviga Google</a> | <a href='https://waze.com/ul?ll={lat_f},{lon_f}&navigate=yes' target='_blank'>Waze</a>"
+                        # Link Google Maps che mostra marker + navigazione
+                        popup = f"<b>{nome_p}</b><br>{via_p} {civico_p}, {comune_p}<br>Resp: {r.get('Responsabile','')}<br>Radio: {r.get('Radio','')}<br>Lat:{lat_f} Lon:{lon_f}<br><a href='https://www.google.com/maps/search/?api=1&query={lat_f},{lon_f}' target='_blank'>📍 Vedi su Google Maps</a> | <a href='https://www.google.com/maps/dir/?api=1&destination={lat_f},{lon_f}' target='_blank'>🧭 Naviga</a> | <a href='https://waze.com/ul?ll={lat_f},{lon_f}&navigate=yes' target='_blank'>🚗 Waze</a>"
                         folium.Marker([lat_f, lon_f], popup=folium.Popup(popup, max_width=250), tooltip=nome_p, icon=folium.Icon(color="red" if is_sel else "green", icon="star" if is_sel else "info-sign")).add_to(m)
                         if is_sel:
                             folium.Circle([lat_f, lon_f], radius=60, color="red", fill=True, fill_opacity=0.3).add_to(m)
