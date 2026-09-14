@@ -90,6 +90,7 @@ def combo_memoria(label, mem_list, key_prefix, placeholder=""):
         return scelta
 
 def crea_pdf_radio(df):
+    # Prova con fpdf2, se non c'è usa reportlab, se non c'è usa txt
     try:
         from fpdf import FPDF
         pdf = FPDF(orientation='L', unit='mm', format='A4')
@@ -118,6 +119,42 @@ def crea_pdf_radio(df):
             pdf.cell(col_widths[6], 8, str(row.get("Messaggio Trasmesso",""))[:50], border=1)
             pdf.ln()
         return pdf.output(dest="S").encode("latin-1")
+    except ImportError:
+        # Fallback senza libreria: crea PDF semplice con reportlab se c'è
+        try:
+            from reportlab.lib.pagesizes import A4, landscape
+            from reportlab.pdfgen import canvas
+            from reportlab.lib.units import mm
+            buffer = BytesIO()
+            c = canvas.Canvas(buffer, pagesize=landscape(A4))
+            c.setFont("Helvetica-Bold", 14)
+            c.drawCentredString(148*mm, 190*mm, "ANA VARESE - REGISTRO TELECOMUNICAZIONI")
+            c.setFont("Helvetica", 10)
+            c.drawCentredString(148*mm, 183*mm, f"Stampa: {datetime.now().strftime('%d/%m/%Y %H:%M')} - Tot: {len(df)}")
+            y = 170
+            c.setFont("Helvetica-Bold", 8)
+            headers = ["Data", "Ora", "Canale", "Mittente", "Destinatario", "Ricevuto", "Trasmesso"]
+            x_positions = [10, 35, 50, 80, 115, 150, 220]
+            for i, h in enumerate(headers):
+                c.drawString(x_positions[i]*mm, y*mm, h)
+            y -= 7
+            c.setFont("Helvetica", 7)
+            for _, row in df.iterrows():
+                if y < 20:
+                    c.showPage()
+                    y = 190
+                c.drawString(x_positions[0]*mm, y*mm, str(row.get("Data",""))[:10])
+                c.drawString(x_positions[1]*mm, y*mm, str(row.get("Ora",""))[:5])
+                c.drawString(x_positions[2]*mm, y*mm, str(row.get("Canale",""))[:15])
+                c.drawString(x_positions[3]*mm, y*mm, str(row.get("Mittente",""))[:18])
+                c.drawString(x_positions[4]*mm, y*mm, str(row.get("Destinatario",""))[:18])
+                c.drawString(x_positions[5]*mm, y*mm, str(row.get("Messaggio Ricevuto",""))[:35])
+                c.drawString(x_positions[6]*mm, y*mm, str(row.get("Messaggio Trasmesso",""))[:35])
+                y -= 5
+            c.save()
+            return buffer.getvalue()
+        except ImportError:
+            return None
     except Exception as e:
         st.error(f"Errore PDF: {e}")
         return None
