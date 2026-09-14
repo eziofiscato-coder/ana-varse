@@ -5,3 +5,4 @@ Pillow
 fpdf2
 folium
 streamlit-folium
+qrcode[pil]

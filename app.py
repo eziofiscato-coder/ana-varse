@@ -196,18 +196,10 @@ FILE_POSTAZIONI = "postazioni_mappa.csv"
 
 if "dist_radio" not in st.session_state:
     st.session_state.dist_radio = pd.read_csv(FILE_DIST_RADIO).to_dict(orient="records") if os.path.exists(FILE_DIST_RADIO) else []
-
-if "selected_postazione" not in st.session_state:
-    st.session_state.selected_postazione = None
-if "selected_from_dist" not in st.session_state:
-    st.session_state.selected_from_dist = None
-
-def vai_a_mappa(nome_postazione):
-    st.session_state.selected_postazione = nome_postazione
-    st.session_state.selected_from_dist = nome_postazione
-
 if "postazioni" not in st.session_state:
     st.session_state.postazioni = pd.read_csv(FILE_POSTAZIONI).to_dict(orient="records") if os.path.exists(FILE_POSTAZIONI) else []
+if "selected_postazione" not in st.session_state:
+    st.session_state.selected_postazione = None
 
 def salva_dist_radio():
     if st.session_state.dist_radio:
@@ -233,10 +225,8 @@ def crea_pdf_distribuzione(df):
         pdf.cell(0, 7, "VOLONTARIATO - Sezione di Varese - DISTRIBUZIONE RADIO", ln=True)
         pdf.set_x(25)
         pdf.set_font("Arial", "", 7)
-        pdf.set_text_color(0,0,0)
-        pdf.cell(0, 4, f"Data stampa: {datetime.now().strftime('%d/%m/%Y %H:%M')} - Tot: {len(df)}", ln=True)
+        pdf.cell(0, 4, f"Stampa: {datetime.now().strftime('%d/%m/%Y %H:%M')} - Tot: {len(df)}", ln=True)
         pdf.ln(5)
-        
         pdf.set_fill_color(14, 122, 61)
         pdf.set_text_color(255,255,255)
         pdf.set_font("Arial", "B", 6.5)
@@ -245,53 +235,22 @@ def crea_pdf_distribuzione(df):
         for i,h in enumerate(heads):
             pdf.cell(cols[i], 7, h, border=1, fill=True, align="C")
         pdf.ln()
-        
         pdf.set_text_color(0,0,0)
         pdf.set_font("Arial", "", 6)
         for _, r in df.iterrows():
             if pdf.get_y() > 180:
                 pdf.add_page()
-            # Tutte celle stessa altezza
-            h_row = 8
-            pdf.cell(cols[0], h_row, str(r.get("Data",""))[:10], border=1)
-            pdf.cell(cols[1], h_row, str(r.get("RadioID",""))[:12], border=1)
-            pdf.cell(cols[2], h_row, str(r.get("Modello",""))[:12], border=1)
-            pdf.cell(cols[3], h_row, str(r.get("Assegnatario",""))[:18], border=1)
-            pdf.cell(cols[4], h_row, str(r.get("Postazione",""))[:16], border=1)
-            pdf.cell(cols[5], h_row, str(r.get("OraConsegna",""))[:8], border=1, align="C")
-            pdf.cell(cols[6], h_row, str(r.get("OraRiconsegna",""))[:8], border=1, align="C")
-            pdf.cell(cols[7], h_row, str(r.get("Stato",""))[:8], border=1, align="C")
-            pdf.cell(cols[8], h_row, str(r.get("Canale",""))[:10], border=1)
-            pdf.cell(cols[9], h_row, str(r.get("Note",""))[:20], border=1)
+            pdf.cell(cols[0], 8, str(r.get("Data",""))[:10], border=1)
+            pdf.cell(cols[1], 8, str(r.get("RadioID",""))[:12], border=1)
+            pdf.cell(cols[2], 8, str(r.get("Modello",""))[:12], border=1)
+            pdf.cell(cols[3], 8, str(r.get("Assegnatario",""))[:18], border=1)
+            pdf.cell(cols[4], 8, str(r.get("Postazione",""))[:16], border=1)
+            pdf.cell(cols[5], 8, str(r.get("OraConsegna",""))[:8], border=1, align="C")
+            pdf.cell(cols[6], 8, str(r.get("OraRiconsegna",""))[:8], border=1, align="C")
+            pdf.cell(cols[7], 8, str(r.get("Stato",""))[:8], border=1, align="C")
+            pdf.cell(cols[8], 8, str(r.get("Canale",""))[:10], border=1)
+            pdf.cell(cols[9], 8, str(r.get("Note",""))[:20], border=1)
             pdf.ln()
-        
-        pdf.ln(6)
-        yf = pdf.get_y()
-        pdf.set_xy(20, yf)
-        pdf.cell(60, 6, "Consegnato da", align="C")
-        pdf.set_xy(100, yf)
-        pdf.cell(60, 6, "Ricevuto da", align="C")
-        pdf.set_xy(180, yf)
-        pdf.cell(60, 6, "Timbro", align="C")
-        try:
-            if os.path.exists(FILE_FIRMA):
-                pdf.image(FILE_FIRMA, x=25, y=yf+6, w=40)
-        except:
-            pass
-        try:
-            if os.path.exists(FILE_TIMBRO):
-                pdf.image(FILE_TIMBRO, x=185, y=yf+6, w=35)
-        except:
-            pass
-        pdf.set_xy(20, yf+22)
-        pdf.cell(60, 6, "___________________", align="C")
-        pdf.set_xy(100, yf+22)
-        pdf.cell(60, 6, "___________________", align="C")
-        pdf.set_xy(180, yf+22)
-        pdf.cell(60, 6, "___________________", align="C")
-        pdf.set_y(-10)
-        pdf.set_font("Arial", "I", 6)
-        pdf.cell(0, 10, f"ANA Varese - Distribuzione Radio - Pag {pdf.page_no()}", align="C")
         out = pdf.output()
         if isinstance(out, bytearray):
             out = bytes(out)
@@ -611,36 +570,41 @@ with st.container(border=True):
             csv = df_radio.to_csv(index=False).encode('utf-8')
             st.download_button("CSV", csv, file_name="registro_radio.csv", mime="text/csv", use_container_width=True)
 
-
-
 st.divider()
-st.markdown("## 📋 2 SCHEDE RICHIESTE")
-st.caption("1. Distribuzione Radio - 2. Mappa Postazioni con OpenStreetMap")
+st.markdown("## 📋 2 SCHEDE RICHIESTE - IPERTESTUALI")
+st.caption("1. Distribuzione Radio - 2. Mappa Postazioni FULLSCREEN OSM")
 
-tab_dist, tab_mappa = st.tabs(["📻 SCHEDA 1 - Distribuzione Radio", "🗺️ SCHEDA 2 - Mappa Postazioni OSM"])
+tab_dist, tab_mappa = st.tabs(["📻 SCHEDA 1 - Distribuzione Radio", "🗺️ SCHEDA 2 - Mappa Postazioni FULLSCREEN"])
 
 with tab_dist:
     with st.container(border=True):
-        st.markdown("#### 📻 Scheda Distribuzione Radio ai Volontari")
+        st.markdown("#### 📻 Scheda Distribuzione Radio")
         with st.form("form_dist_radio"):
             c1,c2,c3,c4 = st.columns(4)
             with c1:
                 data_d = st.date_input("Data", value=datetime.now(), key="data_dist")
-                radio_id = st.text_input("Radio ID *", placeholder="Es: R-01, R-02")
+                radio_id = st.text_input("Radio ID *", placeholder="R-01")
             with c2:
-                modello = st.selectbox("Modello", ["Baofeng UV-5R", "Motorola T82", "Midland G9", "Intek MT-5050", "Altro"])
-                assegnatario = combo_memoria("Assegnatario", st.session_state.mem_nomi if st.session_state.mem_nomi else ["Volontario"], "asseg_radio", "Nome volontario")
+                modello = st.selectbox("Modello", ["Baofeng UV-5R", "Motorola T82", "Midland G9", "Altro"])
+                assegnatario = combo_memoria("Assegnatario", st.session_state.mem_nomi if st.session_state.mem_nomi else ["Volontario"], "asseg_radio", "Nome")
             with c3:
-                postazione = st.text_input("Postazione *", placeholder="Es: Cancello 1, Posto 3, COC")
-                canale = st.selectbox("Canale assegnato", ["CH 1 - Emergenza", "CH 2 - Logistica", "CH 3 - Coordinamento", "CH 4 - Operativo", "VHF 145.500"])
+                # Postazione diventa select da mappa + nuovo
+                opzioni_post = ["-- Nuova --"] + [p.get("Postazione","") for p in st.session_state.postazioni]
+                scelta_post = st.selectbox("Postazione (da mappa) *", opzioni_post, key="post_sel_dist")
+                if scelta_post == "-- Nuova --":
+                    postazione = st.text_input("Nuova Postazione *", placeholder="Es: Posto 1")
+                else:
+                    postazione = scelta_post
+                    st.caption(f"Coordinate: {[p.get('Latitudine','')+','+p.get('Longitudine','') for p in st.session_state.postazioni if p.get('Postazione')==postazione]}")
+                canale = st.selectbox("Canale", ["CH 1 - Emergenza", "CH 2 - Logistica", "CH 3 - Coordinamento", "CH 4 - Operativo", "VHF 145.500"])
             with c4:
                 ora_cons = st.text_input("Ora consegna", value=datetime.now().strftime("%H:%M"))
-                ora_ric = st.text_input("Ora riconsegna", placeholder="Da compilare al rientro")
+                ora_ric = st.text_input("Ora riconsegna", placeholder="Al rientro")
             c5,c6 = st.columns(2)
             with c5:
-                stato_r = st.selectbox("Stato Radio", ["Consegnata", "Riconsegnata", "Guasta", "Smarrimento", "Batteria scarica"])
+                stato_r = st.selectbox("Stato", ["Consegnata", "Riconsegnata", "Guasta", "Smarrimento"])
             with c6:
-                note_d = st.text_input("Note", placeholder="Es: Con batteria carica, con auricolare")
+                note_d = st.text_input("Note", placeholder="Con batteria carica")
             if st.form_submit_button("📻 Assegna Radio", use_container_width=True, type="primary"):
                 if radio_id and assegnatario and postazione:
                     st.session_state.dist_radio.append({
@@ -649,267 +613,285 @@ with tab_dist:
                         "OraConsegna": ora_cons, "OraRiconsegna": ora_ric, "Stato": stato_r, "Note": note_d
                     })
                     salva_dist_radio()
-                    st.success(f"Radio {radio_id} assegnata a {assegnatario} in {postazione}")
+                    st.success(f"Radio {radio_id} -> {postazione}")
                     st.rerun()
                 else:
                     st.error("Compila Radio ID, Assegnatario e Postazione")
         
         if st.session_state.dist_radio:
             df_dist = pd.DataFrame(st.session_state.dist_radio).iloc[::-1]
-            
-            # Rendi ipertestuale: clicca per vedere su mappa
-            st.markdown("**👆 Clicca su una postazione per vederla sulla mappa**")
-            cols = st.columns(min(4, len(df_dist)))
-            for idx, row in df_dist.head(8).iterrows():
-                col_idx = idx % len(cols) if len(cols)>0 else 0
-                if len(cols)>0:
-                    with cols[col_idx]:
-                        post = row.get("Postazione","")
-                        # Cerca se esiste nelle postazioni mappa
-                        trovato = any(p.get("Postazione","").lower() == str(post).lower() for p in st.session_state.postazioni)
-                        icon = "🗺️" if trovato else "📍"
-                        if st.button(f"{icon} {post} - {row.get('RadioID','')} → {row.get('Assegnatario','')[:10]}", key=f"goto_{idx}", use_container_width=True):
-                            st.session_state.selected_postazione = post
-                            st.session_state.selected_from_dist = post
-                            st.info(f"Vai nella scheda 🗺️ Mappa Postazioni - Evidenziata: {post}")
-            
-            st.dataframe(df_dist, use_container_width=True, hide_index=True, 
-                         column_config={
-                             "Postazione": st.column_config.LinkColumn("Postazione (clicca per mappa)", help="Clicca i bottoni sopra per vedere su mappa"),
-                         })
-            c1,c2,c3 = st.columns(3)
+            st.markdown("**👆 Clicca per vedere su mappa FULLSCREEN:**")
+            cols_btn = st.columns(3)
+            for i, row in df_dist.head(9).iterrows():
+                with cols_btn[i % 3]:
+                    post = row.get("Postazione","")
+                    trovato = any(p.get("Postazione","")==post for p in st.session_state.postazioni)
+                    icon = "🗺️" if trovato else "📍"
+                    if st.button(f"{icon} {post} | {row.get('RadioID','')} -> {row.get('Assegnatario','')[:12]}", key=f"goto_{i}", use_container_width=True):
+                        st.session_state.selected_postazione = post
+                        st.toast(f"Vai in Mappa FULLSCREEN: {post}")
+            st.dataframe(df_dist, use_container_width=True, hide_index=True)
+            c1,c2 = st.columns(2)
             with c1:
                 out = BytesIO()
                 df_dist.to_excel(out, index=False, engine="openpyxl")
-                st.download_button("📥 Excel Distribuzione", out.getvalue(), file_name="distribuzione_radio.xlsx", mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", use_container_width=True)
+                st.download_button("Excel Distribuzione", out.getvalue(), file_name="distribuzione_radio.xlsx", mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", use_container_width=True)
             with c2:
                 pdf_d = crea_pdf_distribuzione(df_dist)
                 if pdf_d:
-                    st.download_button("📄 PDF A4 Distribuzione con Firma", pdf_d, file_name=f"Distribuzione_Radio_{datetime.now().strftime('%Y%m%d')}.pdf", mime="application/pdf", use_container_width=True, type="primary")
-            with c3:
-                # Pulsante riconsegna rapida
-                if st.button("🔄 Segna tutte come Riconsegnate", use_container_width=True):
-                    for r in st.session_state.dist_radio:
-                        if r["Stato"] == "Consegnata":
-                            r["Stato"] = "Riconsegnata"
-                            r["OraRiconsegna"] = datetime.now().strftime("%H:%M")
-                    salva_dist_radio()
-                    st.rerun()
+                    st.download_button("PDF Distribuzione", pdf_d, file_name=f"Distribuzione_Radio_{datetime.now().strftime('%Y%m%d')}.pdf", mime="application/pdf", use_container_width=True, type="primary")
 
 with tab_mappa:
     with st.container(border=True):
-        st.markdown("#### 🗺️ Mappa Postazioni - OpenStreetMap con Assegnazione")
+        st.markdown("#### 🗺️ Mappa Postazioni - OpenStreetMap FULLSCREEN")
         
-        # Form aggiunta postazione con coordinate
-        with st.expander("➕ Aggiungi Nuova Postazione sulla Mappa", expanded=False):
+        # CSS per mappa full width
+        st.markdown("""
+        <style>
+        iframe {
+            width: 100% !important;
+        }
+        div[data-testid="stVerticalBlock"] > div:has(iframe) {
+            width: 100% !important;
+        }
+        </style>
+        """, unsafe_allow_html=True)
+        
+        if st.session_state.get("selected_postazione"):
+            st.success(f"📍 Evidenziata dalla scheda radio: **{st.session_state.selected_postazione}**")
+        
+        with st.expander("➕ Aggiungi Postazione", expanded=False):
             with st.form("form_postazione"):
                 c1,c2,c3 = st.columns(3)
                 with c1:
-                    nome_post = st.text_input("Nome Postazione *", placeholder="Es: Posto 1 - Ingresso, Cancello A")
-                    lat = st.text_input("Latitudine *", placeholder="Es: 45.8205")
-                    lon = st.text_input("Longitudine *", placeholder="Es: 8.8255")
+                    nome_post = st.text_input("Nome Postazione *", placeholder="Posto 1 - Ingresso")
+                    lat = st.text_input("Latitudine *", placeholder="45.8205")
+                    lon = st.text_input("Longitudine *", placeholder="8.8255")
                 with c2:
-                    resp_post = combo_memoria("Responsabile", st.session_state.mem_nomi if st.session_state.mem_nomi else ["Volontario"], "resp_post", "Nome responsabile")
-                    radio_post = st.text_input("Radio assegnata", placeholder="Es: R-01")
+                    resp_post = combo_memoria("Responsabile", st.session_state.mem_nomi if st.session_state.mem_nomi else ["Volontario"], "resp_post", "Nome")
+                    radio_post = st.text_input("Radio assegnata", placeholder="R-01")
                 with c3:
-                    tipo_post = st.selectbox("Tipo Postazione", ["Controllo accessi", "Viabilità", "Sicurezza", "Logistica", "COC", "Primo soccorso", "Altro"])
-                    note_post = st.text_area("Note postazione", placeholder="Compiti, orari, ecc.", height=80)
-                
-                st.markdown("💡 **Come trovare coordinate:** Vai su https://www.openstreetmap.org → cerca luogo → click destro → Mostra indirizzo → copia lat/lon")
-                
-                if st.form_submit_button("📍 Aggiungi alla Mappa", use_container_width=True, type="primary"):
+                    tipo_post = st.selectbox("Tipo", ["Controllo accessi", "Viabilita", "Sicurezza", "Logistica", "COC", "Altro"])
+                    note_post = st.text_input("Note", placeholder="Compiti")
+                st.caption("Trova coordinate su openstreetmap.org -> tasto destro -> Mostra indirizzo")
+                if st.form_submit_button("📍 Aggiungi alla Mappa FULLSCREEN", use_container_width=True, type="primary"):
                     if nome_post and lat and lon:
                         try:
-                            float(lat)
-                            float(lon)
+                            float(lat); float(lon)
                             st.session_state.postazioni.append({
-                                "Data": str(datetime.now().date()),
-                                "Postazione": nome_post,
-                                "Latitudine": lat,
-                                "Longitudine": lon,
-                                "Responsabile": resp_post,
-                                "Radio": radio_post,
-                                "Tipo": tipo_post,
-                                "Note": note_post
+                                "Data": str(datetime.now().date()), "Postazione": nome_post,
+                                "Latitudine": lat, "Longitudine": lon,
+                                "Responsabile": resp_post, "Radio": radio_post,
+                                "Tipo": tipo_post, "Note": note_post
                             })
                             salva_postazioni()
-                            st.success(f"Postazione {nome_post} aggiunta!")
+                            st.success(f"{nome_post} aggiunta!")
                             st.rerun()
                         except:
-                            st.error("Latitudine e Longitudine devono essere numeri (es: 45.8205)")
+                            st.error("Lat/Lon devono essere numeri")
                     else:
-                        st.error("Nome, Latitudine e Longitudine obbligatori")
-        
-        # Se arriva da distribuzione, mostra avviso
-        if st.session_state.get("selected_postazione"):
-            st.info(f"📍 Postazione selezionata dalla scheda distribuzione: **{st.session_state.selected_postazione}** - Scorri giù per vederla evidenziata sulla mappa")
-            if st.button("❌ Deseleziona"):
-                st.session_state.selected_postazione = None
-                st.rerun()
+                        st.error("Nome, Lat, Lon obbligatori")
         
         if st.session_state.postazioni:
             df_post = pd.DataFrame(st.session_state.postazioni)
             
-            # Lista ipertestuale cliccabile
-            st.markdown("**🔗 Postazioni salvate - Clicca per centrare la mappa:**")
+            st.markdown("**🔗 Clicca per centrare mappa FULLSCREEN:**")
             cols_map = st.columns(3)
             for idx, p in enumerate(st.session_state.postazioni):
                 with cols_map[idx % 3]:
                     nome = p.get("Postazione","")
-                    is_selected = st.session_state.get("selected_postazione") == nome
-                    btn_type = "primary" if is_selected else "secondary"
-                    if st.button(f"{'✅ ' if is_selected else '📍 '}{nome} - {p.get('Responsabile','')[:10]} ({p.get('Latitudine','')},{p.get('Longitudine','')})", key=f"map_sel_{idx}", use_container_width=True, type=btn_type):
+                    is_sel = st.session_state.get("selected_postazione") == nome
+                    if st.button(f"{'✅ ' if is_sel else '📍 '}{nome} ({p.get('Latitudine','')[:6]},{p.get('Longitudine','')[:6]})", key=f"map_sel_{idx}", use_container_width=True, type="primary" if is_sel else "secondary"):
                         st.session_state.selected_postazione = nome
                         st.rerun()
             
-            
-            # Mappa con folium se disponibile, altrimenti st.map
+            # MAPPA FULLSCREEN - usa container width totale
             try:
                 import folium
                 from streamlit_folium import st_folium
                 
-                # Centro mappa su Varese
-                m = folium.Map(location=[45.8205, 8.8255], zoom_start=13, tiles="OpenStreetMap")
-                
                 selected = st.session_state.get("selected_postazione")
-                # Se c'è selezionata, centra mappa su quella
+                center_lat, center_lon = 45.8205, 8.8255
+                zoom = 14
                 if selected:
                     for _, r in df_post.iterrows():
-                        if r.get("Postazione","") == selected:
+                        if r.get("Postazione") == selected:
                             try:
-                                m.location = [float(r.get("Latitudine")), float(r.get("Longitudine"))]
-                                m.zoom_start = 16
+                                center_lat = float(r.get("Latitudine"))
+                                center_lon = float(r.get("Longitudine"))
+                                zoom = 17
+                            except:
+                                pass
+                
+                # Selettore tipo mappa
+                map_type = st.radio("🗺️ Tipo Mappa:", ["OpenStreetMap", "Google Stradale", "Google Satellite", "Google Ibrida", "Google Rilievo"], horizontal=True, key="map_type_selector")
+                
+                if map_type == "OpenStreetMap":
+                    m = folium.Map(location=[center_lat, center_lon], zoom_start=zoom, tiles="OpenStreetMap")
+                else:
+                    m = folium.Map(location=[center_lat, center_lon], zoom_start=zoom, tiles=None)
+                    if map_type == "Google Stradale":
+                        folium.TileLayer('https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', attr='Google', name='Google Stradale', max_zoom=20).add_to(m)
+                    elif map_type == "Google Satellite":
+                        folium.TileLayer('https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}', attr='Google', name='Google Satellite', max_zoom=20).add_to(m)
+                    elif map_type == "Google Ibrida":
+                        folium.TileLayer('https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', attr='Google', name='Google Ibrida', max_zoom=20).add_to(m)
+                    elif map_type == "Google Rilievo":
+                        folium.TileLayer('https://mt1.google.com/vt/lyrs=p&x={x}&y={y}&z={z}', attr='Google', name='Google Rilievo', max_zoom=20).add_to(m)
+                    # Aggiungi anche OSM come alternativa
+                    folium.TileLayer('OpenStreetMap', name='OpenStreetMap').add_to(m)
+                    folium.LayerControl().add_to(m)
+                
+                # Se c'è selezionata, mostra pulsanti navigazione grandi
+                if selected:
+                    for _, r in df_post.iterrows():
+                        if r.get("Postazione") == selected:
+                            try:
+                                lat_s = r.get("Latitudine"); lon_s = r.get("Longitudine")
+                                st.markdown(f"""
+                                <div style="background:#e8f5e9; padding:15px; border-radius:10px; border-left:5px solid #0e7a3d; margin:10px 0;">
+                                <b>🧭 Naviga verso: {selected}</b><br>
+                                Coordinate: {lat_s}, {lon_s}<br>
+                                Responsabile: {r.get('Responsabile','')} - Radio: {r.get('Radio','')}
+                                </div>
+                                """, unsafe_allow_html=True)
+                                col_nav1, col_nav2, col_nav3, col_nav4 = st.columns(4)
+                                with col_nav1:
+                                    st.link_button(f"📱 Google Maps", f"https://www.google.com/maps/dir/?api=1&destination={lat_s},{lon_s}", use_container_width=True, type="primary")
+                                with col_nav2:
+                                    st.link_button(f"🚗 Waze", f"https://waze.com/ul?ll={lat_s},{lon_s}&navigate=yes", use_container_width=True)
+                                with col_nav3:
+                                    st.link_button(f"🗺️ OpenStreetMap", f"https://www.openstreetmap.org/?mlat={lat_s}&mlon={lon_s}#map=18/{lat_s}/{lon_s}", use_container_width=True)
+                                with col_nav4:
+                                    st.link_button(f"🌍 Google Earth", f"https://earth.google.com/web/search/{lat_s},{lon_s}", use_container_width=True)
                             except:
                                 pass
                 
                 for _, r in df_post.iterrows():
                     try:
-                        lat_f = float(r.get("Latitudine", 0))
-                        lon_f = float(r.get("Longitudine", 0))
+                        lat_f = float(r.get("Latitudine")); lon_f = float(r.get("Longitudine"))
                         nome_p = r.get('Postazione','')
-                        is_sel = nome_p == st.session_state.get("selected_postazione")
-                        popup_html = f"""
-                        <b style="color:{'red' if is_sel else 'green'}">{nome_p} {'(SELEZIONATA)' if is_sel else ''}</b><br>
-                        Resp: {r.get('Responsabile','')}<br>
-                        Radio: {r.get('Radio','')}<br>
-                        Tipo: {r.get('Tipo','')}<br>
-                        Coord: {lat_f}, {lon_f}<br>
-                        Note: {r.get('Note','')}<br>
-                        <a href="https://www.openstreetmap.org/?mlat={lat_f}&mlon={lon_f}#map=17/{lat_f}/{lon_f}" target="_blank">Apri in OSM</a>
-                        """
-                        folium.Marker(
-                            [lat_f, lon_f],
-                            popup=folium.Popup(popup_html, max_width=300),
-                            tooltip=f"{'✅ ' if is_sel else ''}{nome_p} - Clicca per dettagli",
-                            icon=folium.Icon(color="red" if is_sel else "green", icon="star" if is_sel else "info-sign")
-                        ).add_to(m)
-                        
-                        # Cerchio evidenza per selezionata
+                        is_sel = nome_p == selected
+                        popup = f"<b style='color:{'red' if is_sel else 'green'}'>{nome_p}</b><br>Resp: {r.get('Responsabile','')}<br>Radio: {r.get('Radio','')}<br>Tipo: {r.get('Tipo','')}<br>Coord: {lat_f},{lon_f}<br><a href='https://www.google.com/maps/dir/?api=1&destination={lat_f},{lon_f}' target='_blank'>🧭 Naviga con Google</a><br><a href='https://waze.com/ul?ll={lat_f},{lon_f}&navigate=yes' target='_blank'>🚗 Naviga con Waze</a><br><a href='https://www.openstreetmap.org/?mlat={lat_f}&mlon={lon_f}#map=18/{lat_f}/{lon_f}' target='_blank'>🗺️ Apri OSM</a>"
+                        folium.Marker([lat_f, lon_f], popup=folium.Popup(popup, max_width=300), tooltip=f"{'✅' if is_sel else ''}{nome_p}", icon=folium.Icon(color="red" if is_sel else "green", icon="star" if is_sel else "info-sign")).add_to(m)
                         if is_sel:
-                            folium.Circle(
-                                [lat_f, lon_f],
-                                radius=50,
-                                color="red",
-                                fill=True,
-                                fill_color="red",
-                                fill_opacity=0.3
-                            ).add_to(m)
+                            folium.Circle([lat_f, lon_f], radius=60, color="red", fill=True, fill_opacity=0.3).add_to(m)
                     except:
                         pass
                 
-                st_folium(m, width=1200, height=500)
+                # FULLSCREEN: altezza grande e width 100%
+                st_folium(m, width=1400, height=700, use_container_width=True)
                 
             except ImportError:
-                st.info("Per mappa interattiva OSM installa: pip install folium streamlit-folium - Uso mappa base per ora")
-                # Fallback st.map
+                st.warning("Installa folium per mappa OSM - uso mappa base")
                 try:
-                    map_data = []
-                    for _, r in df_post.iterrows():
-                        try:
-                            map_data.append({"lat": float(r.get("Latitudine")), "lon": float(r.get("Longitudine"))})
-                        except:
-                            pass
+                    map_data = [{"lat": float(r.get("Latitudine")), "lon": float(r.get("Longitudine"))} for _, r in df_post.iterrows() if r.get("Latitudine")]
                     if map_data:
-                        st.map(pd.DataFrame(map_data), zoom=13)
+                        st.map(pd.DataFrame(map_data), zoom=14, use_container_width=True)
                 except:
                     pass
             except Exception as e:
                 st.error(f"Errore mappa: {e}")
-                # Fallback
-                try:
-                    map_data = []
-                    for _, r in df_post.iterrows():
-                        try:
-                            map_data.append({"lat": float(r.get("Latitudine")), "lon": float(r.get("Longitudine"))})
-                        except:
-                            pass
-                    if map_data:
-                        st.map(pd.DataFrame(map_data), zoom=13)
-                except:
-                    pass
             
             st.dataframe(df_post, use_container_width=True, hide_index=True)
-            
-            c1,c2,c3 = st.columns(3)
+            c1,c2 = st.columns(2)
             with c1:
                 out = BytesIO()
                 df_post.to_excel(out, index=False, engine="openpyxl")
-                st.download_button("📥 Excel Postazioni", out.getvalue(), file_name="postazioni_mappa.xlsx", mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", use_container_width=True)
+                st.download_button("Excel Postazioni", out.getvalue(), file_name="postazioni.xlsx", mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", use_container_width=True)
             with c2:
-                # PDF postazioni
-                try:
-                    from fpdf import FPDF
-                    pdf = FPDF(orientation='L', unit='mm', format='A4')
-                    pdf.add_page()
-                    try:
-                        if os.path.exists("logo.png"):
-                            pdf.image("logo.png", x=8, y=6, w=14)
-                    except:
-                        pass
-                    pdf.set_xy(25, 8)
-                    pdf.set_font("Arial", "B", 12)
-                    pdf.set_text_color(14, 122, 61)
-                    pdf.cell(0, 7, "VOLONTARIATO Varese - MAPPA POSTAZIONI", ln=True)
-                    pdf.set_x(25)
-                    pdf.set_font("Arial", "", 7)
-                    pdf.cell(0, 4, f"Data: {datetime.now().strftime('%d/%m/%Y')} - Tot postazioni: {len(df_post)}", ln=True)
-                    pdf.ln(5)
-                    pdf.set_fill_color(14, 122, 61)
-                    pdf.set_text_color(255,255,255)
-                    pdf.set_font("Arial", "B", 7)
-                    cols = [30, 25, 25, 25, 20, 25, 50]
-                    heads = ["Postazione","Lat","Lon","Resp.","Radio","Tipo","Note"]
-                    for i,h in enumerate(heads):
-                        pdf.cell(cols[i], 7, h, border=1, fill=True, align="C")
-                    pdf.ln()
-                    pdf.set_text_color(0,0,0)
-                    pdf.set_font("Arial", "", 6)
-                    for _, r in df_post.iterrows():
-                        pdf.cell(cols[0], 7, str(r.get("Postazione",""))[:18], border=1)
-                        pdf.cell(cols[1], 7, str(r.get("Latitudine",""))[:12], border=1)
-                        pdf.cell(cols[2], 7, str(r.get("Longitudine",""))[:12], border=1)
-                        pdf.cell(cols[3], 7, str(r.get("Responsabile",""))[:14], border=1)
-                        pdf.cell(cols[4], 7, str(r.get("Radio",""))[:10], border=1)
-                        pdf.cell(cols[5], 7, str(r.get("Tipo",""))[:14], border=1)
-                        pdf.cell(cols[6], 7, str(r.get("Note",""))[:28], border=1)
-                        pdf.ln()
-                    out_pdf = pdf.output()
-                    if isinstance(out_pdf, bytearray):
-                        out_pdf = bytes(out_pdf)
-                    elif isinstance(out_pdf, str):
-                        out_pdf = out_pdf.encode("latin-1")
-                    st.download_button("📄 PDF Mappa Postazioni", out_pdf, file_name=f"Mappa_Postazioni_{datetime.now().strftime('%Y%m%d')}.pdf", mime="application/pdf", use_container_width=True)
-                except Exception as e:
-                    st.error(f"PDF: {e}")
-            with c3:
-                if st.button("🗑️ Cancella tutte le postazioni", use_container_width=True):
+                if st.button("🗑️ Cancella tutte", use_container_width=True):
                     st.session_state.postazioni = []
                     salva_postazioni()
                     st.rerun()
         else:
-            st.info("Nessuna postazione ancora. Aggiungi la prima postazione con coordinate!")
-            # Mappa di esempio centrata su Varese
-            st.map(pd.DataFrame([{"lat": 45.8205, "lon": 8.8255}]), zoom=12)
-            st.caption("Mappa centrata su Varese - Aggiungi postazioni per vederle qui")
+            st.info("Nessuna postazione - Aggiungi la prima!")
+            st.map(pd.DataFrame([{"lat": 45.8205, "lon": 8.8255}]), zoom=12, use_container_width=True)
 
-# Mantieni anche le vecchie sezioni radio e anagrafica prima
+
+
+st.divider()
+st.markdown("## 🔗 LINK PER INSERIRE AGGIORNAMENTI")
+st.caption("Condividi questo link ai volontari per aggiornare postazioni e radio in tempo reale")
+
+col_link1, col_link2 = st.columns([2,1])
+
+with col_link1:
+    # Chiedi URL app Streamlit
+    app_url = st.text_input("🌐 URL della tua app Streamlit (incollalo qui)", 
+                           placeholder="Es: https://ana-varse.streamlit.app",
+                           help="Lo trovi in Streamlit Cloud -> Manage app -> URL")
+    
+    if app_url:
+        st.success(f"Link attivo: {app_url}")
+        
+        # Link diretti alle sezioni
+        st.markdown(f"""
+        **📋 Link condivisibili:**
+        - **App completa:** {app_url}
+        - **Per aggiornare radio:** {app_url} (scheda Distribuzione Radio)
+        - **Per aggiornare mappa:** {app_url} (scheda Mappa Postazioni)
+        """)
+        
+        col_whatsapp, col_telegram = st.columns(2)
+        with col_whatsapp:
+            msg = f"Ciao! Aggiorna le postazioni e le radio qui: {app_url} - ANA Varese"
+            wa_link = f"https://wa.me/?text={msg.replace(' ', '%20')}"
+            st.link_button("📱 Condividi su WhatsApp", wa_link, use_container_width=True)
+        with col_telegram:
+            tg_link = f"https://t.me/share/url?url={app_url}&text=Aggiorna postazioni ANA Varese"
+            st.link_button("✈️ Condividi su Telegram", tg_link, use_container_width=True)
+
+with col_link2:
+    if app_url:
+        try:
+            import qrcode
+            from io import BytesIO
+            qr = qrcode.QRCode(version=1, box_size=10, border=4)
+            qr.add_data(app_url)
+            qr.make(fit=True)
+            img = qr.make_image(fill='black', back_color='white')
+            buf = BytesIO()
+            img.save(buf, format='PNG')
+            st.image(buf.getvalue(), caption="QR Code per accesso rapido", width=200)
+            st.download_button("📥 Scarica QR Code", buf.getvalue(), file_name="qr_ana_varese.png", mime="image/png", use_container_width=True)
+        except ImportError:
+            st.info("Per QR Code aggiungi qrcode[pil] ai requirements")
+            # Fallback con link
+            st.markdown(f"**QR Code:** Cerca su google 'QR Code generator' e incolla: {app_url}")
+        except Exception as e:
+            st.error(f"Errore QR: {e}")
+
+st.markdown("---")
+st.markdown("### 📤 Importa/Esporta Aggiornamenti Rapidi")
+c_imp1, c_imp2 = st.columns(2)
+with c_imp1:
+    st.markdown("**Esporta tutti i dati per backup:**")
+    if st.session_state.postazioni or st.session_state.dist_radio:
+        import json
+        all_data = {
+            "postazioni": st.session_state.postazioni,
+            "distribuzione_radio": st.session_state.dist_radio,
+            "data_export": str(datetime.now())
+        }
+        json_str = json.dumps(all_data, indent=2, ensure_ascii=False)
+        st.download_button("📥 Backup JSON Completo", json_str.encode('utf-8'), file_name=f"backup_ana_varese_{datetime.now().strftime('%Y%m%d_%H%M')}.json", mime="application/json", use_container_width=True)
+
+with c_imp2:
+    st.markdown("**Importa aggiornamenti da file:**")
+    uploaded_backup = st.file_uploader("Carica backup JSON", type=["json"], key="backup_uploader")
+    if uploaded_backup:
+        try:
+            import json
+            data = json.loads(uploaded_backup.read().decode('utf-8'))
+            if st.button("🔄 Importa e Sovrascrivi Dati", type="primary", use_container_width=True):
+                if "postazioni" in data:
+                    st.session_state.postazioni = data["postazioni"]
+                    salva_postazioni()
+                if "distribuzione_radio" in data:
+                    st.session_state.dist_radio = data["distribuzione_radio"]
+                    salva_dist_radio()
+                st.success("Dati importati!")
+                st.rerun()
+        except Exception as e:
+            st.error(f"Errore import: {e}")
