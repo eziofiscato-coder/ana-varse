@@ -125,7 +125,7 @@ def get_comuni_italiani():
                     nome = c.get("nome","")
                     if nome:
                         comuni.append(nome)
-        if len(comuni) < 100:
+        if len(comuni) < 5:
             raise Exception("pochi comuni")
         return sorted(list(set(comuni)))
     except Exception as e:
@@ -194,33 +194,92 @@ def get_vie_comune(comune_pulito):
 def geocode_comune_via_dettagliato(comune_display, via):
     """Geocoding con comune pulito"""
     try:
-        comune = comune_display.split("(")[0].strip() if "(" in comune_display else comune_display
-        return geocode_comune_via(comune, via)
-    except:
-        return None, None, "Errore"
-
-
-def geocode_comune_via(comune, via):
-    """Cerca lat/lon da comune e via usando OSM Nominatim"""
-    try:
-        query = f"{via}, {comune}, Italy" if via and comune else f"{comune}, Italy" if comune else via
-        if not query or query.strip() == ", Italy" or query.strip() == "":
-            return None, None, "Inserisci comune e via"
-        url = "https://nominatim.openstreetmap.org/search"
-        params = {"q": query, "format": "json", "limit": 1, "countrycodes": "it", "addressdetails": 1}
-        headers = {"User-Agent": "ANA-Varese-App/1.0 (eziofiscato@example.com)"}
-        resp = requests.get(url, params=params, headers=headers, timeout=10)
-        resp.raise_for_status()
-        data = resp.json()
-        if data:
-            lat = data[0].get("lat")
-            lon = data[0].get("lon")
-            display = data[0].get("display_name", "")
-            return lat, lon, display
-        else:
-            return None, None, "Nessun risultato trovato"
+        return geocode_comune_via(comune_display, via)
     except Exception as e:
-        return None, None, f"Errore rete: {str(e)}"
+        return None, None, f"Errore: {e}"
+
+
+def geocode_comune_via(comune, via, civico=""):
+    """Cerca lat/lon da comune, via e civico - robusto con fallback multipli per 403"""
+    try:
+        comune_clean = comune.split("(")[0].strip() if "(" in comune else comune
+        # Costruisci query con civico
+        via_completa = f"{via} {civico}".strip() if civico else via
+        query = f"{via_completa}, {comune_clean}, Italy" if via_completa and comune_clean else f"{comune_clean}, Italy" if comune_clean else via_completa
+        if not query or query.strip() == ", Italy" or query.strip() == "" or query.strip() == "Italy":
+            return None, None, "Inserisci comune e via"
+        
+        headers = {
+            "User-Agent": "ANA-Varese-App/1.0 (contact: ezio.fiscato@ana.varese.it)",
+            "Accept": "application/json",
+            "Accept-Language": "it-IT,it;q=0.9"
+        }
+        
+        # TENTATIVO 1: Nominatim OSM
+        try:
+            url = "https://nominatim.openstreetmap.org/search"
+            params = {"q": query, "format": "json", "limit": 1, "countrycodes": "it", "addressdetails": 1, "email": "ezio.fiscato@ana.varese.it"}
+            resp = requests.get(url, params=params, headers=headers, timeout=12)
+            if resp.status_code == 200:
+                data = resp.json()
+                if data:
+                    lat = data[0].get("lat")
+                    lon = data[0].get("lon")
+                    display = data[0].get("display_name", "")
+                    return lat, lon, display
+            elif resp.status_code == 403:
+                # 403 - prova con Photon
+                pass
+            else:
+                resp.raise_for_status()
+        except Exception as e1:
+            # Se Nominatim fallisce, prova Photon
+            pass
+        
+        # TENTATIVO 2: Photon Komoot (fallback per 403)
+        try:
+            photon_url = "https://photon.komoot.io/api/"
+            photon_params = {"q": query, "limit": 1, "lang": "it"}
+            resp2 = requests.get(photon_url, params=photon_params, headers=headers, timeout=12)
+            if resp2.status_code == 200:
+                data2 = resp2.json()
+                feats = data2.get("features", [])
+                if feats:
+                    coords = feats[0].get("geometry", {}).get("coordinates", [])
+                    props = feats[0].get("properties", {})
+                    if len(coords) >= 2:
+                        lon, lat = coords[0], coords[1]
+                        display = f"{props.get('name','')} {props.get('street','')} {props.get('city','')} {props.get('country','')}".strip()
+                        if not display:
+                            display = props.get("name", query)
+                        return str(lat), str(lon), display
+        except Exception as e2:
+            pass
+        
+        # TENTATIVO 3: Solo comune (senza via) su Nominatim
+        try:
+            if via and comune_clean:
+                # Prova solo comune
+                url3 = "https://nominatim.openstreetmap.org/search"
+                params3 = {"q": f"{comune_clean}, Italy", "format": "json", "limit": 1, "countrycodes": "it"}
+                resp3 = requests.get(url3, params=params3, headers=headers, timeout=10)
+                if resp3.status_code == 200:
+                    data3 = resp3.json()
+                    if data3:
+                        lat = data3[0].get("lat")
+                        lon = data3[0].get("lon")
+                        display = data3[0].get("display_name", "") + f" (centro {comune_clean} - via non trovata, puoi spostare manualmente)"
+                        return lat, lon, display
+        except:
+            pass
+        
+        return None, None, f"Nessun risultato per '{query}'. Prova con solo Comune o via più semplice (es: Via Roma)"
+    except Exception as e:
+        return None, None, f"Errore rete: {str(e)} - Prova con solo Comune"
+
+def geocode_comune_via_completo(comune, via, civico=""):
+    return geocode_comune_via(comune, via, civico)
+
 
 
 def calc_h(text, max_w=35):
@@ -612,10 +671,9 @@ elif scelta == "🗺️ Mappa Postazioni":
             
             st.caption(f"📋 {len(lista_comuni)} comuni italiani disponibili - Seleziona comune, poi carica vie")
             
-            c_com1, c_com2, c_com3 = st.columns([2,3,1])
+            c_com1, c_com2, c_com3, c_com4 = st.columns([2,2,1,1])
             with c_com1:
                 comune_input = st.selectbox("🏘️ Comune * (combo tutti Italia)", ["-- Seleziona Comune --"] + lista_comuni, key="comune_combo", help="Tutti i comuni italiani da ISTAT + rete")
-                # Filtro rapido se vuoi cercare
                 comune_filtro = st.text_input("🔍 Filtro rapido comune", placeholder="Scrivi Varese, Milano...", key="filtro_comune")
                 if comune_filtro:
                     filtrati = [c for c in lista_comuni if comune_filtro.lower() in c.lower()][:50]
@@ -641,22 +699,26 @@ elif scelta == "🗺️ Mappa Postazioni":
                         vie_opzioni = ["-- Seleziona Via --", "-- Inserisci manuale --"] + st.session_state.vie_comune[:300]
                         via_selezionata_combo = st.selectbox(f"🛣️ Vie di {comune_input.split('(')[0].strip()} ({len(st.session_state.vie_comune)} trovate)", vie_opzioni, key="via_combo")
                         if via_selezionata_combo == "-- Inserisci manuale --":
-                            via_input = st.text_input("Via manuale *", placeholder="Via Sacco 5", key="via_manuale")
+                            via_input = st.text_input("Via manuale *", placeholder="Via Sacco", key="via_manuale")
                         elif via_selezionata_combo == "-- Seleziona Via --":
-                            via_input = st.text_input("Via / Indirizzo *", placeholder="Via Sacco 5", key="via_input_combo")
+                            via_input = st.text_input("Via *", placeholder="Via Sacco", key="via_input_combo")
                         else:
                             via_input = via_selezionata_combo
                             st.caption(f"Selezionata: {via_input}")
                     else:
-                        via_input = st.text_input("🛣️ Via / Indirizzo *", placeholder="Es: Via Sacco 5 - oppure carica vie con bottone", key="via_input")
-                        st.caption("💡 Clicca 'Carica vie' per vedere tutte le vie del comune da rete")
+                        via_input = st.text_input("🛣️ Via *", placeholder="Via Sacco - oppure carica vie", key="via_input")
+                        st.caption("💡 Clicca 'Carica vie' per vedere vie del comune")
                 else:
-                    via_input = st.text_input("🛣️ Via / Indirizzo *", placeholder="Seleziona prima comune, poi via", key="via_input_no_comune")
-                    st.info("👆 Seleziona prima un comune per caricare le vie associate")
+                    via_input = st.text_input("🛣️ Via *", placeholder="Seleziona prima comune", key="via_input_no_comune")
+                    st.info("👆 Seleziona comune")
             
             with c_com3:
+                civico_input = st.text_input("🏠 Civico *", placeholder="Es: 5, 10/A, 23", key="civico_input", help="Numero civico della via")
+                st.caption("Es: 5, 12, 10/A, SNC")
+            
+            with c_com4:
                 st.markdown("<br>", unsafe_allow_html=True)
-                cerca_coord = st.button("🔍 Cerca coordinate da rete", use_container_width=True, type="primary", key="cerca_coord_btn")
+                cerca_coord = st.button("🔍 Cerca coordinate", use_container_width=True, type="primary", key="cerca_coord_btn", help="Cerca con Comune + Via + Civico da rete")
             
             # Risultato geocoding in session
             if "geo_lat" not in st.session_state:
@@ -664,10 +726,13 @@ elif scelta == "🗺️ Mappa Postazioni":
                 st.session_state.geo_lon = ""
                 st.session_state.geo_display = ""
             
+            # Recupera civico da session se esiste
+            civico_val = st.session_state.get("civico_input", "")
+            
             if cerca_coord:
                 if comune_input and comune_input != "-- Seleziona Comune --" and via_input:
-                    with st.spinner(f"🌐 Cerco {via_input}, {comune_input} su rete OSM..."):
-                        lat_found, lon_found, display = geocode_comune_via_dettagliato(comune_input, via_input)
+                    with st.spinner(f"🌐 Cerco {via_input} {civico_val}, {comune_input} su rete OSM/Photon..."):
+                        lat_found, lon_found, display = geocode_comune_via(comune_input, via_input, civico_val)
                         if lat_found and lon_found:
                             st.session_state.geo_lat = lat_found
                             st.session_state.geo_lon = lon_found
@@ -692,7 +757,8 @@ elif scelta == "🗺️ Mappa Postazioni":
                     lat = st.text_input("Latitudine *", value=lat_default, placeholder="45.8205")
                     lon = st.text_input("Longitudine *", value=lon_default, placeholder="8.8255")
                     comune_save = st.text_input("Comune (salvato)", value=comune_input if comune_input != "-- Seleziona Comune --" else "", placeholder="Varese")
-                    via_save = st.text_input("Via (salvata)", value=via_input, placeholder="Via Sacco 5")
+                    via_save = st.text_input("Via (salvata)", value=via_input, placeholder="Via Sacco")
+                    civico_save_form = st.text_input("Civico (salvato)", value=st.session_state.get("civico_input",""), placeholder="5")
                 with c2:
                     resp_post = combo_memoria("Responsabile", st.session_state.mem_nomi, "resp_post", "Nome")
                     radio_post = st.text_input("Radio assegnata", placeholder="R-01")
@@ -703,13 +769,15 @@ elif scelta == "🗺️ Mappa Postazioni":
                     if nome_post and lat and lon:
                         try:
                             float(lat); float(lon)
+                            civico_save = civico_save_form if 'civico_save_form' in locals() else st.session_state.get("civico_input","")
                             st.session_state.postazioni.append({
                                 "Data": str(datetime.now().date()), "Postazione": nome_post,
-                                "Comune": comune_save, "Via": via_save,
+                                "Comune": comune_save, "Via": via_save, "Civico": civico_save,
                                 "Latitudine": lat, "Longitudine": lon,
                                 "Responsabile": resp_post, "Radio": radio_post,
                                 "Tipo": tipo_post, "Note": note_post,
-                                "Indirizzo Completo": st.session_state.geo_display
+                                "Indirizzo Completo": st.session_state.geo_display,
+                                "Indirizzo": f"{via_save} {civico_save}, {comune_save}".strip()
                             })
                             # Reset geo dopo salvataggio
                             st.session_state.geo_lat = ""
@@ -791,7 +859,8 @@ elif scelta == "🗺️ Mappa Postazioni":
                         is_sel = nome_p == selected
                         comune_p = r.get('Comune','')
                         via_p = r.get('Via','')
-                        popup = f"<b>{nome_p}</b><br>{comune_p} - {via_p}<br>Resp: {r.get('Responsabile','')}<br>Radio: {r.get('Radio','')}<br><a href='https://www.google.com/maps/dir/?api=1&destination={lat_f},{lon_f}' target='_blank'>Naviga Google</a> | <a href='https://waze.com/ul?ll={lat_f},{lon_f}&navigate=yes' target='_blank'>Waze</a>"
+                        civico_p = r.get('Civico','')
+                        popup = f"<b>{nome_p}</b><br>{via_p} {civico_p}, {comune_p}<br>Resp: {r.get('Responsabile','')}<br>Radio: {r.get('Radio','')}<br><a href='https://www.google.com/maps/dir/?api=1&destination={lat_f},{lon_f}' target='_blank'>Naviga Google</a> | <a href='https://waze.com/ul?ll={lat_f},{lon_f}&navigate=yes' target='_blank'>Waze</a>"
                         folium.Marker([lat_f, lon_f], popup=folium.Popup(popup, max_width=250), tooltip=nome_p, icon=folium.Icon(color="red" if is_sel else "green", icon="star" if is_sel else "info-sign")).add_to(m)
                         if is_sel:
                             folium.Circle([lat_f, lon_f], radius=60, color="red", fill=True, fill_opacity=0.3).add_to(m)
