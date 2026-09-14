@@ -77,8 +77,10 @@ FILE_RADIO_DB = "radio_db.csv"
 FILE_DIST_RADIO = "distribuzione_radio.csv"
 FILE_POSTAZIONI = "postazioni_mappa.csv"
 FILE_REGISTRO = "registro_radio.csv"
+FILE_BROGLIACCIO = "brogliaccio.csv"
+FILE_COMUNICAZIONI = "brogliaccio_comunicazioni.csv"
 
-for f_name, key in [(FILE_NOMI, "mem_nomi"), (FILE_RADIO_DB, "radio_db"), (FILE_DIST_RADIO, "dist_radio"), (FILE_POSTAZIONI, "postazioni"), (FILE_REGISTRO, "registro_radio")]:
+for f_name, key in [(FILE_NOMI, "mem_nomi"), (FILE_RADIO_DB, "radio_db"), (FILE_DIST_RADIO, "dist_radio"), (FILE_POSTAZIONI, "postazioni"), (FILE_REGISTRO, "registro_radio"), (FILE_BROGLIACCIO, "brogliaccio"), (FILE_COMUNICAZIONI, "comunicazioni")]:
     if key not in st.session_state:
         if os.path.exists(f_name):
             try:
@@ -298,6 +300,7 @@ st.sidebar.markdown("## 📚 MENU PRINCIPALE")
 pagine = {
     "🏠 Dashboard": "Dashboard",
     "👥 Volontari": "Volontari",
+    "📝 Brogliaccio": "Brogliaccio",
     "📻 DB Radio Inventario": "DB Radio",
     "📦 Distribuzione Radio": "Distribuzione",
     "🗺️ Mappa Postazioni": "Mappa",
@@ -324,14 +327,16 @@ st.divider()
 
 # === DASHBOARD ===
 if scelta == "🏠 Dashboard":
-    col1,col2,col3,col4 = st.columns(4)
+    col1,col2,col3,col4,col5 = st.columns(5)
     with col1:
         st.metric("👥 Volontari", len(st.session_state.mem_nomi))
     with col2:
-        st.metric("📻 Radio in DB", len(st.session_state.radio_db))
+        st.metric("📝 Brogliaccio", len(st.session_state.brogliaccio) if "brogliaccio" in st.session_state else 0)
     with col3:
-        st.metric("📦 Distribuzioni", len(st.session_state.dist_radio))
+        st.metric("📻 Radio in DB", len(st.session_state.radio_db))
     with col4:
+        st.metric("📦 Distribuzioni", len(st.session_state.dist_radio))
+    with col5:
         st.metric("🗺️ Postazioni", len(st.session_state.postazioni))
     
     st.markdown("### 🚀 Accesso Rapido")
@@ -804,6 +809,336 @@ elif scelta == "👥 Volontari":
                 st.error(f"Errore stats: {e}")
         else:
             st.info("Nessun dato per statistiche")
+
+# === BROGLIACCIO - NUOVA SCHEDA RICHIESTA ===
+elif scelta == "📝 Brogliaccio":
+    st.markdown("### 📝 Brogliaccio Operativo - Registro Giornaliero Interventi")
+    st.caption("Annota Nome e Cognome, Cell, ODV di appartenenza e attività - collegato ad anagrafica volontari")
+    
+    tab1_brog, tab1b_brog, tab2_brog, tab3_brog = st.tabs(["➕ Nuova Annotazione", "📻 Sottomaschera Comunicazioni", "📋 Registro Brogliaccio", "📊 Export & Stampa"])
+    
+    with tab1_brog:
+        with st.container(border=True):
+            st.markdown("#### 📝 Inserisci Annotazione Brogliaccio")
+            st.info("Campi richiesti: Nome e Cognome, Cellulare, ODV di Appartenenza")
+            
+            with st.form("form_brogliaccio", clear_on_submit=True):
+                c1,c2,c3,c4 = st.columns(4)
+                with c1:
+                    # Nome e Cognome da anagrafica
+                    if st.session_state.mem_nomi:
+                        nome_brog = st.selectbox("Nome e Cognome * (da anagrafica)", ["-- Seleziona --"] + st.session_state.mem_nomi + ["-- Nuovo --"], key="brog_nome")
+                        if nome_brog == "-- Nuovo --":
+                            nome_brog_new = st.text_input("Nuovo Nome e Cognome *", placeholder="Mario Rossi")
+                            nome_brog_final = nome_brog_new
+                        elif nome_brog == "-- Seleziona --":
+                            nome_brog_final = ""
+                        else:
+                            nome_brog_final = nome_brog
+                            # Auto recupera cell da anagrafica completa se esiste
+                            if os.path.exists("anagrafica_volontari_completa.csv"):
+                                try:
+                                    df_anag = pd.read_csv("anagrafica_volontari_completa.csv")
+                                    match = df_anag[df_anag["Nome e Cognome"] == nome_brog_final]
+                                    if not match.empty:
+                                        cell_auto = match.iloc[0].get("Cellulare","")
+                                        st.caption(f"📱 Cell da anagrafica: {cell_auto}")
+                                except:
+                                    pass
+                    else:
+                        nome_brog_final = st.text_input("Nome e Cognome *", placeholder="Mario Rossi")
+                    
+                    cell_brog = st.text_input("Cell *", placeholder="333 1234567", help="Cellulare volontario")
+                
+                with c2:
+                    odv_brog = st.selectbox("ODV di Appartenenza *", ["--", "ANA - Associazione Nazionale Alpini", "ANA - Protezione Civile", "ANA - Antincendio Boschivo", "Protezione Civile Comunale", "Protezione Civile Regionale", "Croce Rossa Italiana", "Misericordia", "ANPAS", "Altra ODV", "Volontario Singolo"], help="Organizzazione di Volontariato di appartenenza")
+                    odv_dettaglio = st.text_input("Dettaglio / Sezione ODV", placeholder="Es: Sezione Varese, Gruppo AIB Varese, ecc")
+                
+                with c3:
+                    data_brog = st.date_input("Data *", value=datetime.now())
+                    ora_inizio_brog = st.text_input("Ora Inizio *", value=datetime.now().strftime("%H:%M"))
+                    ora_fine_brog = st.text_input("Ora Fine", placeholder="18:00")
+                
+                with c4:
+                    postazione_brog = st.selectbox("Postazione", ["--"] + [p.get("Postazione","") for p in st.session_state.postazioni] + ["Sede", "Magazzino", "Esterno"])
+                    comune_brog = st.selectbox("Comune Intervento", ["--"] + get_comuni_italiani()[:200], key="brog_comune")
+                    stato_brog = st.selectbox("Stato", ["In corso", "Completato", "Sospeso", "Annullato"])
+                
+                c_full1, c_full2 = st.columns(2)
+                with c_full1:
+                    attivita_brog = st.text_area("Attività svolta *", placeholder="Descrivi attività, intervento, note operative...", height=100)
+                with c_full2:
+                    note_brog = st.text_area("Note / Esito", placeholder="Esito, materiali usati, problemi riscontrati...", height=100)
+                    firma_brog = st.text_input("Firma / Operatore", placeholder="Chi compila")
+                
+                submitted_brog = st.form_submit_button("💾 Salva nel Brogliaccio", type="primary", use_container_width=True)
+                
+                if submitted_brog:
+                    if not nome_brog_final or not cell_brog or odv_brog == "--":
+                        st.error("❌ Compila Nome e Cognome, Cell ed ODV obbligatori!")
+                    else:
+                        record_brog = {
+                            "Data": str(data_brog),
+                            "Ora Inizio": ora_inizio_brog,
+                            "Ora Fine": ora_fine_brog,
+                            "Nome e Cognome": nome_brog_final,
+                            "Cell": cell_brog,
+                            "ODV": odv_brog,
+                            "Dettaglio ODV": odv_dettaglio,
+                            "Postazione": postazione_brog,
+                            "Comune": comune_brog,
+                            "Attività": attivita_brog,
+                            "Note/Esito": note_brog,
+                            "Stato": stato_brog,
+                            "Firma": firma_brog,
+                            "Timestamp": datetime.now().strftime("%d/%m/%Y %H:%M:%S")
+                        }
+                        if "brogliaccio" not in st.session_state:
+                            st.session_state.brogliaccio = []
+                        st.session_state.brogliaccio.append(record_brog)
+                        salva_csv(st.session_state.brogliaccio, FILE_BROGLIACCIO)
+                        st.success(f"✅ Brogliaccio salvato: {nome_brog_final} - {odv_brog} - {cell_brog}")
+                        st.balloons()
+    
+    with tab1b_brog:
+        st.markdown("### 📻 Sottomaschera Comunicazioni Radio - Log Traffico")
+        st.caption("Registra ora, giorno, mittente, messaggio, destinatario, messaggio risposta - Tracciamento comunicazioni")
+        
+        with st.container(border=True):
+            st.markdown("#### 📡 Nuova Comunicazione Radio")
+            with st.form("form_comunicazione_radio", clear_on_submit=True):
+                c1,c2,c3 = st.columns(3)
+                with c1:
+                    giorno_com = st.date_input("Giorno *", value=datetime.now(), key="com_giorno")
+                    ora_com = st.text_input("Ora *", value=datetime.now().strftime("%H:%M:%S"), placeholder="14:30:00", key="com_ora")
+                    canale_com = st.selectbox("Canale Radio", ["CH 1 - Emergenza", "CH 2 - Logistica", "CH 3 - Coordinamento", "VHF 145.500", "PMR 446"], key="com_canale")
+                with c2:
+                    # Mittente da anagrafica
+                    if st.session_state.mem_nomi:
+                        mittente_com = st.selectbox("Mittente *", ["--"] + st.session_state.mem_nomi, key="com_mittente")
+                    else:
+                        mittente_com = st.text_input("Mittente *", placeholder="Posto 1 - Mario Rossi", key="com_mittente_manual")
+                    messaggio_invio_com = st.text_area("Messaggio Inviato *", placeholder="Es: Richiesta intervento in Via Roma, situazione...", height=100, key="com_msg_invio")
+                with c3:
+                    # Destinatario da anagrafica o postazioni
+                    opzioni_dest = ["--"] + st.session_state.mem_nomi + [p.get("Postazione","") for p in st.session_state.postazioni] + ["Centrale Operativa", "Tutti", "Sede ANA Varese"]
+                    destinatario_com = st.selectbox("Destinatario *", opzioni_dest, key="com_destinatario")
+                    messaggio_risp_com = st.text_area("Messaggio Ricevuto / Risposta", placeholder="Es: Ricevuto, invio squadra, OK, ecc...", height=100, key="com_msg_risp")
+                
+                c4,c5 = st.columns(2)
+                with c4:
+                    tipo_com = st.selectbox("Tipo Comunicazione", ["Chiamata", "Risposta", "Avviso", "Emergenza", "Logistica", "Controllo Radio"], key="com_tipo")
+                    priorita_com = st.selectbox("Priorità", ["Normale", "Urgente", "Emergenza"], key="com_priorita")
+                with c5:
+                    esito_com = st.selectbox("Esito", ["Trasmesso", "Ricevuto", "Confermato", "In attesa risposta", "Non ricevuto"], key="com_esito")
+                    note_com = st.text_input("Note", placeholder="Disturbi, batteria scarica, ecc", key="com_note")
+                
+                submitted_com = st.form_submit_button("📡 Salva Comunicazione", type="primary", use_container_width=True)
+                
+                if submitted_com:
+                    if not mittente_com or mittente_com == "--" or not destinatario_com or destinatario_com == "--" or not messaggio_invio_com:
+                        st.error("❌ Compila Mittente, Destinatario e Messaggio Inviato!")
+                    else:
+                        record_com = {
+                            "Giorno": str(giorno_com),
+                            "Ora": ora_com,
+                            "Canale": canale_com,
+                            "Mittente": mittente_com,
+                            "Messaggio Inviato": messaggio_invio_com,
+                            "Destinatario": destinatario_com,
+                            "Messaggio Ricevuto/Risposta": messaggio_risp_com,
+                            "Tipo": tipo_com,
+                            "Priorità": priorita_com,
+                            "Esito": esito_com,
+                            "Note": note_com,
+                            "Timestamp": datetime.now().strftime("%d/%m/%Y %H:%M:%S")
+                        }
+                        if "comunicazioni" not in st.session_state:
+                            st.session_state.comunicazioni = []
+                        st.session_state.comunicazioni.append(record_com)
+                        salva_csv(st.session_state.comunicazioni, FILE_COMUNICAZIONI)
+                        st.success(f"✅ Comunicazione salvata: {ora_com} - {mittente_com} → {destinatario_com}")
+                        st.balloons()
+        
+        # Lista comunicazioni
+        st.divider()
+        if "comunicazioni" in st.session_state and st.session_state.comunicazioni:
+            df_com = pd.DataFrame(st.session_state.comunicazioni)
+            st.markdown(f"**📻 Registro Comunicazioni - {len(df_com)} messaggi**")
+            
+            # Filtri comunicazioni
+            c1,c2,c3 = st.columns(3)
+            with c1:
+                filtro_giorno_com = st.date_input("Filtra per giorno", value=None, key="filtro_giorno_com")
+            with c2:
+                filtro_mitt = st.text_input("Cerca mittente/destinatario", placeholder="Posto 1, Mario...")
+            with c3:
+                filtro_canale_com = st.selectbox("Canale", ["Tutti"] + sorted(df_com["Canale"].dropna().unique().tolist()) if "Canale" in df_com.columns else ["Tutti"], key="filtro_canale_com2")
+            
+            df_com_filt = df_com.copy()
+            if filtro_giorno_com:
+                df_com_filt = df_com_filt[df_com_filt["Giorno"] == str(filtro_giorno_com)]
+            if filtro_mitt:
+                mask = df_com_filt.astype(str).apply(lambda x: x.str.contains(filtro_mitt, case=False, na=False)).any(axis=1)
+                df_com_filt = df_com_filt[mask]
+            if filtro_canale_com != "Tutti":
+                df_com_filt = df_com_filt[df_com_filt["Canale"] == filtro_canale_com]
+            
+            st.dataframe(df_com_filt.iloc[::-1], use_container_width=True, hide_index=True, height=400)
+            
+            # Export comunicazioni
+            c1,c2,c3 = st.columns(3)
+            with c1:
+                out = BytesIO()
+                df_com_filt.to_excel(out, index=False, engine="openpyxl")
+                st.download_button("📥 Excel Comunicazioni", out.getvalue(), file_name="comunicazioni_radio.xlsx", mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", use_container_width=True, key="excel_com")
+            with c2:
+                if st.button("🗑️ Cancella Comunicazioni", use_container_width=True, key="del_com"):
+                    st.session_state.comunicazioni = []
+                    salva_csv([], FILE_COMUNICAZIONI)
+                    st.rerun()
+            with c3:
+                if st.button("📄 PDF Traffico Radio", use_container_width=True, key="pdf_com"):
+                    try:
+                        from fpdf import FPDF
+                        pdf = FPDF(orientation='L', unit='mm', format='A4')
+                        pdf.set_auto_page_break(auto=True, margin=10)
+                        pdf.add_page()
+                        pdf.set_font("Arial", "B", 12)
+                        pdf.cell(0, 8, f"ANA Varese - Registro Comunicazioni Radio - {datetime.now().strftime('%d/%m/%Y')}", ln=True, align="C")
+                        pdf.set_font("Arial", "B", 7)
+                        cols = ["Giorno", "Ora", "Mittente", "Messaggio Inviato", "Destinatario", "Messaggio Ricevuto", "Esito"]
+                        w = [20, 15, 30, 60, 30, 60, 20]
+                        for i, col in enumerate(cols):
+                            pdf.cell(w[i], 6, col, border=1)
+                        pdf.ln()
+                        pdf.set_font("Arial", "", 6)
+                        for _, r in df_com_filt.tail(40).iterrows():
+                            pdf.cell(w[0], 5, str(r.get("Giorno",""))[:10], border=1)
+                            pdf.cell(w[1], 5, str(r.get("Ora",""))[:8], border=1)
+                            pdf.cell(w[2], 5, str(r.get("Mittente",""))[:15], border=1)
+                            pdf.cell(w[3], 5, str(r.get("Messaggio Inviato",""))[:35], border=1)
+                            pdf.cell(w[4], 5, str(r.get("Destinatario",""))[:15], border=1)
+                            pdf.cell(w[5], 5, str(r.get("Messaggio Ricevuto/Risposta",""))[:35], border=1)
+                            pdf.cell(w[6], 5, str(r.get("Esito",""))[:10], border=1)
+                            pdf.ln()
+                        pdf_out = BytesIO()
+                        pdf_out.write(pdf.output(dest='S').encode('latin-1'))
+                        st.download_button("📥 Scarica PDF Comunicazioni", pdf_out.getvalue(), file_name="comunicazioni_radio.pdf", mime="application/pdf", use_container_width=True, key="pdf_com_dl")
+                    except Exception as e:
+                        st.error(f"Errore PDF: {e}")
+        else:
+            st.info("Nessuna comunicazione registrata. Inserisci sopra.")
+    
+    with tab2_brog:
+        if "brogliaccio" in st.session_state and st.session_state.brogliaccio:
+            df_brog = pd.DataFrame(st.session_state.brogliaccio)
+            st.markdown(f"### 📋 Registro Brogliaccio - {len(df_brog)} annotazioni")
+            
+            # Filtri
+            c1,c2,c3,c4 = st.columns(4)
+            with c1:
+                filtro_data = st.date_input("Filtra per data", value=None, key="filtro_data_brog")
+            with c2:
+                filtro_odv = st.selectbox("Filtra ODV", ["Tutti"] + sorted(df_brog["ODV"].dropna().unique().tolist()) if "ODV" in df_brog.columns else ["Tutti"])
+            with c3:
+                filtro_nome_brog = st.text_input("Cerca Nome/Cell", placeholder="Rossi, 333...")
+            with c4:
+                filtro_stato_brog = st.selectbox("Stato", ["Tutti", "In corso", "Completato", "Sospeso"])
+            
+            df_filt = df_brog.copy()
+            if filtro_data:
+                df_filt = df_filt[df_filt["Data"] == str(filtro_data)]
+            if filtro_odv != "Tutti":
+                df_filt = df_filt[df_filt["ODV"] == filtro_odv]
+            if filtro_nome_brog:
+                mask = df_filt.astype(str).apply(lambda x: x.str.contains(filtro_nome_brog, case=False, na=False)).any(axis=1)
+                df_filt = df_filt[mask]
+            if filtro_stato_brog != "Tutti":
+                df_filt = df_filt[df_filt["Stato"] == filtro_stato_brog]
+            
+            st.dataframe(df_filt.iloc[::-1], use_container_width=True, hide_index=True, height=500)
+            
+            # Azioni su riga
+            st.markdown("#### ✏️ Modifica / Elimina")
+            for idx, row in df_filt.tail(10).iloc[::-1].iterrows():
+                with st.container(border=True):
+                    c1,c2,c3 = st.columns([4,1,1])
+                    with c1:
+                        st.markdown(f"**{row.get('Data','')} {row.get('Ora Inizio','')}** - **{row.get('Nome e Cognome','')}** - 📱 {row.get('Cell','')} - **{row.get('ODV','')}** - {row.get('Postazione','')}")
+                        st.caption(f"{row.get('Attività','')[:100]}...")
+                    with c2:
+                        if st.button(f"🗑️ Elimina", key=f"del_brog_{idx}"):
+                            st.session_state.brogliaccio = [r for i,r in enumerate(st.session_state.brogliaccio) if i != idx]
+                            salva_csv(st.session_state.brogliaccio, FILE_BROGLIACCIO)
+                            st.rerun()
+                    with c3:
+                        st.caption(row.get('Stato',''))
+        else:
+            st.info("Nessuna annotazione nel brogliaccio. Usa tab 'Nuova Annotazione'")
+    
+    with tab3_brog:
+        if "brogliaccio" in st.session_state and st.session_state.brogliaccio:
+            df_brog = pd.DataFrame(st.session_state.brogliaccio)
+            st.markdown("### 📊 Export & Stampa Brogliaccio")
+            c1,c2,c3 = st.columns(3)
+            with c1:
+                out = BytesIO()
+                df_brog.to_excel(out, index=False, engine="openpyxl")
+                st.download_button("📥 Excel Brogliaccio", out.getvalue(), file_name="brogliaccio.xlsx", mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", use_container_width=True)
+            with c2:
+                out_csv = df_brog.to_csv(index=False).encode('utf-8')
+                st.download_button("📥 CSV Brogliaccio", out_csv, file_name="brogliaccio.csv", mime="text/csv", use_container_width=True)
+            with c3:
+                if st.button("📄 Genera PDF Brogliaccio Giornaliero", use_container_width=True):
+                    try:
+                        from fpdf import FPDF
+                        pdf = FPDF(orientation='L', unit='mm', format='A4')
+                        pdf.set_auto_page_break(auto=True, margin=15)
+                        pdf.add_page()
+                        pdf.set_font("Arial", "B", 14)
+                        pdf.cell(0, 10, f"ANA Varese - Brogliaccio Operativo - {datetime.now().strftime('%d/%m/%Y')}", ln=True, align="C")
+                        pdf.set_font("Arial", "", 8)
+                        pdf.ln(3)
+                        # Header
+                        pdf.set_font("Arial", "B", 7)
+                        cols = ["Data", "Ora", "Nome e Cognome", "Cell", "ODV", "Postazione", "Attività", "Stato"]
+                        w = [20, 15, 35, 25, 30, 25, 70, 20]
+                        for i, col in enumerate(cols):
+                            pdf.cell(w[i], 6, col, border=1)
+                        pdf.ln()
+                        pdf.set_font("Arial", "", 7)
+                        for _, r in df_brog.tail(30).iterrows():
+                            pdf.cell(w[0], 5, str(r.get("Data",""))[:10], border=1)
+                            pdf.cell(w[1], 5, str(r.get("Ora Inizio",""))[:5], border=1)
+                            pdf.cell(w[2], 5, str(r.get("Nome e Cognome",""))[:18], border=1)
+                            pdf.cell(w[3], 5, str(r.get("Cell",""))[:13], border=1)
+                            pdf.cell(w[4], 5, str(r.get("ODV",""))[:15], border=1)
+                            pdf.cell(w[5], 5, str(r.get("Postazione",""))[:12], border=1)
+                            pdf.cell(w[6], 5, str(r.get("Attività",""))[:35], border=1)
+                            pdf.cell(w[7], 5, str(r.get("Stato",""))[:10], border=1)
+                            pdf.ln()
+                        pdf_out = BytesIO()
+                        pdf_out.write(pdf.output(dest='S').encode('latin-1'))
+                        st.download_button("📥 Scarica PDF", pdf_out.getvalue(), file_name=f"brogliaccio_{datetime.now().strftime('%Y%m%d')}.pdf", mime="application/pdf", use_container_width=True)
+                    except Exception as e:
+                        st.error(f"Errore PDF: {e}")
+            
+            # Statistiche
+            st.divider()
+            c1,c2,c3 = st.columns(3)
+            with c1:
+                st.metric("Totale Annotazioni", len(df_brog))
+            with c2:
+                if "ODV" in df_brog.columns:
+                    st.markdown("**Per ODV**")
+                    st.bar_chart(df_brog["ODV"].value_counts())
+            with c3:
+                if "Nome e Cognome" in df_brog.columns:
+                    st.markdown("**Top Volontari**")
+                    st.bar_chart(df_brog["Nome e Cognome"].value_counts().head(5))
+        else:
+            st.info("Nessun dato per export")
 
 # === DB RADIO ===
 elif scelta == "📻 DB Radio Inventario":
