@@ -816,9 +816,13 @@ elif scelta == "👥 Volontari":
                                 pdf.set_font("Arial", "", 10)
                                 pdf.cell(0, 6, f"CF: {row.get('Codice Fiscale','')} - Cell: {row.get('Cellulare','')} - {row.get('Comune Residenza','')}", ln=True)
                                 pdf.ln(2)
-                            pdf_out = BytesIO()
-                            pdf_out.write(pdf.output(dest='S').encode('latin-1'))
-                            st.download_button("📥 Scarica PDF Tessere", pdf_out.getvalue(), file_name="tessere_volontari.pdf", mime="application/pdf", use_container_width=True)
+                            # FIX PDF bytearray/str
+                            out_pdf = pdf.output(dest='S')
+                            if isinstance(out_pdf, str):
+                                out_pdf = out_pdf.encode('latin-1')
+                            else:
+                                out_pdf = bytes(out_pdf)
+                            st.download_button("📥 Scarica PDF Tessere", out_pdf, file_name="tessere_volontari.pdf", mime="application/pdf", use_container_width=True)
                         except Exception as e:
                             st.error(f"Errore PDF: {e}")
                 with c3:
@@ -1048,9 +1052,12 @@ elif scelta == "📝 Brogliaccio":
                             pdf.cell(w[5], 5, str(r.get("Messaggio Ricevuto/Risposta",""))[:35], border=1)
                             pdf.cell(w[6], 5, str(r.get("Esito",""))[:10], border=1)
                             pdf.ln()
-                        pdf_out = BytesIO()
-                        pdf_out.write(pdf.output(dest='S').encode('latin-1'))
-                        st.download_button("📥 Scarica PDF Comunicazioni", pdf_out.getvalue(), file_name="comunicazioni_radio.pdf", mime="application/pdf", use_container_width=True, key="pdf_com_dl")
+                        out_pdf = pdf.output(dest='S')
+                        if isinstance(out_pdf, str):
+                            out_pdf = out_pdf.encode('latin-1')
+                        else:
+                            out_pdf = bytes(out_pdf)
+                        st.download_button("📥 Scarica PDF Comunicazioni", out_pdf, file_name="comunicazioni_radio.pdf", mime="application/pdf", use_container_width=True, key="pdf_com_dl")
                     except Exception as e:
                         st.error(f"Errore PDF: {e}")
         else:
@@ -1126,9 +1133,8 @@ elif scelta == "📝 Brogliaccio":
                         pdf.cell(0, 10, f"ANA Varese - Brogliaccio Operativo - {datetime.now().strftime('%d/%m/%Y')}", ln=True, align="C")
                         pdf.set_font("Arial", "", 8)
                         pdf.ln(3)
-                        # Header
                         pdf.set_font("Arial", "B", 7)
-                        cols = ["Data", "Ora", "Nome e Cognome", "Cell", "ODV", "Postazione", "Attività", "Stato"]
+                        cols = ["Data", "Ora", "Nome e Cognome", "Cell", "ODV", "Postazione", "Attivita", "Stato"]
                         w = [20, 15, 35, 25, 30, 25, 70, 20]
                         for i, col in enumerate(cols):
                             pdf.cell(w[i], 6, col, border=1)
@@ -1144,9 +1150,12 @@ elif scelta == "📝 Brogliaccio":
                             pdf.cell(w[6], 5, str(r.get("Attività",""))[:35], border=1)
                             pdf.cell(w[7], 5, str(r.get("Stato",""))[:10], border=1)
                             pdf.ln()
-                        pdf_out = BytesIO()
-                        pdf_out.write(pdf.output(dest='S').encode('latin-1'))
-                        st.download_button("📥 Scarica PDF", pdf_out.getvalue(), file_name=f"brogliaccio_{datetime.now().strftime('%Y%m%d')}.pdf", mime="application/pdf", use_container_width=True)
+                        out_pdf = pdf.output(dest='S')
+                        if isinstance(out_pdf, str):
+                            out_pdf = out_pdf.encode('latin-1')
+                        else:
+                            out_pdf = bytes(out_pdf)
+                        st.download_button("📥 Scarica PDF", out_pdf, file_name=f"brogliaccio_{datetime.now().strftime('%Y%m%d')}.pdf", mime="application/pdf", use_container_width=True)
                     except Exception as e:
                         st.error(f"Errore PDF: {e}")
             
