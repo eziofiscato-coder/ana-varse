@@ -6,12 +6,38 @@ from datetime import datetime
 
 st.set_page_config(page_title="ANA Varese - Telecomunicazioni", layout="wide")
 
+if "uscito" not in st.session_state:
+    st.session_state["uscito"] = False
+
+
 try:
     st.image("logo.png", width=200)
 except:
     pass
 
+# TASTO ESCI in alto
+col_logo, col_esci = st.columns([4,1])
+with col_esci:
+    if st.button("🚪 ESCI", use_container_width=True, type="secondary"):
+        st.session_state["uscito"] = True
+
+if st.session_state.get("uscito", False):
+    st.markdown("""
+    <div style='text-align:center; padding:50px; background-color:#f0f0f0; border-radius:15px; margin-top:30px;'>
+        <h1 style='color:#0e7a3d;'>👋 Grazie per il servizio!</h1>
+        <h3>Hai chiuso correttamente il registro ANA Varese</h3>
+        <p>Puoi chiudere questa scheda del browser.</p>
+        <br>
+        <p style='font-size:14px; color:gray;'>I dati restano salvati in memoria</p>
+    </div>
+    """, unsafe_allow_html=True)
+    if st.button("🔓 Rientra nel sistema", use_container_width=True):
+        st.session_state["uscito"] = False
+        st.rerun()
+    st.stop()
+
 st.markdown("<h2 style='text-align:center; color:#0e7a3d;'>VOLONTARIATO - Sezione di Varese<br><small>Registro Telecomunicazioni</small></h2>", unsafe_allow_html=True)
+
 
 FILE_DATI = "dati_iscritti.csv"
 FILE_RADIO = "radio_log.csv"
