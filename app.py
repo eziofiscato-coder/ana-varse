@@ -308,9 +308,20 @@ pagine = {
     "🔗 Link & Aggiornamenti": "Link"
 }
 
-scelta = st.sidebar.radio("Vai a:", list(pagine.keys()), index=list(pagine.keys()).index(st.session_state.current_page) if st.session_state.current_page in pagine else 0, key="menu_radio")
+# Fix navigazione - usa current_page come stato
+pagine_list = list(pagine.keys())
+# Calcola index corrente
+try:
+    current_idx = pagine_list.index(st.session_state.current_page)
+except:
+    current_idx = 0
 
-st.session_state.current_page = scelta
+scelta = st.sidebar.radio("Vai a:", pagine_list, index=current_idx, key="menu_radio")
+
+# Se cambia da sidebar, aggiorna
+if scelta != st.session_state.current_page:
+    st.session_state.current_page = scelta
+    st.rerun()
 
 if st.sidebar.button("🏠 Torna a Presentazione", use_container_width=True):
     st.session_state.entered = False
@@ -339,28 +350,43 @@ if scelta == "🏠 Dashboard":
     with col5:
         st.metric("🗺️ Postazioni", len(st.session_state.postazioni))
     
-    st.markdown("### 🚀 Accesso Rapido")
-    c1,c2,c3 = st.columns(3)
+    st.markdown("### 🚀 Accesso Rapido - Clicca per andare alla funzione")
+    c1,c2,c3,c4 = st.columns(4)
     with c1:
-        if st.button("👥 Gestisci Volontari", use_container_width=True):
+        if st.button("👥 Gestisci Volontari", use_container_width=True, type="primary", key="dash_vol"):
             st.session_state.current_page = "👥 Volontari"
             st.rerun()
-        if st.button("📻 DB Radio", use_container_width=True):
+        if st.button("📝 Brogliaccio ODV", use_container_width=True, type="primary", key="dash_brog"):
+            st.session_state.current_page = "📝 Brogliaccio"
+            st.rerun()
+        if st.button("📻 DB Radio Inventario", use_container_width=True, key="dash_db"):
             st.session_state.current_page = "📻 DB Radio Inventario"
             st.rerun()
     with c2:
-        if st.button("📦 Distribuisci Radio", use_container_width=True):
+        if st.button("📦 Distribuisci Radio", use_container_width=True, type="primary", key="dash_dist"):
             st.session_state.current_page = "📦 Distribuzione Radio"
             st.rerun()
-        if st.button("🗺️ Vai alla Mappa", use_container_width=True):
+        if st.button("📻 Comunicazioni Radio", use_container_width=True, key="dash_com"):
+            st.session_state.current_page = "📝 Brogliaccio"
+            st.session_state["brog_tab"] = "com"
+            st.rerun()
+        if st.button("🗺️ Mappa Postazioni FULLSCREEN", use_container_width=True, key="dash_mappa"):
             st.session_state.current_page = "🗺️ Mappa Postazioni"
             st.rerun()
     with c3:
-        if st.button("📋 Registro Radio", use_container_width=True):
+        if st.button("📋 Registro Radio", use_container_width=True, key="dash_reg"):
             st.session_state.current_page = "📋 Registro Radio"
             st.rerun()
-        if st.button("🔗 Link Aggiornamenti", use_container_width=True):
+        if st.button("🔗 Link & Aggiornamenti", use_container_width=True, key="dash_link"):
             st.session_state.current_page = "🔗 Link & Aggiornamenti"
+            st.rerun()
+        if st.button("🏠 Presentazione", use_container_width=True, key="dash_home"):
+            st.session_state.entered = False
+            st.rerun()
+    with c4:
+        st.markdown("#### 📊 Riepilogo")
+        st.info(f"👥 {len(st.session_state.mem_nomi)} Volontari\n📝 {len(st.session_state.brogliaccio) if 'brogliaccio' in st.session_state else 0} Brogliaccio\n📻 {len(st.session_state.radio_db)} Radio\n📦 {len(st.session_state.dist_radio)} Distribuzioni")
+        if st.button("🔄 Aggiorna Dashboard", use_container_width=True, key="dash_refresh"):
             st.rerun()
     
     if st.session_state.dist_radio:
