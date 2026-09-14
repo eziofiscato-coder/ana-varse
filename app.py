@@ -239,8 +239,8 @@ def crea_pdf_distribuzione(df):
         pdf.set_fill_color(14, 122, 61)
         pdf.set_text_color(255,255,255)
         pdf.set_font("Arial", "B", 6.5)
-        cols = [18, 22, 20, 30, 28, 18, 18, 15, 20, 35]
-        heads = ["Data","Radio ID","Modello","Assegnatario","Postazione","Consegna","Riconsegna","Stato","Canale","Note"]
+        cols = [14, 16, 16, 22, 22, 22, 14, 14, 12, 14, 28]
+        heads = ["Data","Radio ID","Modello","Assegnato A","Consegnata DA","Postazione","Consegna","Riconsegna","Stato","Canale","Note"]
         for i,h in enumerate(heads):
             pdf.cell(cols[i], 7, h, border=1, fill=True, align="C")
         pdf.ln()
@@ -250,15 +250,16 @@ def crea_pdf_distribuzione(df):
             if pdf.get_y() > 180:
                 pdf.add_page()
             pdf.cell(cols[0], 8, str(r.get("Data",""))[:10], border=1)
-            pdf.cell(cols[1], 8, str(r.get("RadioID",""))[:12], border=1)
-            pdf.cell(cols[2], 8, str(r.get("Modello",""))[:12], border=1)
-            pdf.cell(cols[3], 8, str(r.get("Assegnatario",""))[:18], border=1)
-            pdf.cell(cols[4], 8, str(r.get("Postazione",""))[:16], border=1)
-            pdf.cell(cols[5], 8, str(r.get("OraConsegna",""))[:8], border=1, align="C")
-            pdf.cell(cols[6], 8, str(r.get("OraRiconsegna",""))[:8], border=1, align="C")
-            pdf.cell(cols[7], 8, str(r.get("Stato",""))[:8], border=1, align="C")
-            pdf.cell(cols[8], 8, str(r.get("Canale",""))[:10], border=1)
-            pdf.cell(cols[9], 8, str(r.get("Note",""))[:20], border=1)
+            pdf.cell(cols[1], 8, str(r.get("RadioID",""))[:10], border=1)
+            pdf.cell(cols[2], 8, str(r.get("Modello",""))[:10], border=1)
+            pdf.cell(cols[3], 8, str(r.get("Assegnatario",""))[:14], border=1)
+            pdf.cell(cols[4], 8, str(r.get("Consegnata DA",""))[:14], border=1)
+            pdf.cell(cols[5], 8, str(r.get("Postazione",""))[:14], border=1)
+            pdf.cell(cols[6], 8, str(r.get("OraConsegna",""))[:6], border=1, align="C")
+            pdf.cell(cols[7], 8, str(r.get("OraRiconsegna",""))[:6], border=1, align="C")
+            pdf.cell(cols[8], 8, str(r.get("Stato",""))[:6], border=1, align="C")
+            pdf.cell(cols[9], 8, str(r.get("Canale",""))[:8], border=1)
+            pdf.cell(cols[10], 8, str(r.get("Note",""))[:16], border=1)
             pdf.ln()
         out = pdf.output()
         if isinstance(out, bytearray):
@@ -754,16 +755,18 @@ with tab_dist:
             with c4:
                 ora_cons = st.text_input("Ora consegna", value=datetime.now().strftime("%H:%M"))
                 ora_ric = st.text_input("Ora riconsegna", placeholder="Al rientro")
-            c5,c6 = st.columns(2)
+            c5,c6,c7 = st.columns(3)
             with c5:
-                stato_r = st.selectbox("Stato", ["Consegnata", "Riconsegnata", "Guasta", "Smarrimento"])
+                consegnato_da = combo_memoria("Consegnata DA (volontario) *", st.session_state.mem_nomi if st.session_state.mem_nomi else ["Responsabile Magazzino"], "consegnato_da", "Chi consegna la radio")
             with c6:
+                stato_r = st.selectbox("Stato", ["Consegnata", "Riconsegnata", "Guasta", "Smarrimento"])
+            with c7:
                 note_d = st.text_input("Note", placeholder="Con batteria carica")
             if st.form_submit_button("📻 Assegna Radio", use_container_width=True, type="primary"):
                 if radio_id and assegnatario and postazione:
                     st.session_state.dist_radio.append({
                         "Data": str(data_d), "RadioID": radio_id, "Modello": modello,
-                        "Assegnatario": assegnatario, "Postazione": postazione, "Canale": canale,
+                        "Assegnatario": assegnatario, "Consegnata DA": consegnato_da, "Postazione": postazione, "Canale": canale,
                         "OraConsegna": ora_cons, "OraRiconsegna": ora_ric, "Stato": stato_r, "Note": note_d
                     })
                     salva_dist_radio()
