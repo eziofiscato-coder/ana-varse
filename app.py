@@ -180,27 +180,86 @@ if scelta == "🏠 Dashboard":
 # === VOLONTARI ===
 elif scelta == "👥 Volontari":
     with st.container(border=True):
-        st.markdown("#### 👥 Anagrafica Volontari")
+        st.markdown("#### 👥 Anagrafica Volontari - DB collegato a Distribuzione Radio")
+        st.caption("I volontari inseriti qui saranno disponibili automaticamente nella scheda Distribuzione Radio (Assegnato A e Consegnata DA)")
         with st.form("form_volontari"):
-            c1,c2,c3 = st.columns(3)
+            c1,c2,c3,c4 = st.columns(4)
             with c1:
                 nome = st.text_input("Nome e Cognome *", placeholder="Mario Rossi")
-                telefono = st.text_input("Telefono")
+                telefono = st.text_input("Telefono", placeholder="333 1234567")
             with c2:
-                ruolo = st.selectbox("Ruolo", ["Volontario", "Capo Squadra", "Coordinatore", "Responsabile Magazzino", "Autista"])
-                sezione = st.text_input("Sezione", value="Varese")
+                ruolo = st.selectbox("Ruolo", ["Volontario", "Capo Squadra", "Coordinatore", "Responsabile Magazzino", "Autista", "Presidente", "Segretario"])
+                sezione = st.text_input("Sezione / Gruppo", value="Varese")
             with c3:
-                note_v = st.text_input("Note")
+                email = st.text_input("Email", placeholder="mario@ana.it")
+                tessera = st.text_input("N° Tessera ANA", placeholder="12345")
+            with c4:
+                note_v = st.text_input("Note", placeholder="Patente, specializzazioni...")
             if st.form_submit_button("💾 Salva Volontario", type="primary", use_container_width=True):
                 if nome:
+                    # Aggiungi a mem_nomi se non esiste
                     if nome not in st.session_state.mem_nomi:
                         st.session_state.mem_nomi.append(nome)
+                        # Salva lista nomi
                         salva_csv([{"Nome": n} for n in st.session_state.mem_nomi], FILE_NOMI)
-                    st.success(f"Volontario {nome} salvato!")
+                    # Salva anche anagrafica completa se esiste file volontari
+                    FILE_VOLONTARI = "anagrafica_volontari.csv"
+                    # Carica esistente
+                    volontari_full = []
+                    if os.path.exists(FILE_VOLONTARI):
+                        try:
+                            volontari_full = pd.read_csv(FILE_VOLONTARI).to_dict(orient="records")
+                        except:
+                            pass
+                    # Aggiorna o aggiungi
+                    found = False
+                    for v in volontari_full:
+                        if v.get("Nome e Cognome") == nome or v.get("Nome") == nome:
+                            v.update({"Nome e Cognome": nome, "Telefono": telefono, "Ruolo": ruolo, "Sezione": sezione, "Email": email, "Tessera": tessera, "Note": note_v})
+                            found = True
+                    if not found:
+                        volontari_full.append({"Nome e Cognome": nome, "Telefono": telefono, "Ruolo": ruolo, "Sezione": sezione, "Email": email, "Tessera": tessera, "Note": note_v, "Data Iscrizione": str(datetime.now().date())})
+                    pd.DataFrame(volontari_full).to_csv(FILE_VOLONTARI, index=False)
+                    st.success(f"✅ Volontario {nome} salvato! Ora disponibile in Distribuzione Radio")
+                    st.rerun()
                 else:
-                    st.error("Nome obbligatorio")
-        if st.session_state.mem_nomi:
-            st.dataframe(pd.DataFrame({"Volontari": st.session_state.mem_nomi}), use_container_width=True, hide_index=True)
+                    st.error("Nome e Cognome obbligatorio")
+        
+        # Mostra volontari con DB completo
+        FILE_VOLONTARI = "anagrafica_volontari.csv"
+        if os.path.exists(FILE_VOLONTARI):
+            try:
+                df_vol_full = pd.read_csv(FILE_VOLONTARI)
+                st.markdown(f"**Totale volontari: {len(df_vol_full)} - Questi nomi appaiono automaticamente in Distribuzione Radio**")
+                st.dataframe(df_vol_full.iloc[::-1], use_container_width=True, hide_index=True)
+                c1,c2,c3 = st.columns(3)
+                with c1:
+                    out = BytesIO()
+                    df_vol_full.to_excel(out, index=False, engine="openpyxl")
+                    st.download_button("📥 Excel Volontari", out.getvalue(), file_name="anagrafica_volontari.xlsx", mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", use_container_width=True)
+                with c2:
+                    if st.button("🔄 Sincronizza nomi per Distribuzione", use_container_width=True):
+                        # Sincronizza mem_nomi da anagrafica
+                        nomi_from_full = df_vol_full["Nome e Cognome"].dropna().tolist() if "Nome e Cognome" in df_vol_full.columns else df_vol_full["Nome"].dropna().tolist() if "Nome" in df_vol_full.columns else []
+                        st.session_state.mem_nomi = list(dict.fromkeys(nomi_from_full + st.session_state.mem_nomi))
+                        salva_csv([{"Nome": n} for n in st.session_state.mem_nomi], FILE_NOMI)
+                        st.success(f"Sincronizzati {len(st.session_state.mem_nomi)} nomi!")
+                        st.rerun()
+                with c3:
+                    if st.button("🗑️ Cancella Anagrafica", use_container_width=True):
+                        if os.path.exists(FILE_VOLONTARI):
+                            os.remove(FILE_VOLONTARI)
+                        st.session_state.mem_nomi = []
+                        salva_csv([], FILE_NOMI)
+                        st.rerun()
+            except Exception as e:
+                st.error(f"Errore lettura: {e}")
+                st.dataframe(pd.DataFrame({"Volontari (lista rapida)": st.session_state.mem_nomi}), use_container_width=True, hide_index=True)
+        else:
+            if st.session_state.mem_nomi:
+                st.markdown(f"**Volontari (lista rapida): {len(st.session_state.mem_nomi)}**")
+                st.dataframe(pd.DataFrame({"Volontari": st.session_state.mem_nomi}), use_container_width=True, hide_index=True)
+                st.info("💡 I nomi qui sopra sono già disponibili in Distribuzione Radio → Assegnato A e Consegnata DA")
 
 # === DB RADIO ===
 elif scelta == "📻 DB Radio Inventario":
@@ -252,7 +311,10 @@ elif scelta == "📻 DB Radio Inventario":
 # === DISTRIBUZIONE ===
 elif scelta == "📦 Distribuzione Radio":
     with st.container(border=True):
-        st.markdown("#### 📦 Distribuzione Radio")
+        st.markdown("#### 📦 Distribuzione Radio - Collegata ad Anagrafica Volontari")
+        st.caption(f"📋 Volontari disponibili: {len(st.session_state.mem_nomi)} - Agganciati automaticamente dalla scheda Volontari | Se non vedi un nome, vai in 👥 Volontari e aggiungilo")
+        if not st.session_state.mem_nomi:
+            st.warning("⚠️ Nessun volontario in anagrafica! Vai in 👥 Volontari per aggiungerli prima di distribuire le radio")
         with st.form("form_dist"):
             c1,c2,c3,c4 = st.columns(4)
             with c1:
