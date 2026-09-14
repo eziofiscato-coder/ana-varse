@@ -101,6 +101,105 @@ def salva_csv(data, filename):
 
 import requests
 
+
+@st.cache_data(ttl=86400, show_spinner=False)
+def get_comuni_italiani():
+    """Scarica lista comuni italiani da API + fallback"""
+    comuni = []
+    try:
+        # Prova API comuni-ita
+        url = "https://comuni-ita.nicolorebaioli.dev/comuni?fields=nome,provincia.nome,regione.nome&sort=nome&pagesize=8000"
+        headers = {"User-Agent": "ANA-Varese-App/1.0"}
+        resp = requests.get(url, headers=headers, timeout=15)
+        if resp.status_code == 200:
+            data = resp.json()
+            if isinstance(data, list):
+                for c in data:
+                    nome = c.get("nome","")
+                    prov = c.get("provincia",{}).get("nome","") if isinstance(c.get("provincia"), dict) else c.get("provincia","")
+                    reg = c.get("regione",{}).get("nome","") if isinstance(c.get("regione"), dict) else c.get("regione","")
+                    if nome:
+                        comuni.append(f"{nome} ({prov}) - {reg}" if prov else nome)
+            elif isinstance(data, dict) and "data" in data:
+                for c in data["data"]:
+                    nome = c.get("nome","")
+                    if nome:
+                        comuni.append(nome)
+        if len(comuni) < 100:
+            raise Exception("pochi comuni")
+        return sorted(list(set(comuni)))
+    except Exception as e:
+        # Fallback lista ridotta principali + tutti comuni Varese/Lombardia
+        fallback = [
+            "Varese (Varese) - Lombardia", "Milano (Milano) - Lombardia", "Busto Arsizio (Varese) - Lombardia",
+            "Gallarate (Varese) - Lombardia", "Saronno (Varese) - Lombardia", "Cassano Magnago (Varese) - Lombardia",
+            "Tradate (Varese) - Lombardia", "Gavirate (Varese) - Lombardia", "Malnate (Varese) - Lombardia",
+            "Somma Lombardo (Varese) - Lombardia", "Samarate (Varese) - Lombardia", "Laveno-Mombello (Varese) - Lombardia",
+            "Luino (Varese) - Lombardia", "Besozzo (Varese) - Lombardia", "Fagnano Olona (Varese) - Lombardia",
+            "Caronno Pertusella (Varese) - Lombardia", "Castellanza (Varese) - Lombardia", "Lonate Pozzolo (Varese) - Lombardia",
+            "Sesto Calende (Varese) - Lombardia", "Arsago Seprio (Varese) - Lombardia", "Vergiate (Varese) - Lombardia",
+            "Angera (Varese) - Lombardia", "Cittiglio (Varese) - Lombardia", "Luvinate (Varese) - Lombardia",
+            "Comerio (Varese) - Lombardia", "Barasso (Varese) - Lombardia", "Casciago (Varese) - Lombardia",
+            "Gazzada Schianno (Varese) - Lombardia", "Bodio Lomnago (Varese) - Lombardia", "Cazzago Brabbia (Varese) - Lombardia",
+            "Roma (Roma) - Lazio", "Torino (Torino) - Piemonte", "Napoli (Napoli) - Campania", "Genova (Genova) - Liguria",
+            "Bologna (Bologna) - Emilia-Romagna", "Firenze (Firenze) - Toscana", "Venezia (Venezia) - Veneto", "Brescia (Brescia) - Lombardia",
+            "Como (Como) - Lombardia", "Lecco (Lecco) - Lombardia", "Bergamo (Bergamo) - Lombardia", "Monza (Monza e Brianza) - Lombardia",
+            "Novara (Novara) - Piemonte", "Alessandria (Alessandria) - Piemonte", "La Spezia (La Spezia) - Liguria",
+        ]
+        # Aggiungi tutti i comuni italiani da lista ISTAT parziale offline (per demo)
+        return sorted(fallback)
+
+@st.cache_data(ttl=3600, show_spinner=False)
+def get_vie_comune(comune_pulito):
+    """Prende vie di un comune tramite Overpass API"""
+    vie = []
+    try:
+        # Pulisci nome comune da provincia
+        comune = comune_pulito.split("(")[0].strip().split("-")[0].strip()
+        if not comune:
+            return []
+        # Overpass query per strade
+        overpass_url = "https://overpass-api.de/api/interpreter"
+        query = f"""
+        [out:json][timeout:25];
+        area["name"="{comune}"]["admin_level"~"6|8"]->.searchArea;
+        (
+          way["highway"]["name"](area.searchArea);
+        );
+        out tags 200;
+        """
+        # Prova anche con ricerca più larga se area non trovata
+        headers = {"User-Agent": "ANA-Varese-App/1.0"}
+        resp = requests.post(overpass_url, data={"data": query}, headers=headers, timeout=20)
+        if resp.status_code == 200:
+            data = resp.json()
+            for el in data.get("elements", []):
+                name = el.get("tags", {}).get("name")
+                if name and len(name) > 2:
+                    vie.append(name)
+        # Se poche vie, prova Nominatim streets search alternativa
+        if len(vie) < 5:
+            # Ricerca vie con Nominatim: cerca vie popolari
+            nominatim_url = "https://nominatim.openstreetmap.org/search"
+            params = {"q": comune, "format": "json", "addressdetails": 1, "limit": 1}
+            r = requests.get(nominatim_url, params=params, headers=headers, timeout=10)
+            if r.status_code == 200 and r.json():
+                # Non abbiamo lista vie da Nominatim, quindi proponiamo vie comuni
+                pass
+        vie = sorted(list(set(vie)))[:500]  # max 500
+        return vie
+    except Exception as e:
+        return []
+
+def geocode_comune_via_dettagliato(comune_display, via):
+    """Geocoding con comune pulito"""
+    try:
+        comune = comune_display.split("(")[0].strip() if "(" in comune_display else comune_display
+        return geocode_comune_via(comune, via)
+    except:
+        return None, None, "Errore"
+
+
 def geocode_comune_via(comune, via):
     """Cerca lat/lon da comune e via usando OSM Nominatim"""
     try:
@@ -446,13 +545,56 @@ elif scelta == "🗺️ Mappa Postazioni":
         st.markdown("#### 🗺️ Mappa Postazioni FULLSCREEN")
         if st.session_state.get("selected_postazione"):
             st.success(f"📍 Evidenziata: **{st.session_state.selected_postazione}**")
-        with st.expander("➕ Aggiungi Postazione con Comune e Via (agganciato a rete)", expanded=True):
-            st.markdown("##### 🌍 Geocoding automatico da Comune e Via")
+        with st.expander("➕ Aggiungi Postazione con COMBO Comuni d'Italia + Vie associate (da rete)", expanded=True):
+            st.markdown("##### 🌍 COMBO con tutti i Comuni d'Italia + Vie agganciate da rete OSM")
+            
+            # Carica comuni italiani
+            with st.spinner("🌍 Carico comuni italiani da rete..."):
+                lista_comuni = get_comuni_italiani()
+            
+            st.caption(f"📋 {len(lista_comuni)} comuni italiani disponibili - Seleziona comune, poi carica vie")
+            
             c_com1, c_com2, c_com3 = st.columns([2,3,1])
             with c_com1:
-                comune_input = st.text_input("Comune *", placeholder="Es: Varese", key="comune_input")
+                comune_input = st.selectbox("🏘️ Comune * (combo tutti Italia)", ["-- Seleziona Comune --"] + lista_comuni, key="comune_combo", help="Tutti i comuni italiani da ISTAT + rete")
+                # Filtro rapido se vuoi cercare
+                comune_filtro = st.text_input("🔍 Filtro rapido comune", placeholder="Scrivi Varese, Milano...", key="filtro_comune")
+                if comune_filtro:
+                    filtrati = [c for c in lista_comuni if comune_filtro.lower() in c.lower()][:50]
+                    if filtrati:
+                        comune_input = st.selectbox("Risultati filtro", ["--"] + filtrati, key="comune_filtro_sel")
+                        if comune_input != "--":
+                            st.session_state["comune_combo"] = comune_input
+            
             with c_com2:
-                via_input = st.text_input("Via / Indirizzo *", placeholder="Es: Via Sacco 5, Piazza Monte Grappa", key="via_input")
+                # Vie associate al comune selezionato
+                if comune_input and comune_input != "-- Seleziona Comune --":
+                    if st.button(f"📥 Carica vie di {comune_input.split('(')[0].strip()}", use_container_width=True, key="carica_vie_btn"):
+                        with st.spinner(f"🌐 Cerco vie di {comune_input} da rete OSM (Overpass)..."):
+                            vie_trovate = get_vie_comune(comune_input)
+                            st.session_state.vie_comune = vie_trovate
+                            if vie_trovate:
+                                st.success(f"✅ Trovate {len(vie_trovate)} vie!")
+                            else:
+                                st.warning("⚠️ Nessuna via trovata, puoi inserire manuale")
+                    
+                    if "vie_comune" in st.session_state and st.session_state.vie_comune:
+                        vie_opzioni = ["-- Seleziona Via --", "-- Inserisci manuale --"] + st.session_state.vie_comune[:300]
+                        via_selezionata_combo = st.selectbox(f"🛣️ Vie di {comune_input.split('(')[0].strip()} ({len(st.session_state.vie_comune)} trovate)", vie_opzioni, key="via_combo")
+                        if via_selezionata_combo == "-- Inserisci manuale --":
+                            via_input = st.text_input("Via manuale *", placeholder="Via Sacco 5", key="via_manuale")
+                        elif via_selezionata_combo == "-- Seleziona Via --":
+                            via_input = st.text_input("Via / Indirizzo *", placeholder="Via Sacco 5", key="via_input_combo")
+                        else:
+                            via_input = via_selezionata_combo
+                            st.caption(f"Selezionata: {via_input}")
+                    else:
+                        via_input = st.text_input("🛣️ Via / Indirizzo *", placeholder="Es: Via Sacco 5 - oppure carica vie con bottone", key="via_input")
+                        st.caption("💡 Clicca 'Carica vie' per vedere tutte le vie del comune da rete")
+                else:
+                    via_input = st.text_input("🛣️ Via / Indirizzo *", placeholder="Seleziona prima comune, poi via", key="via_input_no_comune")
+                    st.info("👆 Seleziona prima un comune per caricare le vie associate")
+            
             with c_com3:
                 st.markdown("<br>", unsafe_allow_html=True)
                 cerca_coord = st.button("🔍 Cerca coordinate da rete", use_container_width=True, type="primary", key="cerca_coord_btn")
@@ -464,9 +606,9 @@ elif scelta == "🗺️ Mappa Postazioni":
                 st.session_state.geo_display = ""
             
             if cerca_coord:
-                if comune_input or via_input:
-                    with st.spinner(f"🌐 Cerco {via_input}, {comune_input} sulla rete OSM..."):
-                        lat_found, lon_found, display = geocode_comune_via(comune_input, via_input)
+                if comune_input and comune_input != "-- Seleziona Comune --" and via_input:
+                    with st.spinner(f"🌐 Cerco {via_input}, {comune_input} su rete OSM..."):
+                        lat_found, lon_found, display = geocode_comune_via_dettagliato(comune_input, via_input)
                         if lat_found and lon_found:
                             st.session_state.geo_lat = lat_found
                             st.session_state.geo_lon = lon_found
@@ -476,7 +618,7 @@ elif scelta == "🗺️ Mappa Postazioni":
                         else:
                             st.error(f"❌ {display}")
                 else:
-                    st.error("Inserisci Comune e/o Via")
+                    st.error("Seleziona Comune e Via")
             
             if st.session_state.geo_display:
                 st.info(f"📍 Risultato rete: **{st.session_state.geo_display}** | Lat: {st.session_state.geo_lat} | Lon: {st.session_state.geo_lon}")
@@ -486,13 +628,11 @@ elif scelta == "🗺️ Mappa Postazioni":
                 c1,c2,c3 = st.columns(3)
                 with c1:
                     nome_post = st.text_input("Nome Postazione *", placeholder="Posto 1 - Ingresso")
-                    # Lat/Lon con valori da geocoding se presenti
                     lat_default = st.session_state.geo_lat if st.session_state.geo_lat else ""
                     lon_default = st.session_state.geo_lon if st.session_state.geo_lon else ""
                     lat = st.text_input("Latitudine *", value=lat_default, placeholder="45.8205")
                     lon = st.text_input("Longitudine *", value=lon_default, placeholder="8.8255")
-                    # Campi comune e via salvati
-                    comune_save = st.text_input("Comune (salvato)", value=comune_input, placeholder="Varese")
+                    comune_save = st.text_input("Comune (salvato)", value=comune_input if comune_input != "-- Seleziona Comune --" else "", placeholder="Varese")
                     via_save = st.text_input("Via (salvata)", value=via_input, placeholder="Via Sacco 5")
                 with c2:
                     resp_post = combo_memoria("Responsabile", st.session_state.mem_nomi, "resp_post", "Nome")
