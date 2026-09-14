@@ -189,93 +189,104 @@ def crea_pdf_con_pillow(df, tipo="radio"):
         return None
 
 
+
 def crea_pdf_fpdf(df, tipo="radio"):
     try:
         from fpdf import FPDF
-        pdf = FPDF(orientation='L', unit='mm', format='A4')  # Orizzontale per piu spazio messaggi
+        pdf = FPDF(orientation='L', unit='mm', format='A4')
         pdf.set_auto_page_break(auto=True, margin=20)
         pdf.add_page()
         
-        # Logo PIU PICCOLO
+        # Logo piccolo
         try:
             if os.path.exists("logo.png"):
-                pdf.image("logo.png", x=10, y=6, w=18)
+                pdf.image("logo.png", x=10, y=6, w=15)
         except:
             pass
         
-        # Intestazione
-        pdf.set_xy(32, 8)
-        pdf.set_font("Arial", "B", 14)
+        pdf.set_xy(28, 8)
+        pdf.set_font("Arial", "B", 13)
         pdf.set_text_color(14, 122, 61)
-        pdf.cell(0, 8, "VOLONTARIATO - Sezione di Varese", ln=True)
-        pdf.set_x(32)
-        pdf.set_font("Arial", "B", 11)
+        pdf.cell(0, 7, "VOLONTARIATO - Sezione di Varese", ln=True)
+        pdf.set_x(28)
+        pdf.set_font("Arial", "B", 10)
         pdf.set_text_color(0,0,0)
         pdf.cell(0, 6, "REGISTRO TELECOMUNICAZIONI" if tipo=="radio" else "ELENCO ISCRITTI", ln=True)
-        pdf.set_x(32)
-        pdf.set_font("Arial", "", 8)
+        pdf.set_x(28)
+        pdf.set_font("Arial", "", 7)
         pdf.set_text_color(80,80,80)
-        pdf.cell(0, 5, f"Data: {datetime.now().strftime('%d/%m/%Y %H:%M')} - Tot: {len(df)} - Documento Ufficiale ANA Varese", ln=True)
-        
-        pdf.ln(6)
+        pdf.cell(0, 4, f"Data: {datetime.now().strftime('%d/%m/%Y %H:%M')} - Tot: {len(df)} - ANA Varese", ln=True)
+        pdf.ln(5)
         
         if tipo=="radio":
-            # Tabella con MESSAGGI A CAPO
+            col_widths = [18, 10, 18, 24, 24, 85, 85]
+            headers = ["Data", "Ora", "Canale", "Mittente", "Destinatario", "RICEVUTO", "TRASMESSO"]
+            
+            # Header
             pdf.set_fill_color(14, 122, 61)
             pdf.set_text_color(255,255,255)
             pdf.set_font("Arial", "B", 7)
-            # Larghezze ottimizzate: messaggi piu larghi
-            col_widths = [18, 10, 18, 24, 24, 85, 85]
-            headers = ["Data", "Ora", "Canale", "Mittente", "Destinatario", "Messaggio RICEVUTO", "Messaggio TRASMESSO"]
             for i,h in enumerate(headers):
                 pdf.cell(col_widths[i], 7, h, border=1, fill=True, align="C")
             pdf.ln()
             
-            pdf.set_text_color(0,0,0)
             pdf.set_font("Arial", "", 6.5)
+            pdf.set_text_color(0,0,0)
             
             for _, row in df.iterrows():
-                # Calcola altezza necessaria per i messaggi
                 ricev = str(row.get("Messaggio Ricevuto",""))
                 trasm = str(row.get("Messaggio Trasmesso",""))
                 
-                # Stima righe necessarie (circa 45 caratteri per riga con font 6.5)
-                righe_ricev = max(1, len(ricev) // 45 + 1)
-                righe_trasm = max(1, len(trasm) // 45 + 1)
-                righe_max = max(righe_ricev, righe_trasm, 1)
-                h_row = max(8, righe_max * 4.5)
+                # Calcola altezza necessaria - 35 caratteri per riga circa per 85mm con font 6.5
+                def calc_h(text, col_w):
+                    if not text:
+                        return 8
+                    # stima caratteri per riga
+                    chars_per_line = int(col_w * 2.2)
+                    lines = (len(text) // chars_per_line) + 1
+                    # conta anche a capo manuali
+                    lines += text.count("
+")
+                    return max(8, lines * 4.5)
                 
+                h_ricev = calc_h(ricev, col_widths[5])
+                h_trasm = calc_h(trasm, col_widths[6])
+                h_row = max(8, h_ricev, h_trasm)
+                
+                # Controllo pagina
                 if pdf.get_y() + h_row > 185:
                     pdf.add_page()
                 
                 y_start = pdf.get_y()
                 x_start = pdf.get_x()
                 
-                # Celle fisse
+                # Disegna TUTTE le celle con STESSA ALTEZZA h_row
+                # Celle fisse con altezza uguale
+                pdf.set_xy(x_start, y_start)
                 pdf.cell(col_widths[0], h_row, str(row.get("Data",""))[:10], border=1)
                 pdf.cell(col_widths[1], h_row, str(row.get("Ora",""))[:5], border=1, align="C")
                 pdf.cell(col_widths[2], h_row, str(row.get("Canale",""))[:16], border=1)
                 pdf.cell(col_widths[3], h_row, str(row.get("Mittente",""))[:18], border=1)
                 pdf.cell(col_widths[4], h_row, str(row.get("Destinatario",""))[:18], border=1)
                 
-                # Messaggi con multi_cell
-                x_ricev = pdf.get_x()
-                # Salva posizione per trasmesso
-                pdf.set_xy(x_ricev, y_start)
-                # Crea box per ricevuto con a capo
-                pdf.multi_cell(col_widths[5], 4.5, ricev[:500], border=1)
-                y_after_ricev = pdf.get_y()
+                # Per i messaggi, creiamo celle con stessa altezza ma testo a capo interno
+                x_ricev = x_start + sum(col_widths[:5])
+                x_trasm = x_ricev + col_widths[5]
                 
-                # Torna su per trasmesso
-                pdf.set_xy(x_ricev + col_widths[5], y_start)
-                pdf.multi_cell(col_widths[6], 4.5, trasm[:500], border=1)
-                y_after_trasm = pdf.get_y()
+                # Rettangoli con stessa altezza
+                pdf.rect(x_ricev, y_start, col_widths[5], h_row)
+                pdf.rect(x_trasm, y_start, col_widths[6], h_row)
                 
-                # Allinea alla riga piu alta
-                y_end = max(y_after_ricev, y_after_trasm, y_start + h_row)
-                pdf.set_y(y_end)
+                # Testo dentro con margine
+                pdf.set_xy(x_ricev+1, y_start+1)
+                pdf.multi_cell(col_widths[5]-2, 4, ricev[:400], border=0)
+                
+                pdf.set_xy(x_trasm+1, y_start+1)
+                pdf.multi_cell(col_widths[6]-2, 4, trasm[:400], border=0)
+                
+                # Vai a fine riga (altezza uguale per tutti)
+                pdf.set_y(y_start + h_row)
         else:
-            # Anagrafica
             pdf.set_fill_color(14, 122, 61)
             pdf.set_text_color(255,255,255)
             pdf.set_font("Arial", "B", 9)
@@ -298,40 +309,48 @@ def crea_pdf_fpdf(df, tipo="radio"):
                 pdf.ln()
         
         # Firma
-        pdf.ln(8)
+        pdf.ln(6)
         if pdf.get_y() > 160:
             pdf.add_page()
         yf = pdf.get_y()
-        pdf.set_font("Arial", "", 10)
+        pdf.set_font("Arial", "", 9)
         pdf.set_xy(20, yf)
         pdf.cell(80, 6, "Il Coordinatore", align="C")
         pdf.set_xy(150, yf)
         pdf.cell(80, 6, "Timbro Sezione", align="C")
         try:
             if os.path.exists(FILE_FIRMA):
-                pdf.image(FILE_FIRMA, x=25, y=yf+8, w=50)
+                pdf.image(FILE_FIRMA, x=25, y=yf+8, w=45)
         except:
             pass
         try:
             if os.path.exists(FILE_TIMBRO):
-                pdf.image(FILE_TIMBRO, x=155, y=yf+8, w=45)
+                pdf.image(FILE_TIMBRO, x=155, y=yf+8, w=40)
         except:
             pass
-        pdf.set_xy(20, yf+30)
+        pdf.set_xy(20, yf+28)
         pdf.cell(80, 6, "________________________", align="C")
-        pdf.set_xy(150, yf+30)
+        pdf.set_xy(150, yf+28)
         pdf.cell(80, 6, "________________________", align="C")
-        pdf.set_xy(20, yf+36)
-        pdf.set_font("Arial", "B", 9)
+        pdf.set_xy(20, yf+34)
+        pdf.set_font("Arial", "B", 8)
         pdf.cell(80, 6, st.session_state.get("nome_coord", "Coordinatore"), align="C")
-        pdf.set_y(-12)
+        pdf.set_y(-10)
         pdf.set_font("Arial", "I", 7)
-        pdf.cell(0, 10, f"ANA Varese - Documento ufficiale - Pagina {pdf.page_no()}", align="C")
+        pdf.cell(0, 10, f"ANA Varese - Pag {pdf.page_no()}", align="C")
+        
         out = pdf.output()
         if isinstance(out, bytearray):
             out = bytes(out)
         elif isinstance(out, str):
             out = out.encode("latin-1")
+        return out
+    except Exception as e:
+        st.error(f"Errore PDF: {e}")
+        import traceback
+        st.code(traceback.format_exc())
+        return None
+
         return out
     except Exception as e:
         st.error(f"Errore PDF: {e}")
