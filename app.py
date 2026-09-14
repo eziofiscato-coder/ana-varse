@@ -526,14 +526,72 @@ elif scelta == "📦 Distribuzione Radio":
                     st.error("Compila Radio ID, Assegnato A, Consegnata DA e Postazione")
         if st.session_state.dist_radio:
             df_dist = pd.DataFrame(st.session_state.dist_radio).iloc[::-1]
-            st.markdown("**👆 Clicca per vedere su mappa:**")
-            cols_btn = st.columns(3)
-            for i, row in df_dist.head(9).iterrows():
-                with cols_btn[i % 3]:
-                    if st.button(f"🗺️ {row.get('Postazione','')} | {row.get('RadioID','')} -> {str(row.get('Assegnatario',''))[:12]}", key=f"goto_{i}", use_container_width=True):
-                        st.session_state.selected_postazione = row.get("Postazione","")
-                        st.session_state.current_page = "🗺️ Mappa Postazioni"
-                        st.rerun()
+            st.markdown("### 🗺️ Vai alle Coordinate - Clicca postazione per navigare")
+            
+            # Crea mappa nome postazione -> coordinate da DB postazioni
+            mappa_coord = {}
+            for p in st.session_state.postazioni:
+                nome_p = p.get("Postazione","")
+                if nome_p:
+                    mappa_coord[nome_p] = p
+            
+            # Mostra cards per ogni distribuzione con pulsanti funzionanti
+            for idx, row in df_dist.head(15).iterrows():
+                post_nome = str(row.get("Postazione","")).strip()
+                radio_id = str(row.get("RadioID",""))
+                assegn = str(row.get("Assegnatario",""))
+                coord_info = mappa_coord.get(post_nome)
+                
+                with st.container(border=True):
+                    c1,c2,c3,c4,c5 = st.columns([2,2,2,2,2])
+                    with c1:
+                        st.markdown(f"**📍 {post_nome}**")
+                        st.caption(f"Radio: {radio_id} | A: {assegn[:15]}")
+                    with c2:
+                        if coord_info:
+                            try:
+                                lat_c = coord_info.get("Latitudine","")
+                                lon_c = coord_info.get("Longitudine","")
+                                comune_c = coord_info.get("Comune","")
+                                via_c = coord_info.get("Via","")
+                                st.caption(f"📌 {comune_c} - {via_c}")
+                                st.caption(f"Lat: {lat_c} Lon: {lon_c}")
+                            except:
+                                st.caption("Coordinate presenti")
+                        else:
+                            st.warning(f"⚠️ {post_nome} non in mappa")
+                    with c3:
+                        if coord_info:
+                            try:
+                                lat_c = coord_info.get("Latitudine")
+                                lon_c = coord_info.get("Longitudine")
+                                # Link diretti che FUNZIONANO
+                                st.link_button(f"📱 Google Maps", f"https://www.google.com/maps/dir/?api=1&destination={lat_c},{lon_c}", use_container_width=True)
+                            except:
+                                st.caption("No coord")
+                        else:
+                            if st.button(f"➕ Aggiungi {post_nome} in mappa", key=f"add_map_{idx}", use_container_width=True):
+                                st.session_state.current_page = "🗺️ Mappa Postazioni"
+                                st.session_state.menu_radio = "🗺️ Mappa Postazioni"
+                                st.rerun()
+                    with c4:
+                        if coord_info:
+                            try:
+                                lat_c = coord_info.get("Latitudine")
+                                lon_c = coord_info.get("Longitudine")
+                                st.link_button(f"🚗 Waze", f"https://waze.com/ul?ll={lat_c},{lon_c}&navigate=yes", use_container_width=True)
+                            except:
+                                pass
+                    with c5:
+                        if st.button(f"🗺️ VAI ALLA MAPPA", key=f"goto_map_{idx}_{post_nome}", use_container_width=True, type="primary"):
+                            st.session_state.selected_postazione = post_nome
+                            st.session_state.current_page = "🗺️ Mappa Postazioni"
+                            st.session_state.menu_radio = "🗺️ Mappa Postazioni"
+                            st.session_state.geo_lat = coord_info.get("Latitudine","") if coord_info else ""
+                            st.session_state.geo_lon = coord_info.get("Longitudine","") if coord_info else ""
+                            st.rerun()
+            
+            st.divider()
             st.dataframe(df_dist, use_container_width=True, hide_index=True)
             out = BytesIO()
             df_dist.to_excel(out, index=False, engine="openpyxl")
