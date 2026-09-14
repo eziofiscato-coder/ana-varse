@@ -857,6 +857,20 @@ elif scelta == "🗺️ Mappa Postazioni":
                     m = folium.Map(location=[center_lat, center_lon], zoom_start=zoom, tiles=None)
                     folium.TileLayer('https://mt1.google.com/vt/lyrs=p&x={x}&y={y}&z={z}', attr='Google', name='Google Rilievo', max_zoom=20).add_to(m)
                 
+                # Pulsante Fullscreen
+                try:
+                    from folium.plugins import Fullscreen
+                    Fullscreen(position="topleft", title="Espandi a tutto schermo", title_cancel="Esci da tutto schermo", force_separate_button=True).add_to(m)
+                except:
+                    pass
+                # Altri plugin utili
+                try:
+                    from folium.plugins import LocateControl, MeasureControl
+                    LocateControl(auto_start=False, position="topleft", strings={"title": "Mostra la mia posizione"}).add_to(m)
+                    MeasureControl(position="bottomleft", primary_length_unit="meters", secondary_length_unit="kilometers").add_to(m)
+                except:
+                    pass
+                
                 for _, r in df_post.iterrows():
                     try:
                         lat_f = float(r.get("Latitudine")); lon_f = float(r.get("Longitudine"))
@@ -872,7 +886,32 @@ elif scelta == "🗺️ Mappa Postazioni":
                             folium.Circle([lat_f, lon_f], radius=60, color="red", fill=True, fill_opacity=0.3).add_to(m)
                     except:
                         pass
-                st_folium(m, width=1400, height=600, use_container_width=True, key=f"folium_{map_type}_{center_lat}")
+                # Pulsante fullscreen extra sopra mappa
+                col_full1, col_full2, col_full3 = st.columns([2,2,6])
+                with col_full1:
+                    st.markdown("**🗺️ Mappa con pulsante fullscreen in alto a sinistra**")
+                with col_full2:
+                    # Link per aprire in Google Maps fullscreen
+                    if st.session_state.get("selected_postazione"):
+                        for _, r in df_post.iterrows():
+                            if r.get("Postazione") == st.session_state.get("selected_postazione"):
+                                try:
+                                    lat_fs = r.get("Latitudine")
+                                    lon_fs = r.get("Longitudine")
+                                    st.link_button("🔎 Apri Postazione in Google Maps Fullscreen", f"https://www.google.com/maps/search/?api=1&query={lat_fs},{lon_fs}", use_container_width=True)
+                                except:
+                                    pass
+                
+                # Mappa con altezza maggiore per effetto fullscreen
+                if "map_fullscreen" not in st.session_state:
+                    st.session_state.map_fullscreen = False
+                
+                if st.button("⛶ Attiva Modalità Fullscreen Mappa (800px)", use_container_width=False, key="btn_fullscreen"):
+                    st.session_state.map_fullscreen = not st.session_state.map_fullscreen
+                
+                map_height = 800 if st.session_state.map_fullscreen else 600
+                
+                st_folium(m, width=1400, height=map_height, use_container_width=True, key=f"folium_{map_type}_{center_lat}_{map_height}")
             except ImportError:
                 st.warning("Installa folium")
             except Exception as e:
