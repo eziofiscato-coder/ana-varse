@@ -22,12 +22,7 @@ with col_esci:
         st.session_state["uscito"] = True
 
 if st.session_state.get("uscito"):
-    st.markdown('''
-    <div style='text-align:center; padding:50px; background:#f0f0f0; border-radius:15px; margin-top:20px;'>
-        <h1 style='color:#0e7a3d;'>👋 Grazie per il servizio!</h1>
-        <h3>Registro chiuso correttamente</h3>
-        <p>I dati restano salvati</p>
-    </div>''', unsafe_allow_html=True)
+    st.markdown('<div style="text-align:center; padding:50px; background:#f0f0f0; border-radius:15px; margin-top:20px;"><h1 style="color:#0e7a3d;">Grazie per il servizio!</h1><h3>Registro chiuso</h3><p>I dati restano salvati</p></div>', unsafe_allow_html=True)
     if st.button("🔓 Rientra"):
         st.session_state["uscito"] = False
         st.rerun()
@@ -50,7 +45,8 @@ if "mem_mitt" not in st.session_state:
         except:
             pass
     if st.session_state.radio_log:
-        base = sorted(list(set(base + [r.get("Mittente","") for r in st.session_state.radio_log if r.get("Mittente")])))
+        extra = [r.get("Mittente","") for r in st.session_state.radio_log if r.get("Mittente")]
+        base = sorted(list(set(base + extra)))
     st.session_state.mem_mitt = base
 if "mem_dest" not in st.session_state:
     base = ["Squadra 1", "Squadra 2", "Tutte le squadre"]
@@ -60,7 +56,8 @@ if "mem_dest" not in st.session_state:
         except:
             pass
     if st.session_state.radio_log:
-        base = sorted(list(set(base + [r.get("Destinatario","") for r in st.session_state.radio_log if r.get("Destinatario")])))
+        extra = [r.get("Destinatario","") for r in st.session_state.radio_log if r.get("Destinatario")]
+        base = sorted(list(set(base + extra)))
     st.session_state.mem_dest = base
 if "mem_assoc" not in st.session_state:
     st.session_state.mem_assoc = sorted(list(set([d["Associazione"] for d in st.session_state.dati]))) if st.session_state.dati else ["ANA Varese", "Protezione Civile Varese"]
@@ -79,9 +76,9 @@ def salva_mem_dest():
     pd.DataFrame({"Destinatario": st.session_state.mem_dest}).to_csv(FILE_MEM_DEST, index=False)
 
 def combo_memoria(label, mem_list, key_prefix, placeholder=""):
-    opzioni = ["-- Seleziona --"] + sorted([x for x in mem_list if x]) + [f"➕ NUOVO {label.upper()}..."]
+    opzioni = ["-- Seleziona --"] + sorted([x for x in mem_list if x]) + [f"NUOVO {label.upper()}..."]
     scelta = st.selectbox(f"{label} *", opzioni, key=f"{key_prefix}_sel")
-    if scelta == f"➕ NUOVO {label.upper()}...":
+    if scelta == f"NUOVO {label.upper()}...":
         nuovo = st.text_input(f"Scrivi nuovo {label}", key=f"{key_prefix}_new", placeholder=placeholder)
         return nuovo.strip()
     elif scelta == "-- Seleziona --":
@@ -89,79 +86,25 @@ def combo_memoria(label, mem_list, key_prefix, placeholder=""):
     else:
         return scelta
 
-def crea_pdf_radio(df):
-    # Prova con fpdf2, se non c'è usa reportlab, se non c'è usa txt
-    try:
-        from fpdf import FPDF
-        pdf = FPDF(orientation='L', unit='mm', format='A4')
-        pdf.add_page()
-        pdf.set_font("Arial", "B", 14)
-        pdf.cell(0, 10, "ANA VARESE - REGISTRO TELECOMUNICAZIONI", ln=True, align="C")
-        pdf.set_font("Arial", "", 10)
-        pdf.cell(0, 8, f"Stampa: {datetime.now().strftime('%d/%m/%Y %H:%M')} - Tot: {len(df)}", ln=True, align="C")
-        pdf.ln(5)
-        pdf.set_font("Arial", "B", 8)
-        col_widths = [25, 15, 30, 35, 35, 70, 70]
-        headers = ["Data", "Ora", "Canale", "Mittente", "Destinatario", "Ricevuto", "Trasmesso"]
-        for i, h in enumerate(headers):
-            pdf.cell(col_widths[i], 8, h, border=1, align="C")
-        pdf.ln()
-        pdf.set_font("Arial", "", 7)
-        for _, row in df.iterrows():
-            if pdf.get_y() > 180:
-                pdf.add_page()
-            pdf.cell(col_widths[0], 8, str(row.get("Data",""))[:10], border=1)
-            pdf.cell(col_widths[1], 8, str(row.get("Ora",""))[:5], border=1)
-            pdf.cell(col_widths[2], 8, str(row.get("Canale",""))[:20], border=1)
-            pdf.cell(col_widths[3], 8, str(row.get("Mittente",""))[:22], border=1)
-            pdf.cell(col_widths[4], 8, str(row.get("Destinatario",""))[:22], border=1)
-            pdf.cell(col_widths[5], 8, str(row.get("Messaggio Ricevuto",""))[:50], border=1)
-            pdf.cell(col_widths[6], 8, str(row.get("Messaggio Trasmesso",""))[:50], border=1)
-            pdf.ln()
-        return pdf.output(dest="S").encode("latin-1")
-    except ImportError:
-        # Fallback senza libreria: crea PDF semplice con reportlab se c'è
-        try:
-            from reportlab.lib.pagesizes import A4, landscape
-            from reportlab.pdfgen import canvas
-            from reportlab.lib.units import mm
-            buffer = BytesIO()
-            c = canvas.Canvas(buffer, pagesize=landscape(A4))
-            c.setFont("Helvetica-Bold", 14)
-            c.drawCentredString(148*mm, 190*mm, "ANA VARESE - REGISTRO TELECOMUNICAZIONI")
-            c.setFont("Helvetica", 10)
-            c.drawCentredString(148*mm, 183*mm, f"Stampa: {datetime.now().strftime('%d/%m/%Y %H:%M')} - Tot: {len(df)}")
-            y = 170
-            c.setFont("Helvetica-Bold", 8)
-            headers = ["Data", "Ora", "Canale", "Mittente", "Destinatario", "Ricevuto", "Trasmesso"]
-            x_positions = [10, 35, 50, 80, 115, 150, 220]
-            for i, h in enumerate(headers):
-                c.drawString(x_positions[i]*mm, y*mm, h)
-            y -= 7
-            c.setFont("Helvetica", 7)
-            for _, row in df.iterrows():
-                if y < 20:
-                    c.showPage()
-                    y = 190
-                c.drawString(x_positions[0]*mm, y*mm, str(row.get("Data",""))[:10])
-                c.drawString(x_positions[1]*mm, y*mm, str(row.get("Ora",""))[:5])
-                c.drawString(x_positions[2]*mm, y*mm, str(row.get("Canale",""))[:15])
-                c.drawString(x_positions[3]*mm, y*mm, str(row.get("Mittente",""))[:18])
-                c.drawString(x_positions[4]*mm, y*mm, str(row.get("Destinatario",""))[:18])
-                c.drawString(x_positions[5]*mm, y*mm, str(row.get("Messaggio Ricevuto",""))[:35])
-                c.drawString(x_positions[6]*mm, y*mm, str(row.get("Messaggio Trasmesso",""))[:35])
-                y -= 5
-            c.save()
-            return buffer.getvalue()
-        except ImportError:
-            return None
-    except Exception as e:
-        st.error(f"Errore PDF: {e}")
-        return None
+def crea_pdf_senza_libreria(df):
+    # Crea un PDF testuale semplice senza bisogno di fpdf
+    # Usa solo BytesIO - non importa nulla
+    lines = []
+    lines.append("ANA VARESE - REGISTRO TELECOMUNICAZIONI")
+    lines.append(f"Stampa: {datetime.now().strftime('%d/%m/%Y %H:%M')} - Totale: {len(df)}")
+    lines.append("="*100)
+    lines.append("")
+    for _, row in df.iterrows():
+        lines.append(f"Data: {row.get('Data','')} Ora: {row.get('Ora','')} Canale: {row.get('Canale','')}")
+        lines.append(f"Mittente: {row.get('Mittente','')} -> Destinatario: {row.get('Destinatario','')}")
+        lines.append(f"Ricevuto: {row.get('Messaggio Ricevuto','')}")
+        lines.append(f"Trasmesso: {row.get('Messaggio Trasmesso','')}")
+        lines.append("-"*100)
+    text = "\n".join(lines)
+    return text.encode('utf-8')
 
-# ================= MASCHERA PRINCIPALE =================
-st.markdown("### 📋 MASCHERA PRINCIPALE - Anagrafica Volontari")
-
+# MASCHERA PRINCIPALE
+st.markdown("### MASCHERA PRINCIPALE - Anagrafica Volontari")
 with st.container(border=True):
     with st.form("form_vol"):
         c1,c2,c3 = st.columns(3)
@@ -176,20 +119,21 @@ with st.container(border=True):
             ruolo = st.selectbox("Ruolo *", ["Volontario", "Caposquadra", "Coordinatore", "Autista", "Radio", "Telecomunicazioni", "Logistica", "Segreteria", "Sanitario", "Altro"])
         with c5:
             note = st.text_input("Note")
-        
-        if st.form_submit_button("✅ Salva Volontario nella Maschera Principale", use_container_width=True, type="primary"):
+        if st.form_submit_button("Salva Volontario", use_container_width=True, type="primary"):
             if nome and assoc and cell:
                 if assoc not in st.session_state.mem_assoc:
                     st.session_state.mem_assoc.append(assoc)
                 if nome not in st.session_state.mem_nomi:
                     st.session_state.mem_nomi.append(nome)
-                    st.session_state.mem_mitt.append(nome)
-                    st.session_state.mem_dest.append(nome)
+                    if nome not in st.session_state.mem_mitt:
+                        st.session_state.mem_mitt.append(nome)
+                    if nome not in st.session_state.mem_dest:
+                        st.session_state.mem_dest.append(nome)
                     salva_mem_mitt()
                     salva_mem_dest()
                 st.session_state.dati.append({"Nome": nome, "Associazione": assoc, "Cellulare": cell, "Ruolo": ruolo, "Note": note})
                 salva_dati()
-                st.success(f"Salvato {nome} - ora disponibile anche in Mittente/Destinatario!")
+                st.success(f"Salvato {nome}")
                 st.rerun()
             else:
                 st.error("Compila *")
@@ -197,24 +141,23 @@ with st.container(border=True):
 if st.session_state.dati:
     st.dataframe(pd.DataFrame(st.session_state.dati), use_container_width=True, hide_index=True, height=150)
 
-# ================= SOTTOMASCHERA INCORPORATA =================
+# SOTTOMASCHERA INCORPORATA
 st.divider()
-st.markdown("### 📻 SOTTOMASCHERA INCORPORATA - Registro Telecomunicazioni")
-st.caption("Questa sottomaschera è DENTRO la maschera principale e registra Mittente / Destinatario / Messaggio Ricevuto / Messaggio Trasmesso")
+st.markdown("### SOTTOMASCHERA INCORPORATA - Registro Radio")
+st.caption("Dentro la maschera principale - Mittente / Destinatario / Messaggi con memoria")
 
 with st.container(border=True):
-    st.markdown("#### 🔴 Registro Radio - Inserimento Comunicazione")
+    st.markdown("#### Registro Radio - Inserimento")
     with st.form("form_radio_embedded"):
         c1,c2 = st.columns(2)
         with c1:
             st.markdown("**MITTENTE con memoria**")
             mittente = combo_memoria("Mittente", st.session_state.mem_mitt, "mitt_emb", "Es: Sala Operativa, Prefettura...")
-            messaggio_ricevuto = st.text_area("Messaggio RICEVUTO *", placeholder="Cosa hai ricevuto via radio...", height=100)
+            messaggio_ricevuto = st.text_area("Messaggio RICEVUTO *", placeholder="Cosa hai ricevuto...", height=100)
         with c2:
             st.markdown("**DESTINATARIO con memoria**")
-            destinatario = combo_memoria("Destinatario", st.session_state.mem_dest, "dest_emb", "Es: Squadra 1, Tutte le squadre...")
-            messaggio_trasmesso = st.text_area("Messaggio TRASMESSO *", placeholder="Cosa hai trasmesso via radio...", height=100)
-        
+            destinatario = combo_memoria("Destinatario", st.session_state.mem_dest, "dest_emb", "Es: Squadra 1...")
+            messaggio_trasmesso = st.text_area("Messaggio TRASMESSO *", placeholder="Cosa hai trasmesso...", height=100)
         c3,c4,c5 = st.columns(3)
         with c3:
             canale = st.selectbox("Canale", ["CH 1 - Emergenza", "CH 2 - Logistica", "CH 3 - Coordinamento", "CH 4 - Operativo", "VHF 145.500", "Altro"])
@@ -222,8 +165,7 @@ with st.container(border=True):
             ora = st.text_input("Ora", value=datetime.now().strftime("%H:%M"))
         with c5:
             data = st.date_input("Data", value=datetime.now())
-        
-        if st.form_submit_button("📻 REGISTRA nella Sottomaschera", use_container_width=True, type="primary"):
+        if st.form_submit_button("REGISTRA nella Sottomaschera", use_container_width=True, type="primary"):
             if mittente and destinatario and (messaggio_ricevuto or messaggio_trasmesso):
                 if mittente not in st.session_state.mem_mitt:
                     st.session_state.mem_mitt.append(mittente)
@@ -239,38 +181,35 @@ with st.container(border=True):
                     "Messaggio Ricevuto": messaggio_ricevuto, "Messaggio Trasmesso": messaggio_trasmesso
                 })
                 salva_radio()
-                st.success(f"✅ Registrato nella sottomaschera: {mittente} -> {destinatario} - Memorizzato!")
+                st.success(f"Registrato: {mittente} -> {destinatario} - Memorizzato!")
                 st.rerun()
             else:
                 st.error("Compila Mittente, Destinatario e almeno un messaggio")
 
-    # Visualizzazione sottomaschera
     if st.session_state.radio_log:
         df_radio = pd.DataFrame(st.session_state.radio_log).iloc[::-1]
-        st.write(f"**Comunicazioni nella sottomaschera: {len(df_radio)} | Mittenti memorizzati: {len(st.session_state.mem_mitt)} | Destinatari: {len(st.session_state.mem_dest)}**")
-        
-        with st.expander(f"📋 Vedi memorie Mittente/Destinatario"):
+        st.write(f"Comunicazioni: {len(df_radio)} | Mittenti in memoria: {len(st.session_state.mem_mitt)} | Destinatari: {len(st.session_state.mem_dest)}")
+        with st.expander("Vedi memorie Mittente/Destinatario"):
             c1,c2 = st.columns(2)
             with c1:
                 st.write("**MITTENTI:**")
                 for m in sorted(st.session_state.mem_mitt):
-                    st.write(f"• {m}")
+                    st.write(f"- {m}")
             with c2:
                 st.write("**DESTINATARI:**")
                 for d in sorted(st.session_state.mem_dest):
-                    st.write(f"• {d}")
-        
+                    st.write(f"- {d}")
         st.dataframe(df_radio, use_container_width=True, hide_index=True)
-        
         col1,col2,col3 = st.columns(3)
         with col1:
             output = BytesIO()
             df_radio.to_excel(output, index=False, engine="openpyxl")
-            st.download_button("📥 Excel", output.getvalue(), file_name=f"registro_radio_{datetime.now().strftime('%Y%m%d')}.xlsx", mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", use_container_width=True)
+            st.download_button("Excel", output.getvalue(), file_name=f"registro_radio_{datetime.now().strftime('%Y%m%d')}.xlsx", mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", use_container_width=True)
         with col2:
-            pdf_bytes = crea_pdf_radio(df_radio)
-            if pdf_bytes:
-                st.download_button("📄 PDF", pdf_bytes, file_name=f"registro_radio_{datetime.now().strftime('%Y%m%d')}.pdf", mime="application/pdf", use_container_width=True)
+            # PDF senza libreria esterna - non da errore
+            pdf_bytes = crea_pdf_senza_libreria(df_radio)
+            st.download_button("PDF (testo)", pdf_bytes, file_name=f"registro_radio_{datetime.now().strftime('%Y%m%d')}.txt", mime="text/plain", use_container_width=True)
+            st.caption("PDF vero: aggiungi fpdf2 in requirements.txt e riavvia")
         with col3:
             csv = df_radio.to_csv(index=False).encode('utf-8')
-            st.download_button("📥 CSV", csv, file_name="registro_radio.csv", mime="text/csv", use_container_width=True)
+            st.download_button("CSV", csv, file_name="registro_radio.csv", mime="text/csv", use_container_width=True)
