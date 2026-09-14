@@ -778,8 +778,7 @@ with tab_dist:
                 data_d = st.date_input("Data", value=datetime.now(), key="data_dist")
                                 # Seleziona da DB radio se esiste
                 if st.session_state.radio_db:
-                    opzioni_radio_db = [r.get("Radio ID","") + " - " + r.get("Modello","") + " (" + r.get("Stato","") + ")" for r in st.session_state.radio_db if r.get("Stato")=="Disponibile" or r.get("Stato")=="In uso" or True]
-                    radio_options = ["-- Manuale --"] + [r.get("Radio ID","") for r in st.session_state.radio_db]
+                    radio_options = ["-- Manuale --"] + [str(r.get("Radio ID","")) for r in st.session_state.radio_db if r.get("Radio ID")]
                     scelta_radio_db = st.selectbox("Radio da DB *", radio_options, key="radio_db_sel")
                     if scelta_radio_db == "-- Manuale --":
                         radio_id = st.text_input("Radio ID manuale *", placeholder="R-01", key="radio_id_manuale")
