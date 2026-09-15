@@ -312,6 +312,166 @@ def pagina_checkin():
 
 
 
+
+# ========== CALCOLO CODICE FISCALE ITALIANO ==========
+def calcola_cf(nome, cognome, data_nascita, sesso, comune_nascita, codice_catastale_manual=""):
+    """
+    Calcola Codice Fiscale italiano
+    nome, cognome: stringhe
+    data_nascita: datetime
+    sesso: M/F
+    comune_nascita: nome comune
+    codice_catastale_manual: se fornito usa questo
+    """
+    try:
+        # Pulisci
+        cognome = cognome.upper().replace(" ", "").replace("'", "")
+        nome = nome.upper().replace(" ", "").replace("'", "")
+        
+        # Funzione per codice cognome/nome
+        def codice_cognome_nome(s, is_nome=False):
+            vocali = "AEIOU"
+            consonanti = "".join([c for c in s if c not in vocali and c.isalpha()])
+            vocali_s = "".join([c for c in s if c in vocali])
+            
+            if is_nome and len(consonanti) >= 4:
+                # Per nome con 4+ consonanti: 1a, 3a, 4a
+                return consonanti[0] + consonanti[2] + consonanti[3]
+            else:
+                cod = consonanti + vocali_s + "XXX"
+                return cod[:3]
+        
+        cod_cognome = codice_cognome_nome(cognome, False)
+        cod_nome = codice_cognome_nome(nome, True)
+        
+        # Anno
+        anno = data_nascita.strftime("%y")
+        # Mese
+        mesi = "ABCDEHLMPRST"
+        mese = mesi[data_nascita.month - 1]
+        # Giorno + sesso
+        giorno = data_nascita.day
+        if sesso.upper() == "F":
+            giorno += 40
+        giorno_str = f"{giorno:02d}"
+        
+        # Comune - codice catastale
+        codice_comune = codice_catastale_manual.upper() if codice_catastale_manual else "Z000"
+        
+        # Se non manuale, prova a cercare in dizionario comuni
+        if not codice_catastale_manual:
+            # Dizionario ridotto comuni più usati Varese + grandi città
+            comuni_codici = {
+                "VARESE": "L682", "MILANO": "F205", "ROMA": "H501", "TORINO": "L219",
+                "BUSTO ARSIZIO": "B300", "GALLARATE": "D869", "SARONNO": "I441",
+                "CASSANO MAGNAGO": "B999", "TRADATE": "L319", "MALNATE": "E863",
+                "SUMIRAGO": "L003", "VARESE": "L682", "COMO": "C933", "LECCO": "E507",
+                "MONZA": "F704", "BERGAMO": "A794", "BRESCIA": "B157", "NAPOLI": "F839",
+                "PALERMO": "G273", "GENOVA": "D969", "BOLOGNA": "A944", "FIRENZE": "D612",
+                "VENEZIA": "L736", "VERONA": "L781", "MESSINA": "F158", "PADOVA": "G224",
+                "TRIESTE": "L424", "TARANTO": "L049", "REGGIO CALABRIA": "H224",
+                "CAGLIARI": "B354", "BARI": "A662", "CATANIA": "C351"
+            }
+            # Cerca comune senza provincia
+            comune_pulito = comune_nascita.split("(")[0].strip().upper()
+            if comune_pulito in comuni_codici:
+                codice_comune = comuni_codici[comune_pulito]
+            else:
+                # Cerca parziale
+                for k, v in comuni_codici.items():
+                    if k in comune_pulito or comune_pulito in k:
+                        codice_comune = v
+                        break
+        
+        # Codice parziale 15 caratteri
+        parziale = f"{cod_cognome}{cod_nome}{anno}{mese}{giorno_str}{codice_comune}"
+        
+        # Carattere di controllo
+        dispari = {
+            '0':1,'1':0,'2':5,'3':7,'4':9,'5':13,'6':15,'7':17,'8':19,'9':21,
+            'A':1,'B':0,'C':5,'D':7,'E':9,'F':13,'G':15,'H':17,'I':19,'J':21,
+            'K':2,'L':4,'M':18,'N':20,'O':11,'P':3,'Q':6,'R':8,'S':12,'T':14,
+            'U':16,'V':10,'W':22,'X':25,'Y':24,'Z':23
+        }
+        pari = {
+            '0':0,'1':1,'2':2,'3':3,'4':4,'5':5,'6':6,'7':7,'8':8,'9':9,
+            'A':0,'B':1,'C':2,'D':3,'E':4,'F':5,'G':6,'H':7,'I':8,'J':9,
+            'K':10,'L':11,'M':12,'N':13,'O':14,'P':15,'Q':16,'R':17,'S':18,'T':19,
+            'U':20,'V':21,'W':22,'X':23,'Y':24,'Z':25
+        }
+        controllo = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+        somma = 0
+        for i, c in enumerate(parziale):
+            if (i+1) % 2 == 0:
+                somma += pari.get(c, 0)
+            else:
+                somma += dispari.get(c, 0)
+        cin = controllo[somma % 26]
+        
+        cf_completo = parziale + cin
+        return cf_completo, codice_comune, parziale
+    except Exception as e:
+        return f"ERRORE: {e}", "", ""
+
+def pagina_calcolo_cf():
+    st.title("🆔 Calcolo Codice Fiscale")
+    st.markdown('<div style="background:#e8f5e9; padding:15px; border-radius:10px;">Calcolo automatico CF da dati anagrafici - agganciato a comuni italiani</div>', unsafe_allow_html=True)
+    
+    lista_comuni = get_comuni_italiani()
+    
+    c1, c2 = st.columns(2)
+    with c1:
+        cognome = st.text_input("Cognome *", placeholder="Rossi", key="cf_cogn")
+        nome = st.text_input("Nome *", placeholder="Mario", key="cf_nome")
+        sesso = st.selectbox("Sesso *", ["M", "F"], key="cf_sesso")
+        data_nasc = st.date_input("Data Nascita *", value=datetime(1980,1,1), min_value=datetime(1920,1,1), max_value=datetime(2010,12,31), key="cf_data")
+    with c2:
+        comune_nasc = st.selectbox("Comune Nascita *", ["--"] + lista_comuni[:1000], key="cf_comune_sel")
+        filtro = st.text_input("Filtro Comune (scrivi per cercare)", placeholder="Varese...", key="cf_filtro")
+        if filtro:
+            risultati = [c for c in lista_comuni if filtro.lower() in c.lower()][:30]
+            if risultati:
+                comune_nasc = st.selectbox("Risultati filtro", ["--"] + risultati, key="cf_comune_filt")
+        
+        comune_manual = st.text_input("Oppure scrivi Comune manualmente", placeholder="Varese", key="cf_comune_man")
+        codice_cat_man = st.text_input("Codice Catastale (se conosci, es: L682 per Varese)", placeholder="L682", max_chars=4, key="cf_cat")
+    
+    comune_final = comune_manual if comune_manual else (comune_nasc if comune_nasc != "--" else "")
+    
+    if st.button("🔍 CALCOLA CODICE FISCALE", use_container_width=True, type="primary"):
+        if not cognome or not nome or not comune_final:
+            st.error("Compila Cognome, Nome, Comune")
+        else:
+            cf_calc, cod_com, parz = calcola_cf(nome, cognome, data_nasc, sesso, comune_final, codice_cat_man)
+            st.success(f"✅ Codice Fiscale Calcolato")
+            
+            col_cf1, col_cf2 = st.columns([2,1])
+            with col_cf1:
+                st.markdown(f'<div style="background:#c8e6c9; padding:20px; border-radius:10px; text-align:center; border:3px solid #2e7d32;"><h1 style="color:#1b5e20; letter-spacing:3px;">{cf_calc}</h1><p>Cognome: {cognome.upper()} - Nome: {nome.upper()}<br>Data: {data_nasc.strftime("%d/%m/%Y")} - Sesso: {sesso}<br>Comune: {comune_final} - Cod.Cat: {cod_com}</p></div>', unsafe_allow_html=True)
+            with col_cf2:
+                st.markdown("#### Dettaglio")
+                st.code(f"Cognome: {cf_calc[:3]}\nNome: {cf_calc[3:6]}\nAnno: {cf_calc[6:8]}\nMese: {cf_calc[8]}\nGiorno: {cf_calc[9:11]}\nComune: {cf_calc[11:15]}\nControllo: {cf_calc[15]}")
+                if st.button("📋 Usa questo CF in Anagrafica"):
+                    st.session_state.cf_calcolato = cf_calc
+                    st.session_state.current_page = "👥 Volontari"
+                    st.rerun()
+            
+            # Barcode del CF
+            try:
+                import qrcode
+                from io import BytesIO
+                qr = qrcode.QRCode(version=1, box_size=10, border=2)
+                qr.add_data(cf_calc)
+                qr.make(fit=True)
+                img = qr.make_image(fill='black', back_color='white')
+                buf = BytesIO()
+                img.save(buf, format='PNG')
+                st.image(buf.getvalue(), width=150, caption=f"QR Code CF {cf_calc}")
+            except:
+                pass
+
+# ========== FINE CALCOLO CF ==========
+
 # ========== SISTEMA MULTI-UTENTE CONDIVISO ==========
 import json
 import os
@@ -826,6 +986,7 @@ st.sidebar.image("logo.png", width=120) if os.path.exists("logo.png") else st.si
 st.sidebar.markdown("## 📚 MENU PRINCIPALE")
 
 pagine = {
+    "🆔 Calcolo CF": "CF",
     "💬 Chat Collegati": "Chat",
     "📅 Gestione Eventi": "Eventi",
     "📝 Check-In Volontari": "CheckIn",
@@ -883,6 +1044,11 @@ if st.session_state.get("page_extra") == "evento_crea":
 st.markdown(f"## {scelta}")
 st.divider()
 
+
+# === CALCOLO CF ===
+if scelta == "🆔 Calcolo CF":
+    pagina_calcolo_cf()
+    st.stop()
 
 # === CHAT ===
 if scelta == "💬 Chat Collegati":
@@ -1029,7 +1195,8 @@ elif scelta == "👥 Volontari":
     
     with tab1:
         with st.container(border=True):
-            st.markdown("#### 📝 Scheda Anagrafica Volontario - Tutti i campi")
+            st.markdown("#### 📝 Scheda Anagrafica Volontario - Tutti i campi con Foto + CF Auto")
+            st.info("📷 Carica foto SOPRA il form + 🆔 Il CF si calcola da solo se lasci vuoto! Oppure vai in menu 🆔 Calcolo CF")
             
             # Carica comuni per residenza
             lista_comuni_anag = get_comuni_italiani()
@@ -1069,7 +1236,16 @@ elif scelta == "👥 Volontari":
                     luogo_nascita_v = st.selectbox("Luogo Nascita - Comune", ["--"] + lista_comuni_anag[:500], key="luogo_nascita")
                     luogo_nascita_manual = st.text_input("Oppure scrivi luogo nascita", placeholder="Varese")
                 with c3:
-                    cf_v = st.text_input("Codice Fiscale *", placeholder="RSSMRA80A01L682K", help="16 caratteri")
+                    cf_v = st.text_input("Codice Fiscale *", placeholder="RSSMRA80A01L682K", help="16 caratteri", value=st.session_state.get("cf_calcolato",""), key="cf_anag_field")
+                    if st.form_submit_button("🆔 CALCOLA CF AUTOMATICO", use_container_width=False):
+                        st.session_state.cf_nome_temp = nome_v
+                        st.session_state.cf_cognome_temp = cognome_v
+                        st.session_state.cf_data_temp = data_nascita_v
+                        st.session_state.cf_sesso_temp = sesso_v
+                        st.session_state.cf_comune_temp = luogo_nascita_manual if luogo_nascita_manual else luogo_nascita_v
+                    # Se CF calcolato da pagina CF, usalo
+                    if "cf_calcolato" in st.session_state and st.session_state.cf_calcolato:
+                        st.info(f"CF calcolato: {st.session_state.cf_calcolato}")
                     gruppo_sanguigno_v = st.selectbox("Gruppo Sanguigno", ["--", "0+", "0-", "A+", "A-", "B+", "B-", "AB+", "AB-"])
                     taglia_v = st.selectbox("Taglia Vestiario", ["--", "XS", "S", "M", "L", "XL", "XXL", "XXXL"])
                 with c4:
@@ -1159,6 +1335,11 @@ elif scelta == "👥 Volontari":
                         # Procedi comunque
                         nome_completo = f"{nome_v} {cognome_v}".strip()
                         # Salva
+                        # AUTO CALCOLO CF se vuoto
+                        if not cf_v:
+                            luogo_calc_auto = luogo_nascita_manual if luogo_nascita_manual else luogo_nascita_v
+                            cf_auto, cod_auto, _ = calcola_cf(nome_v, cognome_v, data_nascita_v, sesso_v, luogo_calc_auto, "")
+                            cf_v = cf_auto
                         luogo_nascita_final = luogo_nascita_manual if luogo_nascita_manual else luogo_nascita_v
                         comune_res_final = comune_res_v
                         # Crea record completo
