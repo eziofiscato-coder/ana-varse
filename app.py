@@ -2,1864 +2,415 @@
 import streamlit as st
 import pandas as pd
 import os
+from datetime import datetime, date
+from fpdf import FPDF
 from io import BytesIO
-from datetime import datetime
-import json
-import requests
 
-st.set_page_config(page_title="ANA Varese - Gestionale", page_icon="🎖️", layout="wide")
+st.set_page_config(page_title="ANA Varese - Protezione Civile", page_icon="🎖️", layout="wide")
 
-# --- Presentazione ---
+# SFONDO VERDE CHIARO
+st.markdown("""<style>
+.stApp{background-color:#e8f5e9 !important;}
+.main .block-container{background-color:rgba(255,255,255,0.93) !important;border-radius:18px;padding:25px !important;box-shadow:0 4px 20px rgba(0,0,0,0.08);}
+[data-testid="stSidebar"]{background-color:#a5d6a7 !important;}
+h1,h2,h3{color:#2e7d32 !important;}
+</style>""", unsafe_allow_html=True)
+
+# --- PDF CON LOGHI 80px equivalenti ---
+class PDFConLogo(FPDF):
+    def header(self):
+        try:
+            self.set_fill_color(232, 245, 233)
+            self.rect(0, 0, 210, 28, "F")
+            if os.path.exists("logo.png"):
+                self.image("logo.png", x=10, y=5, w=18)
+            if os.path.exists("logo2.png"):
+                self.image("logo2.png", x=182, y=5, w=18)
+            self.set_y(8)
+            self.set_font("Arial", "B", 11)
+            self.set_text_color(27, 94, 32)
+            self.cell(0, 10, "ANA Varese - Protezione Civile", align="C", ln=True)
+            self.ln(8)
+        except:
+            pass
+    def footer(self):
+        self.set_y(-15)
+        self.set_font("Arial", "I", 8)
+        self.cell(0, 10, f"Pagina {self.page_no()} - Generato {datetime.now().strftime('%d/%m/%Y %H:%M')}", align="C")
+
+# --- SESSION STATE ---
 if "entered" not in st.session_state:
     st.session_state.entered = False
-
-# --- PROTEZIONE PASSWORD ---
 if "authenticated" not in st.session_state:
     st.session_state.authenticated = False
+if "page" not in st.session_state:
+    st.session_state.page = "dashboard"
+if "eventi" not in st.session_state:
+    st.session_state.eventi = []
+if "checkin" not in st.session_state:
+    st.session_state.checkin = {}  # key: evento_id -> list volontari
+if "volontari" not in st.session_state:
+    st.session_state.volontari = []
 
-# Password configurabile - cambia qui
-APP_PASSWORD = "ANA2025"  # <-- CAMBIA PASSWORD QUI
-# Puoi anche usare st.secrets: APP_PASSWORD = st.secrets.get("APP_PASSWORD", "ANA2025")
+APP_PASSWORD = "ANA2025"
 
+# --- LOGIN ---
 if not st.session_state.authenticated:
-    st.markdown("""
-    <style>
-    [data-testid="stSidebar"] {display: none;}
-    .main .block-container {max-width: 500px; padding-top: 5rem;}
-    </style>
-    """, unsafe_allow_html=True)
-    
-    # Mostra 2 loghi piccoli nel login (senza regione)
-    lc1, lc2, lc3, lc4 = st.columns([1,1,1,1])
-    with lc2:
+    st.markdown("<style>[data-testid='stSidebar']{display:none;}</style>", unsafe_allow_html=True)
+    c1, c2, c3, c4 = st.columns([1,1,1,1])
+    with c2:
         try:
-            st.image("logo.png", width=60)
+            st.image("logo.png", width=80)
         except:
-            st.markdown("### 🎖️ ANA")
-    with lc3:
+            st.markdown("### ANA")
+    with c3:
         try:
-            st.image("logo2.png", width=60)
+            st.image("logo2.png", width=80)
         except:
             st.markdown("### Varese")
-    
-    st.markdown("<h2 style='text-align:center; color:#0e7a3d; margin-top:20px;'>🔐 Accesso Riservato<br>ANA Varese - Protezione Civile</h2>", unsafe_allow_html=True)
-    st.markdown("<p style='text-align:center;'>Inserisci password per accedere al sistema gestione volontari, radio e postazioni</p>", unsafe_allow_html=True)
-    
+    st.markdown("<h2 style='text-align:center; color:#2e7d32;'>🔐 Accesso Riservato<br>ANA Varese - Protezione Civile</h2>", unsafe_allow_html=True)
     pwd = st.text_input("Password", type="password", placeholder="Inserisci password")
-    col_a, col_b = st.columns(2)
-    with col_a:
-        if st.button("🔓 Accedi", use_container_width=True, type="primary"):
-            if pwd == APP_PASSWORD:
-                st.session_state.authenticated = True
-                st.success("✅ Accesso consentito!")
-                st.rerun()
-            else:
-                st.error("❌ Password errata! Riprova.")
-    with col_b:
-        st.markdown("<small style='color:gray;'>Password default: ANA2025<br>Modificabile in app.py riga APP_PASSWORD</small>", unsafe_allow_html=True)
-    
-    st.stop()
-if "current_page" not in st.session_state:
-    st.session_state.current_page = "🏠 Dashboard"
-
-if not st.session_state.entered:
-    st.markdown("""
-    <style>
-    [data-testid="stSidebar"] {display: none;}
-    .main .block-container {max-width: 900px; padding-top: 2rem;}
-    </style>
-    """, unsafe_allow_html=True)
-    # Triplo logo - ANA + Sezione Varese + Protezione Civile - Regione Lombardia
-    col_logo1, col_logo2, col_logo3 = st.columns(3)
-    with col_logo1:
-        try:
-            st.image("logo.png", width=60)
-            st.markdown("<div style='text-align:center;'><b>ANA Nazionale</b></div>", unsafe_allow_html=True)
-        except:
-            st.markdown("## 🎖️ ANA")
-    with col_logo2:
-        try:
-            st.image("logo2.png", width=60)
-            st.markdown("<div style='text-align:center;'><b>Sezione Varese</b></div>", unsafe_allow_html=True)
-        except:
-            st.markdown("## Sezione Varese")
-    with col_logo3:
-        try:
-            st.image("logo_protezione.png", width=80, use_container_width=True)
-            st.markdown("<div style='text-align:center;'><b>Protezione Civile - Regione Lombardia</b><br><small>Rosa Camuna</small></div>", unsafe_allow_html=True)
-        except:
-            try:
-                st.image("logo3.png", width=80, use_container_width=True)
-                st.markdown("<div style='text-align:center;'><b>Protezione Civile - Regione Lombardia</b></div>", unsafe_allow_html=True)
-            except:
-                st.markdown("""
-                <div style='background:#0a8a4b; border-radius:15px; padding:20px; text-align:center; color:white;'>
-                    <div style='background:white; width:100px; height:100px; margin:0 auto; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:60px;'>🌹</div>
-                    <p style='margin-top:10px;'><b>Protezione Civile - Regione Lombardia</b><br>Rosa Camuna</p>
-                </div>
-                """, unsafe_allow_html=True)
-    st.markdown("""
-    <div style="text-align:center; padding:20px;">
-        <h1 style="color:#0e7a3d; font-size:42px; margin-bottom:0;">🎖️ ANA - ASSOCIAZIONE NAZIONALE ALPINI</h1>
-        <h2 style="color:#333; font-size:28px; margin-top:5px;">Sezione di Varese</h2>
-        <h3 style="color:#666; font-size:20px; margin-top:20px;">Sistema Gestione Volontari, Radio e Postazioni</h3>
-        <div style="background:#e8f5e9; padding:20px; border-radius:15px; margin:30px 0; border-left:6px solid #0e7a3d; text-align:left;">
-            <p style="font-size:16px; color:#333; margin:0;">
-            ✅ <b>Dashboard</b> - Riepilogo generale<br>
-            👥 <b>Volontari</b> - Anagrafica completa<br>
-            📻 <b>DB Radio</b> - Inventario radio<br>
-            📦 <b>Distribuzione</b> - Consegna radio con firma<br>
-            🗺️ <b>Mappa</b> - Postazioni FULLSCREEN OSM/Google + Navigazione<br>
-            📋 <b>Registro</b> - Registro uso radio<br>
-            🔗 <b>Link</b> - Condivisione aggiornamenti con QR Code
-            </p>
-        </div>
-    </div>
-    """, unsafe_allow_html=True)
-    col_a, col_b, col_c = st.columns([1,1,1])
-    with col_b:
-        if st.button("🚀 ENTRA NEL SISTEMA", use_container_width=True, type="primary"):
-            st.session_state.entered = True
+    if st.button("🔓 Accedi", use_container_width=True, type="primary"):
+        if pwd == APP_PASSWORD:
+            st.session_state.authenticated = True
             st.rerun()
-    st.markdown("<br><br>", unsafe_allow_html=True)
-    st.markdown("""
-    <div style="text-align:center; background:#f8f9fa; padding:15px; border-radius:10px; margin-top:30px;">
-        <p style="font-size:14px; color:#888; margin:0;">Realizzato con ❤️ per la Sezione ANA Varese</p>
-        <p style="font-size:20px; color:#0e7a3d; font-weight:bold; margin:5px 0;">👨‍💻 Realizzato da Ezio Fiscato</p>
-        <p style="font-size:12px; color:#aaa; margin:0;">Versione 2025 - Gestionale Volontariato</p>
-    </div>
-    """, unsafe_allow_html=True)
+        else:
+            st.error("Password errata!")
     st.stop()
 
-# --- Funzioni comuni ---
-def combo_memoria(label, opzioni, key_suffix, placeholder=""):
-    if not opzioni:
-        opzioni = ["Volontario"]
-    sel = st.selectbox(label, opzioni + ["-- Nuovo --"], key=f"combo_{key_suffix}")
-    if sel == "-- Nuovo --":
-        nuovo = st.text_input(f"Nuovo {label}", placeholder=placeholder, key=f"nuovo_{key_suffix}")
-        return nuovo if nuovo else ""
-    return sel
-
-# Files
-FILE_NOMI = "mem_nomi.csv"
-FILE_RADIO_DB = "radio_db.csv"
-FILE_DIST_RADIO = "distribuzione_radio.csv"
-FILE_POSTAZIONI = "postazioni_mappa.csv"
-FILE_REGISTRO = "registro_radio.csv"
-FILE_BROGLIACCIO = "brogliaccio.csv"
-FILE_COMUNICAZIONI = "brogliaccio_comunicazioni.csv"
-
-for f_name, key in [(FILE_NOMI, "mem_nomi"), (FILE_RADIO_DB, "radio_db"), (FILE_DIST_RADIO, "dist_radio"), (FILE_POSTAZIONI, "postazioni"), (FILE_REGISTRO, "registro_radio"), (FILE_BROGLIACCIO, "brogliaccio"), (FILE_COMUNICAZIONI, "comunicazioni")]:
-    if key not in st.session_state:
-        if os.path.exists(f_name):
-            try:
-                df_tmp = pd.read_csv(f_name)
-                st.session_state[key] = df_tmp.to_dict(orient="records") if not df_tmp.empty else []
-            except:
-                st.session_state[key] = []
-        else:
-            st.session_state[key] = []
-
-if "selected_postazione" not in st.session_state:
-    st.session_state.selected_postazione = None
-if "mem_nomi" not in st.session_state or not st.session_state.mem_nomi:
-    st.session_state.mem_nomi = ["Mario Rossi", "Luigi Bianchi", "Giuseppe Verdi"]
-
-def salva_csv(data, filename):
-    if data:
-        pd.DataFrame(data).to_csv(filename, index=False)
-
-
-import requests
-
-
-@st.cache_data(ttl=86400, show_spinner=False)
-def get_comuni_italiani():
-    """Scarica lista comuni italiani da API + fallback"""
-    comuni = []
-    try:
-        # Prova API comuni-ita
-        url = "https://comuni-ita.nicolorebaioli.dev/comuni?fields=nome,provincia.nome,regione.nome&sort=nome&pagesize=8000"
-        headers = {"User-Agent": "ANA-Varese-App/1.0"}
-        resp = requests.get(url, headers=headers, timeout=15)
-        if resp.status_code == 200:
-            data = resp.json()
-            if isinstance(data, list):
-                for c in data:
-                    nome = c.get("nome","")
-                    prov = c.get("provincia",{}).get("nome","") if isinstance(c.get("provincia"), dict) else c.get("provincia","")
-                    reg = c.get("regione",{}).get("nome","") if isinstance(c.get("regione"), dict) else c.get("regione","")
-                    if nome:
-                        comuni.append(f"{nome} ({prov}) - {reg}" if prov else nome)
-            elif isinstance(data, dict) and "data" in data:
-                for c in data["data"]:
-                    nome = c.get("nome","")
-                    if nome:
-                        comuni.append(nome)
-        if len(comuni) < 5:
-            raise Exception("pochi comuni")
-        return sorted(list(set(comuni)))
-    except Exception as e:
-        # Fallback lista ridotta principali + tutti comuni Varese/Lombardia
-        fallback = [
-            "Varese (Varese) - Lombardia", "Milano (Milano) - Lombardia", "Busto Arsizio (Varese) - Lombardia",
-            "Gallarate (Varese) - Lombardia", "Saronno (Varese) - Lombardia", "Cassano Magnago (Varese) - Lombardia",
-            "Tradate (Varese) - Lombardia", "Gavirate (Varese) - Lombardia", "Malnate (Varese) - Lombardia",
-            "Somma Lombardo (Varese) - Lombardia", "Samarate (Varese) - Lombardia", "Laveno-Mombello (Varese) - Lombardia",
-            "Luino (Varese) - Lombardia", "Besozzo (Varese) - Lombardia", "Fagnano Olona (Varese) - Lombardia",
-            "Caronno Pertusella (Varese) - Lombardia", "Castellanza (Varese) - Lombardia", "Lonate Pozzolo (Varese) - Lombardia",
-            "Sesto Calende (Varese) - Lombardia", "Arsago Seprio (Varese) - Lombardia", "Vergiate (Varese) - Lombardia",
-            "Angera (Varese) - Lombardia", "Cittiglio (Varese) - Lombardia", "Luvinate (Varese) - Lombardia",
-            "Comerio (Varese) - Lombardia", "Barasso (Varese) - Lombardia", "Casciago (Varese) - Lombardia",
-            "Gazzada Schianno (Varese) - Lombardia", "Bodio Lomnago (Varese) - Lombardia", "Cazzago Brabbia (Varese) - Lombardia",
-            "Roma (Roma) - Lazio", "Torino (Torino) - Piemonte", "Napoli (Napoli) - Campania", "Genova (Genova) - Liguria",
-            "Bologna (Bologna) - Emilia-Romagna", "Firenze (Firenze) - Toscana", "Venezia (Venezia) - Veneto", "Brescia (Brescia) - Lombardia",
-            "Como (Como) - Lombardia", "Lecco (Lecco) - Lombardia", "Bergamo (Bergamo) - Lombardia", "Monza (Monza e Brianza) - Lombardia",
-            "Novara (Novara) - Piemonte", "Alessandria (Alessandria) - Piemonte", "La Spezia (La Spezia) - Liguria",
-        ]
-        # Aggiungi tutti i comuni italiani da lista ISTAT parziale offline (per demo)
-        return sorted(fallback)
-
-@st.cache_data(ttl=3600, show_spinner=False)
-def get_vie_comune(comune_pulito):
-    """Prende vie di un comune tramite Overpass API"""
-    vie = []
-    try:
-        # Pulisci nome comune da provincia
-        comune = comune_pulito.split("(")[0].strip().split("-")[0].strip()
-        if not comune:
-            return []
-        # Overpass query per strade
-        overpass_url = "https://overpass-api.de/api/interpreter"
-        query = f"""
-        [out:json][timeout:25];
-        area["name"="{comune}"]["admin_level"~"6|8"]->.searchArea;
-        (
-          way["highway"]["name"](area.searchArea);
-        );
-        out tags 200;
-        """
-        # Prova anche con ricerca più larga se area non trovata
-        headers = {"User-Agent": "ANA-Varese-App/1.0"}
-        resp = requests.post(overpass_url, data={"data": query}, headers=headers, timeout=20)
-        if resp.status_code == 200:
-            data = resp.json()
-            for el in data.get("elements", []):
-                name = el.get("tags", {}).get("name")
-                if name and len(name) > 2:
-                    vie.append(name)
-        # Se poche vie, prova Nominatim streets search alternativa
-        if len(vie) < 5:
-            # Ricerca vie con Nominatim: cerca vie popolari
-            nominatim_url = "https://nominatim.openstreetmap.org/search"
-            params = {"q": comune, "format": "json", "addressdetails": 1, "limit": 1}
-            r = requests.get(nominatim_url, params=params, headers=headers, timeout=10)
-            if r.status_code == 200 and r.json():
-                # Non abbiamo lista vie da Nominatim, quindi proponiamo vie comuni
-                pass
-        vie = sorted(list(set(vie)))[:500]  # max 500
-        return vie
-    except Exception as e:
-        return []
-
-def geocode_comune_via_dettagliato(comune_display, via):
-    """Geocoding con comune pulito"""
-    try:
-        return geocode_comune_via(comune_display, via)
-    except Exception as e:
-        return None, None, f"Errore: {e}"
-
-
-def geocode_comune_via(comune, via, civico=""):
-    """Cerca lat/lon da comune, via e civico - robusto con fallback multipli per 403"""
-    try:
-        comune_clean = comune.split("(")[0].strip() if "(" in comune else comune
-        # Costruisci query con civico
-        via_completa = f"{via} {civico}".strip() if civico else via
-        query = f"{via_completa}, {comune_clean}, Italy" if via_completa and comune_clean else f"{comune_clean}, Italy" if comune_clean else via_completa
-        if not query or query.strip() == ", Italy" or query.strip() == "" or query.strip() == "Italy":
-            return None, None, "Inserisci comune e via"
-        
-        headers = {
-            "User-Agent": "ANA-Varese-App/1.0 (contact: ezio.fiscato@ana.varese.it)",
-            "Accept": "application/json",
-            "Accept-Language": "it-IT,it;q=0.9"
-        }
-        
-        # TENTATIVO 1: Nominatim OSM
-        try:
-            url = "https://nominatim.openstreetmap.org/search"
-            params = {"q": query, "format": "json", "limit": 1, "countrycodes": "it", "addressdetails": 1, "email": "ezio.fiscato@ana.varese.it"}
-            resp = requests.get(url, params=params, headers=headers, timeout=12)
-            if resp.status_code == 200:
-                data = resp.json()
-                if data:
-                    lat = data[0].get("lat")
-                    lon = data[0].get("lon")
-                    display = data[0].get("display_name", "")
-                    return lat, lon, display
-            elif resp.status_code == 403:
-                # 403 - prova con Photon
-                pass
-            else:
-                resp.raise_for_status()
-        except Exception as e1:
-            # Se Nominatim fallisce, prova Photon
-            pass
-        
-        # TENTATIVO 2: Photon Komoot (fallback per 403)
-        try:
-            photon_url = "https://photon.komoot.io/api/"
-            photon_params = {"q": query, "limit": 1, "lang": "it"}
-            resp2 = requests.get(photon_url, params=photon_params, headers=headers, timeout=12)
-            if resp2.status_code == 200:
-                data2 = resp2.json()
-                feats = data2.get("features", [])
-                if feats:
-                    coords = feats[0].get("geometry", {}).get("coordinates", [])
-                    props = feats[0].get("properties", {})
-                    if len(coords) >= 2:
-                        lon, lat = coords[0], coords[1]
-                        display = f"{props.get('name','')} {props.get('street','')} {props.get('city','')} {props.get('country','')}".strip()
-                        if not display:
-                            display = props.get("name", query)
-                        return str(lat), str(lon), display
-        except Exception as e2:
-            pass
-        
-        # TENTATIVO 3: Solo comune (senza via) su Nominatim
-        try:
-            if via and comune_clean:
-                # Prova solo comune
-                url3 = "https://nominatim.openstreetmap.org/search"
-                params3 = {"q": f"{comune_clean}, Italy", "format": "json", "limit": 1, "countrycodes": "it"}
-                resp3 = requests.get(url3, params=params3, headers=headers, timeout=10)
-                if resp3.status_code == 200:
-                    data3 = resp3.json()
-                    if data3:
-                        lat = data3[0].get("lat")
-                        lon = data3[0].get("lon")
-                        display = data3[0].get("display_name", "") + f" (centro {comune_clean} - via non trovata, puoi spostare manualmente)"
-                        return lat, lon, display
-        except:
-            pass
-        
-        return None, None, f"Nessun risultato per '{query}'. Prova con solo Comune o via più semplice (es: Via Roma)"
-    except Exception as e:
-        return None, None, f"Errore rete: {str(e)} - Prova con solo Comune"
-
-def geocode_comune_via_completo(comune, via, civico=""):
-    return geocode_comune_via(comune, via, civico)
-
-
-
-def calc_h(text, max_w=35):
-    if not text:
-        return 8
-    t = str(text)
-    lines = 1
-    for part in t.split("\n"):
-        lines += len(part) // max_w
-    return min(max(lines * 5, 8), 30)
-
-# --- MENU MULTIPAGINA ---
-st.sidebar.image("logo.png", width=80) if os.path.exists("logo.png") else st.sidebar.markdown("### 🎖️ ANA Varese")
+# --- SIDEBAR ---
+st.sidebar.markdown("### 🎖️ ANA Varese")
 if st.sidebar.button("🔒 Logout", use_container_width=True):
     st.session_state.authenticated = False
     st.session_state.entered = False
     st.rerun()
 st.sidebar.divider()
-st.sidebar.markdown("## 📚 MENU PRINCIPALE")
-
-pagine = {
-    "🏠 Dashboard": "Dashboard",
-    "👥 Volontari": "Volontari",
-    "📝 Brogliaccio": "Brogliaccio",
-    "📻 DB Radio Inventario": "DB Radio",
-    "📦 Distribuzione Radio": "Distribuzione",
-    "🗺️ Mappa Postazioni": "Mappa",
-    "📋 Registro Radio": "Registro",
-    "🔗 Link & Aggiornamenti": "Link"
-}
-
-# Fix navigazione - usa current_page come stato
-pagine_list = list(pagine.keys())
-try:
-    current_idx = pagine_list.index(st.session_state.current_page)
-except:
-    current_idx = 0
-    st.session_state.current_page = pagine_list[0]
-
-# Sidebar radio - sincronizzata con current_page
-# Usa callback per evitare loop
-def on_sidebar_change():
-    pass
-
-scelta_radio = st.sidebar.radio("Vai a:", pagine_list, index=current_idx, key="menu_radio")
-# Se utente cambia da sidebar, aggiorna current_page
-if scelta_radio != st.session_state.current_page:
-    st.session_state.current_page = scelta_radio
-
-scelta = st.session_state.current_page
-
-if st.sidebar.button("🏠 Torna a Presentazione", use_container_width=True):
-    st.session_state.entered = False
+if st.sidebar.button("🏠 Dashboard", use_container_width=True):
+    st.session_state.page = "dashboard"
+    st.rerun()
+if st.sidebar.button("📅 Gestione Eventi", use_container_width=True):
+    st.session_state.page = "evento_lista"
+    st.rerun()
+if st.sidebar.button("📝 Check-In Volontari", use_container_width=True):
+    st.session_state.page = "checkin"
     st.rerun()
 
-st.sidebar.divider()
-st.sidebar.caption(f"👤 Realizzato da Ezio Fiscato")
-st.sidebar.caption(f"📅 {datetime.now().strftime('%d/%m/%Y')}")
-
-# Titolo pagina
-st.markdown(f"## {scelta}")
-st.divider()
-
-
-# === DASHBOARD ===
-if scelta == "🏠 Dashboard":
-    col1,col2,col3,col4,col5 = st.columns(5)
-    with col1:
-        st.metric("👥 Volontari", len(st.session_state.mem_nomi))
+# --- PAGINA PRESENTAZIONE ---
+if not st.session_state.entered:
+    col1, col2, col3, col4 = st.columns([1,1,1,1])
     with col2:
-        st.metric("📝 Brogliaccio", len(st.session_state.brogliaccio) if "brogliaccio" in st.session_state else 0)
+        try:
+            st.image("logo.png", width=80)
+        except:
+            pass
     with col3:
-        st.metric("📻 Radio in DB", len(st.session_state.radio_db))
-    with col4:
-        st.metric("📦 Distribuzioni", len(st.session_state.dist_radio))
-    with col5:
-        st.metric("🗺️ Postazioni", len(st.session_state.postazioni))
+        try:
+            st.image("logo2.png", width=80)
+        except:
+            pass
+    st.markdown("<h1 style='text-align:center; color:#1b5e20;'>🎖️ ANA - ASSOCIAZIONE NAZIONALE ALPINI<br>Sezione di Varese<br><small style='color:#388e3c;'>Protezione Civile</small></h1>", unsafe_allow_html=True)
+    st.markdown('<div style="background:#c8e6c9; padding:20px; border-radius:15px; text-align:center;"><h3>Sistema Gestione Volontari, Eventi e Check-In</h3><p>Gestione completa servizi, radio, distribuzione, mappa e volontari</p></div>', unsafe_allow_html=True)
+    if st.button("🚀 ENTRA NEL SISTEMA", use_container_width=True, type="primary"):
+        st.session_state.entered = True
+        st.rerun()
+    st.stop()
+
+# --- PAGINA EVENTO FORM ---
+def pagina_crea_evento():
+    st.title("📅 Crea Nuovo Evento / Servizio")
+    if st.button("⬅️ Torna a Lista Eventi"):
+        st.session_state.page = "evento_lista"
+        st.rerun()
     
-    st.markdown("### 🚀 Accesso Rapido - TUTTI I TASTI ATTIVI")
-    st.success("✅ Tutti i pulsanti sotto sono collegati e funzionanti - clicca per andare alla funzione!")
+    st.markdown('<div style="background:#e8f5e9; padding:12px; border-radius:8px; border-left:5px solid #2e7d32;">Compila tutti i campi obbligatori *</div>', unsafe_allow_html=True)
     
-    # Funzione per navigare - robusta
-    def set_page(pagina):
-        st.session_state.current_page = pagina
-    
-    # Prima riga - 4 colonne con callback on_click
-    c1,c2,c3,c4 = st.columns(4)
-    with c1:
-        st.markdown("**👥 Anagrafica**")
-        st.button("👥 Gestisci Volontari", use_container_width=True, type="primary", key="dash_vol_final", on_click=set_page, args=("👥 Volontari",))
-        st.button("📝 Brogliaccio ODV", use_container_width=True, type="primary", key="dash_brog_final", on_click=set_page, args=("📝 Brogliaccio",))
-        st.button("📻 DB Radio Inventario", use_container_width=True, key="dash_db_final", on_click=set_page, args=("📻 DB Radio Inventario",))
-        st.button("📻 Sottomaschera Comunicazioni", use_container_width=True, key="dash_sotto_final", on_click=set_page, args=("📝 Brogliaccio",))
-    
-    with c2:
-        st.markdown("**📦 Operativo**")
-        st.button("📦 Distribuisci Radio", use_container_width=True, type="primary", key="dash_dist_final", on_click=set_page, args=("📦 Distribuzione Radio",))
-        st.button("🗺️ Mappa Postazioni", use_container_width=True, type="primary", key="dash_mappa_final", on_click=set_page, args=("🗺️ Mappa Postazioni",))
-        st.button("📋 Registro Radio", use_container_width=True, key="dash_reg_final", on_click=set_page, args=("📋 Registro Radio",))
-        st.button("🔗 Link & Aggiornamenti", use_container_width=True, key="dash_link_final", on_click=set_page, args=("🔗 Link & Aggiornamenti",))
-    
-    with c3:
-        st.markdown("**⚡ Azioni Rapide**")
-        if st.button("🏠 Presentazione", use_container_width=True, key="dash_home_final"):
-            st.session_state.entered = False
+    with st.form("form_evento", clear_on_submit=True):
+        col1, col2 = st.columns(2)
+        with col1:
+            tipo_servizio = st.selectbox("🔧 TIPO DI SERVIZIO *", ["Seleziona...","Monitoraggio idrogeologico","Antincendio boschivo","Supporto emergenza","Esercitazione","Manifestazione pubblica","Ricerca persone","Alluvione / Esondazione","Neve / Ghiaccio","Assistenza popolazione","Presidio / Sorveglianza","Altro"])
+            descrizione = st.text_area("📝 DESCRIZIONE EVENTO *", height=120, placeholder="Dettagli evento...")
+            comune = st.text_input("🏘️ COMUNE *", placeholder="Es: Varese")
+            provincia = st.selectbox("📍 PROVINCIA *", ["Seleziona...","VA - Varese","MI - Milano","CO - Como","MB - Monza Brianza","LC - Lecco","LO - Lodi","PV - Pavia","CR - Cremona","MN - Mantova","BG - Bergamo","BS - Brescia","SO - Sondrio","Altra"])
+        with col2:
+            data_inizio = st.date_input("📅 DATA INIZIO *", value=date.today())
+            ora_inizio = st.time_input("⏰ ORA INIZIO *")
+            data_fine = st.date_input("📅 DATA FINE *", value=date.today())
+            ora_fine = st.time_input("⏰ ORA FINE *")
+            organizzazione = st.text_input("🏢 ORGANIZZAZIONE *", placeholder="Es: ANA Varese - Nucleo PC")
+            responsabile = st.text_input("👤 RESPONSABILE *", placeholder="Nome Cognome")
+            cellulare_resp = st.text_input("📱 CELLULARE RESPONSABILE *", placeholder="347 1234567")
+        
+        salva = st.form_submit_button("💾 SALVA EVENTO", use_container_width=True, type="primary")
+        
+        if salva:
+            if tipo_servizio == "Seleziona..." or not descrizione or not comune or provincia == "Seleziona..." or not organizzazione or not responsabile or not cellulare_resp:
+                st.error("Compila tutti i campi obbligatori")
+            else:
+                evento = {
+                    "ID": len(st.session_state.eventi) + 1,
+                    "Tipo Servizio": tipo_servizio,
+                    "Descrizione": descrizione,
+                    "Comune": comune,
+                    "Provincia": provincia,
+                    "Data Inizio": str(data_inizio),
+                    "Ora Inizio": str(ora_inizio),
+                    "Data Fine": str(data_fine),
+                    "Ora Fine": str(ora_fine),
+                    "Organizzazione": organizzazione,
+                    "Responsabile": responsabile,
+                    "Cellulare Resp": cellulare_resp,
+                    "Creato": datetime.now().strftime("%d/%m/%Y %H:%M"),
+                    "Volontari Check-In": 0
+                }
+                st.session_state.eventi.append(evento)
+                st.success(f"Evento salvato! ID {evento['ID']}")
+                st.session_state.page = "evento_lista"
+                st.rerun()
+
+def pagina_lista_eventi():
+    st.title("📋 Lista Eventi")
+    col_a, col_b = st.columns([3,1])
+    with col_a:
+        st.markdown(f"Totale eventi: **{len(st.session_state.eventi)}**")
+    with col_b:
+        if st.button("➕ Nuovo Evento", use_container_width=True, type="primary"):
+            st.session_state.page = "evento_crea"
             st.rerun()
-        if st.button("🔄 Aggiorna Dashboard", use_container_width=True, key="dash_refresh_final"):
-            st.rerun()
-        if st.button("⛶ Espandi Pagina", use_container_width=True, key="dash_expand_final"):
-            cur = st.session_state.get("page_expanded", False)
-            st.session_state["page_expanded"] = not cur
-            st.rerun()
-        st.button("📝 Vai a Brogliaccio + Comunicazioni", use_container_width=True, key="dash_brog_com", on_click=set_page, args=("📝 Brogliaccio",))
     
-    with c4:
-        st.markdown("#### 📊 Riepilogo Live")
-        tot_brog = len(st.session_state.brogliaccio) if "brogliaccio" in st.session_state else 0
-        tot_com = len(st.session_state.comunicazioni) if "comunicazioni" in st.session_state else 0
-        tot_vol = len(st.session_state.mem_nomi)
-        tot_radio = len(st.session_state.radio_db)
-        tot_dist = len(st.session_state.dist_radio)
-        st.metric("👥 Volontari", tot_vol)
-        st.metric("📝 Brogliaccio", tot_brog)
-        st.metric("📻 Comunicazioni", tot_com)
-        st.metric("📦 Radio DB", tot_radio)
-        st.metric("Distribuzioni", tot_dist)
+    if not st.session_state.eventi:
+        st.info("Nessun evento creato. Clicca su Nuovo Evento.")
+        return
+    
+    df = pd.DataFrame(st.session_state.eventi)
+    st.dataframe(df, use_container_width=True)
+    
+    # Selezione evento per check-in
+    st.divider()
+    st.subheader("📝 Azioni Evento")
+    ids = [f"{e['ID']} - {e['Tipo Servizio']} - {e['Comune']} {e['Data Inizio']}" for e in st.session_state.eventi]
+    sel = st.selectbox("Seleziona Evento per Check-In Volontari", ids)
+    if sel:
+        id_sel = int(sel.split(" - ")[0])
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            if st.button("📝 Check-In Volontari per questo Evento", use_container_width=True):
+                st.session_state.evento_selezionato = id_sel
+                st.session_state.page = "checkin"
+                st.rerun()
+        with col2:
+            if st.button("📄 PDF Evento", use_container_width=True):
+                # genera PDF singolo evento
+                ev = [e for e in st.session_state.eventi if e["ID"]==id_sel][0]
+                pdf = PDFConLogo()
+                pdf.add_page()
+                pdf.set_font("Arial","B",12)
+                pdf.cell(0,10,f"EVENTO {ev['ID']} - {ev['Tipo Servizio']}", ln=True, align="C")
+                pdf.ln(5)
+                pdf.set_font("Arial","",10)
+                for k,v in ev.items():
+                    pdf.set_font("Arial","B",10)
+                    pdf.cell(50,7,f"{k}:")
+                    pdf.set_font("Arial","",10)
+                    pdf.multi_cell(0,7,str(v))
+                    pdf.ln(1)
+                # checkin volontari
+                check = st.session_state.checkin.get(id_sel, [])
+                if check:
+                    pdf.ln(5)
+                    pdf.set_font("Arial","B",11)
+                    pdf.cell(0,8,f"Volontari Check-In ({len(check)})", ln=True)
+                    pdf.set_font("Arial","",9)
+                    for vol in check:
+                        pdf.cell(0,6,f"- {vol['Nome']} {vol['Cognome']} - {vol['ODV']} - {vol['Cellulare']} - CF: {vol['Codice Fiscale']}", ln=True)
+                b = pdf.output(dest='S').encode('latin-1','ignore')
+                st.download_button("📥 Scarica PDF", data=b, file_name=f"evento_{id_sel}.pdf", mime="application/pdf")
+        with col3:
+            if st.button("🗑️ Elimina Evento", use_container_width=True):
+                st.session_state.eventi = [e for e in st.session_state.eventi if e["ID"]!=id_sel]
+                st.rerun()
+
+# --- PAGINA CHECK-IN VOLONTARI PER EVENTO ---
+def pagina_checkin():
+    st.title("📝 Check-In Volontari per Evento")
+    
+    if not st.session_state.eventi:
+        st.warning("Nessun evento disponibile. Crea prima un evento.")
+        if st.button("📅 Crea Evento"):
+            st.session_state.page = "evento_crea"
+            st.rerun()
+        return
+    
+    # Seleziona evento
+    ids = [f"{e['ID']} - {e['Tipo Servizio']} - {e['Comune']} ({e['Data Inizio']})" for e in st.session_state.eventi]
+    default_idx = 0
+    if "evento_selezionato" in st.session_state:
+        for i, e in enumerate(st.session_state.eventi):
+            if e["ID"] == st.session_state.evento_selezionato:
+                default_idx = i
+                break
+    
+    sel = st.selectbox("🎯 SELEZIONA EVENTO PER CHECK-IN", ids, index=default_idx)
+    id_evento = int(sel.split(" - ")[0])
+    evento = [e for e in st.session_state.eventi if e["ID"]==id_evento][0]
+    
+    st.markdown(f'<div style="background:#c8e6c9; padding:15px; border-radius:10px;"><b>Evento:</b> {evento["Tipo Servizio"]} - {evento["Comune"]} ({evento["Provincia"]})<br><b>Data:</b> {evento["Data Inizio"]} {evento["Ora Inizio"]} - {evento["Data Fine"]} {evento["Ora Fine"]}<br><b>Responsabile:</b> {evento["Responsabile"]} - {evento["Cellulare Resp"]}</div>', unsafe_allow_html=True)
     
     st.divider()
-    st.markdown("#### 🔗 Navigazione Rapida - Barra Pulsanti Grandi (TUTTI ATTIVI)")
-    cc1,cc2,cc3,cc4,cc5,cc6,cc7 = st.columns(7)
-    with cc1:
-        st.button("👥 VOLONTARI", use_container_width=True, key="big_vol_final", on_click=set_page, args=("👥 Volontari",))
-    with cc2:
-        st.button("📝 BROGLIACCIO", use_container_width=True, key="big_brog_final", on_click=set_page, args=("📝 Brogliaccio",))
-    with cc3:
-        st.button("📻 DB RADIO", use_container_width=True, key="big_db_final", on_click=set_page, args=("📻 DB Radio Inventario",))
-    with cc4:
-        st.button("📦 DISTRIB", use_container_width=True, key="big_dist_final", on_click=set_page, args=("📦 Distribuzione Radio",))
-    with cc5:
-        st.button("🗺️ MAPPA", use_container_width=True, key="big_mappa_final", on_click=set_page, args=("🗺️ Mappa Postazioni",))
-    with cc6:
-        st.button("📋 REGISTRO", use_container_width=True, key="big_reg_final", on_click=set_page, args=("📋 Registro Radio",))
-    with cc7:
-        st.button("🔗 LINK", use_container_width=True, key="big_link_final", on_click=set_page, args=("🔗 Link & Aggiornamenti",))
+    st.subheader("➕ Nuovo Check-In Volontario")
     
-    if st.session_state.dist_radio:
-        st.markdown("### 📦 Ultime Distribuzioni")
-        st.dataframe(pd.DataFrame(st.session_state.dist_radio).tail(5).iloc[::-1], use_container_width=True, hide_index=True)
-
-# === VOLONTARI - ANAGRAFICA COMPLETA PROFESSIONALE ANA ===
-elif scelta == "👥 Volontari":
-    FILE_VOLONTARI = "anagrafica_volontari.csv"
-    FILE_VOLONTARI_FULL = "anagrafica_volontari_completa.csv"
-    
-    st.markdown("### 👥 Anagrafica Volontari ANA - Scheda Completa")
-    st.caption("Scheda professionale con tutti i dati - agganciata automaticamente a Distribuzione Radio e Mappa")
-    
-    tab1, tab2, tab3, tab4 = st.tabs(["➕ Nuova Anagrafica Completa", "📋 Lista Volontari", "🔍 Cerca/Modifica", "📊 Statistiche & Export"])
-    
-    with tab1:
-        with st.container(border=True):
-            st.markdown("#### 📝 Scheda Anagrafica Volontario - Tutti i campi")
-            
-            # Carica comuni per residenza
-            lista_comuni_anag = get_comuni_italiani()
-            
-            with st.form("form_volontari_completa", clear_on_submit=False):
-                st.markdown("##### 👤 Dati Personali")
-                c1,c2,c3,c4 = st.columns(4)
-                with c1:
-                    nome_v = st.text_input("Nome *", placeholder="Mario")
-                    cognome_v = st.text_input("Cognome *", placeholder="Rossi")
-                    sesso_v = st.selectbox("Sesso", ["M", "F", "Altro"])
-                with c2:
-                    data_nascita_v = st.date_input("Data Nascita", value=datetime(1980,1,1), min_value=datetime(1930,1,1), max_value=datetime(2010,12,31))
-                    luogo_nascita_v = st.selectbox("Luogo Nascita - Comune", ["--"] + lista_comuni_anag[:500], key="luogo_nascita")
-                    luogo_nascita_manual = st.text_input("Oppure scrivi luogo nascita", placeholder="Varese")
-                with c3:
-                    cf_v = st.text_input("Codice Fiscale *", placeholder="RSSMRA80A01L682K", help="16 caratteri")
-                    gruppo_sanguigno_v = st.selectbox("Gruppo Sanguigno", ["--", "0+", "0-", "A+", "A-", "B+", "B-", "AB+", "AB-"])
-                    taglia_v = st.selectbox("Taglia Vestiario", ["--", "XS", "S", "M", "L", "XL", "XXL", "XXXL"])
-                with c4:
-                    stato_civile_v = st.selectbox("Stato Civile", ["--", "Celibe/Nubile", "Coniugato/a", "Divorziato/a", "Vedovo/a"])
-                    foto_v = st.text_input("Foto (nome file)", placeholder="mario_rossi.jpg")
-                
-                st.divider()
-                st.markdown("##### 🏠 Residenza - con Combo Comuni + Via + Civico")
-                c1,c2,c3,c4 = st.columns([2,2,1,1])
-                with c1:
-                    comune_res_v = st.selectbox("Comune Residenza *", ["-- Seleziona --"] + lista_comuni_anag, key="comune_res")
-                    # Filtro rapido
-                    filtro_comune_res = st.text_input("Filtro comune", placeholder="Varese...", key="filtro_comune_res")
-                    if filtro_comune_res:
-                        filt = [c for c in lista_comuni_anag if filtro_comune_res.lower() in c.lower()][:20]
-                        if filt:
-                            comune_res_v = st.selectbox("Risultati", ["--"] + filt, key="comune_res_filt")
-                with c2:
-                    via_res_v = st.text_input("Via / Piazza *", placeholder="Via Sacco")
-                    if comune_res_v and comune_res_v != "-- Seleziona --":
-                        if st.form_submit_button(f"📥 Carica vie di {comune_res_v.split('(')[0][:15]}", use_container_width=False):
-                            # Questo non funziona in form, gestito fuori - mostra hint
-                            st.info("Salva e usa mappa per cercare vie")
-                with c3:
-                    civico_res_v = st.text_input("Civico *", placeholder="5, 10/A")
-                    cap_res_v = st.text_input("CAP", placeholder="21100")
-                with c4:
-                    prov_res_v = st.text_input("Prov", placeholder="VA", max_chars=2)
-                    # Geocoding automatico residenza
-                    lat_res_v = st.text_input("Lat (auto da rete)", placeholder="45.8205")
-                    lon_res_v = st.text_input("Lon (auto)", placeholder="8.8255")
-                
-                st.divider()
-                st.markdown("##### 📞 Contatti & Emergenza")
-                c1,c2,c3,c4 = st.columns(4)
-                with c1:
-                    tel_v = st.text_input("Telefono Fisso", placeholder="0332 123456")
-                    cell_v = st.text_input("Cellulare *", placeholder="333 1234567")
-                with c2:
-                    email_v = st.text_input("Email *", placeholder="mario.rossi@ana.it")
-                    pec_v = st.text_input("PEC", placeholder="mario@pec.it")
-                with c3:
-                    contatto_emerg_v = st.text_input("Contatto Emergenza - Nome", placeholder="Maria Rossi - moglie")
-                    tel_emerg_v = st.text_input("Tel Emergenza", placeholder="333 7654321")
-                with c4:
-                    whatsapp_v = st.checkbox("WhatsApp attivo", value=True)
-                    privacy_v = st.checkbox("Privacy firmata", value=False)
-                
-                st.divider()
-                st.markdown("##### 🎖️ Dati ANA & Servizio")
-                c1,c2,c3,c4 = st.columns(4)
-                with c1:
-                    sezione_v = st.text_input("Sezione ANA *", value="Varese")
-                    gruppo_v = st.text_input("Gruppo ANA", placeholder="Varese Centro")
-                    tessera_v = st.text_input("N° Tessera ANA *", placeholder="12345")
-                with c2:
-                    data_iscrizione_v = st.date_input("Data Iscrizione ANA", value=datetime.now())
-                    ruolo_v = st.selectbox("Ruolo *", ["Volontario", "Capo Squadra", "Coordinatore", "Responsabile Magazzino", "Autista", "Operatore Radio", "Sanitario", "Logistica", "Presidente", "Vice Presidente", "Segretario", "Tesoriere", "Consigliere"])
-                    stato_servizio_v = st.selectbox("Stato Servizio", ["Attivo", "In prova", "Sospeso", "Non attivo", "Onorario"])
-                with c3:
-                    specializzazioni_v = st.multiselect("Specializzazioni", ["Guida fuoristrada", "Motosega", "Antincendio", "Primo Soccorso", "Protezione Civile", "Radio", "Cucina campo", "Elettricista", "Idraulico", "Meccanico", "Autista C", "Autista D", "Sub", "Alpinismo"])
-                    patente_v = st.selectbox("Patente", ["--", "AM", "A1", "A2", "A", "B", "C1", "C", "D1", "D", "BE", "CE", "DE"])
-                with c4:
-                    scadenza_patente_v = st.date_input("Scadenza Patente", value=datetime(2030,1,1))
-                    abilitazioni_v = st.text_input("Altre abilitazioni", placeholder="Muletto, PLE, ecc")
-                    anni_servizio_v = st.number_input("Anni servizio", min_value=0, max_value=60, value=0)
-                
-                st.divider()
-                st.markdown("##### 📋 Note & Disponibilità")
-                c1,c2 = st.columns(2)
-                with c1:
-                    note_v = st.text_area("Note generali", placeholder="Allergie, patologie, disponibilità, competenze...", height=100)
-                    note_mediche_v = st.text_area("Note mediche riservate", placeholder="Allergie, farmaci...", height=80)
-                with c2:
-                    disponibilita_v = st.multiselect("Disponibilità", ["Feriali mattina", "Feriali pomeriggio", "Weekend", "Notte", "Festivi", "Emergenze H24", "Solo su chiamata"])
-                    attrezzatura_v = st.text_input("Attrezzatura personale", placeholder="Radio propria, DPI, ecc")
-                    assicurazione_v = st.selectbox("Assicurazione", ["--", "ANA base", "ANA + integrativa", "Volontariato PC", "Altra"])
-                
-                st.divider()
-                submitted = st.form_submit_button("💾 SALVA ANAGRAFICA COMPLETA", type="primary", use_container_width=True)
-                
-                if submitted:
-                    if not nome_v or not cognome_v:
-                        st.error("❌ Nome e Cognome obbligatori")
-                    elif not cf_v or len(cf_v) < 10:
-                        st.warning("⚠️ Codice Fiscale incompleto, salva comunque?")
-                        # Procedi comunque
-                        nome_completo = f"{nome_v} {cognome_v}".strip()
-                        # Salva
-                        luogo_nascita_final = luogo_nascita_manual if luogo_nascita_manual else luogo_nascita_v
-                        comune_res_final = comune_res_v
-                        # Crea record completo
-                        record = {
-                            "Nome": nome_v, "Cognome": cognome_v, "Nome e Cognome": nome_completo,
-                            "Sesso": sesso_v, "Data Nascita": str(data_nascita_v), "Luogo Nascita": luogo_nascita_final,
-                            "Codice Fiscale": cf_v.upper(), "Gruppo Sanguigno": gruppo_sanguigno_v, "Taglia": taglia_v,
-                            "Comune Residenza": comune_res_v, "Via": via_res_v, "Civico": civico_res_v, "CAP": cap_res_v, "Provincia": prov_res_v,
-                            "Lat": lat_res_v, "Lon": lon_res_v, "Indirizzo Completo": f"{via_res_v} {civico_res_v}, {comune_res_v}",
-                            "Telefono": tel_v, "Cellulare": cell_v, "Email": email_v, "PEC": pec_v,
-                            "Contatto Emergenza": contatto_emerg_v, "Tel Emergenza": tel_emerg_v,
-                            "Sezione": sezione_v, "Gruppo": gruppo_v, "Tessera": tessera_v, "Data Iscrizione ANA": str(data_iscrizione_v),
-                            "Ruolo": ruolo_v, "Stato Servizio": stato_servizio_v, "Specializzazioni": ", ".join(specializzazioni_v),
-                            "Patente": patente_v, "Scadenza Patente": str(scadenza_patente_v), "Abilitazioni": abilitazioni_v, "Anni Servizio": anni_servizio_v,
-                            "Note": note_v, "Note Mediche": note_mediche_v, "Disponibilità": ", ".join(disponibilita_v),
-                            "Attrezzatura": attrezzatura_v, "Assicurazione": assicurazione_v,
-                            "Data Inserimento": str(datetime.now().date()), "Stato": "Attivo"
-                        }
-                        # Salva in lista rapida
-                        if nome_completo not in st.session_state.mem_nomi:
-                            st.session_state.mem_nomi.append(nome_completo)
-                            salva_csv([{"Nome": n} for n in st.session_state.mem_nomi], FILE_NOMI)
-                        # Salva anagrafica completa
-                        volontari_full = []
-                        if os.path.exists(FILE_VOLONTARI_FULL):
-                            try:
-                                volontari_full = pd.read_csv(FILE_VOLONTARI_FULL).to_dict(orient="records")
-                            except:
-                                pass
-                        # Aggiorna o aggiungi
-                        found = False
-                        for v in volontari_full:
-                            if v.get("Codice Fiscale") == cf_v.upper() or v.get("Nome e Cognome") == nome_completo:
-                                v.update(record)
-                                found = True
-                        if not found:
-                            volontari_full.append(record)
-                        pd.DataFrame(volontari_full).to_csv(FILE_VOLONTARI_FULL, index=False)
-                        # Salva anche vecchio formato per compatibilità
-                        pd.DataFrame(volontari_full).to_csv(FILE_VOLONTARI, index=False)
-                        st.success(f"✅ Anagrafica completa {nome_completo} salvata! CF: {cf_v} - Tessera: {tessera_v}")
-                        st.balloons()
-                    else:
-                        nome_completo = f"{nome_v} {cognome_v}".strip()
-                        luogo_nascita_final = luogo_nascita_manual if luogo_nascita_manual else luogo_nascita_v
-                        record = {
-                            "Nome": nome_v, "Cognome": cognome_v, "Nome e Cognome": nome_completo,
-                            "Sesso": sesso_v, "Data Nascita": str(data_nascita_v), "Luogo Nascita": luogo_nascita_final,
-                            "Codice Fiscale": cf_v.upper(), "Gruppo Sanguigno": gruppo_sanguigno_v, "Taglia": taglia_v, "Stato Civile": stato_civile_v,
-                            "Comune Residenza": comune_res_v, "Via": via_res_v, "Civico": civico_res_v, "CAP": cap_res_v, "Provincia": prov_res_v,
-                            "Lat": lat_res_v, "Lon": lon_res_v, "Indirizzo Completo": f"{via_res_v} {civico_res_v}, {comune_res_v}",
-                            "Telefono": tel_v, "Cellulare": cell_v, "Email": email_v, "PEC": pec_v,
-                            "Contatto Emergenza": contatto_emerg_v, "Tel Emergenza": tel_emerg_v, "WhatsApp": whatsapp_v, "Privacy": privacy_v,
-                            "Sezione": sezione_v, "Gruppo": gruppo_v, "Tessera": tessera_v, "Data Iscrizione ANA": str(data_iscrizione_v),
-                            "Ruolo": ruolo_v, "Stato Servizio": stato_servizio_v, "Specializzazioni": ", ".join(specializzazioni_v),
-                            "Patente": patente_v, "Scadenza Patente": str(scadenza_patente_v), "Abilitazioni": abilitazioni_v, "Anni Servizio": anni_servizio_v,
-                            "Note": note_v, "Note Mediche": note_mediche_v, "Disponibilità": ", ".join(disponibilita_v),
-                            "Attrezzatura": attrezzatura_v, "Assicurazione": assicurazione_v,
-                            "Data Inserimento": str(datetime.now().date()), "Stato": "Attivo"
-                        }
-                        if nome_completo not in st.session_state.mem_nomi:
-                            st.session_state.mem_nomi.append(nome_completo)
-                            salva_csv([{"Nome": n} for n in st.session_state.mem_nomi], FILE_NOMI)
-                        volontari_full = []
-                        if os.path.exists(FILE_VOLONTARI_FULL):
-                            try:
-                                volontari_full = pd.read_csv(FILE_VOLONTARI_FULL).to_dict(orient="records")
-                            except:
-                                pass
-                        found = False
-                        for v in volontari_full:
-                            if v.get("Codice Fiscale") == cf_v.upper() and cf_v.upper() != "":
-                                v.update(record)
-                                found = True
-                            elif v.get("Nome e Cognome") == nome_completo and cf_v == "":
-                                v.update(record)
-                                found = True
-                        if not found:
-                            volontari_full.append(record)
-                        pd.DataFrame(volontari_full).to_csv(FILE_VOLONTARI_FULL, index=False)
-                        pd.DataFrame(volontari_full).to_csv(FILE_VOLONTARI, index=False)
-                        st.success(f"✅ {nome_completo} salvato! Tessera {tessera_v} - Ruolo {ruolo_v}")
-                        st.info(f"🔗 Ora disponibile in Distribuzione Radio e Mappa - CF: {cf_v.upper()}")
-                        st.balloons()
-    
-    with tab2:
-        # Lista completa
-        if os.path.exists(FILE_VOLONTARI_FULL):
-            try:
-                df_full = pd.read_csv(FILE_VOLONTARI_FULL)
-                st.markdown(f"### 📋 Anagrafica Completa - {len(df_full)} volontari")
-                
-                # Filtri
-                c1,c2,c3,c4 = st.columns(4)
-                with c1:
-                    filtro_ruolo = st.selectbox("Filtra per Ruolo", ["Tutti"] + sorted(df_full["Ruolo"].dropna().unique().tolist()) if "Ruolo" in df_full.columns else ["Tutti"])
-                with c2:
-                    filtro_sezione = st.selectbox("Filtra per Sezione", ["Tutte"] + sorted(df_full["Sezione"].dropna().unique().tolist()) if "Sezione" in df_full.columns else ["Tutte"])
-                with c3:
-                    filtro_stato = st.selectbox("Filtra per Stato", ["Tutti", "Attivo", "In prova", "Sospeso", "Non attivo"])
-                with c4:
-                    cerca_nome = st.text_input("🔍 Cerca nome/CF", placeholder="Rossi o RSSMRA...")
-                
-                df_filtered = df_full.copy()
-                if filtro_ruolo != "Tutti" and "Ruolo" in df_filtered.columns:
-                    df_filtered = df_filtered[df_filtered["Ruolo"] == filtro_ruolo]
-                if filtro_sezione != "Tutte" and "Sezione" in df_filtered.columns:
-                    df_filtered = df_filtered[df_filtered["Sezione"] == filtro_sezione]
-                if filtro_stato != "Tutti" and "Stato Servizio" in df_filtered.columns:
-                    df_filtered = df_filtered[df_filtered["Stato Servizio"] == filtro_stato]
-                if cerca_nome:
-                    mask = df_filtered.astype(str).apply(lambda x: x.str.contains(cerca_nome, case=False, na=False)).any(axis=1)
-                    df_filtered = df_filtered[mask]
-                
-                st.dataframe(df_filtered.iloc[::-1], use_container_width=True, hide_index=True, height=500)
-                
-                # Azioni
-                c1,c2,c3,c4 = st.columns(4)
-                with c1:
-                    out = BytesIO()
-                    df_filtered.to_excel(out, index=False, engine="openpyxl")
-                    st.download_button("📥 Excel Filtrato", out.getvalue(), file_name="anagrafica_volontari_completa.xlsx", mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", use_container_width=True)
-                with c2:
-                    out_csv = df_filtered.to_csv(index=False).encode('utf-8')
-                    st.download_button("📥 CSV", out_csv, file_name="anagrafica_volontari.csv", mime="text/csv", use_container_width=True)
-                with c3:
-                    if st.button("🔄 Sincronizza nomi distribuzione", use_container_width=True):
-                        nomi = df_full["Nome e Cognome"].dropna().tolist() if "Nome e Cognome" in df_full.columns else []
-                        st.session_state.mem_nomi = list(dict.fromkeys(nomi + st.session_state.mem_nomi))
-                        salva_csv([{"Nome": n} for n in st.session_state.mem_nomi], FILE_NOMI)
-                        st.success(f"Sincronizzati {len(nomi)} volontari!")
-                with c4:
-                    if st.button("🗑️ Cancella Tutto", use_container_width=True, type="secondary"):
-                        st.session_state["confirm_delete_vol"] = True
-                if st.session_state.get("confirm_delete_vol"):
-                    st.warning("⚠️ Sei sicuro? Cancellerà tutta l'anagrafica!")
-                    c1,c2 = st.columns(2)
-                    with c1:
-                        if st.button("✅ Sì, cancella", type="primary", use_container_width=True):
-                            if os.path.exists(FILE_VOLONTARI_FULL):
-                                os.remove(FILE_VOLONTARI_FULL)
-                            if os.path.exists(FILE_VOLONTARI):
-                                os.remove(FILE_VOLONTARI)
-                            st.session_state.mem_nomi = []
-                            salva_csv([], FILE_NOMI)
-                            st.session_state["confirm_delete_vol"] = False
-                            st.rerun()
-                    with c2:
-                        if st.button("❌ Annulla", use_container_width=True):
-                            st.session_state["confirm_delete_vol"] = False
-                            st.rerun()
-            except Exception as e:
-                st.error(f"Errore lettura: {e}")
-        else:
-            st.info("Nessun volontario in anagrafica completa. Usa tab 'Nuova Anagrafica Completa'")
-            if st.session_state.mem_nomi:
-                st.dataframe(pd.DataFrame({"Volontari (vecchia lista)": st.session_state.mem_nomi}), use_container_width=True)
-    
-    with tab3:
-        st.markdown("### 🔍 Cerca e Modifica Volontario")
-        if os.path.exists(FILE_VOLONTARI_FULL):
-            try:
-                df_full = pd.read_csv(FILE_VOLONTARI_FULL)
-                cerca_edit = st.text_input("🔍 Cerca per Nome, Cognome, CF o Tessera", placeholder="Rossi, RSSMRA80A01L682K, 12345", key="cerca_edit")
-                if cerca_edit:
-                    mask = df_full.astype(str).apply(lambda x: x.str.contains(cerca_edit, case=False, na=False)).any(axis=1)
-                    risultati = df_full[mask]
-                    if not risultati.empty:
-                        st.success(f"Trovati {len(risultati)} volontari")
-                        for idx, row in risultati.iterrows():
-                            with st.container(border=True):
-                                c1,c2,c3 = st.columns([3,1,1])
-                                with c1:
-                                    st.markdown(f"**{row.get('Nome e Cognome','')}** - CF: {row.get('Codice Fiscale','')} - Tessera: {row.get('Tessera','')} - Ruolo: {row.get('Ruolo','')}")
-                                    st.caption(f"{row.get('Via','')} {row.get('Civico','')}, {row.get('Comune Residenza','')} - Cell: {row.get('Cellulare','')} - {row.get('Email','')}")
-                                with c2:
-                                    if st.button(f"✏️ Modifica", key=f"mod_{idx}"):
-                                        st.session_state["edit_vol_idx"] = idx
-                                        st.session_state["edit_vol_data"] = row.to_dict()
-                                with c3:
-                                    if st.button(f"🗑️ Elimina", key=f"del_{idx}"):
-                                        df_full = df_full.drop(idx)
-                                        df_full.to_csv(FILE_VOLONTARI_FULL, index=False)
-                                        df_full.to_csv(FILE_VOLONTARI, index=False)
-                                        # Rimuovi da mem_nomi
-                                        nome_del = row.get("Nome e Cognome","")
-                                        if nome_del in st.session_state.mem_nomi:
-                                            st.session_state.mem_nomi.remove(nome_del)
-                                            salva_csv([{"Nome": n} for n in st.session_state.mem_nomi], FILE_NOMI)
-                                        st.success(f"Eliminato {nome_del}")
-                                        st.rerun()
-                        
-                        # Form modifica
-                        if "edit_vol_idx" in st.session_state:
-                            st.divider()
-                            st.markdown(f"#### ✏️ Modifica {st.session_state['edit_vol_data'].get('Nome e Cognome','')}")
-                            edit_data = st.session_state["edit_vol_data"]
-                            with st.form("form_edit_vol"):
-                                c1,c2,c3 = st.columns(3)
-                                with c1:
-                                    edit_nome = st.text_input("Nome", value=edit_data.get("Nome",""))
-                                    edit_cognome = st.text_input("Cognome", value=edit_data.get("Cognome",""))
-                                    edit_cf = st.text_input("Codice Fiscale", value=edit_data.get("Codice Fiscale",""))
-                                with c2:
-                                    edit_cell = st.text_input("Cellulare", value=edit_data.get("Cellulare",""))
-                                    edit_email = st.text_input("Email", value=edit_data.get("Email",""))
-                                    edit_ruolo = st.selectbox("Ruolo", ["Volontario", "Capo Squadra", "Coordinatore", "Responsabile Magazzino", "Autista", "Operatore Radio", "Sanitario", "Logistica", "Presidente", "Segretario"], index=0)
-                                with c3:
-                                    edit_tessera = st.text_input("Tessera", value=edit_data.get("Tessera",""))
-                                    edit_sezione = st.text_input("Sezione", value=edit_data.get("Sezione","Varese"))
-                                    edit_stato = st.selectbox("Stato", ["Attivo", "In prova", "Sospeso", "Non attivo"])
-                                edit_note = st.text_area("Note", value=edit_data.get("Note",""))
-                                c1,c2 = st.columns(2)
-                                with c1:
-                                    if st.form_submit_button("💾 Salva Modifiche", type="primary", use_container_width=True):
-                                        # Aggiorna
-                                        df_full.at[st.session_state["edit_vol_idx"], "Nome"] = edit_nome
-                                        df_full.at[st.session_state["edit_vol_idx"], "Cognome"] = edit_cognome
-                                        df_full.at[st.session_state["edit_vol_idx"], "Nome e Cognome"] = f"{edit_nome} {edit_cognome}"
-                                        df_full.at[st.session_state["edit_vol_idx"], "Codice Fiscale"] = edit_cf
-                                        df_full.at[st.session_state["edit_vol_idx"], "Cellulare"] = edit_cell
-                                        df_full.at[st.session_state["edit_vol_idx"], "Email"] = edit_email
-                                        df_full.at[st.session_state["edit_vol_idx"], "Ruolo"] = edit_ruolo
-                                        df_full.at[st.session_state["edit_vol_idx"], "Tessera"] = edit_tessera
-                                        df_full.at[st.session_state["edit_vol_idx"], "Sezione"] = edit_sezione
-                                        df_full.at[st.session_state["edit_vol_idx"], "Stato Servizio"] = edit_stato
-                                        df_full.at[st.session_state["edit_vol_idx"], "Note"] = edit_note
-                                        df_full.to_csv(FILE_VOLONTARI_FULL, index=False)
-                                        df_full.to_csv(FILE_VOLONTARI, index=False)
-                                        del st.session_state["edit_vol_idx"]
-                                        del st.session_state["edit_vol_data"]
-                                        st.success("Modificato!")
-                                        st.rerun()
-                                with c2:
-                                    if st.form_submit_button("❌ Annulla", use_container_width=True):
-                                        del st.session_state["edit_vol_idx"]
-                                        del st.session_state["edit_vol_data"]
-                                        st.rerun()
-                    else:
-                        st.warning("Nessun risultato")
-            except Exception as e:
-                st.error(f"Errore: {e}")
-        else:
-            st.info("Nessuna anagrafica presente")
-    
-    with tab4:
-        st.markdown("### 📊 Statistiche & Export Avanzato")
-        if os.path.exists(FILE_VOLONTARI_FULL):
-            try:
-                df_full = pd.read_csv(FILE_VOLONTARI_FULL)
-                c1,c2,c3,c4 = st.columns(4)
-                with c1:
-                    st.metric("Totale Volontari", len(df_full))
-                with c2:
-                    attivi = len(df_full[df_full["Stato Servizio"] == "Attivo"]) if "Stato Servizio" in df_full.columns else len(df_full)
-                    st.metric("Attivi", attivi)
-                with c3:
-                    ruoli_count = df_full["Ruolo"].nunique() if "Ruolo" in df_full.columns else 0
-                    st.metric("Ruoli diversi", ruoli_count)
-                with c4:
-                    sezioni_count = df_full["Sezione"].nunique() if "Sezione" in df_full.columns else 0
-                    st.metric("Sezioni", sezioni_count)
-                
-                st.divider()
-                c1,c2 = st.columns(2)
-                with c1:
-                    if "Ruolo" in df_full.columns:
-                        st.markdown("**Per Ruolo**")
-                        st.bar_chart(df_full["Ruolo"].value_counts())
-                with c2:
-                    if "Comune Residenza" in df_full.columns:
-                        st.markdown("**Per Comune Residenza (top 10)**")
-                        st.bar_chart(df_full["Comune Residenza"].value_counts().head(10))
-                
-                st.divider()
-                st.markdown("#### 📥 Export Avanzati")
-                c1,c2,c3 = st.columns(3)
-                with c1:
-                    # Export per ruolo
-                    if "Ruolo" in df_full.columns:
-                        for ruolo in df_full["Ruolo"].dropna().unique():
-                            df_ruolo = df_full[df_full["Ruolo"] == ruolo]
-                            out = BytesIO()
-                            df_ruolo.to_excel(out, index=False, engine="openpyxl")
-                            st.download_button(f"📥 {ruolo} ({len(df_ruolo)})", out.getvalue(), file_name=f"volontari_{ruolo}.xlsx", mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", use_container_width=True, key=f"exp_{ruolo}")
-                with c2:
-                    # PDF Tessera
-                    st.markdown("**Tessere**")
-                    # Genera PDF semplice per tutti
-                    if st.button("📄 Genera PDF Tessere Volontari", use_container_width=True):
-                        try:
-                            from fpdf import FPDF
-                            pdf = FPDF(orientation='P', unit='mm', format='A4')
-                            pdf.set_auto_page_break(auto=True, margin=15)
-                            pdf.add_page()
-                            pdf.set_font("Arial", "B", 16)
-                            pdf.cell(0, 10, "ANA Varese - Tessere Volontari", ln=True, align="C")
-                            pdf.ln(5)
-                            for _, row in df_full.iterrows():
-                                pdf.set_font("Arial", "B", 12)
-                                pdf.cell(0, 8, f"{row.get('Nome e Cognome','')} - Tessera {row.get('Tessera','')} - {row.get('Ruolo','')}", ln=True)
-                                pdf.set_font("Arial", "", 10)
-                                pdf.cell(0, 6, f"CF: {row.get('Codice Fiscale','')} - Cell: {row.get('Cellulare','')} - {row.get('Comune Residenza','')}", ln=True)
-                                pdf.ln(2)
-                            # FIX PDF bytearray/str
-                            out_pdf = pdf.output(dest='S')
-                            if isinstance(out_pdf, str):
-                                out_pdf = out_pdf.encode('latin-1')
-                            else:
-                                out_pdf = bytes(out_pdf)
-                            st.download_button("📥 Scarica PDF Tessere", out_pdf, file_name="tessere_volontari.pdf", mime="application/pdf", use_container_width=True)
-                        except Exception as e:
-                            st.error(f"Errore PDF: {e}")
-                with c3:
-                    st.markdown("**QR Code**")
-                    if st.button("📱 Genera QR per ogni volontario", use_container_width=True):
-                        import qrcode
-                        for _, row in df_full.head(5).iterrows():
-                            qr_data = f"ANA Varese - {row.get('Nome e Cognome','')} - Tessera {row.get('Tessera','')} - CF {row.get('Codice Fiscale','')}"
-                            qr = qrcode.make(qr_data)
-                            buf = BytesIO()
-                            qr.save(buf, format="PNG")
-                            st.image(buf.getvalue(), caption=row.get('Nome e Cognome',''), width=150)
-            except Exception as e:
-                st.error(f"Errore stats: {e}")
-        else:
-            st.info("Nessun dato per statistiche")
-
-# === BROGLIACCIO - NUOVA SCHEDA RICHIESTA ===
-elif scelta == "📝 Brogliaccio":
-    st.markdown("### 📝 Brogliaccio Operativo - Registro Giornaliero Interventi")
-    st.caption("Annota Nome e Cognome, Cell, ODV di appartenenza e attività - collegato ad anagrafica volontari")
-    
-    tab1_brog, tab1b_brog, tab2_brog, tab3_brog = st.tabs(["➕ Nuova Annotazione", "📻 Sottomaschera Comunicazioni", "📋 Registro Brogliaccio", "📊 Export & Stampa"])
-    
-    with tab1_brog:
-        with st.container(border=True):
-            st.markdown("#### 📝 Inserisci Annotazione Brogliaccio")
-            st.info("Campi richiesti: Nome e Cognome, Cellulare, ODV di Appartenenza")
-            
-            with st.form("form_brogliaccio", clear_on_submit=True):
-                c1,c2,c3,c4 = st.columns(4)
-                with c1:
-                    # Nome e Cognome da anagrafica
-                    if st.session_state.mem_nomi:
-                        nome_brog = st.selectbox("Nome e Cognome * (da anagrafica)", ["-- Seleziona --"] + st.session_state.mem_nomi + ["-- Nuovo --"], key="brog_nome")
-                        if nome_brog == "-- Nuovo --":
-                            nome_brog_new = st.text_input("Nuovo Nome e Cognome *", placeholder="Mario Rossi")
-                            nome_brog_final = nome_brog_new
-                        elif nome_brog == "-- Seleziona --":
-                            nome_brog_final = ""
-                        else:
-                            nome_brog_final = nome_brog
-                            # Auto recupera cell da anagrafica completa se esiste
-                            if os.path.exists("anagrafica_volontari_completa.csv"):
-                                try:
-                                    df_anag = pd.read_csv("anagrafica_volontari_completa.csv")
-                                    match = df_anag[df_anag["Nome e Cognome"] == nome_brog_final]
-                                    if not match.empty:
-                                        cell_auto = match.iloc[0].get("Cellulare","")
-                                        st.caption(f"📱 Cell da anagrafica: {cell_auto}")
-                                except:
-                                    pass
-                    else:
-                        nome_brog_final = st.text_input("Nome e Cognome *", placeholder="Mario Rossi")
-                    
-                    cell_brog = st.text_input("Cell *", placeholder="333 1234567", help="Cellulare volontario")
-                
-                with c2:
-                    odv_brog = st.selectbox("ODV di Appartenenza *", ["--", "ANA - Associazione Nazionale Alpini", "ANA - Protezione Civile", "ANA - Antincendio Boschivo", "Protezione Civile Comunale", "Protezione Civile Regionale", "Croce Rossa Italiana", "Misericordia", "ANPAS", "Altra ODV", "Volontario Singolo"], help="Organizzazione di Volontariato di appartenenza")
-                    odv_dettaglio = st.text_input("Dettaglio / Sezione ODV", placeholder="Es: Sezione Varese, Gruppo AIB Varese, ecc")
-                
-                with c3:
-                    data_brog = st.date_input("Data *", value=datetime.now())
-                    ora_inizio_brog = st.text_input("Ora Inizio *", value=datetime.now().strftime("%H:%M"))
-                    ora_fine_brog = st.text_input("Ora Fine", placeholder="18:00")
-                
-                with c4:
-                    postazione_brog = st.selectbox("Postazione", ["--"] + [p.get("Postazione","") for p in st.session_state.postazioni] + ["Sede", "Magazzino", "Esterno"])
-                    comune_brog = st.selectbox("Comune Intervento", ["--"] + get_comuni_italiani()[:200], key="brog_comune")
-                    stato_brog = st.selectbox("Stato", ["In corso", "Completato", "Sospeso", "Annullato"])
-                
-                c_full1, c_full2 = st.columns(2)
-                with c_full1:
-                    attivita_brog = st.text_area("Attività svolta *", placeholder="Descrivi attività, intervento, note operative...", height=100)
-                with c_full2:
-                    note_brog = st.text_area("Note / Esito", placeholder="Esito, materiali usati, problemi riscontrati...", height=100)
-                    firma_brog = st.text_input("Firma / Operatore", placeholder="Chi compila")
-                
-                submitted_brog = st.form_submit_button("💾 Salva nel Brogliaccio", type="primary", use_container_width=True)
-                
-                if submitted_brog:
-                    if not nome_brog_final or not cell_brog or odv_brog == "--":
-                        st.error("❌ Compila Nome e Cognome, Cell ed ODV obbligatori!")
-                    else:
-                        record_brog = {
-                            "Data": str(data_brog),
-                            "Ora Inizio": ora_inizio_brog,
-                            "Ora Fine": ora_fine_brog,
-                            "Nome e Cognome": nome_brog_final,
-                            "Cell": cell_brog,
-                            "ODV": odv_brog,
-                            "Dettaglio ODV": odv_dettaglio,
-                            "Postazione": postazione_brog,
-                            "Comune": comune_brog,
-                            "Attività": attivita_brog,
-                            "Note/Esito": note_brog,
-                            "Stato": stato_brog,
-                            "Firma": firma_brog,
-                            "Timestamp": datetime.now().strftime("%d/%m/%Y %H:%M:%S")
-                        }
-                        if "brogliaccio" not in st.session_state:
-                            st.session_state.brogliaccio = []
-                        st.session_state.brogliaccio.append(record_brog)
-                        salva_csv(st.session_state.brogliaccio, FILE_BROGLIACCIO)
-                        st.success(f"✅ Brogliaccio salvato: {nome_brog_final} - {odv_brog} - {cell_brog}")
-                        st.balloons()
-    
-    with tab1b_brog:
-        st.markdown("### 📻 Sottomaschera Comunicazioni Radio - Log Traffico")
-        st.caption("Registra ora, giorno, mittente, messaggio, destinatario, messaggio risposta - Tracciamento comunicazioni")
+    # FORM CHECK-IN con campi richiesti: NOME, COGNOME, ODV, CELLULARE, CODICE FISCALE, TASTO SALVA
+    with st.form(f"form_checkin_{id_evento}", clear_on_submit=True):
+        col1, col2 = st.columns(2)
+        with col1:
+            nome = st.text_input("👤 NOME *", placeholder="Mario")
+            cognome = st.text_input("👤 COGNOME *", placeholder="Rossi")
+            odv = st.text_input("🏢 ODV *", placeholder="Es: ANA Varese, Gruppo Milano...")
+        with col2:
+            cellulare = st.text_input("📱 CELLULARE *", placeholder="347 1234567")
+            codice_fiscale = st.text_input("🆔 CODICE FISCALE *", placeholder="RSSMRA80A01H501Z", max_chars=16)
+            # Validazione CF basilare
+            note = st.text_input("📝 Note (opzionale)", placeholder="Patente, attestati...")
         
-        with st.container(border=True):
-            st.markdown("#### 📡 Nuova Comunicazione Radio")
-            with st.form("form_comunicazione_radio", clear_on_submit=True):
-                c1,c2,c3 = st.columns(3)
-                with c1:
-                    giorno_com = st.date_input("Giorno *", value=datetime.now(), key="com_giorno")
-                    ora_com = st.text_input("Ora *", value=datetime.now().strftime("%H:%M:%S"), placeholder="14:30:00", key="com_ora")
-                    canale_com = st.selectbox("Canale Radio", ["CH 1 - Emergenza", "CH 2 - Logistica", "CH 3 - Coordinamento", "VHF 145.500", "PMR 446"], key="com_canale")
-                with c2:
-                    # Mittente da anagrafica
-                    if st.session_state.mem_nomi:
-                        mittente_com = st.selectbox("Mittente *", ["--"] + st.session_state.mem_nomi, key="com_mittente")
-                    else:
-                        mittente_com = st.text_input("Mittente *", placeholder="Posto 1 - Mario Rossi", key="com_mittente_manual")
-                    messaggio_invio_com = st.text_area("Messaggio Inviato *", placeholder="Es: Richiesta intervento in Via Roma, situazione...", height=100, key="com_msg_invio")
-                with c3:
-                    # Destinatario da anagrafica o postazioni
-                    opzioni_dest = ["--"] + st.session_state.mem_nomi + [p.get("Postazione","") for p in st.session_state.postazioni] + ["Centrale Operativa", "Tutti", "Sede ANA Varese"]
-                    destinatario_com = st.selectbox("Destinatario *", opzioni_dest, key="com_destinatario")
-                    messaggio_risp_com = st.text_area("Messaggio Ricevuto / Risposta", placeholder="Es: Ricevuto, invio squadra, OK, ecc...", height=100, key="com_msg_risp")
-                
-                c4,c5 = st.columns(2)
-                with c4:
-                    tipo_com = st.selectbox("Tipo Comunicazione", ["Chiamata", "Risposta", "Avviso", "Emergenza", "Logistica", "Controllo Radio"], key="com_tipo")
-                    priorita_com = st.selectbox("Priorità", ["Normale", "Urgente", "Emergenza"], key="com_priorita")
-                with c5:
-                    esito_com = st.selectbox("Esito", ["Trasmesso", "Ricevuto", "Confermato", "In attesa risposta", "Non ricevuto"], key="com_esito")
-                    note_com = st.text_input("Note", placeholder="Disturbi, batteria scarica, ecc", key="com_note")
-                
-                submitted_com = st.form_submit_button("📡 Salva Comunicazione", type="primary", use_container_width=True)
-                
-                if submitted_com:
-                    if not mittente_com or mittente_com == "--" or not destinatario_com or destinatario_com == "--" or not messaggio_invio_com:
-                        st.error("❌ Compila Mittente, Destinatario e Messaggio Inviato!")
-                    else:
-                        record_com = {
-                            "Giorno": str(giorno_com),
-                            "Ora": ora_com,
-                            "Canale": canale_com,
-                            "Mittente": mittente_com,
-                            "Messaggio Inviato": messaggio_invio_com,
-                            "Destinatario": destinatario_com,
-                            "Messaggio Ricevuto/Risposta": messaggio_risp_com,
-                            "Tipo": tipo_com,
-                            "Priorità": priorita_com,
-                            "Esito": esito_com,
-                            "Note": note_com,
-                            "Timestamp": datetime.now().strftime("%d/%m/%Y %H:%M:%S")
-                        }
-                        if "comunicazioni" not in st.session_state:
-                            st.session_state.comunicazioni = []
-                        st.session_state.comunicazioni.append(record_com)
-                        salva_csv(st.session_state.comunicazioni, FILE_COMUNICAZIONI)
-                        st.success(f"✅ Comunicazione salvata: {ora_com} - {mittente_com} → {destinatario_com}")
-                        st.balloons()
+        col_save, col_info = st.columns([2,1])
+        with col_save:
+            salva_vol = st.form_submit_button("💾 SALVA CHECK-IN", use_container_width=True, type="primary")
+        with col_info:
+            st.markdown("<small>* campi obbligatori</small>", unsafe_allow_html=True)
         
-        # Lista comunicazioni
-        st.divider()
-        if "comunicazioni" in st.session_state and st.session_state.comunicazioni:
-            df_com = pd.DataFrame(st.session_state.comunicazioni)
-            st.markdown(f"**📻 Registro Comunicazioni - {len(df_com)} messaggi**")
-            
-            # Filtri comunicazioni
-            c1,c2,c3 = st.columns(3)
-            with c1:
-                filtro_giorno_com = st.date_input("Filtra per giorno", value=None, key="filtro_giorno_com")
-            with c2:
-                filtro_mitt = st.text_input("Cerca mittente/destinatario", placeholder="Posto 1, Mario...")
-            with c3:
-                filtro_canale_com = st.selectbox("Canale", ["Tutti"] + sorted(df_com["Canale"].dropna().unique().tolist()) if "Canale" in df_com.columns else ["Tutti"], key="filtro_canale_com2")
-            
-            df_com_filt = df_com.copy()
-            if filtro_giorno_com:
-                df_com_filt = df_com_filt[df_com_filt["Giorno"] == str(filtro_giorno_com)]
-            if filtro_mitt:
-                mask = df_com_filt.astype(str).apply(lambda x: x.str.contains(filtro_mitt, case=False, na=False)).any(axis=1)
-                df_com_filt = df_com_filt[mask]
-            if filtro_canale_com != "Tutti":
-                df_com_filt = df_com_filt[df_com_filt["Canale"] == filtro_canale_com]
-            
-            st.dataframe(df_com_filt.iloc[::-1], use_container_width=True, hide_index=True, height=400)
-            
-            # Export comunicazioni
-            c1,c2,c3 = st.columns(3)
-            with c1:
-                out = BytesIO()
-                df_com_filt.to_excel(out, index=False, engine="openpyxl")
-                st.download_button("📥 Excel Comunicazioni", out.getvalue(), file_name="comunicazioni_radio.xlsx", mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", use_container_width=True, key="excel_com")
-            with c2:
-                if st.button("🗑️ Cancella Comunicazioni", use_container_width=True, key="del_com"):
-                    st.session_state.comunicazioni = []
-                    salva_csv([], FILE_COMUNICAZIONI)
-                    st.rerun()
-            with c3:
-                if st.button("📄 PDF Traffico Radio", use_container_width=True, key="pdf_com"):
-                    try:
-                        from fpdf import FPDF
-                        pdf = FPDF(orientation='L', unit='mm', format='A4')
-                        pdf.set_auto_page_break(auto=True, margin=10)
-                        pdf.add_page()
-                        pdf.set_font("Arial", "B", 12)
-                        pdf.cell(0, 8, f"ANA Varese - Registro Comunicazioni Radio - {datetime.now().strftime('%d/%m/%Y')}", ln=True, align="C")
-                        pdf.set_font("Arial", "B", 7)
-                        cols = ["Giorno", "Ora", "Mittente", "Messaggio Inviato", "Destinatario", "Messaggio Ricevuto", "Esito"]
-                        w = [20, 15, 30, 60, 30, 60, 20]
-                        for i, col in enumerate(cols):
-                            pdf.cell(w[i], 6, col, border=1)
-                        pdf.ln()
-                        pdf.set_font("Arial", "", 6)
-                        for _, r in df_com_filt.tail(40).iterrows():
-                            pdf.cell(w[0], 5, str(r.get("Giorno",""))[:10], border=1)
-                            pdf.cell(w[1], 5, str(r.get("Ora",""))[:8], border=1)
-                            pdf.cell(w[2], 5, str(r.get("Mittente",""))[:15], border=1)
-                            pdf.cell(w[3], 5, str(r.get("Messaggio Inviato",""))[:35], border=1)
-                            pdf.cell(w[4], 5, str(r.get("Destinatario",""))[:15], border=1)
-                            pdf.cell(w[5], 5, str(r.get("Messaggio Ricevuto/Risposta",""))[:35], border=1)
-                            pdf.cell(w[6], 5, str(r.get("Esito",""))[:10], border=1)
-                            pdf.ln()
-                        out_pdf = pdf.output(dest='S')
-                        if isinstance(out_pdf, str):
-                            out_pdf = out_pdf.encode('latin-1')
-                        else:
-                            out_pdf = bytes(out_pdf)
-                        st.download_button("📥 Scarica PDF Comunicazioni", out_pdf, file_name="comunicazioni_radio.pdf", mime="application/pdf", use_container_width=True, key="pdf_com_dl")
-                    except Exception as e:
-                        st.error(f"Errore PDF: {e}")
-        else:
-            st.info("Nessuna comunicazione registrata. Inserisci sopra.")
-    
-    with tab2_brog:
-        if "brogliaccio" in st.session_state and st.session_state.brogliaccio:
-            df_brog = pd.DataFrame(st.session_state.brogliaccio)
-            st.markdown(f"### 📋 Registro Brogliaccio - {len(df_brog)} annotazioni")
-            
-            # Filtri
-            c1,c2,c3,c4 = st.columns(4)
-            with c1:
-                filtro_data = st.date_input("Filtra per data", value=None, key="filtro_data_brog")
-            with c2:
-                filtro_odv = st.selectbox("Filtra ODV", ["Tutti"] + sorted(df_brog["ODV"].dropna().unique().tolist()) if "ODV" in df_brog.columns else ["Tutti"])
-            with c3:
-                filtro_nome_brog = st.text_input("Cerca Nome/Cell", placeholder="Rossi, 333...")
-            with c4:
-                filtro_stato_brog = st.selectbox("Stato", ["Tutti", "In corso", "Completato", "Sospeso"])
-            
-            df_filt = df_brog.copy()
-            if filtro_data:
-                df_filt = df_filt[df_filt["Data"] == str(filtro_data)]
-            if filtro_odv != "Tutti":
-                df_filt = df_filt[df_filt["ODV"] == filtro_odv]
-            if filtro_nome_brog:
-                mask = df_filt.astype(str).apply(lambda x: x.str.contains(filtro_nome_brog, case=False, na=False)).any(axis=1)
-                df_filt = df_filt[mask]
-            if filtro_stato_brog != "Tutti":
-                df_filt = df_filt[df_filt["Stato"] == filtro_stato_brog]
-            
-            st.dataframe(df_filt.iloc[::-1], use_container_width=True, hide_index=True, height=500)
-            
-            # Azioni su riga
-            st.markdown("#### ✏️ Modifica / Elimina")
-            for idx, row in df_filt.tail(10).iloc[::-1].iterrows():
-                with st.container(border=True):
-                    c1,c2,c3 = st.columns([4,1,1])
-                    with c1:
-                        st.markdown(f"**{row.get('Data','')} {row.get('Ora Inizio','')}** - **{row.get('Nome e Cognome','')}** - 📱 {row.get('Cell','')} - **{row.get('ODV','')}** - {row.get('Postazione','')}")
-                        st.caption(f"{row.get('Attività','')[:100]}...")
-                    with c2:
-                        if st.button(f"🗑️ Elimina", key=f"del_brog_{idx}"):
-                            st.session_state.brogliaccio = [r for i,r in enumerate(st.session_state.brogliaccio) if i != idx]
-                            salva_csv(st.session_state.brogliaccio, FILE_BROGLIACCIO)
-                            st.rerun()
-                    with c3:
-                        st.caption(row.get('Stato',''))
-        else:
-            st.info("Nessuna annotazione nel brogliaccio. Usa tab 'Nuova Annotazione'")
-    
-    with tab3_brog:
-        if "brogliaccio" in st.session_state and st.session_state.brogliaccio:
-            df_brog = pd.DataFrame(st.session_state.brogliaccio)
-            st.markdown("### 📊 Export & Stampa Brogliaccio")
-            c1,c2,c3 = st.columns(3)
-            with c1:
-                out = BytesIO()
-                df_brog.to_excel(out, index=False, engine="openpyxl")
-                st.download_button("📥 Excel Brogliaccio", out.getvalue(), file_name="brogliaccio.xlsx", mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", use_container_width=True)
-            with c2:
-                out_csv = df_brog.to_csv(index=False).encode('utf-8')
-                st.download_button("📥 CSV Brogliaccio", out_csv, file_name="brogliaccio.csv", mime="text/csv", use_container_width=True)
-            with c3:
-                if st.button("📄 Genera PDF Brogliaccio Giornaliero", use_container_width=True):
-                    try:
-                        from fpdf import FPDF
-                        pdf = FPDF(orientation='L', unit='mm', format='A4')
-                        pdf.set_auto_page_break(auto=True, margin=15)
-                        pdf.add_page()
-                        pdf.set_font("Arial", "B", 14)
-                        pdf.cell(0, 10, f"ANA Varese - Brogliaccio Operativo - {datetime.now().strftime('%d/%m/%Y')}", ln=True, align="C")
-                        pdf.set_font("Arial", "", 8)
-                        pdf.ln(3)
-                        pdf.set_font("Arial", "B", 7)
-                        cols = ["Data", "Ora", "Nome e Cognome", "Cell", "ODV", "Postazione", "Attivita", "Stato"]
-                        w = [20, 15, 35, 25, 30, 25, 70, 20]
-                        for i, col in enumerate(cols):
-                            pdf.cell(w[i], 6, col, border=1)
-                        pdf.ln()
-                        pdf.set_font("Arial", "", 7)
-                        for _, r in df_brog.tail(30).iterrows():
-                            pdf.cell(w[0], 5, str(r.get("Data",""))[:10], border=1)
-                            pdf.cell(w[1], 5, str(r.get("Ora Inizio",""))[:5], border=1)
-                            pdf.cell(w[2], 5, str(r.get("Nome e Cognome",""))[:18], border=1)
-                            pdf.cell(w[3], 5, str(r.get("Cell",""))[:13], border=1)
-                            pdf.cell(w[4], 5, str(r.get("ODV",""))[:15], border=1)
-                            pdf.cell(w[5], 5, str(r.get("Postazione",""))[:12], border=1)
-                            pdf.cell(w[6], 5, str(r.get("Attività",""))[:35], border=1)
-                            pdf.cell(w[7], 5, str(r.get("Stato",""))[:10], border=1)
-                            pdf.ln()
-                        out_pdf = pdf.output(dest='S')
-                        if isinstance(out_pdf, str):
-                            out_pdf = out_pdf.encode('latin-1')
-                        else:
-                            out_pdf = bytes(out_pdf)
-                        st.download_button("📥 Scarica PDF", out_pdf, file_name=f"brogliaccio_{datetime.now().strftime('%Y%m%d')}.pdf", mime="application/pdf", use_container_width=True)
-                    except Exception as e:
-                        st.error(f"Errore PDF: {e}")
-            
-            # Statistiche
-            st.divider()
-            c1,c2,c3 = st.columns(3)
-            with c1:
-                st.metric("Totale Annotazioni", len(df_brog))
-            with c2:
-                if "ODV" in df_brog.columns:
-                    st.markdown("**Per ODV**")
-                    st.bar_chart(df_brog["ODV"].value_counts())
-            with c3:
-                if "Nome e Cognome" in df_brog.columns:
-                    st.markdown("**Top Volontari**")
-                    st.bar_chart(df_brog["Nome e Cognome"].value_counts().head(5))
-        else:
-            st.info("Nessun dato per export")
-
-# === DB RADIO ===
-elif scelta == "📻 DB Radio Inventario":
-    with st.container(border=True):
-        st.markdown("#### 📻 Database Radio - Inventario")
-        with st.form("form_radio_db"):
-            c1,c2,c3,c4 = st.columns(4)
-            with c1:
-                radio_id_db = st.text_input("Radio ID *", placeholder="R-01")
-                modello_db = st.selectbox("Modello *", ["Baofeng UV-5R", "Motorola T82", "Midland G9", "Altro"])
-            with c2:
-                seriale = st.text_input("Seriale")
-                frequenza = st.text_input("Frequenza", placeholder="145.500 MHz")
-            with c3:
-                batteria = st.selectbox("Batteria", ["Carica", "Da caricare", "Guasta", "Nuova"])
-                accessori = st.text_input("Accessori")
-            with c4:
-                stato_radio_db = st.selectbox("Stato", ["Disponibile", "In uso", "Guasta", "In riparazione"])
-                note_radio_db = st.text_input("Note")
-            if st.form_submit_button("💾 Salva Radio nel DB", use_container_width=True, type="primary"):
-                if radio_id_db and modello_db:
-                    if any(r.get("Radio ID")==radio_id_db for r in st.session_state.radio_db):
-                        st.error(f"Radio {radio_id_db} già esistente!")
-                    else:
-                        st.session_state.radio_db.append({
-                            "Radio ID": radio_id_db, "Modello": modello_db, "Seriale": seriale,
-                            "Frequenza": frequenza, "Batteria": batteria, "Accessori": accessori,
-                            "Stato": stato_radio_db, "Note": note_radio_db, "Data Inserimento": str(datetime.now().date())
-                        })
-                        salva_csv(st.session_state.radio_db, FILE_RADIO_DB)
-                        st.success(f"Radio {radio_id_db} aggiunta!")
-                        st.rerun()
-                else:
-                    st.error("Radio ID e Modello obbligatori")
-        if st.session_state.radio_db:
-            df_db = pd.DataFrame(st.session_state.radio_db).iloc[::-1]
-            st.dataframe(df_db, use_container_width=True, hide_index=True)
-            col1,col2 = st.columns(2)
-            with col1:
-                out = BytesIO()
-                df_db.to_excel(out, index=False, engine="openpyxl")
-                st.download_button("📥 Excel DB Radio", out.getvalue(), file_name="db_radio.xlsx", mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", use_container_width=True)
-            with col2:
-                if st.button("🗑️ Cancella DB", use_container_width=True):
-                    st.session_state.radio_db = []
-                    salva_csv([], FILE_RADIO_DB)
-                    st.rerun()
-
-# === DISTRIBUZIONE ===
-elif scelta == "📦 Distribuzione Radio":
-    with st.container(border=True):
-        st.markdown("#### 📦 Distribuzione Radio - Collegata ad Anagrafica Volontari")
-        st.caption(f"📋 Volontari disponibili: {len(st.session_state.mem_nomi)} - Agganciati automaticamente dalla scheda Volontari | Se non vedi un nome, vai in 👥 Volontari e aggiungilo")
-        if not st.session_state.mem_nomi:
-            st.warning("⚠️ Nessun volontario in anagrafica! Vai in 👥 Volontari per aggiungerli prima di distribuire le radio")
-        with st.form("form_dist"):
-            c1,c2,c3,c4 = st.columns(4)
-            with c1:
-                data_d = st.date_input("Data", value=datetime.now())
-                if st.session_state.radio_db:
-                    st.markdown("**📻 Agganciato a DB Radio Inventario**")
-                    # Crea lista con info complete - FIX AGGANCIO MODELLO
-                    radio_list = []
-                    display_to_data = {}
-                    for r in st.session_state.radio_db:
-                        rid = str(r.get("Radio ID","")).strip()
-                        if rid:
-                            mod = str(r.get("Modello","")).strip() or "N/D"
-                            stato = str(r.get("Stato","")).strip() or "Disponibile"
-                            batt = str(r.get("Batteria","")).strip() or "N/D"
-                            icon = "🟢" if stato=="Disponibile" else "🔴" if stato in ["Guasta","In riparazione"] else "🟡"
-                            display = f"{icon} {rid} | {mod} | {stato} | Batt:{batt}"
-                            radio_list.append({"id": rid, "modello": mod, "stato": stato, "batteria": batt, "full": r, "display": display})
-                            display_to_data[display] = {"id": rid, "modello": mod, "full": r}
-                    
-                    # Opzioni con stato
-                    opzioni_display = ["-- Seleziona Radio dal DB --"] + [rl["display"] for rl in radio_list]
-                    
-                    scelta_display = st.selectbox("Radio ID dal DB Inventario *", opzioni_display, key="radio_db_linked")
-                    
-                    # Inizializza variabili
-                    radio_id = ""
-                    modello = ""
-                    radio_selezionata_full = None
-                    
-                    if scelta_display == "-- Seleziona Radio dal DB --":
-                        st.warning("⚠️ Seleziona una radio dall'inventario")
-                    else:
-                        # FIX: Usa dizionario mapping invece di split
-                        data_sel = display_to_data.get(scelta_display)
-                        if data_sel:
-                            radio_id = data_sel["id"]
-                            modello = data_sel["modello"]
-                            radio_selezionata_full = data_sel["full"]
-                            st.success(f"✅ **{radio_id}**")
-                            st.info(f"📻 Modello: **{modello}** | Stato: {radio_selezionata_full.get('Stato','')} | Batt: {radio_selezionata_full.get('Batteria','')}")
-                            if radio_selezionata_full.get("Stato") != "Disponibile":
-                                st.warning(f"⚠️ Radio in stato {radio_selezionata_full.get('Stato','')}")
-                        else:
-                            st.error("Errore parsing radio")
-                    
-                    # Campo modello BLOCCATO ma con valore agganciato - FIX VISUALIZZAZIONE
-                    if modello:
-                        st.text_input("Modello (agganciato da DB) *", value=modello, disabled=True, key="modello_locked_ok")
-                        st.caption(f"🔗 Modello agganciato automaticamente da DB: {modello}")
-                    else:
-                        st.text_input("Modello (seleziona radio dal DB)", value="", disabled=True, placeholder="Seleziona radio sopra", key="modello_locked_empty")
-                    
-                    # Salva in session per uso dopo submit
-                    st.session_state["_tmp_radio_id"] = radio_id
-                    st.session_state["_tmp_modello"] = modello
-                    st.session_state["_tmp_radio_full"] = radio_selezionata_full
-                    
-                else:
-                    st.error("⚠️ DB Radio vuoto! Vai in 📻 DB Radio Inventario e inserisci le radio")
-                    radio_id = st.text_input("Radio ID * (manuale - DB vuoto)", placeholder="R-01", key="radio_manual_id")
-                    modello = st.text_input("Modello *", placeholder="Baofeng UV-5R", key="radio_manual_modello")
-                    st.session_state["_tmp_radio_id"] = radio_id
-                    st.session_state["_tmp_modello"] = modello
-            with c2:
-                assegnatario = combo_memoria("Assegnato A *", st.session_state.mem_nomi, "asseg", "Chi riceve")
-                consegnato_da = combo_memoria("Consegnata DA *", st.session_state.mem_nomi, "cons_da", "Chi consegna")
-            with c3:
-                opzioni_post = ["-- Nuova --"] + [p.get("Postazione","") for p in st.session_state.postazioni]
-                scelta_post = st.selectbox("Postazione *", opzioni_post)
-                if scelta_post == "-- Nuova --":
-                    postazione = st.text_input("Nuova Postazione *", placeholder="Posto 1")
-                else:
-                    postazione = scelta_post
-                canale = st.selectbox("Canale", ["CH 1 - Emergenza", "CH 2 - Logistica", "CH 3 - Coordinamento", "VHF 145.500"])
-            with c4:
-                ora_cons = st.text_input("Ora consegna", value=datetime.now().strftime("%H:%M"))
-                ora_ric = st.text_input("Ora riconsegna", placeholder="Al rientro")
-                stato_r = st.selectbox("Stato", ["Consegnata", "Riconsegnata", "Guasta"])
-            note_d = st.text_input("Note", placeholder="Con batteria carica")
-            if st.form_submit_button("📦 Assegna Radio", use_container_width=True, type="primary"):
-                # FIX: Recupera da session tmp per aggancio modello sicuro
-                radio_id_final = st.session_state.get("_tmp_radio_id", "") or radio_id if 'radio_id' in locals() else st.session_state.get("_tmp_radio_id", "")
-                modello_final = st.session_state.get("_tmp_modello", "") or modello if 'modello' in locals() else st.session_state.get("_tmp_modello", "")
-                
-                # Se ancora vuoto, prova a recuperare da display
-                if not modello_final and st.session_state.radio_db:
-                    # Ultimo tentativo: cerca modello da radio_id
-                    for r in st.session_state.radio_db:
-                        if str(r.get("Radio ID","")).strip() == str(radio_id_final).strip():
-                            modello_final = str(r.get("Modello",""))
-                            break
-                
-                if radio_id_final and radio_id_final != "" and assegnatario and postazione and consegnato_da and modello_final:
-                    st.session_state.dist_radio.append({
-                        "Data": str(data_d), "RadioID": radio_id, "Modello": modello,
-                        "Assegnatario": assegnatario, "Consegnata DA": consegnato_da,
-                        "Postazione": postazione, "Canale": canale,
-                        "OraConsegna": ora_cons, "OraRiconsegna": ora_ric, "Stato": stato_r, "Note": note_d
-                    })
-                    salva_csv(st.session_state.dist_radio, FILE_DIST_RADIO)
-                    st.success(f"Radio {radio_id} consegnata da {consegnato_da} a {assegnatario} in {postazione}")
-                    st.rerun()
-                else:
-                    st.error("Compila Radio ID, Assegnato A, Consegnata DA e Postazione")
-        if st.session_state.dist_radio:
-            df_dist = pd.DataFrame(st.session_state.dist_radio).iloc[::-1]
-            st.markdown("### 🗺️ Vai alle Coordinate - Clicca postazione per navigare")
-            
-            # Crea mappa nome postazione -> coordinate da DB postazioni
-            mappa_coord = {}
-            for p in st.session_state.postazioni:
-                nome_p = p.get("Postazione","")
-                if nome_p:
-                    mappa_coord[nome_p] = p
-            
-            # Mostra cards per ogni distribuzione con pulsanti funzionanti
-            for idx, row in df_dist.head(15).iterrows():
-                post_nome = str(row.get("Postazione","")).strip()
-                radio_id = str(row.get("RadioID",""))
-                assegn = str(row.get("Assegnatario",""))
-                coord_info = mappa_coord.get(post_nome)
-                
-                with st.container(border=True):
-                    c1,c2,c3,c4,c5 = st.columns([2,2,2,2,2])
-                    with c1:
-                        st.markdown(f"**📍 {post_nome}**")
-                        st.caption(f"Radio: {radio_id} | A: {assegn[:15]}")
-                    with c2:
-                        if coord_info:
-                            try:
-                                lat_c = coord_info.get("Latitudine","")
-                                lon_c = coord_info.get("Longitudine","")
-                                comune_c = coord_info.get("Comune","")
-                                via_c = coord_info.get("Via","")
-                                st.caption(f"📌 {comune_c} - {via_c} {coord_info.get('Civico','')}")
-                                st.caption(f"Lat: {lat_c} Lon: {lon_c}")
-                                # Test link rapido
-                                st.caption(f"[Test Maps](https://www.google.com/maps/search/?api=1&query={lat_c},{lon_c})")
-                            except:
-                                st.caption("Coordinate presenti")
-                        else:
-                            st.warning(f"⚠️ {post_nome} non in mappa")
-                    with c3:
-                        if coord_info:
-                            try:
-                                lat_c = coord_info.get("Latitudine")
-                                lon_c = coord_info.get("Longitudine")
-                                # Link diretti che FUNZIONANO
-                                # Link Google Maps con marker visibile
-                                st.link_button(f"📱 Google Maps", f"https://www.google.com/maps/search/?api=1&query={lat_c},{lon_c}", use_container_width=True)
-                            except:
-                                st.caption("No coord")
-                        else:
-                            if st.button(f"➕ Aggiungi {post_nome} in mappa", key=f"add_map_{idx}", use_container_width=True):
-                                st.session_state.current_page = "🗺️ Mappa Postazioni"
-                                st.session_state.current_page = "🗺️ Mappa Postazioni"
-                                # Non settiamo menu_radio direttamente per evitare errore widget
-                                st.rerun()
-                    with c4:
-                        if coord_info:
-                            try:
-                                lat_c = coord_info.get("Latitudine")
-                                lon_c = coord_info.get("Longitudine")
-                                # Waze con nome postazione
-                                st.link_button(f"🚗 Waze", f"https://waze.com/ul?ll={lat_c},{lon_c}&navigate=yes&zoom=17", use_container_width=True)
-                            except:
-                                pass
-                    with c5:
-                        if st.button(f"🗺️ VAI ALLA MAPPA", key=f"goto_map_{idx}_{post_nome}", use_container_width=True, type="primary"):
-                            st.session_state.selected_postazione = post_nome
-                            st.session_state.current_page = "🗺️ Mappa Postazioni"
-                            st.session_state.geo_lat = coord_info.get("Latitudine","") if coord_info else ""
-                            st.session_state.geo_lon = coord_info.get("Longitudine","") if coord_info else ""
-                            st.rerun()
-            
-            st.divider()
-            st.dataframe(df_dist, use_container_width=True, hide_index=True)
-            out = BytesIO()
-            df_dist.to_excel(out, index=False, engine="openpyxl")
-            st.download_button("📥 Excel Distribuzione", out.getvalue(), file_name="distribuzione.xlsx", mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", use_container_width=True)
-
-# === MAPPA ===
-elif scelta == "🗺️ Mappa Postazioni":
-    with st.container(border=True):
-        st.markdown("#### 🗺️ Mappa Postazioni FULLSCREEN")
-        if st.session_state.get("selected_postazione"):
-            st.success(f"📍 Evidenziata: **{st.session_state.selected_postazione}**")
-        with st.expander("➕ Aggiungi Postazione con COMBO Comuni d'Italia + Vie associate (da rete)", expanded=True):
-            st.markdown("##### 🌍 COMBO con tutti i Comuni d'Italia + Vie agganciate da rete OSM")
-            
-            # Carica comuni italiani
-            with st.spinner("🌍 Carico comuni italiani da rete..."):
-                lista_comuni = get_comuni_italiani()
-            
-            st.caption(f"📋 {len(lista_comuni)} comuni italiani disponibili - Seleziona comune, poi carica vie")
-            
-            c_com1, c_com2, c_com3, c_com4 = st.columns([2,2,1,1])
-            with c_com1:
-                comune_input = st.selectbox("🏘️ Comune * (combo tutti Italia)", ["-- Seleziona Comune --"] + lista_comuni, key="comune_combo", help="Tutti i comuni italiani da ISTAT + rete")
-                comune_filtro = st.text_input("🔍 Filtro rapido comune", placeholder="Scrivi Varese, Milano...", key="filtro_comune")
-                if comune_filtro:
-                    filtrati = [c for c in lista_comuni if comune_filtro.lower() in c.lower()][:50]
-                    if filtrati:
-                        comune_filtrato_sel = st.selectbox("Risultati filtro", ["--"] + filtrati, key="comune_filtro_sel")
-                        if comune_filtrato_sel != "--":
-                            comune_input = comune_filtrato_sel
-                            st.info(f"✅ Comune filtrato selezionato: {comune_input}")
-            
-            with c_com2:
-                # Vie associate al comune selezionato
-                if comune_input and comune_input != "-- Seleziona Comune --":
-                    if st.button(f"📥 Carica vie di {comune_input.split('(')[0].strip()}", use_container_width=True, key="carica_vie_btn"):
-                        with st.spinner(f"🌐 Cerco vie di {comune_input} da rete OSM (Overpass)..."):
-                            vie_trovate = get_vie_comune(comune_input)
-                            st.session_state.vie_comune = vie_trovate
-                            if vie_trovate:
-                                st.success(f"✅ Trovate {len(vie_trovate)} vie!")
-                            else:
-                                st.warning("⚠️ Nessuna via trovata, puoi inserire manuale")
-                    
-                    if "vie_comune" in st.session_state and st.session_state.vie_comune:
-                        vie_opzioni = ["-- Seleziona Via --", "-- Inserisci manuale --"] + st.session_state.vie_comune[:300]
-                        via_selezionata_combo = st.selectbox(f"🛣️ Vie di {comune_input.split('(')[0].strip()} ({len(st.session_state.vie_comune)} trovate)", vie_opzioni, key="via_combo")
-                        if via_selezionata_combo == "-- Inserisci manuale --":
-                            via_input = st.text_input("Via manuale *", placeholder="Via Sacco", key="via_manuale")
-                        elif via_selezionata_combo == "-- Seleziona Via --":
-                            via_input = st.text_input("Via *", placeholder="Via Sacco", key="via_input_combo")
-                        else:
-                            via_input = via_selezionata_combo
-                            st.caption(f"Selezionata: {via_input}")
-                    else:
-                        via_input = st.text_input("🛣️ Via *", placeholder="Via Sacco - oppure carica vie", key="via_input")
-                        st.caption("💡 Clicca 'Carica vie' per vedere vie del comune")
-                else:
-                    via_input = st.text_input("🛣️ Via *", placeholder="Seleziona prima comune", key="via_input_no_comune")
-                    st.info("👆 Seleziona comune")
-            
-            with c_com3:
-                civico_input = st.text_input("🏠 Civico *", placeholder="Es: 5, 10/A, 23", key="civico_input", help="Numero civico della via")
-                st.caption("Es: 5, 12, 10/A, SNC")
-            
-            with c_com4:
-                st.markdown("<br>", unsafe_allow_html=True)
-                cerca_coord = st.button("🔍 Cerca coordinate", use_container_width=True, type="primary", key="cerca_coord_btn", help="Cerca con Comune + Via + Civico da rete")
-            
-            # Risultato geocoding in session
-            if "geo_lat" not in st.session_state:
-                st.session_state.geo_lat = ""
-                st.session_state.geo_lon = ""
-                st.session_state.geo_display = ""
-            
-            # Recupera civico da session se esiste
-            civico_val = st.session_state.get("civico_input", "")
-            
-            if cerca_coord:
-                if comune_input and comune_input != "-- Seleziona Comune --" and via_input:
-                    with st.spinner(f"🌐 Cerco {via_input} {civico_val}, {comune_input} su rete OSM/Photon..."):
-                        lat_found, lon_found, display = geocode_comune_via(comune_input, via_input, civico_val)
-                        if lat_found and lon_found:
-                            st.session_state.geo_lat = lat_found
-                            st.session_state.geo_lon = lon_found
-                            st.session_state.geo_display = display
-                            st.success(f"✅ Trovato: {display}")
-                            st.success(f"📍 Lat: {lat_found} | Lon: {lon_found}")
-                        else:
-                            st.error(f"❌ {display}")
-                else:
-                    st.error("Seleziona Comune e Via")
-            
-            if st.session_state.geo_display:
-                st.info(f"📍 Risultato rete: **{st.session_state.geo_display}** | Lat: {st.session_state.geo_lat} | Lon: {st.session_state.geo_lon}")
-            
-            st.divider()
-            with st.form("form_post"):
-                c1,c2,c3 = st.columns(3)
-                with c1:
-                    nome_post = st.text_input("Nome Postazione *", placeholder="Posto 1 - Ingresso")
-                    lat_default = st.session_state.geo_lat if st.session_state.geo_lat else ""
-                    lon_default = st.session_state.geo_lon if st.session_state.geo_lon else ""
-                    lat = st.text_input("Latitudine *", value=lat_default, placeholder="45.8205")
-                    lon = st.text_input("Longitudine *", value=lon_default, placeholder="8.8255")
-                    comune_save = st.text_input("Comune (salvato)", value=comune_input if comune_input != "-- Seleziona Comune --" else "", placeholder="Varese")
-                    via_save = st.text_input("Via (salvata)", value=via_input, placeholder="Via Sacco")
-                    civico_save_form = st.text_input("Civico (salvato)", value=st.session_state.get("civico_input",""), placeholder="5")
-                with c2:
-                    resp_post = combo_memoria("Responsabile", st.session_state.mem_nomi, "resp_post", "Nome")
-                    radio_post = st.text_input("Radio assegnata", placeholder="R-01")
-                with c3:
-                    tipo_post = st.selectbox("Tipo", ["Controllo accessi", "Viabilita", "Sicurezza", "Logistica", "COC", "Altro"])
-                    note_post = st.text_input("Note")
-                if st.form_submit_button("📍 Aggiungi alla Mappa", use_container_width=True, type="primary"):
-                    if nome_post and lat and lon:
-                        try:
-                            float(lat); float(lon)
-                            civico_save = civico_save_form if 'civico_save_form' in locals() else st.session_state.get("civico_input","")
-                            st.session_state.postazioni.append({
-                                "Data": str(datetime.now().date()), "Postazione": nome_post,
-                                "Comune": comune_save, "Via": via_save, "Civico": civico_save,
-                                "Latitudine": lat, "Longitudine": lon,
-                                "Responsabile": resp_post, "Radio": radio_post,
-                                "Tipo": tipo_post, "Note": note_post,
-                                "Indirizzo Completo": st.session_state.geo_display,
-                                "Indirizzo": f"{via_save} {civico_save}, {comune_save}".strip()
-                            })
-                            # Reset geo dopo salvataggio
-                            st.session_state.geo_lat = ""
-                            st.session_state.geo_lon = ""
-                            st.session_state.geo_display = ""
-                            salva_csv(st.session_state.postazioni, FILE_POSTAZIONI)
-                            st.success(f"{nome_post} aggiunta!")
-                            st.rerun()
-                        except:
-                            st.error("Lat/Lon numeri")
-        if st.session_state.postazioni:
-            df_post = pd.DataFrame(st.session_state.postazioni)
-            if "map_type" not in st.session_state:
-                st.session_state.map_type = "OpenStreetMap"
-            map_type = st.selectbox("🗺️ Tipo Mappa:", ["OpenStreetMap", "Google Stradale", "Google Satellite", "Google Ibrida", "Google Rilievo"], index=["OpenStreetMap", "Google Stradale", "Google Satellite", "Google Ibrida", "Google Rilievo"].index(st.session_state.map_type))
-            st.session_state.map_type = map_type
-            
-            # Pulsanti navigazione se selezionata
-            if st.session_state.get("selected_postazione"):
-                for _, r in df_post.iterrows():
-                    if r.get("Postazione") == st.session_state.selected_postazione:
-                        try:
-                            lat_s = r.get("Latitudine"); lon_s = r.get("Longitudine")
-                            st.markdown(f"**🧭 Naviga verso: {st.session_state.selected_postazione}** - {lat_s},{lon_s}")
-                            c1,c2,c3,c4 = st.columns(4)
-                            with c1:
-                                # Questo link MOSTRA la postazione con marker rosso
-                                st.link_button("📍 Vedi Postazione Google", f"https://www.google.com/maps/search/?api=1&query={lat_s},{lon_s}", use_container_width=True, type="primary")
-                            with c2:
-                                st.link_button("🧭 Naviga Google", f"https://www.google.com/maps/dir/?api=1&destination={lat_s},{lon_s}", use_container_width=True)
-                            with c3:
-                                st.link_button("🚗 Waze", f"https://waze.com/ul?ll={lat_s},{lon_s}&navigate=yes&zoom=17", use_container_width=True)
-                            with c4:
-                                st.link_button("🗺️ OSM", f"https://www.openstreetmap.org/?mlat={lat_s}&mlon={lon_s}#map=18/{lat_s}/{lon_s}", use_container_width=True)
-                        except:
-                            pass
-            
-            st.markdown("**🔗 Clicca postazione per centrare:**")
-            cols_map = st.columns(3)
-            for idx, p in enumerate(st.session_state.postazioni):
-                with cols_map[idx % 3]:
-                    nome = p.get("Postazione","")
-                    is_sel = st.session_state.get("selected_postazione") == nome
-                    if st.button(f"{'✅ ' if is_sel else '📍 '}{nome}", key=f"map_sel_{idx}", use_container_width=True, type="primary" if is_sel else "secondary"):
-                        st.session_state.selected_postazione = nome
-                        st.rerun()
-            
-            try:
-                import folium
-                from streamlit_folium import st_folium
-                selected = st.session_state.get("selected_postazione")
-                center_lat, center_lon = 45.8205, 8.8255
-                zoom = 14
-                if selected:
-                    for _, r in df_post.iterrows():
-                        if r.get("Postazione") == selected:
-                            try:
-                                center_lat = float(r.get("Latitudine")); center_lon = float(r.get("Longitudine")); zoom = 17
-                            except:
-                                pass
-                if map_type == "OpenStreetMap":
-                    m = folium.Map(location=[center_lat, center_lon], zoom_start=zoom, tiles="OpenStreetMap")
-                elif map_type == "Google Stradale":
-                    m = folium.Map(location=[center_lat, center_lon], zoom_start=zoom, tiles=None)
-                    folium.TileLayer('https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', attr='Google', name='Google Stradale', max_zoom=20).add_to(m)
-                elif map_type == "Google Satellite":
-                    m = folium.Map(location=[center_lat, center_lon], zoom_start=zoom, tiles=None)
-                    folium.TileLayer('https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}', attr='Google', name='Google Satellite', max_zoom=20).add_to(m)
-                elif map_type == "Google Ibrida":
-                    m = folium.Map(location=[center_lat, center_lon], zoom_start=zoom, tiles=None)
-                    folium.TileLayer('https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', attr='Google', name='Google Ibrida', max_zoom=20).add_to(m)
-                elif map_type == "Google Rilievo":
-                    m = folium.Map(location=[center_lat, center_lon], zoom_start=zoom, tiles=None)
-                    folium.TileLayer('https://mt1.google.com/vt/lyrs=p&x={x}&y={y}&z={z}', attr='Google', name='Google Rilievo', max_zoom=20).add_to(m)
-                
-                # Pulsante Fullscreen
-                try:
-                    from folium.plugins import Fullscreen
-                    Fullscreen(position="topleft", title="Espandi a tutto schermo", title_cancel="Esci da tutto schermo", force_separate_button=True).add_to(m)
-                except:
-                    pass
-                # Altri plugin utili
-                try:
-                    from folium.plugins import LocateControl, MeasureControl
-                    LocateControl(auto_start=False, position="topleft", strings={"title": "Mostra la mia posizione"}).add_to(m)
-                    MeasureControl(position="bottomleft", primary_length_unit="meters", secondary_length_unit="kilometers").add_to(m)
-                except:
-                    pass
-                
-                for _, r in df_post.iterrows():
-                    try:
-                        lat_f = float(r.get("Latitudine")); lon_f = float(r.get("Longitudine"))
-                        nome_p = r.get('Postazione','')
-                        is_sel = nome_p == selected
-                        comune_p = r.get('Comune','')
-                        via_p = r.get('Via','')
-                        civico_p = r.get('Civico','')
-                        # Link Google Maps che mostra marker + navigazione
-                        popup = f"<b>{nome_p}</b><br>{via_p} {civico_p}, {comune_p}<br>Resp: {r.get('Responsabile','')}<br>Radio: {r.get('Radio','')}<br>Lat:{lat_f} Lon:{lon_f}<br><a href='https://www.google.com/maps/search/?api=1&query={lat_f},{lon_f}' target='_blank'>📍 Vedi su Google Maps</a> | <a href='https://www.google.com/maps/dir/?api=1&destination={lat_f},{lon_f}' target='_blank'>🧭 Naviga</a> | <a href='https://waze.com/ul?ll={lat_f},{lon_f}&navigate=yes' target='_blank'>🚗 Waze</a>"
-                        folium.Marker([lat_f, lon_f], popup=folium.Popup(popup, max_width=80), tooltip=nome_p, icon=folium.Icon(color="red" if is_sel else "green", icon="star" if is_sel else "info-sign")).add_to(m)
-                        if is_sel:
-                            folium.Circle([lat_f, lon_f], radius=60, color="red", fill=True, fill_opacity=0.3).add_to(m)
-                    except:
-                        pass
-                # Pulsante fullscreen extra sopra mappa
-                col_full1, col_full2, col_full3 = st.columns([2,2,6])
-                with col_full1:
-                    st.markdown("**🗺️ Mappa con pulsante fullscreen in alto a sinistra**")
-                with col_full2:
-                    # Link per aprire in Google Maps fullscreen
-                    if st.session_state.get("selected_postazione"):
-                        for _, r in df_post.iterrows():
-                            if r.get("Postazione") == st.session_state.get("selected_postazione"):
-                                try:
-                                    lat_fs = r.get("Latitudine")
-                                    lon_fs = r.get("Longitudine")
-                                    st.link_button("🔎 Apri Postazione in Google Maps Fullscreen", f"https://www.google.com/maps/search/?api=1&query={lat_fs},{lon_fs}", use_container_width=True)
-                                except:
-                                    pass
-                
-                # Mappa con altezza maggiore per effetto fullscreen
-                if "map_fullscreen" not in st.session_state:
-                    st.session_state.map_fullscreen = False
-                
-                if st.button("⛶ Attiva Modalità Fullscreen Mappa (800px)", use_container_width=False, key="btn_fullscreen"):
-                    st.session_state.map_fullscreen = not st.session_state.map_fullscreen
-                
-                map_height = 800 if st.session_state.map_fullscreen else 600
-                
-                st_folium(m, width=1400, height=map_height, use_container_width=True, key=f"folium_{map_type}_{center_lat}_{map_height}")
-            except ImportError:
-                st.warning("Installa folium")
-            except Exception as e:
-                st.error(f"Errore mappa: {e}")
-            
-            st.dataframe(df_post, use_container_width=True, hide_index=True)
-        else:
-            st.info("Nessuna postazione - Aggiungi la prima!")
-
-# === REGISTRO ===
-elif scelta == "📋 Registro Radio":
-    st.info("📋 Registro uso radio - qui puoi aggiungere il registro giornaliero")
-    with st.container(border=True):
-        with st.form("form_registro"):
-            c1,c2,c3 = st.columns(3)
-            with c1:
-                data_reg = st.date_input("Data", value=datetime.now())
-                radio_reg = st.text_input("Radio ID")
-            with c2:
-                volontario_reg = combo_memoria("Volontario", st.session_state.mem_nomi, "vol_reg", "Nome")
-                ore_uso = st.text_input("Ore uso", placeholder="08:00-12:00")
-            with c3:
-                stato_reg = st.selectbox("Stato finale", ["OK", "Batteria scarica", "Guasta", "Persa"])
-                note_reg = st.text_input("Note")
-            if st.form_submit_button("💾 Salva Registro", type="primary", use_container_width=True):
-                st.session_state.registro_radio.append({
-                    "Data": str(data_reg), "RadioID": radio_reg, "Volontario": volontario_reg,
-                    "OreUso": ore_uso, "Stato": stato_reg, "Note": note_reg
-                })
-                salva_csv(st.session_state.registro_radio, FILE_REGISTRO)
-                st.success("Registro salvato!")
-                st.rerun()
-        if st.session_state.registro_radio:
-            st.dataframe(pd.DataFrame(st.session_state.registro_radio).iloc[::-1], use_container_width=True, hide_index=True)
-
-# === LINK ===
-elif scelta == "🔗 Link & Aggiornamenti":
-    with st.container(border=True):
-        st.markdown("#### 🔗 Link per Inserire Aggiornamenti")
-        app_url = st.text_input("🌐 URL della tua app Streamlit", placeholder="https://ana-varse.streamlit.app")
-        if app_url:
-            st.success(f"Link: {app_url}")
-            c1,c2 = st.columns(2)
-            with c1:
-                msg = f"Aggiorna ANA Varese: {app_url}"
-                st.link_button("📱 WhatsApp", f"https://wa.me/?text={msg.replace(' ', '%20')}", use_container_width=True)
-            with c2:
-                st.link_button("✈️ Telegram", f"https://t.me/share/url?url={app_url}", use_container_width=True)
-            try:
-                import qrcode
-                qr = qrcode.QRCode(version=1, box_size=10, border=4)
-                qr.add_data(app_url)
-                qr.make(fit=True)
-                img = qr.make_image(fill='black', back_color='white')
-                buf = BytesIO()
-                img.save(buf, format='PNG')
-                st.image(buf.getvalue(), caption="QR Code", width=200)
-                st.download_button("📥 Scarica QR", buf.getvalue(), file_name="qr_ana.png", mime="image/png", use_container_width=True)
-            except:
-                st.info("Aggiungi qrcode[pil] ai requirements per QR")
-        st.divider()
-        st.markdown("#### 📤 Backup & Ripristino")
-        c1,c2 = st.columns(2)
-        with c1:
-            if st.session_state.postazioni or st.session_state.dist_radio:
-                all_data = {
-                    "postazioni": st.session_state.postazioni,
-                    "distribuzione_radio": st.session_state.dist_radio,
-                    "radio_db": st.session_state.radio_db,
-                    "volontari": st.session_state.mem_nomi,
-                    "data_export": str(datetime.now())
+        if salva_vol:
+            if not nome or not cognome or not odv or not cellulare or not codice_fiscale:
+                st.error("Compila tutti i campi obbligatori (*)")
+            elif len(codice_fiscale) != 16:
+                st.error("Codice Fiscale deve essere di 16 caratteri")
+            else:
+                volontario = {
+                    "Nome": nome.strip().upper(),
+                    "Cognome": cognome.strip().upper(),
+                    "ODV": odv,
+                    "Cellulare": cellulare,
+                    "Codice Fiscale": codice_fiscale.upper(),
+                    "Note": note,
+                    "Check-In": datetime.now().strftime("%d/%m/%Y %H:%M"),
+                    "Evento ID": id_evento
                 }
-                st.download_button("📥 Backup JSON Completo", json.dumps(all_data, indent=2, ensure_ascii=False).encode('utf-8'), file_name=f"backup_{datetime.now().strftime('%Y%m%d')}.json", mime="application/json", use_container_width=True)
-        with c2:
-            uploaded = st.file_uploader("Carica backup JSON", type=["json"])
-            if uploaded:
-                try:
-                    data = json.loads(uploaded.read().decode('utf-8'))
-                    if st.button("🔄 Importa", type="primary", use_container_width=True):
-                        if "postazioni" in data:
-                            st.session_state.postazioni = data["postazioni"]
-                            salva_csv(data["postazioni"], FILE_POSTAZIONI)
-                        if "distribuzione_radio" in data:
-                            st.session_state.dist_radio = data["distribuzione_radio"]
-                            salva_csv(data["distribuzione_radio"], FILE_DIST_RADIO)
-                        if "radio_db" in data:
-                            st.session_state.radio_db = data["radio_db"]
-                            salva_csv(data["radio_db"], FILE_RADIO_DB)
-                        st.success("Importato!")
-                        st.rerun()
-                except Exception as e:
-                    st.error(f"Errore: {e}")
+                if id_evento not in st.session_state.checkin:
+                    st.session_state.checkin[id_evento] = []
+                st.session_state.checkin[id_evento].append(volontario)
+                # aggiorna conteggio in evento
+                for e in st.session_state.eventi:
+                    if e["ID"] == id_evento:
+                        e["Volontari Check-In"] = len(st.session_state.checkin[id_evento])
+                st.success(f"✅ Check-In salvato: {nome} {cognome}")
+                st.balloons()
+    
+    # Lista volontari check-in per evento
+    st.divider()
+    lista = st.session_state.checkin.get(id_evento, [])
+    st.subheader(f"👥 Volontari in Check-In per questo Evento ({len(lista)})")
+    
+    if lista:
+        df = pd.DataFrame(lista)
+        st.dataframe(df, use_container_width=True)
+        
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            # Excel
+            output = BytesIO()
+            with pd.ExcelWriter(output, engine='openpyxl') as writer:
+                df.to_excel(writer, index=False, sheet_name=f'CheckIn_Evento_{id_evento}')
+            st.download_button("📥 Excel Check-In", data=output.getvalue(), file_name=f"checkin_evento_{id_evento}_{datetime.now().strftime('%Y%m%d')}.xlsx", mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", use_container_width=True)
+        with col2:
+            # PDF con loghi 80px
+            pdf = PDFConLogo()
+            pdf.add_page()
+            pdf.set_font("Arial","B",12)
+            pdf.cell(0,10,f"Check-In Volontari - Evento {id_evento}", ln=True, align="C")
+            pdf.set_font("Arial","",10)
+            pdf.cell(0,7,f"{evento['Tipo Servizio']} - {evento['Comune']} - {evento['Data Inizio']}", ln=True, align="C")
+            pdf.ln(5)
+            pdf.set_font("Arial","B",9)
+            pdf.set_fill_color(200,230,201)
+            # Header tabella
+            pdf.cell(35,7,"Nome Cognome", border=1, fill=True)
+            pdf.cell(35,7,"ODV", border=1, fill=True)
+            pdf.cell(30,7,"Cellulare", border=1, fill=True)
+            pdf.cell(45,7,"Codice Fiscale", border=1, fill=True)
+            pdf.cell(35,7,"Check-In", border=1, fill=True, ln=True)
+            pdf.set_font("Arial","",8)
+            for v in lista:
+                pdf.cell(35,6,f"{v['Nome']} {v['Cognome']}"[:18], border=1)
+                pdf.cell(35,6,v['ODV'][:18], border=1)
+                pdf.cell(30,6,v['Cellulare'], border=1)
+                pdf.cell(45,6,v['Codice Fiscale'], border=1)
+                pdf.cell(35,6,v['Check-In'], border=1, ln=True)
+            b = pdf.output(dest='S').encode('latin-1','ignore')
+            st.download_button("📄 PDF Check-In con Loghi", data=b, file_name=f"checkin_evento_{id_evento}.pdf", mime="application/pdf", use_container_width=True)
+        with col3:
+            if st.button("🗑️ Cancella Tutti Check-In Evento", use_container_width=True):
+                st.session_state.checkin[id_evento] = []
+                for e in st.session_state.eventi:
+                    if e["ID"] == id_evento:
+                        e["Volontari Check-In"] = 0
+                st.rerun()
+    else:
+        st.info("Nessun volontario in check-in per questo evento.")
+
+# --- ROUTING ---
+if st.session_state.page == "evento_crea":
+    pagina_crea_evento()
+elif st.session_state.page == "evento_lista":
+    pagina_lista_eventi()
+elif st.session_state.page == "checkin":
+    pagina_checkin()
+else:
+    # DASHBOARD PRINCIPALE con loghi 80px
+    c1, c2, c3, c4 = st.columns([1,1,1,1])
+    with c2:
+        try:
+            st.image("logo.png", width=80)
+        except:
+            st.write("ANA")
+    with c3:
+        try:
+            st.image("logo2.png", width=80)
+        except:
+            st.write("Varese")
+    st.markdown("### 📊 Dashboard Operativa")
+    
+    # Tasto evento grande
+    if st.button("📅 GESTIONE EVENTO - Crea Nuovo Servizio / Evento", use_container_width=True, type="primary"):
+        st.session_state.page = "evento_lista"
+        st.rerun()
+    
+    # Dati riepilogo
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        st.metric("📅 Eventi Totali", len(st.session_state.eventi))
+    with col2:
+        tot_check = sum(len(v) for v in st.session_state.checkin.values())
+        st.metric("👥 Check-In Totali", tot_check)
+    with col3:
+        st.metric("🏘️ Comuni Coinvolti", len(set(e["Comune"] for e in st.session_state.eventi)) if st.session_state.eventi else 0)
+    
+    st.divider()
+    st.markdown("#### 🔧 Funzioni Operative")
+    b1, b2, b3 = st.columns(3)
+    with b1:
+        if st.button("👥 Volontari", use_container_width=True):
+            st.info("Gestione volontari - usa Check-In per evento")
+        if st.button("📻 Comunicazioni", use_container_width=True):
+            st.info("Modulo comunicazioni")
+    with b2:
+        if st.button("📝 Brogliaccio", use_container_width=True):
+            st.info("Brogliaccio operativo")
+        if st.button("📦 Distribuzione", use_container_width=True):
+            st.info("Distribuzione materiali")
+    with b3:
+        if st.button("🗺️ Mappa", use_container_width=True):
+            st.info("Mappa interventi")
+        if st.button("📋 Registro", use_container_width=True):
+            if st.session_state.eventi:
+                st.dataframe(pd.DataFrame(st.session_state.eventi), use_container_width=True)
+            else:
+                st.warning("Nessun evento")
+
