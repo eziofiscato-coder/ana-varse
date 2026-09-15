@@ -10,6 +10,34 @@ import requests
 st.set_page_config(page_title="ANA Varese - Gestionale", page_icon="🎖️", layout="wide")
 
 # SFONDO VERDE CHIARO + LOGHI 80PX
+APP_PASSWORD = "ANA2025"
+
+if "authenticated" not in st.session_state:
+    st.session_state.authenticated = False
+
+if not st.session_state.authenticated:
+    st.markdown("""<style>[data-testid="stSidebar"]{display:none;}</style>""", unsafe_allow_html=True)
+    c1, c2, c3, c4 = st.columns([1,1,1,1])
+    with c2:
+        try:
+            st.image("logo.png", width=80)
+        except:
+            st.markdown("### ANA")
+    with c3:
+        try:
+            st.image("logo2.png", width=80)
+        except:
+            st.markdown("### Varese")
+    st.markdown("<h2 style='text-align:center; color:#2e7d32;'>🔐 Accesso Riservato<br>ANA Varese</h2>", unsafe_allow_html=True)
+    pwd = st.text_input("Password", type="password", placeholder="Inserisci password")
+    if st.button("🔓 Accedi", use_container_width=True, type="primary"):
+        if pwd == APP_PASSWORD:
+            st.session_state.authenticated = True
+            st.rerun()
+        else:
+            st.error("Password errata!")
+    st.stop()
+
 st.markdown("""<style>
 .stApp{background-color:#e8f5e9 !important;}
 .main .block-container{background-color:rgba(255,255,255,0.93) !important;border-radius:18px;padding:25px !important;box-shadow:0 4px 20px rgba(0,0,0,0.08);}
@@ -24,6 +52,15 @@ if "checkin" not in st.session_state:
     st.session_state.checkin = {}
 if "page_extra" not in st.session_state:
     st.session_state.page_extra = None
+if "chat_messages" not in st.session_state:
+    st.session_state.chat_messages = []
+if "utenti_collegati" not in st.session_state:
+    st.session_state.utenti_collegati = {}
+if "mio_nome" not in st.session_state:
+    st.session_state.mio_nome = ""
+if "utente_multi" not in st.session_state:
+    st.session_state.utente_multi = ""
+
 
 def get_pdf_bytes(pdf_obj):
     try:
@@ -205,12 +242,6 @@ def sync_utenti():
 # ========== FINE MULTI-UTENTE ==========
 
 # ========== CHAT SISTEMA COLLEGATI ==========
-if "chat_messages" not in st.session_state:
-    st.session_state.chat_messages = []
-if "utenti_collegati" not in st.session_state:
-    st.session_state.utenti_collegati = {}
-if "mio_nome" not in st.session_state:
-    st.session_state.mio_nome = ""
 
 def pagina_chat():
     st.title("💬 Chat - Volontari Collegati")
