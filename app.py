@@ -126,6 +126,151 @@ def pagina_checkin():
 # ========== FINE FUNZIONI EVENTO ==========
 
 
+
+# ========== CHAT SISTEMA COLLEGATI ==========
+if "chat_messages" not in st.session_state:
+    st.session_state.chat_messages = []
+if "utenti_collegati" not in st.session_state:
+    st.session_state.utenti_collegati = {}
+if "mio_nome" not in st.session_state:
+    st.session_state.mio_nome = ""
+
+def pagina_chat():
+    st.title("💬 Chat - Volontari Collegati")
+    
+    # Login chat - nome utente
+    if not st.session_state.mio_nome:
+        st.markdown('<div style="background:#e8f5e9; padding:20px; border-radius:15px; text-align:center;"><h3>👋 Entra in Chat</h3><p>Inserisci il tuo nome per vedere chi e collegato e chattare</p></div>', unsafe_allow_html=True)
+        nome = st.text_input("👤 Il tuo Nome e Cognome", placeholder="Es: Ezio Fiscato - ODV Varese")
+        odv_chat = st.text_input("🏢 ODV / Gruppo", placeholder="Es: ANA Varese")
+        if st.button("💬 Entra in Chat", use_container_width=True, type="primary"):
+            if nome:
+                st.session_state.mio_nome = nome
+                st.session_state.mio_odv = odv_chat
+                # Registra utente come collegato
+                st.session_state.utenti_collegati[nome] = {
+                    "nome": nome,
+                    "odv": odv_chat,
+                    "ultimo_accesso": datetime.now().strftime("%H:%M:%S"),
+                    "data": datetime.now().strftime("%d/%m/%Y")
+                }
+                # Messaggio sistema
+                st.session_state.chat_messages.append({
+                    "utente": "SISTEMA",
+                    "messaggio": f"{nome} si e collegato alla chat",
+                    "ora": datetime.now().strftime("%H:%M"),
+                    "odv": odv_chat,
+                    "tipo": "sistema"
+                })
+                st.rerun()
+        return
+    
+    # Utente già in chat - mostra interfaccia
+    col_chat, col_users = st.columns([3,1])
+    
+    with col_users:
+        st.markdown("### 👥 Collegati")
+        st.markdown(f"**Tu:** {st.session_state.mio_nome}")
+        if st.button("🔄 Aggiorna"):
+            st.rerun()
+        if st.button("🚪 Esci da Chat"):
+            if st.session_state.mio_nome in st.session_state.utenti_collegati:
+                del st.session_state.utenti_collegati[st.session_state.mio_nome]
+            st.session_state.chat_messages.append({
+                "utente": "SISTEMA",
+                "messaggio": f"{st.session_state.mio_nome} si e disconnesso",
+                "ora": datetime.now().strftime("%H:%M"),
+                "odv": "",
+                "tipo": "sistema"
+            })
+            st.session_state.mio_nome = ""
+            st.rerun()
+        
+        st.divider()
+        # Lista utenti collegati
+        if st.session_state.utenti_collegati:
+            for nome, info in st.session_state.utenti_collegati.items():
+                if nome == st.session_state.mio_nome:
+                    st.markdown(f"🟢 **{nome}** (tu)<br><small>{info.get('odv','')}</small><br><small>{info['ultimo_accesso']}</small>", unsafe_allow_html=True)
+                else:
+                    st.markdown(f"🟢 {nome}<br><small>{info.get('odv','')}</small><br><small>{info['ultimo_accesso']}</small>", unsafe_allow_html=True)
+                st.markdown("---")
+        else:
+            st.info("Nessun altro collegato")
+        
+        st.metric("Messaggi", len(st.session_state.chat_messages))
+        st.metric("Utenti Online", len(st.session_state.utenti_collegati))
+    
+    with col_chat:
+        st.markdown(f"### 💬 Chat - Connesso come **{st.session_state.mio_nome}**")
+        
+        # Container messaggi con sfondo verde chiaro
+        st.markdown('<div style="background:#f1f8e9; border-radius:10px; padding:10px; max-height:400px; overflow-y:auto;">', unsafe_allow_html=True)
+        
+        # Mostra messaggi (ultimi 50)
+        for msg in st.session_state.chat_messages[-50:]:
+            if msg.get("tipo") == "sistema":
+                st.markdown(f'<div style="text-align:center; color:#666; font-style:italic; margin:5px 0;"><small>--- {msg["messaggio"]} - {msg["ora"]} ---</small></div>', unsafe_allow_html=True)
+            elif msg["utente"] == st.session_state.mio_nome:
+                st.markdown(f'<div style="background:#a5d6a7; padding:8px 12px; border-radius:15px 15px 0 15px; margin:5px 0 5px 40px; text-align:right;"><b>Tu</b><br>{msg["messaggio"]}<br><small>{msg["ora"]}</small></div>', unsafe_allow_html=True)
+            else:
+                st.markdown(f'<div style="background:white; padding:8px 12px; border-radius:15px 15px 15px 0; margin:5px 40px 5px 0; border:1px solid #c8e6c9;"><b>{msg["utente"]}</b> <small>({msg.get("odv","")})</small><br>{msg["messaggio"]}<br><small>{msg["ora"]}</small></div>', unsafe_allow_html=True)
+        
+        st.markdown('</div>', unsafe_allow_html=True)
+        
+        st.divider()
+        # Input messaggio
+        with st.form(f"chat_form_{len(st.session_state.chat_messages)}", clear_on_submit=True):
+            col_in, col_btn = st.columns([4,1])
+            with col_in:
+                nuovo_msg = st.text_input("Scrivi messaggio", placeholder="Scrivi qui...", label_visibility="collapsed")
+            with col_btn:
+                invia = st.form_submit_button("📤 Invia", use_container_width=True, type="primary")
+            
+            if invia and nuovo_msg:
+                st.session_state.chat_messages.append({
+                    "utente": st.session_state.mio_nome,
+                    "messaggio": nuovo_msg,
+                    "ora": datetime.now().strftime("%H:%M"),
+                    "odv": st.session_state.get("mio_odv",""),
+                    "tipo": "utente"
+                })
+                # Aggiorna ultimo accesso
+                if st.session_state.mio_nome in st.session_state.utenti_collegati:
+                    st.session_state.utenti_collegati[st.session_state.mio_nome]["ultimo_accesso"] = datetime.now().strftime("%H:%M:%S")
+                st.rerun()
+        
+        # Pulsanti rapidi messaggi predefiniti per emergenza
+        st.markdown("**Messaggi rapidi:**")
+        c1, c2, c3, c4 = st.columns(4)
+        with c1:
+            if st.button("✅ Tutto OK", use_container_width=True):
+                st.session_state.chat_messages.append({"utente": st.session_state.mio_nome, "messaggio": "✅ Tutto OK nella mia zona", "ora": datetime.now().strftime("%H:%M"), "odv": st.session_state.get("mio_odv",""), "tipo": "utente"})
+                st.rerun()
+        with c2:
+            if st.button("🚨 Emergenza", use_container_width=True):
+                st.session_state.chat_messages.append({"utente": st.session_state.mio_nome, "messaggio": "🚨 RICHIESTA SUPPORTO URGENTE!", "ora": datetime.now().strftime("%H:%M"), "odv": st.session_state.get("mio_odv",""), "tipo": "utente"})
+                st.rerun()
+        with c3:
+            if st.button("📍 Posizione", use_container_width=True):
+                st.session_state.chat_messages.append({"utente": st.session_state.mio_nome, "messaggio": "📍 Condivido posizione - sono in postazione", "ora": datetime.now().strftime("%H:%M"), "odv": st.session_state.get("mio_odv",""), "tipo": "utente"})
+                st.rerun()
+        with c4:
+            if st.button("🔄 Cambio Turno", use_container_width=True):
+                st.session_state.chat_messages.append({"utente": st.session_state.mio_nome, "messaggio": "🔄 Richiesta cambio turno", "ora": datetime.now().strftime("%H:%M"), "odv": st.session_state.get("mio_odv",""), "tipo": "utente"})
+                st.rerun()
+        
+        # Export chat
+        if st.session_state.chat_messages:
+            if st.button("📥 Esporta Chat in Excel"):
+                df_chat = pd.DataFrame(st.session_state.chat_messages)
+                output = BytesIO()
+                with pd.ExcelWriter(output, engine='openpyxl') as writer:
+                    df_chat.to_excel(writer, index=False)
+                st.download_button("Scarica Excel Chat", data=output.getvalue(), file_name=f"chat_{datetime.now().strftime('%Y%m%d_%H%M')}.xlsx", mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+
+# ========== FINE CHAT ==========
+
 # --- Presentazione ---
 if "entered" not in st.session_state:
     st.session_state.entered = False
@@ -431,6 +576,7 @@ st.sidebar.image("logo.png", width=120) if os.path.exists("logo.png") else st.si
 st.sidebar.markdown("## 📚 MENU PRINCIPALE")
 
 pagine = {
+    "💬 Chat Collegati": "Chat",
     "🏠 Dashboard": "Dashboard",
     "👥 Volontari": "Volontari",
     "📝 Brogliaccio": "Brogliaccio",
@@ -479,6 +625,10 @@ st.sidebar.caption(f"📅 {datetime.now().strftime('%d/%m/%Y')}")
 st.markdown(f"## {scelta}")
 st.divider()
 
+
+# === CHAT ===
+if scelta == "💬 Chat Collegati":
+    pagina_chat()
 
 # === DASHBOARD ===
 if scelta == "🏠 Dashboard":
