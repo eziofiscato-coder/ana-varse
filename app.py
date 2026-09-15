@@ -1,4 +1,31 @@
 
+def geocodifica_residenza_osm(indirizzo, comune):
+    try:
+        import requests
+        q = f"{indirizzo}, {comune}, Italia"
+        url = f"https://nominatim.openstreetmap.org/search?q={q}&format=json&limit=1"
+        r = requests.get(url, headers={"User-Agent":"ANA-Varese"}, timeout=8)
+        if r.status_code==200:
+            d=r.json()
+            if d:
+                return float(d[0]["lat"]), float(d[0]["lon"]), d[0].get("display_name","")
+    except:
+        pass
+    return None,None,""
+
+def calcola_latlon_comune_osm(comune):
+    try:
+        import requests
+        url = f"https://nominatim.openstreetmap.org/search?q={comune}, Italia&format=json&limit=1"
+        r = requests.get(url, headers={"User-Agent":"ANA-Varese"}, timeout=8)
+        if r.status_code==200:
+            d=r.json()
+            if d:
+                return float(d[0]["lat"]), float(d[0]["lon"]), d[0].get("display_name","")
+    except:
+        pass
+    return None,None,""
+
 import streamlit as st
 
 
@@ -35,53 +62,53 @@ button {
 
 /* FONDO BIANCO PER TUTTI I CAMPI */
 .stApp {
-    background-color: #e8f5e9 !important;
+    background-color: white !important;
 }
 .main, .block-container {
-    background-color: #e8f5e9 !important;
+    background-color: white !important;
 }
 [data-testid="stHeader"], [data-testid="stSidebar"], [data-testid="stSidebarContent"] {
-    background-color: #e8f5e9 !important;
+    background-color: white !important;
 }
 input, textarea, select, .stTextInput input, .stNumberInput input, .stDateInput input, .stSelectbox div[data-baseweb="select"] {
-    background-color: #e8f5e9 !important;
+    background-color: white !important;
     color: black !important;
     border: 1px solid #cccccc !important;
 }
 .stTextInput, .stSelectbox, .stDateInput, .stFileUploader, .stNumberInput {
-    background-color: #e8f5e9 !important;
+    background-color: white !important;
 }
 div[data-baseweb="select"], div[data-baseweb="base-input"] {
-    background-color: #e8f5e9 !important;
+    background-color: white !important;
 }
 .stForm {
-    background-color: #e8f5e9 !important;
+    background-color: white !important;
     border: 1px solid #e0e0e0 !important;
 }
 .stDataFrame, .stTable {
-    background-color: #e8f5e9 !important;
+    background-color: white !important;
 }
 .stTabs [data-baseweb="tab-list"] {
-    background-color: #e8f5e9 !important;
+    background-color: white !important;
 }
 .stTabs [data-baseweb="tab-panel"] {
-    background-color: #e8f5e9 !important;
+    background-color: white !important;
 }
 .stExpander, .stContainer {
-    background-color: #e8f5e9 !important;
+    background-color: white !important;
 }
 button, .stButton button {
-    background-color: #e8f5e9 !important;
+    background-color: white !important;
     color: black !important;
     border: 1px solid black !important;
 }
 .stDownloadButton button {
-    background-color: #e8f5e9 !important;
+    background-color: white !important;
     color: black !important;
 }
 /* Rimuove sfondi colorati verde chiaro */
 div[style*="background:#e8f5e9"], div[style*="background:#c8e6c9"] {
-    background-color: #e8f5e9 !important;
+    background-color: white !important;
     background: white !important;
     border: 1px solid #cccccc !important;
 }
@@ -3195,14 +3222,3 @@ elif scelta == "🔗 Link & Aggiornamenti":
       st.rerun()
     except Exception as e:
      st.error(f"Errore: {e}")
-
-
-import streamlit as st
-st.markdown("""
-<style>
-.stApp { background-color: #e8f5e9 !important; }
-.main { background-color: #e8f5e9 !important; }
-.stForm { background-color: #f1f8e9 !important; border: 2px solid #81c784 !important; }
-input, textarea, select { background-color: #ffffff !important; color: black !important; }
-</style>
-""", unsafe_allow_html=True)
