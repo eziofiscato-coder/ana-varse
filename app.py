@@ -525,7 +525,394 @@ if len(st.session_state.utenti_collegati) == 0:
     if utenti_shared:
         st.session_state.utenti_collegati = utenti_shared
 
+
+def pagina_backup():
+    st.title("💾 Backup, Export CSV, Import CSV - Tutti i Dati")
+    st.markdown('<div style="background:#e8f5e9; padding:15px; border-radius:10px; border-left:5px solid #2e7d32;"><b>💾 Gestione Completa Dati:</b> Esporta in CSV/Excel, Importa da CSV, Backup totale ZIP con nome personalizzato</div>', unsafe_allow_html=True)
+    
+    tab_exp, tab_imp, tab_backup, tab_restore = st.tabs(["📤 Esporta CSV/Excel", "📥 Importa CSV", "💾 Backup Completo", "♻️ Ripristina Backup"])
+    
+    with tab_exp:
+        st.subheader("📤 Esporta Tutti i Dati in CSV / Excel")
+        
+        col1, col2 = st.columns(2)
+        with col1:
+            nome_export = st.text_input("📝 Nome file export", value=f"ANA_Varese_Export_{datetime.now().strftime('%Y%m%d_%H%M')}", help="Nome senza estensione")
+        with col2:
+            formato = st.selectbox("Formato", ["CSV", "Excel (XLSX)", "JSON", "Tutti in ZIP"])
+        
+        st.markdown("#### Seleziona cosa esportare:")
+        c1, c2, c3, c4 = st.columns(4)
+        with c1:
+            exp_anag = st.checkbox("👥 Anagrafica Volontari", value=True)
+            exp_eventi = st.checkbox("📅 Eventi", value=True)
+        with c2:
+            exp_checkin = st.checkbox("📝 Check-In", value=True)
+            exp_radio = st.checkbox("📻 Radio DB", value=True)
+        with c3:
+            exp_post = st.checkbox("📍 Postazioni Mappa", value=False)
+            exp_dist = st.checkbox("📦 Distribuzione Radio", value=False)
+        with c4:
+            exp_brog = st.checkbox("📒 Brogliaccio", value=False)
+            exp_reg = st.checkbox("📋 Registro Radio", value=False)
+        
+        if st.button("📤 ESPORTA ORA", use_container_width=True, type="primary", key="btn_export"):
+            import pandas as pd
+            from io import BytesIO
+            import json, os, zipfile
+            
+            files_to_download = []
+            
+            # Funzione helper export
+            def df_from_session(key, filename_base):
+                data = []
+                if key in st.session_state and st.session_state[key]:
+                    if isinstance(st.session_state[key], list):
+                        if st.session_state[key] and isinstance(st.session_state[key][0], dict):
+                            data = st.session_state[key]
+                        else:
+                            data = [{"Valore": x} for x in st.session_state[key]]
+                # Prova anche da file CSV
+                csv_file = f"{key}.csv" if key=="mem_nomi" else f"anagrafica_volontari_completa.csv" if key=="anag_full" else None
+                if not data and csv_file and os.path.exists(csv_file):
+                    try:
+                        df_tmp = pd.read_csv(csv_file)
+                        data = df_tmp.to_dict(orient="records")
+                    except:
+                        pass
+                if data:
+                    df = pd.DataFrame(data)
+                    return df
+                return pd.DataFrame()
+            
+            # Prepara dati
+            dati_export = {}
+            if exp_anag:
+                # Anagrafica completa
+                try:
+                    if os.path.exists("anagrafica_volontari_completa.csv"):
+                        df = pd.read_csv("anagrafica_volontari_completa.csv")
+                        # Rimuovi FotoBase64 per export leggero (opzionale)
+                        df_no_foto = df.drop(columns=["FotoBase64"], errors="ignore")
+                        dati_export["Anagrafica_Volontari"] = df_no_foto
+                        dati_export["Anagrafica_Volontari_CON_FOTO"] = df
+                except:
+                    pass
+            if exp_eventi:
+                if st.session_state.eventi:
+                    dati_export["Eventi"] = pd.DataFrame(st.session_state.eventi)
+            if exp_checkin:
+                # Unisci tutti i checkin
+                tutti_checkin = []
+                for id_ev, lista in st.session_state.checkin.items():
+                    for v in lista:
+                        tutti_checkin.append(v)
+                if tutti_checkin:
+                    dati_export["CheckIn_Tutti_Eventi"] = pd.DataFrame(tutti_checkin)
+                # Anche per evento singolo
+                for id_ev, lista in st.session_state.checkin.items():
+                    if lista:
+                        dati_export[f"CheckIn_Evento_{id_ev}"] = pd.DataFrame(lista)
+            
+            if formato == "CSV":
+                for nome_sheet, df in dati_export.items():
+                    if not df.empty:
+                        csv_data = df.to_csv(index=False).encode('utf-8')
+                        st.download_button(f"📥 Scarica {nome_sheet}.csv", data=csv_data, file_name=f"{nome_export}_{nome_sheet}.csv", mime="text/csv", key=f"dl_csv_{nome_sheet}", use_container_width=True)
+            elif formato == "Excel (XLSX)":
+                output = BytesIO()
+                with pd.ExcelWriter(output, engine='openpyxl') as writer:
+                    for nome_sheet, df in dati_export.items():
+                        if not df.empty:
+                            sheet_name = nome_sheet[:31]  # Excel max 31 char
+                            df.to_excel(writer, index=False, sheet_name=sheet_name)
+                st.download_button(f"📥 Scarica {nome_export}.xlsx - {len(dati_export)} fogli", data=output.getvalue(), file_name=f"{nome_export}.xlsx", mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", use_container_width=True, key="dl_excel")
+            elif formato == "JSON":
+                json_data = {k: v.to_dict(orient="records") for k, v in dati_export.items()}
+                json_str = json.dumps(json_data, indent=2, ensure_ascii=False, default=str)
+                st.download_button(f"📥 Scarica {nome_export}.json", data=json_str.encode('utf-8'), file_name=f"{nome_export}.json", mime="application/json", use_container_width=True, key="dl_json")
+            else:  # ZIP con tutto
+                output_zip = BytesIO()
+                with zipfile.ZipFile(output_zip, 'w', zipfile.ZIP_DEFLATED) as z:
+                    for nome_sheet, df in dati_export.items():
+                        csv_bytes = df.to_csv(index=False).encode('utf-8')
+                        z.writestr(f"{nome_sheet}.csv", csv_bytes)
+                st.download_button(f"📥 Scarica ZIP con {len(dati_export)} CSV - {nome_export}.zip", data=output_zip.getvalue(), file_name=f"{nome_export}.zip", mime="application/zip", use_container_width=True, key="dl_zip")
+            
+            st.success(f"✅ Export pronto: {len(dati_export)} tabelle")
+            for k, v in dati_export.items():
+                st.caption(f"{k}: {len(v)} righe")
+    
+    with tab_imp:
+        st.subheader("📥 Importa Dati da CSV")
+        st.info("Carica file CSV esportati precedentemente per ripristinare dati")
+        
+        tipo_import = st.selectbox("Cosa vuoi importare?", ["Anagrafica Volontari", "Eventi", "Check-In", "Altro CSV generico"])
+        file_import = st.file_uploader(f"📂 Seleziona CSV per {tipo_import}", type=["csv", "xlsx", "json"], key="import_csv")
+        
+        if file_import is not None:
+            import pandas as pd
+            try:
+                if file_import.name.endswith('.csv'):
+                    df_imp = pd.read_csv(file_import)
+                elif file_import.name.endswith('.xlsx'):
+                    df_imp = pd.read_excel(file_import)
+                else:
+                    import json
+                    data_json = json.load(file_import)
+                    # Se JSON con più tabelle, prendi prima
+                    if isinstance(data_json, dict):
+                        first_key = list(data_json.keys())[0]
+                        df_imp = pd.DataFrame(data_json[first_key])
+                    else:
+                        df_imp = pd.DataFrame(data_json)
+                
+                st.success(f"✅ File caricato: {len(df_imp)} righe, {len(df_imp.columns)} colonne")
+                st.dataframe(df_imp.head(20), use_container_width=True)
+                
+                # Anteprima colonne
+                st.markdown(f"Colonne: {', '.join(df_imp.columns.tolist())}")
+                
+                col_imp1, col_imp2 = st.columns(2)
+                with col_imp1:
+                    modalita = st.selectbox("Modalità import", ["Aggiungi ai esistenti", "Sostituisci tutti", "Aggiorna per CF/ID"])
+                with col_imp2:
+                    st.markdown("<br>", unsafe_allow_html=True)
+                    if st.button(f"📥 IMPORTA {tipo_import} ORA", use_container_width=True, type="primary"):
+                        import os
+                        if tipo_import == "Anagrafica Volontari":
+                            # Salva in file anagrafica completa
+                            if modalita == "Sostituisci tutti":
+                                df_imp.to_csv("anagrafica_volontari_completa.csv", index=False)
+                                st.session_state.mem_nomi = df_imp["Nome e Cognome"].tolist() if "Nome e Cognome" in df_imp.columns else []
+                            else:
+                                # Aggiungi
+                                if os.path.exists("anagrafica_volontari_completa.csv"):
+                                    df_exist = pd.read_csv("anagrafica_volontari_completa.csv")
+                                    if modalita == "Aggiungi ai esistenti":
+                                        df_new = pd.concat([df_exist, df_imp], ignore_index=True)
+                                    else:  # Aggiorna per CF
+                                        # Rimuovi duplicati per CF
+                                        df_combined = pd.concat([df_exist, df_imp])
+                                        df_new = df_combined.drop_duplicates(subset=["Codice Fiscale"], keep="last") if "Codice Fiscale" in df_combined.columns else df_combined
+                                    df_new.to_csv("anagrafica_volontari_completa.csv", index=False)
+                                else:
+                                    df_imp.to_csv("anagrafica_volontari_completa.csv", index=False)
+                            st.success(f"✅ Anagrafica importata: {len(df_imp)} volontari")
+                            st.balloons()
+                        
+                        elif tipo_import == "Eventi":
+                            eventi_list = df_imp.to_dict(orient="records")
+                            if modalita == "Sostituisci tutti":
+                                st.session_state.eventi = eventi_list
+                            else:
+                                st.session_state.eventi.extend(eventi_list)
+                            sync_eventi()
+                            st.success(f"✅ Eventi importati: {len(eventi_list)}")
+                        
+                        elif tipo_import == "Check-In":
+                            # Richiede colonna Evento ID
+                            if "Evento ID" in df_imp.columns:
+                                for id_ev in df_imp["Evento ID"].unique():
+                                    lista_ev = df_imp[df_imp["Evento ID"]==id_ev].to_dict(orient="records")
+                                    if modalita == "Sostituisci tutti":
+                                        st.session_state.checkin[int(id_ev)] = lista_ev
+                                    else:
+                                        if int(id_ev) not in st.session_state.checkin:
+                                            st.session_state.checkin[int(id_ev)] = []
+                                        st.session_state.checkin[int(id_ev)].extend(lista_ev)
+                                sync_checkin()
+                                st.success(f"✅ Check-In importati: {len(df_imp)}")
+                            else:
+                                st.error("CSV Check-In deve avere colonna 'Evento ID'")
+                        st.rerun()
+                        
+            except Exception as e:
+                st.error(f"Errore import: {e}")
+    
+    with tab_backup:
+        st.subheader("💾 Backup Completo di TUTTI i Dati")
+        st.markdown("Crea un backup ZIP con tutti i CSV, Excel, foto, eventi, check-in")
+        
+        col_b1, col_b2 = st.columns(2)
+        with col_b1:
+            nome_backup = st.text_input("📝 Nome Backup", value=f"Backup_ANA_Varese_{datetime.now().strftime('%Y%m%d_%H%M%S')}", help="Nome senza estensione - verrà creato ZIP")
+        with col_b2:
+            st.markdown("**📂 Dove salvare:**")
+            luogo = st.selectbox("Scegli", ["Download locale (PC/telefono)", "Google Drive (se collegato)", "Entrambi"], key="luogo_backup")
+            include_foto = st.checkbox("📷 Includi foto volontari (più grande)", value=True)
+        
+        st.markdown("#### Cosa includere nel backup:")
+        b1, b2, b3 = st.columns(3)
+        with b1:
+            bk_anag = st.checkbox("👥 Anagrafica + Foto", value=True, key="bk_anag")
+            bk_eventi = st.checkbox("📅 Eventi", value=True, key="bk_eventi")
+        with b2:
+            bk_checkin = st.checkbox("📝 Check-In", value=True, key="bk_checkin")
+            bk_chat = st.checkbox("💬 Chat", value=False, key="bk_chat")
+        with b3:
+            bk_radio = st.checkbox("📻 Radio + Postazioni", value=True, key="bk_radio")
+            bk_tutto = st.checkbox("📦 Tutti i CSV presenti", value=True, key="bk_tutto")
+        
+        if st.button("💾 CREA BACKUP COMPLETO ORA", use_container_width=True, type="primary", key="btn_backup"):
+            import os, zipfile, pandas as pd
+            from io import BytesIO
+            import json
+            
+            output_zip = BytesIO()
+            file_count = 0
+            
+            with zipfile.ZipFile(output_zip, 'w', zipfile.ZIP_DEFLATED) as z:
+                # 1. Anagrafica
+                if bk_anag and os.path.exists("anagrafica_volontari_completa.csv"):
+                    try:
+                        if include_foto:
+                            z.write("anagrafica_volontari_completa.csv")
+                        else:
+                            df = pd.read_csv("anagrafica_volontari_completa.csv")
+                            df_no_foto = df.drop(columns=["FotoBase64"], errors="ignore")
+                            z.writestr("anagrafica_volontari_completa.csv", df_no_foto.to_csv(index=False))
+                        file_count += 1
+                    except:
+                        pass
+                
+                # 2. Tutti i CSV nella cartella
+                if bk_tutto:
+                    for fname in os.listdir("."):
+                        if fname.endswith(".csv") and fname not in ["comuni_italia.csv"]:
+                            try:
+                                z.write(fname)
+                                file_count += 1
+                            except:
+                                pass
+                
+                # 3. Eventi e Checkin da session_state
+                if bk_eventi and st.session_state.eventi:
+                    df_ev = pd.DataFrame(st.session_state.eventi)
+                    z.writestr("backup_eventi.csv", df_ev.to_csv(index=False))
+                    z.writestr("backup_eventi.json", json.dumps(st.session_state.eventi, indent=2, default=str))
+                    file_count += 1
+                
+                if bk_checkin and st.session_state.checkin:
+                    tutti = []
+                    for id_ev, lista in st.session_state.checkin.items():
+                        tutti.extend(lista)
+                    if tutti:
+                        df_ck = pd.DataFrame(tutti)
+                        z.writestr("backup_checkin_tutti.csv", df_ck.to_csv(index=False))
+                        z.writestr("backup_checkin.json", json.dumps(st.session_state.checkin, indent=2, default=str))
+                        file_count += 1
+                
+                # 4. Info backup
+                info = {
+                    "nome_backup": nome_backup,
+                    "data": datetime.now().isoformat(),
+                    "utente": st.session_state.get("utente_multi",""),
+                    "file_inclusi": file_count,
+                    "eventi": len(st.session_state.eventi),
+                    "checkin_totali": sum(len(v) for v in st.session_state.checkin.values()),
+                    "volontari": len(pd.read_csv("anagrafica_volontari_completa.csv")) if os.path.exists("anagrafica_volontari_completa.csv") else 0
+                }
+                z.writestr("backup_info.json", json.dumps(info, indent=2, ensure_ascii=False))
+                z.writestr("README.txt", f"Backup ANA Varese\nNome: {nome_backup}\nData: {datetime.now().strftime('%d/%m/%Y %H:%M:%S')}\nFile: {file_count}\nCreato da: {info['utente']}")
+            
+            st.success(f"✅ Backup creato: {file_count} file - {len(output_zip.getvalue())/1024:.1f} KB")
+            st.json(info)
+            
+            # Download
+            st.download_button(
+                f"📥 SCARICA BACKUP {nome_backup}.zip",
+                data=output_zip.getvalue(),
+                file_name=f"{nome_backup}.zip",
+                mime="application/zip",
+                use_container_width=True,
+                type="primary",
+                key="dl_backup_final"
+            )
+            
+            if luogo in ["Google Drive (se collegato)", "Entrambi"]:
+                st.info("💡 Per salvare su Drive: scarica e carica manualmente su Drive, oppure collega Google Drive nelle impostazioni Streamlit")
+    
+    with tab_restore:
+        st.subheader("♻️ Ripristina da Backup ZIP")
+        st.warning("⚠️ Ripristino sovrascrive dati esistenti - fai backup prima!")
+        
+        file_backup = st.file_uploader("📂 Seleziona file ZIP di backup", type=["zip"], key="restore_zip")
+        
+        if file_backup is not None:
+            import zipfile, os, pandas as pd, json
+            from io import BytesIO
+            
+            try:
+                with zipfile.ZipFile(file_backup, 'r') as z:
+                    lista_file = z.namelist()
+                    st.success(f"✅ Backup ZIP valido: {len(lista_file)} file")
+                    st.markdown(f"File nel backup: {', '.join(lista_file[:20])}")
+                    
+                    if "backup_info.json" in lista_file:
+                        info_data = json.loads(z.read("backup_info.json"))
+                        st.json(info_data)
+                    
+                    col_r1, col_r2 = st.columns(2)
+                    with col_r1:
+                        conferma = st.checkbox("✅ Confermo ripristino - sovrascrivi dati", key="conf_restore")
+                    with col_r2:
+                        cosa = st.selectbox("Cosa ripristinare", ["Tutto", "Solo Anagrafica", "Solo Eventi e Check-In"])
+                    
+                    if conferma and st.button("♻️ RIPRISTINA ORA", use_container_width=True, type="primary"):
+                        # Estrai tutti
+                        for fname in lista_file:
+                            if fname.endswith(".csv"):
+                                try:
+                                    data = z.read(fname)
+                                    with open(fname, "wb") as f:
+                                        f.write(data)
+                                except:
+                                    pass
+                        
+                        # Ripristina anche eventi/checkin da JSON se presenti
+                        if "backup_eventi.json" in lista_file:
+                            try:
+                                eventi_data = json.loads(z.read("backup_eventi.json"))
+                                st.session_state.eventi = eventi_data
+                                sync_eventi()
+                            except:
+                                pass
+                        
+                        if "backup_checkin.json" in lista_file:
+                            try:
+                                checkin_data = json.loads(z.read("backup_checkin.json"))
+                                # JSON chiavi stringa -> int
+                                st.session_state.checkin = {int(k): v for k, v in checkin_data.items()}
+                                sync_checkin()
+                            except:
+                                pass
+                        
+                        st.success("✅ Ripristino completato! Ricarica pagina")
+                        st.balloons()
+                        st.rerun()
+                        
+            except Exception as e:
+                st.error(f"Errore lettura ZIP: {e}")
+
 def sync_eventi():
+    try:
+        import pandas as pd
+        if st.session_state.eventi:
+            pd.DataFrame(st.session_state.eventi).to_csv("eventi_backup.csv", index=False)
+    except:
+        pass
+
+def sync_checkin():
+    try:
+        import json
+        with open("checkin_backup.json", "w") as f:
+            json.dump(st.session_state.checkin, f, default=str)
+    except:
+        pass
+
+
+def sync_eventi_OLD():
     salva_json(FILE_EVENTI, st.session_state.eventi)
 
 def sync_checkin():
@@ -976,6 +1363,7 @@ st.sidebar.image("logo.png", width=120) if os.path.exists("logo.png") else st.si
 st.sidebar.markdown("## 📚 MENU PRINCIPALE")
 
 pagine = {
+    "💾 Backup/Export/Import": "Backup",
     "🆔 Calcolo CF": "CF",
     "💬 Chat Collegati": "Chat",
     "📅 Gestione Eventi": "Eventi",
@@ -1034,6 +1422,11 @@ if st.session_state.get("page_extra") == "evento_crea":
 st.markdown(f"## {scelta}")
 st.divider()
 
+
+# === BACKUP ===
+if scelta == "💾 Backup/Export/Import":
+    pagina_backup()
+    st.stop()
 
 # === CALCOLO CF ===
 if scelta == "🆔 Calcolo CF":
@@ -1187,6 +1580,34 @@ elif scelta == "👥 Volontari":
         with st.container(border=True):
             st.markdown("#### 📝 Scheda Anagrafica Volontario - Tutti i campi con Foto + CF Auto")
             st.info("📷 Carica foto SOPRA il form + 🆔 Il CF si calcola da solo se lasci vuoto! Oppure vai in menu 🆔 Calcolo CF")
+            
+            # CALCOLO CF LIVE FUORI DAL FORM - FUNZIONA 100%
+            st.markdown("#### 🆔 Calcolo Codice Fiscale RAPIDO (fuori dal form)")
+            col_cf_live1, col_cf_live2, col_cf_live3 = st.columns([2,2,1])
+            with col_cf_live1:
+                cf_live_nome = st.text_input("Nome per CF", placeholder="Mario", key="cf_live_nome")
+                cf_live_cognome = st.text_input("Cognome per CF", placeholder="Rossi", key="cf_live_cognome")
+            with col_cf_live2:
+                cf_live_data = st.date_input("Data Nascita per CF", value=datetime(1980,1,1), key="cf_live_data")
+                cf_live_sesso = st.selectbox("Sesso per CF", ["M","F"], key="cf_live_sesso")
+                cf_live_comune = st.text_input("Comune Nascita per CF", placeholder="Varese", key="cf_live_comune")
+            with col_cf_live3:
+                st.markdown("<br><br>", unsafe_allow_html=True)
+                if st.button("🆔 CALCOLA CF", use_container_width=True, type="primary", key="btn_calc_cf_live"):
+                    if cf_live_nome and cf_live_cognome and cf_live_comune:
+                        cf_calc, cod_com, _ = calcola_cf(cf_live_nome, cf_live_cognome, cf_live_data, cf_live_sesso, cf_live_comune, "")
+                        st.session_state.cf_calcolato = cf_calc
+                        st.session_state.cf_cod_com = cod_com
+                        st.success(f"CF: {cf_calc}")
+                    else:
+                        st.error("Compila Nome, Cognome, Comune")
+            
+            if "cf_calcolato" in st.session_state and st.session_state.cf_calcolato:
+                st.markdown(f'<div style="background:#c8e6c9; padding:15px; border-radius:10px; text-align:center; border:2px solid #2e7d32;"><h3 style="color:#1b5e20;">CF CALCOLATO: {st.session_state.cf_calcolato}</h3><p>Comune cod: {st.session_state.get("cf_cod_com","")} - Verrà inserito automaticamente nel form sotto</p></div>', unsafe_allow_html=True)
+                if st.button("❌ Pulisci CF calcolato", key="clear_cf_live"):
+                    del st.session_state.cf_calcolato
+                    st.rerun()
+
             
             # Carica comuni per residenza
             lista_comuni_anag = get_comuni_italiani()
