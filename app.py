@@ -12,6 +12,58 @@ st.set_page_config(page_title="ANA Varese - Gestionale", page_icon="🎖️", la
 # --- Presentazione ---
 if "entered" not in st.session_state:
     st.session_state.entered = False
+
+# --- PROTEZIONE PASSWORD ---
+if "authenticated" not in st.session_state:
+    st.session_state.authenticated = False
+
+# Password configurabile - cambia qui
+APP_PASSWORD = "ANA2025"  # <-- CAMBIA PASSWORD QUI
+# Puoi anche usare st.secrets: APP_PASSWORD = st.secrets.get("APP_PASSWORD", "ANA2025")
+
+if not st.session_state.authenticated:
+    st.markdown("""
+    <style>
+    [data-testid="stSidebar"] {display: none;}
+    .main .block-container {max-width: 500px; padding-top: 5rem;}
+    </style>
+    """, unsafe_allow_html=True)
+    
+    # Mostra i 3 loghi anche nel login
+    c1, c2, c3 = st.columns(3)
+    with c1:
+        try:
+            st.image("logo.png", use_container_width=True)
+        except:
+            st.markdown("### 🎖️ ANA")
+    with c2:
+        try:
+            st.image("logo2.png", use_container_width=True)
+        except:
+            st.markdown("### Varese")
+    with c3:
+        try:
+            st.image("logo_protezione.png", use_container_width=True)
+        except:
+            st.markdown("### 🛡️ PC")
+    
+    st.markdown("<h2 style='text-align:center; color:#0e7a3d; margin-top:20px;'>🔐 Accesso Riservato<br>ANA Varese - Protezione Civile</h2>", unsafe_allow_html=True)
+    st.markdown("<p style='text-align:center;'>Inserisci password per accedere al sistema gestione volontari, radio e postazioni</p>", unsafe_allow_html=True)
+    
+    pwd = st.text_input("Password", type="password", placeholder="Inserisci password")
+    col_a, col_b = st.columns(2)
+    with col_a:
+        if st.button("🔓 Accedi", use_container_width=True, type="primary"):
+            if pwd == APP_PASSWORD:
+                st.session_state.authenticated = True
+                st.success("✅ Accesso consentito!")
+                st.rerun()
+            else:
+                st.error("❌ Password errata! Riprova.")
+    with col_b:
+        st.markdown("<small style='color:gray;'>Password default: ANA2025<br>Modificabile in app.py riga APP_PASSWORD</small>", unsafe_allow_html=True)
+    
+    st.stop()
 if "current_page" not in st.session_state:
     st.session_state.current_page = "🏠 Dashboard"
 
@@ -22,14 +74,35 @@ if not st.session_state.entered:
     .main .block-container {max-width: 900px; padding-top: 2rem;}
     </style>
     """, unsafe_allow_html=True)
-    col1, col2, col3 = st.columns([1,2,1])
-    with col2:
+    # Triplo logo - ANA + Sezione Varese + Protezione Civile - Regione Lombardia
+    col_logo1, col_logo2, col_logo3 = st.columns(3)
+    with col_logo1:
         try:
-            st.image("logo.png", width=350, use_container_width=True)
-            st.markdown("<div style='text-align:center; margin-top:-10px;'><small>Logo Ufficiale ANA Varese</small></div>", unsafe_allow_html=True)
+            st.image("logo.png", width=250, use_container_width=True)
+            st.markdown("<div style='text-align:center;'><b>ANA Nazionale</b></div>", unsafe_allow_html=True)
         except:
-            st.markdown("## 🎖️ ANA Varese")
-            st.warning("⚠️ logo.png non trovato - carica file logo.png su GitHub insieme ad app.py")
+            st.markdown("## 🎖️ ANA")
+    with col_logo2:
+        try:
+            st.image("logo2.png", width=250, use_container_width=True)
+            st.markdown("<div style='text-align:center;'><b>Sezione Varese</b></div>", unsafe_allow_html=True)
+        except:
+            st.markdown("## Sezione Varese")
+    with col_logo3:
+        try:
+            st.image("logo_protezione.png", width=250, use_container_width=True)
+            st.markdown("<div style='text-align:center;'><b>Protezione Civile - Regione Lombardia</b><br><small>Rosa Camuna</small></div>", unsafe_allow_html=True)
+        except:
+            try:
+                st.image("logo3.png", width=250, use_container_width=True)
+                st.markdown("<div style='text-align:center;'><b>Protezione Civile - Regione Lombardia</b></div>", unsafe_allow_html=True)
+            except:
+                st.markdown("""
+                <div style='background:#0a8a4b; border-radius:15px; padding:20px; text-align:center; color:white;'>
+                    <div style='background:white; width:100px; height:100px; margin:0 auto; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:60px;'>🌹</div>
+                    <p style='margin-top:10px;'><b>Protezione Civile - Regione Lombardia</b><br>Rosa Camuna</p>
+                </div>
+                """, unsafe_allow_html=True)
     st.markdown("""
     <div style="text-align:center; padding:20px;">
         <h1 style="color:#0e7a3d; font-size:42px; margin-bottom:0;">🎖️ ANA - ASSOCIAZIONE NAZIONALE ALPINI</h1>
@@ -297,6 +370,11 @@ def calc_h(text, max_w=35):
 
 # --- MENU MULTIPAGINA ---
 st.sidebar.image("logo.png", width=120) if os.path.exists("logo.png") else st.sidebar.markdown("### 🎖️ ANA Varese")
+if st.sidebar.button("🔒 Logout", use_container_width=True):
+    st.session_state.authenticated = False
+    st.session_state.entered = False
+    st.rerun()
+st.sidebar.divider()
 st.sidebar.markdown("## 📚 MENU PRINCIPALE")
 
 pagine = {
