@@ -35,53 +35,53 @@ button {
 
 /* FONDO BIANCO PER TUTTI I CAMPI */
 .stApp {
-    background-color: white !important;
+    background-color: #e8f5e9 !important;
 }
 .main, .block-container {
-    background-color: white !important;
+    background-color: #e8f5e9 !important;
 }
 [data-testid="stHeader"], [data-testid="stSidebar"], [data-testid="stSidebarContent"] {
-    background-color: white !important;
+    background-color: #e8f5e9 !important;
 }
 input, textarea, select, .stTextInput input, .stNumberInput input, .stDateInput input, .stSelectbox div[data-baseweb="select"] {
-    background-color: white !important;
+    background-color: #e8f5e9 !important;
     color: black !important;
     border: 1px solid #cccccc !important;
 }
 .stTextInput, .stSelectbox, .stDateInput, .stFileUploader, .stNumberInput {
-    background-color: white !important;
+    background-color: #e8f5e9 !important;
 }
 div[data-baseweb="select"], div[data-baseweb="base-input"] {
-    background-color: white !important;
+    background-color: #e8f5e9 !important;
 }
 .stForm {
-    background-color: white !important;
+    background-color: #e8f5e9 !important;
     border: 1px solid #e0e0e0 !important;
 }
 .stDataFrame, .stTable {
-    background-color: white !important;
+    background-color: #e8f5e9 !important;
 }
 .stTabs [data-baseweb="tab-list"] {
-    background-color: white !important;
+    background-color: #e8f5e9 !important;
 }
 .stTabs [data-baseweb="tab-panel"] {
-    background-color: white !important;
+    background-color: #e8f5e9 !important;
 }
 .stExpander, .stContainer {
-    background-color: white !important;
+    background-color: #e8f5e9 !important;
 }
 button, .stButton button {
-    background-color: white !important;
+    background-color: #e8f5e9 !important;
     color: black !important;
     border: 1px solid black !important;
 }
 .stDownloadButton button {
-    background-color: white !important;
+    background-color: #e8f5e9 !important;
     color: black !important;
 }
 /* Rimuove sfondi colorati verde chiaro */
 div[style*="background:#e8f5e9"], div[style*="background:#c8e6c9"] {
-    background-color: white !important;
+    background-color: #e8f5e9 !important;
     background: white !important;
     border: 1px solid #cccccc !important;
 }
@@ -3195,3 +3195,14 @@ elif scelta == "🔗 Link & Aggiornamenti":
       st.rerun()
     except Exception as e:
      st.error(f"Errore: {e}")
+
+
+import streamlit as st
+st.markdown("""
+<style>
+.stApp { background-color: #e8f5e9 !important; }
+.main { background-color: #e8f5e9 !important; }
+.stForm { background-color: #f1f8e9 !important; border: 2px solid #81c784 !important; }
+input, textarea, select { background-color: #ffffff !important; color: black !important; }
+</style>
+""", unsafe_allow_html=True)
