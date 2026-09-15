@@ -1034,6 +1034,29 @@ elif scelta == "👥 Volontari":
             # Carica comuni per residenza
             lista_comuni_anag = get_comuni_italiani()
             
+            # FOTO FUORI DAL FORM per evitare bug Streamlit
+            st.markdown("##### 📷 Foto Volontario")
+            foto_v_file = st.file_uploader("📷 Allega Foto Volontario (JPG/PNG) - Verrà visualizzata nella scheda", type=["jpg","jpeg","png"], key="foto_upload_global")
+            if "foto_base64_temp" not in st.session_state:
+                st.session_state.foto_base64_temp = ""
+                st.session_state.foto_nome_temp = ""
+            
+            if foto_v_file is not None:
+                import base64
+                bytes_data = foto_v_file.getvalue()
+                st.session_state.foto_base64_temp = base64.b64encode(bytes_data).decode()
+                st.session_state.foto_nome_temp = foto_v_file.name
+                st.image(bytes_data, width=150, caption=f"Anteprima: {foto_v_file.name}")
+                st.success(f"✅ Foto {foto_v_file.name} pronta - {len(bytes_data)} bytes")
+            else:
+                if st.session_state.foto_base64_temp:
+                    try:
+                        import base64
+                        img_bytes = base64.b64decode(st.session_state.foto_base64_temp)
+                        st.image(img_bytes, width=150, caption=f"Foto in memoria: {st.session_state.foto_nome_temp}")
+                    except:
+                        pass
+            
             with st.form("form_volontari_completa", clear_on_submit=False):
                 st.markdown("##### 👤 Dati Personali")
                 c1,c2,c3,c4 = st.columns(4)
@@ -1152,7 +1175,7 @@ elif scelta == "👥 Volontari":
                             "Patente": patente_v, "Scadenza Patente": str(scadenza_patente_v), "Abilitazioni": abilitazioni_v, "Anni Servizio": anni_servizio_v,
                             "Note": note_v, "Note Mediche": note_mediche_v, "Disponibilità": ", ".join(disponibilita_v),
                             "Attrezzatura": attrezzatura_v, "Assicurazione": assicurazione_v,
-                            "Foto": foto_v, "FotoBase64": foto_base64_v, "Data Inserimento": str(datetime.now().date()), "Stato": "Attivo"
+                            "Foto": foto_v if "foto_v" in locals() else st.session_state.get("foto_nome_temp",""), "FotoBase64": foto_base64_v if "foto_base64_v" in locals() else st.session_state.get("foto_base64_temp",""), "Data Inserimento": str(datetime.now().date()), "Stato": "Attivo"
                         }
                         # Salva in lista rapida
                         if nome_completo not in st.session_state.mem_nomi:
@@ -1194,7 +1217,7 @@ elif scelta == "👥 Volontari":
                             "Patente": patente_v, "Scadenza Patente": str(scadenza_patente_v), "Abilitazioni": abilitazioni_v, "Anni Servizio": anni_servizio_v,
                             "Note": note_v, "Note Mediche": note_mediche_v, "Disponibilità": ", ".join(disponibilita_v),
                             "Attrezzatura": attrezzatura_v, "Assicurazione": assicurazione_v,
-                            "Foto": foto_v, "FotoBase64": foto_base64_v, "Data Inserimento": str(datetime.now().date()), "Stato": "Attivo"
+                            "Foto": foto_v if "foto_v" in locals() else st.session_state.get("foto_nome_temp",""), "FotoBase64": foto_base64_v if "foto_base64_v" in locals() else st.session_state.get("foto_base64_temp",""), "Data Inserimento": str(datetime.now().date()), "Stato": "Attivo"
                         }
                         if nome_completo not in st.session_state.mem_nomi:
                             st.session_state.mem_nomi.append(nome_completo)
