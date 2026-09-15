@@ -29,23 +29,18 @@ if not st.session_state.authenticated:
     </style>
     """, unsafe_allow_html=True)
     
-    # Mostra i 3 loghi anche nel login
-    c1, c2, c3 = st.columns(3)
-    with c1:
+    # Mostra 2 loghi piccoli nel login (senza regione)
+    lc1, lc2, lc3, lc4 = st.columns([1,1,1,1])
+    with lc2:
         try:
-            st.image("logo.png", use_container_width=True)
+            st.image("logo.png", width=100)
         except:
             st.markdown("### 🎖️ ANA")
-    with c2:
+    with lc3:
         try:
-            st.image("logo2.png", use_container_width=True)
+            st.image("logo2.png", width=100)
         except:
             st.markdown("### Varese")
-    with c3:
-        try:
-            st.image("logo_protezione.png", use_container_width=True)
-        except:
-            st.markdown("### 🛡️ PC")
     
     st.markdown("<h2 style='text-align:center; color:#0e7a3d; margin-top:20px;'>🔐 Accesso Riservato<br>ANA Varese - Protezione Civile</h2>", unsafe_allow_html=True)
     st.markdown("<p style='text-align:center;'>Inserisci password per accedere al sistema gestione volontari, radio e postazioni</p>", unsafe_allow_html=True)
