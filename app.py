@@ -68,8 +68,10 @@ def pagina_crea_evento():
             else:
                 ev = {"ID": len(st.session_state.eventi)+1, "Tipo Servizio": tipo, "Descrizione": desc, "Comune": comune, "Provincia": prov, "Data Inizio": str(d_ini), "Ora Inizio": str(o_ini), "Data Fine": str(d_fine), "Ora Fine": str(o_fine), "Organizzazione": org, "Responsabile": resp, "Cellulare Resp": cell_resp, "Creato": datetime.now().strftime("%d/%m/%Y %H:%M"), "Volontari": 0}
                 st.session_state.eventi.append(ev)
-                st.success(f"Evento {ev['ID']} salvato!")
-                st.session_state.page_extra = None
+                sync_eventi()
+                st.success(f"Evento {ev['ID']} salvato e condiviso con tutti gli utenti!")
+                st.session_state.current_page="📅 Gestione Eventi"
+                st.session_state.page_extra=None
                 st.rerun()
 
 def pagina_checkin():
@@ -105,7 +107,13 @@ def pagina_checkin():
                 vol = {"Nome": nome.upper(), "Cognome": cognome.upper(), "ODV": odv, "Cellulare": cell, "Codice Fiscale": cf.upper(), "Note": note, "Check-In": datetime.now().strftime("%d/%m/%Y %H:%M"), "Evento ID": id_ev}
                 if id_ev not in st.session_state.checkin:
                     st.session_state.checkin[id_ev]=[]
+                # Ricarica ultimi dati condivisi prima di aggiungere
+                shared = carica_json(FILE_CHECKIN, {})
+                if shared and str(id_ev) in shared:
+                    st.session_state.checkin[id_ev] = shared[str(id_ev)]
                 st.session_state.checkin[id_ev].append(vol)
+                sync_checkin()
+                sync_eventi()
                 for e in st.session_state.eventi:
                     if e["ID"]==id_ev:
                         e["Volontari"]=len(st.session_state.checkin[id_ev])
@@ -126,6 +134,75 @@ def pagina_checkin():
 # ========== FINE FUNZIONI EVENTO ==========
 
 
+
+
+# ========== SISTEMA MULTI-UTENTE CONDIVISO ==========
+import json
+import os
+import time
+
+DATA_DIR = "data_condivisi"
+os.makedirs(DATA_DIR, exist_ok=True)
+
+FILE_EVENTI = os.path.join(DATA_DIR, "eventi.json")
+FILE_CHECKIN = os.path.join(DATA_DIR, "checkin.json")
+FILE_CHAT = os.path.join(DATA_DIR, "chat.json")
+FILE_UTENTI = os.path.join(DATA_DIR, "utenti.json")
+
+def carica_json(path, default):
+    try:
+        if os.path.exists(path):
+            with open(path, "r", encoding="utf-8") as f:
+                return json.load(f)
+    except:
+        pass
+    return default
+
+def salva_json(path, data):
+    try:
+        with open(path, "w", encoding="utf-8") as f:
+            json.dump(data, f, ensure_ascii=False, indent=2)
+        return True
+    except Exception as e:
+        st.error(f"Errore salvataggio {path}: {e}")
+        return False
+
+# Carica dati condivisi all'avvio (se esistono, sovrascrive sessione vuota)
+if len(st.session_state.eventi) == 0:
+    eventi_shared = carica_json(FILE_EVENTI, [])
+    if eventi_shared:
+        st.session_state.eventi = eventi_shared
+
+if len(st.session_state.checkin) == 0:
+    checkin_shared = carica_json(FILE_CHECKIN, {})
+    if checkin_shared:
+        # Converti chiavi stringhe in int
+        st.session_state.checkin = {int(k): v for k, v in checkin_shared.items()}
+
+if len(st.session_state.chat_messages) == 0:
+    chat_shared = carica_json(FILE_CHAT, [])
+    if chat_shared:
+        st.session_state.chat_messages = chat_shared
+
+if len(st.session_state.utenti_collegati) == 0:
+    utenti_shared = carica_json(FILE_UTENTI, {})
+    if utenti_shared:
+        st.session_state.utenti_collegati = utenti_shared
+
+def sync_eventi():
+    salva_json(FILE_EVENTI, st.session_state.eventi)
+
+def sync_checkin():
+    # Salva con chiavi stringa per JSON
+    salva_json(FILE_CHECKIN, {str(k): v for k, v in st.session_state.checkin.items()})
+
+def sync_chat():
+    salva_json(FILE_CHAT, st.session_state.chat_messages[-200:])  # ultimi 200
+
+def sync_utenti():
+    salva_json(FILE_UTENTI, st.session_state.utenti_collegati)
+
+# ========== FINE MULTI-UTENTE ==========
 
 # ========== CHAT SISTEMA COLLEGATI ==========
 if "chat_messages" not in st.session_state:
@@ -162,6 +239,8 @@ def pagina_chat():
                     "odv": odv_chat,
                     "tipo": "sistema"
                 })
+                sync_utenti()
+                sync_chat()
                 st.rerun()
         return
     
@@ -235,6 +314,7 @@ def pagina_chat():
                     "odv": st.session_state.get("mio_odv",""),
                     "tipo": "utente"
                 })
+                sync_chat()
                 # Aggiorna ultimo accesso
                 if st.session_state.mio_nome in st.session_state.utenti_collegati:
                     st.session_state.utenti_collegati[st.session_state.mio_nome]["ultimo_accesso"] = datetime.now().strftime("%H:%M:%S")
@@ -577,6 +657,8 @@ st.sidebar.markdown("## 📚 MENU PRINCIPALE")
 
 pagine = {
     "💬 Chat Collegati": "Chat",
+    "📅 Gestione Eventi": "Eventi",
+    "📝 Check-In Volontari": "CheckIn",
     "🏠 Dashboard": "Dashboard",
     "👥 Volontari": "Volontari",
     "📝 Brogliaccio": "Brogliaccio",
@@ -629,6 +711,50 @@ st.divider()
 # === CHAT ===
 if scelta == "💬 Chat Collegati":
     pagina_chat()
+    st.stop()
+
+# === EVENTI MENU ===
+if scelta == "📅 Gestione Eventi":
+    st.title("📅 Gestione Eventi")
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        if st.button("➕ Crea Nuovo Evento", use_container_width=True, type="primary"):
+            st.session_state.page_extra="evento_crea"
+            st.rerun()
+    with col2:
+        if st.button("📋 Lista Eventi", use_container_width=True):
+            if st.session_state.eventi:
+                import pandas as pd
+                st.dataframe(pd.DataFrame(st.session_state.eventi), use_container_width=True)
+            else:
+                st.info("Nessun evento")
+    with col3:
+        if st.button("🔄 Aggiorna da Altri Utenti", use_container_width=True):
+            st.session_state.eventi = carica_json(FILE_EVENTI, st.session_state.eventi)
+            st.rerun()
+    
+    st.divider()
+    # Mostra lista eventi con azioni
+    if st.session_state.eventi:
+        import pandas as pd
+        df = pd.DataFrame(st.session_state.eventi)
+        st.dataframe(df, use_container_width=True)
+        
+        # Selezione per check-in
+        ids = [f"{e['ID']} - {e['Tipo Servizio']} - {e['Comune']}" for e in st.session_state.eventi]
+        sel = st.selectbox("Seleziona evento per Check-In", ids, key="sel_evento_menu")
+        if st.button("📝 Vai a Check-In per questo evento", use_container_width=True, type="primary"):
+            st.session_state.page_extra="checkin"
+            st.session_state.evento_selezionato_per_menu = int(sel.split(" - ")[0])
+            st.rerun()
+    else:
+        st.info("Nessun evento creato")
+    st.stop()
+
+if scelta == "📝 Check-In Volontari":
+    pagina_checkin()
+    st.stop()
+
 
 # === DASHBOARD ===
 if scelta == "🏠 Dashboard":
