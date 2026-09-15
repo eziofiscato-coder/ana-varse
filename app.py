@@ -1,6 +1,41 @@
 
 import streamlit as st
 
+
+# CSS TUTTO NERO
+st.markdown("""
+<style>
+/* Tutto il testo nero */
+* {
+    color: black !important;
+}
+html, body, [class*="css"] {
+    color: black !important;
+}
+p, h1, h2, h3, h4, h5, h6, span, div, label, input, textarea, select, li, a {
+    color: black !important;
+}
+.stMarkdown, .stText, .stCaption, .stAlert, .stInfo, .stSuccess, .stWarning, .stError {
+    color: black !important;
+}
+.stTextInput label, .stSelectbox label, .stDateInput label, .stFileUploader label, .stNumberInput label {
+    color: black !important;
+    font-weight: bold !important;
+}
+input, textarea, select {
+    color: black !important;
+    background-color: black !important;
+}
+button {
+    color: black !important;
+}
+[data-testid="stSidebar"] * {
+    color: black !important;
+}
+</style>
+""", unsafe_allow_html=True)
+
+
 def mostra_header_loghi():
     import os
     c1, c2, c3 = st.columns(3)
@@ -469,7 +504,7 @@ def pagina_calcolo_cf():
    
    col_cf1, col_cf2 = st.columns([2,1])
    with col_cf1:
-    st.markdown(f'<div style="background:#c8e6c9; padding:20px; border-radius:10px; text-align:center; border:3px solid #2e7d32;"><h1 style="color:#1b5e20; letter-spacing:3px;">{cf_calc}</h1><p>Cognome: {cognome.upper()} - Nome: {nome.upper()}<br>Data: {data_nasc.strftime("%d/%m/%Y")} - Sesso: {sesso}<br>Comune: {comune_final} - Cod.Cat: {cod_com}</p></div>', unsafe_allow_html=True)
+    st.markdown(f'<div style="background:#c8e6c9; padding:20px; border-radius:10px; text-align:center; border:3px solid #2e7d32;"><h1 style="color:black; letter-spacing:3px;">{cf_calc}</h1><p>Cognome: {cognome.upper()} - Nome: {nome.upper()}<br>Data: {data_nasc.strftime("%d/%m/%Y")} - Sesso: {sesso}<br>Comune: {comune_final} - Cod.Cat: {cod_com}</p></div>', unsafe_allow_html=True)
    with col_cf2:
     st.markdown("#### Dettaglio")
     st.code(f"Cognome: {cf_calc[:3]}\nNome: {cf_calc[3:6]}\nAnno: {cf_calc[6:8]}\nMese: {cf_calc[8]}\nGiorno: {cf_calc[9:11]}\nComune: {cf_calc[11:15]}\nControllo: {cf_calc[15]}")
@@ -1641,7 +1676,7 @@ elif scelta == " Volontari":
       st.error("Compila Nome, Cognome, Comune")
    
    if "cf_calcolato" in st.session_state and st.session_state.cf_calcolato:
-    st.markdown(f'<div style="background:#c8e6c9; padding:15px; border-radius:10px; text-align:center; border:2px solid #2e7d32;"><h3 style="color:#1b5e20;">CF CALCOLATO: {st.session_state.cf_calcolato}</h3><p>Comune cod: {st.session_state.get("cf_cod_com","")} - Verrà inserito automaticamente nel form sotto</p></div>', unsafe_allow_html=True)
+    st.markdown(f'<div style="background:#c8e6c9; padding:15px; border-radius:10px; text-align:center; border:2px solid #2e7d32;"><h3 style="color:black;">CF CALCOLATO: {st.session_state.cf_calcolato}</h3><p>Comune cod: {st.session_state.get("cf_cod_com","")} - Verrà inserito automaticamente nel form sotto</p></div>', unsafe_allow_html=True)
     if st.button("❌ Pulisci CF calcolato", key="clear_cf_live"):
      del st.session_state.cf_calcolato
      st.rerun()
