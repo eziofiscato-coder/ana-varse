@@ -1,5 +1,26 @@
 
 import streamlit as st
+
+def mostra_header_loghi():
+    import os
+    c1, c2, c3 = st.columns(3)
+    try:
+        if os.path.exists("logo.png"):
+            c1.image("logo.png", width=110)
+    except:
+        pass
+    try:
+        if os.path.exists("logo2.png"):
+            c2.image("logo2.png", width=110)
+    except:
+        pass
+    try:
+        if os.path.exists("logo_pc_lombardia.png"):
+            c3.image("logo_pc_lombardia.png", width=110)
+    except:
+        pass
+
+
 import pandas as pd
 import os
 from io import BytesIO
