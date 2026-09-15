@@ -33,12 +33,12 @@ if not st.session_state.authenticated:
     lc1, lc2, lc3, lc4 = st.columns([1,1,1,1])
     with lc2:
         try:
-            st.image("logo.png", width=100)
+            st.image("logo.png", width=60)
         except:
             st.markdown("### 🎖️ ANA")
     with lc3:
         try:
-            st.image("logo2.png", width=100)
+            st.image("logo2.png", width=60)
         except:
             st.markdown("### Varese")
     
@@ -73,23 +73,23 @@ if not st.session_state.entered:
     col_logo1, col_logo2, col_logo3 = st.columns(3)
     with col_logo1:
         try:
-            st.image("logo.png", width=250, use_container_width=True)
+            st.image("logo.png", width=60)
             st.markdown("<div style='text-align:center;'><b>ANA Nazionale</b></div>", unsafe_allow_html=True)
         except:
             st.markdown("## 🎖️ ANA")
     with col_logo2:
         try:
-            st.image("logo2.png", width=250, use_container_width=True)
+            st.image("logo2.png", width=60)
             st.markdown("<div style='text-align:center;'><b>Sezione Varese</b></div>", unsafe_allow_html=True)
         except:
             st.markdown("## Sezione Varese")
     with col_logo3:
         try:
-            st.image("logo_protezione.png", width=250, use_container_width=True)
+            st.image("logo_protezione.png", width=80, use_container_width=True)
             st.markdown("<div style='text-align:center;'><b>Protezione Civile - Regione Lombardia</b><br><small>Rosa Camuna</small></div>", unsafe_allow_html=True)
         except:
             try:
-                st.image("logo3.png", width=250, use_container_width=True)
+                st.image("logo3.png", width=80, use_container_width=True)
                 st.markdown("<div style='text-align:center;'><b>Protezione Civile - Regione Lombardia</b></div>", unsafe_allow_html=True)
             except:
                 st.markdown("""
@@ -364,7 +364,7 @@ def calc_h(text, max_w=35):
     return min(max(lines * 5, 8), 30)
 
 # --- MENU MULTIPAGINA ---
-st.sidebar.image("logo.png", width=120) if os.path.exists("logo.png") else st.sidebar.markdown("### 🎖️ ANA Varese")
+st.sidebar.image("logo.png", width=80) if os.path.exists("logo.png") else st.sidebar.markdown("### 🎖️ ANA Varese")
 if st.sidebar.button("🔒 Logout", use_container_width=True):
     st.session_state.authenticated = False
     st.session_state.entered = False
@@ -1740,7 +1740,7 @@ elif scelta == "🗺️ Mappa Postazioni":
                         civico_p = r.get('Civico','')
                         # Link Google Maps che mostra marker + navigazione
                         popup = f"<b>{nome_p}</b><br>{via_p} {civico_p}, {comune_p}<br>Resp: {r.get('Responsabile','')}<br>Radio: {r.get('Radio','')}<br>Lat:{lat_f} Lon:{lon_f}<br><a href='https://www.google.com/maps/search/?api=1&query={lat_f},{lon_f}' target='_blank'>📍 Vedi su Google Maps</a> | <a href='https://www.google.com/maps/dir/?api=1&destination={lat_f},{lon_f}' target='_blank'>🧭 Naviga</a> | <a href='https://waze.com/ul?ll={lat_f},{lon_f}&navigate=yes' target='_blank'>🚗 Waze</a>"
-                        folium.Marker([lat_f, lon_f], popup=folium.Popup(popup, max_width=250), tooltip=nome_p, icon=folium.Icon(color="red" if is_sel else "green", icon="star" if is_sel else "info-sign")).add_to(m)
+                        folium.Marker([lat_f, lon_f], popup=folium.Popup(popup, max_width=80), tooltip=nome_p, icon=folium.Icon(color="red" if is_sel else "green", icon="star" if is_sel else "info-sign")).add_to(m)
                         if is_sel:
                             folium.Circle([lat_f, lon_f], radius=60, color="red", fill=True, fill_opacity=0.3).add_to(m)
                     except:
