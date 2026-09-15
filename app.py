@@ -424,7 +424,8 @@ def pagina_calcolo_cf():
         cognome = st.text_input("Cognome *", placeholder="Rossi", key="cf_cogn")
         nome = st.text_input("Nome *", placeholder="Mario", key="cf_nome")
         sesso = st.selectbox("Sesso *", ["M", "F"], key="cf_sesso")
-        data_nasc = st.date_input("Data Nascita *", value=datetime(1980,1,1), min_value=datetime(1920,1,1), max_value=datetime(2010,12,31), key="cf_data")
+        data_nasc = st.date_input("Data Nascita * - Giorno/Mese/Anno", value=datetime(1980,1,15), min_value=datetime(1920,1,1), max_value=datetime(2010,12,31), key="cf_data", format="DD/MM/YYYY")
+        st.caption(f"📅 Formato: {data_nasc.strftime('%d/%m/%Y')} - Giorno: {data_nasc.day} Mese: {data_nasc.month} Anno: {data_nasc.year}")
     with c2:
         comune_nasc = st.selectbox("Comune Nascita *", ["--"] + lista_comuni[:1000], key="cf_comune_sel")
         filtro = st.text_input("Filtro Comune (scrivi per cercare)", placeholder="Varese...", key="cf_filtro")
@@ -1180,6 +1181,26 @@ import requests
 
 
 @st.cache_data(ttl=86400, show_spinner=False)
+
+def formatta_data_it(data_obj):
+    """Converte data in formato italiano GG/MM/AAAA"""
+    try:
+        if isinstance(data_obj, str):
+            # Prova a parsare vari formati
+            for fmt in ["%Y-%m-%d", "%d/%m/%Y", "%d-%m-%Y", "%Y/%m/%d"]:
+                try:
+                    from datetime import datetime as dt
+                    d = dt.strptime(data_obj, fmt)
+                    return d.strftime("%d/%m/%Y")
+                except:
+                    continue
+            return data_obj
+        else:
+            return data_obj.strftime("%d/%m/%Y")
+    except:
+        return str(data_obj)
+
+
 def get_comuni_italiani():
     """TUTTI i comuni Italia - 7900 comuni con ricerca"""
     comuni = []
@@ -1588,7 +1609,8 @@ elif scelta == "👥 Volontari":
                 cf_live_nome = st.text_input("Nome per CF", placeholder="Mario", key="cf_live_nome")
                 cf_live_cognome = st.text_input("Cognome per CF", placeholder="Rossi", key="cf_live_cognome")
             with col_cf_live2:
-                cf_live_data = st.date_input("Data Nascita per CF", value=datetime(1980,1,1), key="cf_live_data")
+                cf_live_data = st.date_input("Data Nascita per CF - GG/MM/AAAA", value=datetime(1980,1,15), key="cf_live_data", format="DD/MM/YYYY")
+                st.caption(f"GG/MM/AAAA: {cf_live_data.strftime('%d/%m/%Y')}")
                 cf_live_sesso = st.selectbox("Sesso per CF", ["M","F"], key="cf_live_sesso")
                 cf_live_comune = st.text_input("Comune Nascita per CF", placeholder="Varese", key="cf_live_comune")
             with col_cf_live3:
@@ -1643,7 +1665,8 @@ elif scelta == "👥 Volontari":
                     cognome_v = st.text_input("Cognome *", placeholder="Rossi")
                     sesso_v = st.selectbox("Sesso", ["M", "F", "Altro"])
                 with c2:
-                    data_nascita_v = st.date_input("Data Nascita", value=datetime(1980,1,1), min_value=datetime(1930,1,1), max_value=datetime(2010,12,31))
+                    data_nascita_v = st.date_input("Data Nascita - Giorno/Mese/Anno", value=datetime(1980,1,15), min_value=datetime(1930,1,1), max_value=datetime(2010,12,31), format="DD/MM/YYYY")
+                    st.caption(f"📅 Selezionato: {data_nascita_v.strftime('%d/%m/%Y')} - Giorno: {data_nascita_v.day} Mese: {data_nascita_v.month} Anno: {data_nascita_v.year}")
                     st.markdown("**🔍 TUTTI i comuni Italia - cerca qui**")
                     filtro_nasc = st.text_input("Scrivi 2+ lettere per cercare comune nascita (es: var, mil, rom)", placeholder="var...", key="filtro_nascita_all")
                     if filtro_nasc and len(filtro_nasc)>=2:
@@ -1763,7 +1786,7 @@ elif scelta == "👥 Volontari":
                         # Crea record completo
                         record = {
                             "Nome": nome_v, "Cognome": cognome_v, "Nome e Cognome": nome_completo,
-                            "Sesso": sesso_v, "Data Nascita": str(data_nascita_v), "Luogo Nascita": luogo_nascita_final,
+                            "Sesso": sesso_v, "Data Nascita": data_nascita_v.strftime("%d/%m/%Y"), "Data Nascita ISO": str(data_nascita_v), "Luogo Nascita": luogo_nascita_final,
                             "Codice Fiscale": cf_v.upper(), "Gruppo Sanguigno": gruppo_sanguigno_v, "Taglia": taglia_v,
                             "Comune Residenza": comune_res_v, "Via": via_res_v, "Civico": civico_res_v, "CAP": cap_res_v, "Provincia": prov_res_v,
                             "Lat": lat_res_v, "Lon": lon_res_v, "Indirizzo Completo": f"{via_res_v} {civico_res_v}, {comune_res_v}",
@@ -1805,7 +1828,7 @@ elif scelta == "👥 Volontari":
                         luogo_nascita_final = luogo_nascita_manual if luogo_nascita_manual else luogo_nascita_v
                         record = {
                             "Nome": nome_v, "Cognome": cognome_v, "Nome e Cognome": nome_completo,
-                            "Sesso": sesso_v, "Data Nascita": str(data_nascita_v), "Luogo Nascita": luogo_nascita_final,
+                            "Sesso": sesso_v, "Data Nascita": data_nascita_v.strftime("%d/%m/%Y"), "Data Nascita ISO": str(data_nascita_v), "Luogo Nascita": luogo_nascita_final,
                             "Codice Fiscale": cf_v.upper(), "Gruppo Sanguigno": gruppo_sanguigno_v, "Taglia": taglia_v, "Stato Civile": stato_civile_v,
                             "Comune Residenza": comune_res_v, "Via": via_res_v, "Civico": civico_res_v, "CAP": cap_res_v, "Provincia": prov_res_v,
                             "Lat": lat_res_v, "Lon": lon_res_v, "Indirizzo Completo": f"{via_res_v} {civico_res_v}, {comune_res_v}",
