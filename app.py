@@ -111,62 +111,201 @@ def pagina_crea_evento():
                 st.session_state.page_extra=None
                 st.rerun()
 
+
 def pagina_checkin():
-    st.title("📝 Check-In Volontari per Evento")
+    st.title("📝 Check-In Volontari per Evento - Collegato ad Anagrafica")
     if not st.session_state.eventi:
         st.warning("Nessun evento - crea prima un evento")
         if st.button("📅 Crea Evento"):
-            st.session_state.page_extra = "evento_crea"
+            st.session_state.current_page="📅 Gestione Eventi"
+            st.session_state.page_extra="evento_crea"
             st.rerun()
         return
+    
+    # Selezione evento
     ids = [f"{e['ID']} - {e['Tipo Servizio']} - {e['Comune']} ({e['Data Inizio']})" for e in st.session_state.eventi]
     sel = st.selectbox("🎯 SELEZIONA EVENTO PER CHECK-IN", ids)
     id_ev = int(sel.split(" - ")[0])
     ev = [x for x in st.session_state.eventi if x["ID"]==id_ev][0]
-    st.success(f"Evento selezionato: {ev['Tipo Servizio']} - {ev['Comune']} - Resp: {ev['Responsabile']} {ev['Cellulare Resp']}")
-    with st.form(f"checkin_{id_ev}", clear_on_submit=True):
-        c1, c2 = st.columns(2)
-        with c1:
-            nome = st.text_input("👤 NOME *")
-            cognome = st.text_input("👤 COGNOME *")
-            odv = st.text_input("🏢 ODV *")
-        with c2:
-            cell = st.text_input("📱 CELLULARE *")
-            cf = st.text_input("🆔 CODICE FISCALE *", max_chars=16)
-            note = st.text_input("Note")
-        salva = st.form_submit_button("💾 SALVA CHECK-IN", use_container_width=True, type="primary")
-        if salva:
-            if not nome or not cognome or not odv or not cell or not cf:
-                st.error("Compila tutti i campi *")
-            elif len(cf)!=16:
-                st.error("CF 16 caratteri")
+    st.success(f"Evento: {ev['Tipo Servizio']} - {ev['Comune']} | Resp: {ev['Responsabile']} {ev['Cellulare Resp']}")
+    
+    # Tabs: Da Anagrafica o Manuale
+    tab1, tab2 = st.tabs(["📚 Da Anagrafica Esistente", "✏️ Inserimento Manuale"])
+    
+    with tab1:
+        st.markdown("### 📚 Seleziona Volontario da Anagrafica")
+        if not st.session_state.mem_nomi:
+            st.warning("Anagrafica vuota! Vai in 👥 Volontari e inserisci volontari prima.")
+            if st.button("👥 Vai ad Anagrafica"):
+                st.session_state.current_page="👥 Volontari"
+                st.rerun()
+            return
+        
+        # Mostra anagrafica con ricerca
+        import pandas as pd
+        df_anag = pd.DataFrame(st.session_state.mem_nomi)
+        # Cerca colonna nome
+        st.dataframe(df_anag, use_container_width=True, height=200)
+        
+        # Crea lista nomi per select
+        opzioni = []
+        for idx, v in enumerate(st.session_state.mem_nomi):
+            # Prova a estrarre nome cognome
+            nome = v.get("Nome", v.get("nome", ""))
+            cognome = v.get("Cognome", v.get("cognome", ""))
+            odv = v.get("ODV", v.get("odv", v.get("Gruppo", "")))
+            cell = v.get("Cellulare", v.get("cellulare", v.get("Telefono", "")))
+            cf = v.get("Codice Fiscale", v.get("CF", v.get("codice_fiscale", "")))
+            if isinstance(v, str):
+                opzioni.append((idx, v, "", "", ""))
             else:
-                vol = {"Nome": nome.upper(), "Cognome": cognome.upper(), "ODV": odv, "Cellulare": cell, "Codice Fiscale": cf.upper(), "Note": note, "Check-In": datetime.now().strftime("%d/%m/%Y %H:%M"), "Evento ID": id_ev}
-                if id_ev not in st.session_state.checkin:
-                    st.session_state.checkin[id_ev]=[]
-                # Ricarica ultimi dati condivisi prima di aggiungere
-                shared = carica_json(FILE_CHECKIN, {})
-                if shared and str(id_ev) in shared:
-                    st.session_state.checkin[id_ev] = shared[str(id_ev)]
-                st.session_state.checkin[id_ev].append(vol)
-                sync_checkin()
-                sync_eventi()
-                for e in st.session_state.eventi:
-                    if e["ID"]==id_ev:
-                        e["Volontari"]=len(st.session_state.checkin[id_ev])
-                st.success(f"Check-In {nome} {cognome} salvato!")
+                display = f"{nome} {cognome} - {odv} - {cell}"
+                opzioni.append((idx, nome, cognome, odv, cell, cf, display))
+        
+        if opzioni and isinstance(opzioni[0], tuple) and len(opzioni[0])>2:
+            sel_vol = st.selectbox("👤 Seleziona Volontario", [o[-1] for o in opzioni], key="sel_anag")
+            idx_sel = [o[-1] for o in opzioni].index(sel_vol)
+            dati_sel = opzioni[idx_sel]
+            nome_s, cognome_s, odv_s, cell_s, cf_s = dati_sel[1], dati_sel[2], dati_sel[3], dati_sel[4], dati_sel[5]
+            
+            st.markdown(f'<div style="background:#c8e6c9; padding:10px; border-radius:8px;">Selezionato: <b>{nome_s} {cognome_s}</b> - {odv_s} - {cell_s} - CF: {cf_s}</div>', unsafe_allow_html=True)
+            
+            col_note, col_btn = st.columns([3,1])
+            with col_note:
+                note_anag = st.text_input("📝 Note Check-In", placeholder="Orario arrivo, mezzi...", key="note_anag")
+            with col_btn:
+                st.markdown("<br>", unsafe_allow_html=True)
+                if st.button("💾 CHECK-IN DA ANAGRAFICA", use_container_width=True, type="primary", key="btn_anag"):
+                    # Verifica non già check-in
+                    lista = st.session_state.checkin.get(id_ev, [])
+                    gia_presente = any((x["Nome"]==nome_s.upper() and x["Cognome"]==cognome_s.upper()) for x in lista)
+                    if gia_presente:
+                        st.warning(f"{nome_s} {cognome_s} già in check-in per questo evento!")
+                    else:
+                        vol = {"Nome": nome_s.upper(), "Cognome": cognome_s.upper(), "ODV": odv_s, "Cellulare": cell_s, "Codice Fiscale": cf_s.upper(), "Note": note_anag, "Check-In": datetime.now().strftime("%d/%m/%Y %H:%M"), "Evento ID": id_ev, "Da Anagrafica": "Si", "Inserito da": st.session_state.get("utente_multi","")}
+                        if id_ev not in st.session_state.checkin:
+                            st.session_state.checkin[id_ev]=[]
+                        st.session_state.checkin[id_ev].append(vol)
+                        sync_checkin()
+                        for e in st.session_state.eventi:
+                            if e["ID"]==id_ev:
+                                e["Volontari"]=len(st.session_state.checkin[id_ev])
+                        sync_eventi()
+                        st.success(f"✅ Check-In {nome_s} {cognome_s} da anagrafica salvato e condiviso!")
+                        st.balloons()
+        else:
+            st.info("Formato anagrafica non standard - usa inserimento manuale o aggiorna anagrafica in formato tabella")
+    
+    with tab2:
+        st.markdown("### ✏️ Inserimento Manuale (se non in anagrafica)")
+        with st.form(f"checkin_{id_ev}_manual", clear_on_submit=True):
+            c1, c2 = st.columns(2)
+            with c1:
+                nome = st.text_input("👤 NOME *", key="man_nome")
+                cognome = st.text_input("👤 COGNOME *", key="man_cogn")
+                odv = st.text_input("🏢 ODV *", key="man_odv")
+            with c2:
+                cell = st.text_input("📱 CELLULARE *", key="man_cell")
+                cf = st.text_input("🆔 CODICE FISCALE *", max_chars=16, key="man_cf")
+                note = st.text_input("Note", key="man_note")
+            salva = st.form_submit_button("💾 SALVA CHECK-IN MANUALE", use_container_width=True, type="primary")
+            if salva:
+                if not nome or not cognome or not odv or not cell or not cf:
+                    st.error("Compila tutti i campi *")
+                elif len(cf)!=16:
+                    st.error("CF 16 caratteri")
+                else:
+                    vol = {"Nome": nome.upper(), "Cognome": cognome.upper(), "ODV": odv, "Cellulare": cell, "Codice Fiscale": cf.upper(), "Note": note, "Check-In": datetime.now().strftime("%d/%m/%Y %H:%M"), "Evento ID": id_ev, "Da Anagrafica": "No", "Inserito da": st.session_state.get("utente_multi","")}
+                    if id_ev not in st.session_state.checkin:
+                        st.session_state.checkin[id_ev]=[]
+                    st.session_state.checkin[id_ev].append(vol)
+                    sync_checkin()
+                    for e in st.session_state.eventi:
+                        if e["ID"]==id_ev:
+                            e["Volontari"]=len(st.session_state.checkin[id_ev])
+                    sync_eventi()
+                    st.success(f"✅ Check-In manuale {nome} {cognome} salvato!")
+    
+    # Lista volontari in check-in per evento
+    st.divider()
     lista = st.session_state.checkin.get(id_ev, [])
-    st.subheader(f"Volontari Check-In ({len(lista)})")
+    st.subheader(f"👥 Volontari in Check-In per Evento {id_ev} ({len(lista)}) - Agganciati ad Anagrafica")
     if lista:
         import pandas as pd
-        st.dataframe(pd.DataFrame(lista), use_container_width=True)
-        output = BytesIO()
-        with pd.ExcelWriter(output, engine='openpyxl') as writer:
-            pd.DataFrame(lista).to_excel(writer, index=False)
-        st.download_button("📥 Excel Check-In", data=output.getvalue(), file_name=f"checkin_{id_ev}.xlsx", mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+        from io import BytesIO
+        df = pd.DataFrame(lista)
+        st.dataframe(df, use_container_width=True)
+        
+        c1, c2, c3 = st.columns(3)
+        with c1:
+            output = BytesIO()
+            with pd.ExcelWriter(output, engine='openpyxl') as writer:
+                df.to_excel(writer, index=False, sheet_name=f'CheckIn_{id_ev}')
+            st.download_button("📥 Excel Check-In", data=output.getvalue(), file_name=f"checkin_evento_{id_ev}_{datetime.now().strftime('%Y%m%d')}.xlsx", mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", use_container_width=True)
+        with c2:
+            # PDF con loghi 80px
+            try:
+                from fpdf import FPDF
+                import os
+                class PDFCheck(FPDF):
+                    def header(self):
+                        try:
+                            self.set_fill_color(232,245,233)
+                            self.rect(0,0,210,28,"F")
+                            if os.path.exists("logo.png"):
+                                self.image("logo.png", x=10, y=5, w=18)
+                            if os.path.exists("logo2.png"):
+                                self.image("logo2.png", x=182, y=5, w=18)
+                            self.set_y(8)
+                            self.set_font("Arial","B",11)
+                            self.set_text_color(27,94,32)
+                            self.cell(0,10,"ANA Varese - Check-In Volontari", align="C", ln=True)
+                            self.ln(8)
+                        except:
+                            pass
+                pdf = PDFCheck()
+                pdf.add_page()
+                pdf.set_font("Arial","B",12)
+                pdf.cell(0,10,f"Evento {id_ev} - {ev['Tipo Servizio']} - {ev['Comune']}", ln=True, align="C")
+                pdf.set_font("Arial","",10)
+                pdf.cell(0,7,f"Data: {ev['Data Inizio']} {ev['Ora Inizio']} - Resp: {ev['Responsabile']}", ln=True, align="C")
+                pdf.ln(5)
+                pdf.set_font("Arial","B",8)
+                pdf.set_fill_color(200,230,201)
+                pdf.cell(30,6,"Nome Cognome", border=1, fill=True)
+                pdf.cell(25,6,"ODV", border=1, fill=True)
+                pdf.cell(25,6,"Cellulare", border=1, fill=True)
+                pdf.cell(35,6,"CF", border=1, fill=True)
+                pdf.cell(20,6,"Anagrafica", border=1, fill=True)
+                pdf.cell(25,6,"Ora", border=1, fill=True, ln=True)
+                pdf.set_font("Arial","",7)
+                for v in lista:
+                    pdf.cell(30,5,f"{v['Nome']} {v['Cognome']}"[:20], border=1)
+                    pdf.cell(25,5,v['ODV'][:15], border=1)
+                    pdf.cell(25,5,v['Cellulare'], border=1)
+                    pdf.cell(35,5,v['Codice Fiscale'], border=1)
+                    pdf.cell(20,5,v.get('Da Anagrafica',''), border=1)
+                    pdf.cell(25,5,v['Check-In'], border=1, ln=True)
+                st.download_button("📄 PDF Check-In con Loghi 80px", data=get_pdf_bytes(pdf), file_name=f"checkin_evento_{id_ev}.pdf", mime="application/pdf", use_container_width=True)
+            except Exception as e:
+                st.error(f"Errore PDF: {e}")
+        with c3:
+            if st.button("🗑️ Svuota Check-In Evento", use_container_width=True):
+                st.session_state.checkin[id_ev]=[]
+                sync_checkin()
+                for e in st.session_state.eventi:
+                    if e["ID"]==id_ev:
+                        e["Volontari"]=0
+                sync_eventi()
+                st.rerun()
+    else:
+        st.info("Nessun volontario in check-in. Seleziona da anagrafica o inserisci manualmente.")
+    
     if st.button("⬅️ Torna a Dashboard"):
+        st.session_state.current_page="🏠 Dashboard"
         st.session_state.page_extra=None
         st.rerun()
+
 
 # ========== FINE FUNZIONI EVENTO ==========
 
@@ -1013,7 +1152,7 @@ elif scelta == "👥 Volontari":
                             "Patente": patente_v, "Scadenza Patente": str(scadenza_patente_v), "Abilitazioni": abilitazioni_v, "Anni Servizio": anni_servizio_v,
                             "Note": note_v, "Note Mediche": note_mediche_v, "Disponibilità": ", ".join(disponibilita_v),
                             "Attrezzatura": attrezzatura_v, "Assicurazione": assicurazione_v,
-                            "Data Inserimento": str(datetime.now().date()), "Stato": "Attivo"
+                            "Foto": foto_v, "FotoBase64": foto_base64_v, "Data Inserimento": str(datetime.now().date()), "Stato": "Attivo"
                         }
                         # Salva in lista rapida
                         if nome_completo not in st.session_state.mem_nomi:
@@ -1055,7 +1194,7 @@ elif scelta == "👥 Volontari":
                             "Patente": patente_v, "Scadenza Patente": str(scadenza_patente_v), "Abilitazioni": abilitazioni_v, "Anni Servizio": anni_servizio_v,
                             "Note": note_v, "Note Mediche": note_mediche_v, "Disponibilità": ", ".join(disponibilita_v),
                             "Attrezzatura": attrezzatura_v, "Assicurazione": assicurazione_v,
-                            "Data Inserimento": str(datetime.now().date()), "Stato": "Attivo"
+                            "Foto": foto_v, "FotoBase64": foto_base64_v, "Data Inserimento": str(datetime.now().date()), "Stato": "Attivo"
                         }
                         if nome_completo not in st.session_state.mem_nomi:
                             st.session_state.mem_nomi.append(nome_completo)
@@ -1154,6 +1293,28 @@ elif scelta == "👥 Volontari":
             st.info("Nessun volontario in anagrafica completa. Usa tab 'Nuova Anagrafica Completa'")
             if st.session_state.mem_nomi:
                 st.dataframe(pd.DataFrame({"Volontari (vecchia lista)": st.session_state.mem_nomi}), use_container_width=True)
+    
+    # Mostra scheda dettagliata se selezionata
+    if "volontario_scheda" in st.session_state and st.session_state.volontario_scheda:
+        st.divider()
+        st.markdown("### 👁️ Scheda Volontario Selezionato")
+        row = st.session_state.volontario_scheda
+        col_f, col_d = st.columns([1,2])
+        with col_f:
+            if row.get("FotoBase64"):
+                try:
+                    import base64
+                    img_bytes = base64.b64decode(row["FotoBase64"])
+                    st.image(img_bytes, width=250, caption=f"{row.get('Nome','')} {row.get('Cognome','')}")
+                except:
+                    st.info("Foto non disponibile")
+            else:
+                st.markdown("📷 Nessuna foto allegata")
+            if st.button("❌ Chiudi Scheda"):
+                st.session_state.volontario_scheda = None
+                st.rerun()
+        with col_d:
+            st.json(row)
     
     with tab3:
         st.markdown("### 🔍 Cerca e Modifica Volontario")
