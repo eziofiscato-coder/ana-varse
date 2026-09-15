@@ -32,8 +32,104 @@ button {
 [data-testid="stSidebar"] * {
     color: black !important;
 }
-</style>
+
+/* FONDO BIANCO PER TUTTI I CAMPI */
+.stApp {
+    background-color: white !important;
+}
+.main, .block-container {
+    background-color: white !important;
+}
+[data-testid="stHeader"], [data-testid="stSidebar"], [data-testid="stSidebarContent"] {
+    background-color: white !important;
+}
+input, textarea, select, .stTextInput input, .stNumberInput input, .stDateInput input, .stSelectbox div[data-baseweb="select"] {
+    background-color: white !important;
+    color: black !important;
+    border: 1px solid #cccccc !important;
+}
+.stTextInput, .stSelectbox, .stDateInput, .stFileUploader, .stNumberInput {
+    background-color: white !important;
+}
+div[data-baseweb="select"], div[data-baseweb="base-input"] {
+    background-color: white !important;
+}
+.stForm {
+    background-color: white !important;
+    border: 1px solid #e0e0e0 !important;
+}
+.stDataFrame, .stTable {
+    background-color: white !important;
+}
+.stTabs [data-baseweb="tab-list"] {
+    background-color: white !important;
+}
+.stTabs [data-baseweb="tab-panel"] {
+    background-color: white !important;
+}
+.stExpander, .stContainer {
+    background-color: white !important;
+}
+button, .stButton button {
+    background-color: white !important;
+    color: black !important;
+    border: 1px solid black !important;
+}
+.stDownloadButton button {
+    background-color: white !important;
+    color: black !important;
+}
+/* Rimuove sfondi colorati verde chiaro */
+div[style*="background:#e8f5e9"], div[style*="background:#c8e6c9"] {
+    background-color: white !important;
+    background: white !important;
+    border: 1px solid #cccccc !important;
+}
+
+
 """, unsafe_allow_html=True)
+
+# === HEADER 3 LOGHI SEMPRE VISIBILE IN TUTTE LE PAGINE ===
+import os
+from PIL import Image
+
+def header_3_loghi_fisso():
+    # Mostra i 3 loghi in cima a TUTTE le pagine
+    c1, c2, c3 = st.columns([1,1,1])
+    logo_trovato = False
+    try:
+        # Cerca logo protezione civile in vari nomi
+        for nome_file in ["logo_pc_lombardia.png", "protezione-civile-regione-lombardia-logo-png_seeklogo-113086.png", "logo_pc.png"]:
+            if os.path.exists(nome_file):
+                c3.image(nome_file, width=130, caption="Prot. Civile Lombardia")
+                logo_trovato = True
+                break
+        if not logo_trovato:
+            c3.warning("Logo PC non trovato - carica logo_pc_lombardia.png su GitHub")
+            c3.markdown("**PROTEZIONE CIVILE**<br>Regione Lombardia", unsafe_allow_html=True)
+    except Exception as e:
+        c3.error(f"Errore logo: {e}")
+
+    try:
+        if os.path.exists("logo.png"):
+            c1.image("logo.png", width=130, caption="Logo 1")
+        else:
+            c1.markdown("**LOGO 1**")
+    except:
+        pass
+    try:
+        if os.path.exists("logo2.png"):
+            c2.image("logo2.png", width=130, caption="Logo 2")
+        else:
+            c2.markdown("**LOGO 2**")
+    except:
+        pass
+
+# Mostra header subito
+header_3_loghi_fisso()
+st.divider()
+
+
 
 
 def mostra_header_loghi():
