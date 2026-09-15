@@ -1,30 +1,27 @@
 
-def geocodifica_residenza_osm(indirizzo, comune):
-    try:
-        import requests
-        q = f"{indirizzo}, {comune}, Italia"
-        url = f"https://nominatim.openstreetmap.org/search?q={q}&format=json&limit=1"
-        r = requests.get(url, headers={"User-Agent":"ANA-Varese"}, timeout=8)
-        if r.status_code==200:
-            d=r.json()
-            if d:
-                return float(d[0]["lat"]), float(d[0]["lon"]), d[0].get("display_name","")
-    except:
-        pass
-    return None,None,""
+import streamlit as st
+st.markdown("""
+<style>
+.stButton button, button { background-color: #d32f2f !important; color: white !important; border: 2px solid #b71c1c !important; font-weight:bold !important; }
+.stApp { background-color: #e8f5e9 !important; }
+.stForm { background-color: #f1f8e9 !important; border: 2px solid #81c784 !important; }
+</style>
+""", unsafe_allow_html=True)
 
-def calcola_latlon_comune_osm(comune):
-    try:
-        import requests
-        url = f"https://nominatim.openstreetmap.org/search?q={comune}, Italia&format=json&limit=1"
-        r = requests.get(url, headers={"User-Agent":"ANA-Varese"}, timeout=8)
-        if r.status_code==200:
-            d=r.json()
-            if d:
-                return float(d[0]["lat"]), float(d[0]["lon"]), d[0].get("display_name","")
-    except:
-        pass
-    return None,None,""
+ICONS = {
+ "volontario": {"nome":"Volontario","color":"blue","forma":"cerchio"},
+ "sede": {"nome":"Sede","color":"red","forma":"quadrato"},
+ "radio": {"nome":"Radio","color":"orange","forma":"triangolo"},
+ "emergenza": {"nome":"Emergenza","color":"red","forma":"stella"},
+ "protezione_civile": {"nome":"Prot. Civile","color":"darkblue","forma":"esagono"},
+ "ospedale": {"nome":"Ospedale","color":"red","forma":"croce"},
+ "postazione": {"nome":"Postazione","color":"green","forma":"bandiera"},
+ "auto": {"nome":"Auto","color":"black","forma":"rettangolo"},
+ "elicottero": {"nome":"Elicottero","color":"yellow","forma":"rombo"},
+ "incendio": {"nome":"Incendio","color":"orange","forma":"fiamma"},
+ "alluvione": {"nome":"Alluvione","color":"blue","forma":"goccia"},
+ "campo_base": {"nome":"Campo Base","color":"green","forma":"tenda"},
+}
 
 import streamlit as st
 
