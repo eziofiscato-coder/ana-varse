@@ -794,52 +794,42 @@ import requests
 
 @st.cache_data(ttl=86400, show_spinner=False)
 def get_comuni_italiani():
-    """Scarica lista comuni italiani da API + fallback"""
+    """TUTTI i comuni Italia - 7900 comuni con ricerca"""
     comuni = []
     try:
-        # Prova API comuni-ita
-        url = "https://comuni-ita.nicolorebaioli.dev/comuni?fields=nome,provincia.nome,regione.nome&sort=nome&pagesize=8000"
-        headers = {"User-Agent": "ANA-Varese-App/1.0"}
-        resp = requests.get(url, headers=headers, timeout=15)
-        if resp.status_code == 200:
-            data = resp.json()
-            if isinstance(data, list):
-                for c in data:
+        import os, pandas as pd
+        if os.path.exists("comuni_italia.csv"):
+            df = pd.read_csv("comuni_italia.csv")
+            for _, row in df.iterrows():
+                com = str(row.get("Comune","")).strip()
+                prov = str(row.get("Provincia","")).strip()
+                if com:
+                    comuni.append(f"{com} ({prov})" if prov else com)
+    except:
+        pass
+    if len(comuni) < 100:
+        try:
+            url = "https://comuni-ita.nicolorebaioli.dev/comuni?fields=nome,provincia.nome&sort=nome&pagesize=8000"
+            resp = requests.get(url, timeout=8)
+            if resp.status_code == 200:
+                data = resp.json()
+                lista = data if isinstance(data, list) else data.get("data", [])
+                for c in lista:
                     nome = c.get("nome","")
-                    prov = c.get("provincia",{}).get("nome","") if isinstance(c.get("provincia"), dict) else c.get("provincia","")
-                    reg = c.get("regione",{}).get("nome","") if isinstance(c.get("regione"), dict) else c.get("regione","")
                     if nome:
-                        comuni.append(f"{nome} ({prov}) - {reg}" if prov else nome)
-            elif isinstance(data, dict) and "data" in data:
-                for c in data["data"]:
-                    nome = c.get("nome","")
-                    if nome:
-                        comuni.append(nome)
-        if len(comuni) < 5:
-            raise Exception("pochi comuni")
-        return sorted(list(set(comuni)))
-    except Exception as e:
-        # Fallback lista ridotta principali + tutti comuni Varese/Lombardia
-        fallback = [
-            "Varese (Varese) - Lombardia", "Milano (Milano) - Lombardia", "Busto Arsizio (Varese) - Lombardia",
-            "Gallarate (Varese) - Lombardia", "Saronno (Varese) - Lombardia", "Cassano Magnago (Varese) - Lombardia",
-            "Tradate (Varese) - Lombardia", "Gavirate (Varese) - Lombardia", "Malnate (Varese) - Lombardia",
-            "Somma Lombardo (Varese) - Lombardia", "Samarate (Varese) - Lombardia", "Laveno-Mombello (Varese) - Lombardia",
-            "Luino (Varese) - Lombardia", "Besozzo (Varese) - Lombardia", "Fagnano Olona (Varese) - Lombardia",
-            "Caronno Pertusella (Varese) - Lombardia", "Castellanza (Varese) - Lombardia", "Lonate Pozzolo (Varese) - Lombardia",
-            "Sesto Calende (Varese) - Lombardia", "Arsago Seprio (Varese) - Lombardia", "Vergiate (Varese) - Lombardia",
-            "Angera (Varese) - Lombardia", "Cittiglio (Varese) - Lombardia", "Luvinate (Varese) - Lombardia",
-            "Comerio (Varese) - Lombardia", "Barasso (Varese) - Lombardia", "Casciago (Varese) - Lombardia",
-            "Gazzada Schianno (Varese) - Lombardia", "Bodio Lomnago (Varese) - Lombardia", "Cazzago Brabbia (Varese) - Lombardia",
-            "Roma (Roma) - Lazio", "Torino (Torino) - Piemonte", "Napoli (Napoli) - Campania", "Genova (Genova) - Liguria",
-            "Bologna (Bologna) - Emilia-Romagna", "Firenze (Firenze) - Toscana", "Venezia (Venezia) - Veneto", "Brescia (Brescia) - Lombardia",
-            "Como (Como) - Lombardia", "Lecco (Lecco) - Lombardia", "Bergamo (Bergamo) - Lombardia", "Monza (Monza e Brianza) - Lombardia",
-            "Novara (Novara) - Piemonte", "Alessandria (Alessandria) - Piemonte", "La Spezia (La Spezia) - Liguria",
+                        prov = c.get("provincia",{}).get("nome","") if isinstance(c.get("provincia"), dict) else ""
+                        comuni.append(f"{nome} ({prov})" if prov else nome)
+        except:
+            pass
+    if len(comuni) < 100:
+        comuni = [
+            "Varese (Varese)", "Milano (Milano)", "Roma (Roma)", "Busto Arsizio (Varese)", "Gallarate (Varese)",
+            "Saronno (Varese)", "Como (Como)", "Bergamo (Bergamo)", "Brescia (Brescia)", "Torino (Torino)",
+            "Napoli (Napoli)", "Bologna (Bologna)", "Firenze (Firenze)", "Genova (Genova)", "Venezia (Venezia)"
         ]
-        # Aggiungi tutti i comuni italiani da lista ISTAT parziale offline (per demo)
-        return sorted(fallback)
+    return sorted(list(set(comuni)))
 
-@st.cache_data(ttl=3600, show_spinner=False)
+
 def get_vie_comune(comune_pulito):
     """Prende vie di un comune tramite Overpass API"""
     vie = []
@@ -1233,7 +1223,14 @@ elif scelta == "👥 Volontari":
                     sesso_v = st.selectbox("Sesso", ["M", "F", "Altro"])
                 with c2:
                     data_nascita_v = st.date_input("Data Nascita", value=datetime(1980,1,1), min_value=datetime(1930,1,1), max_value=datetime(2010,12,31))
-                    luogo_nascita_v = st.selectbox("Luogo Nascita - Comune", ["--"] + lista_comuni_anag[:500], key="luogo_nascita")
+                    st.markdown("**🔍 TUTTI i comuni Italia - cerca qui**")
+                    filtro_nasc = st.text_input("Scrivi 2+ lettere per cercare comune nascita (es: var, mil, rom)", placeholder="var...", key="filtro_nascita_all")
+                    if filtro_nasc and len(filtro_nasc)>=2:
+                        lista_filt = [c for c in lista_comuni_anag if filtro_nasc.lower() in c.lower()][:150]
+                        st.caption(f"Trovati {len(lista_filt)} comuni")
+                        luogo_nascita_v = st.selectbox(f"Comune - {len(lista_filt)} risultati", ["--"] + lista_filt, key="luogo_nascita_filt")
+                    else:
+                        luogo_nascita_v = st.selectbox("Luogo Nascita (primi 200, usa filtro sopra per tutti i 7900)", ["--"] + lista_comuni_anag[:200], key="luogo_nascita")
                     luogo_nascita_manual = st.text_input("Oppure scrivi luogo nascita", placeholder="Varese")
                 with c3:
                     cf_v = st.text_input("Codice Fiscale *", placeholder="RSSMRA80A01L682K", help="16 caratteri", value=st.session_state.get("cf_calcolato",""), key="cf_anag_field")
