@@ -316,13 +316,12 @@ except:
     current_idx = 0
     st.session_state.current_page = pagine_list[0]
 
-# Callback per radio
-def on_radio_change():
-    st.session_state.current_page = st.session_state["menu_radio"]
-
-scelta = st.sidebar.radio("Vai a:", pagine_list, index=current_idx, key="menu_radio", on_change=on_radio_change)
-
-# Usa sempre current_page come scelta effettiva
+# Radio senza on_change per evitare conflitti - usa valore diretto
+scelta_radio = st.sidebar.radio("Vai a:", pagine_list, index=current_idx, key="menu_radio")
+# Sincronizza current_page con scelta radio se diversa
+if scelta_radio != st.session_state.current_page:
+    st.session_state.current_page = scelta_radio
+    st.rerun()
 scelta = st.session_state.current_page
 
 if st.sidebar.button("🏠 Torna a Presentazione", use_container_width=True):
@@ -361,10 +360,12 @@ if scelta == "🏠 Dashboard":
     st.markdown("### 🚀 Accesso Rapido - Clicca per andare alla funzione")
     st.caption("⚠️ Se i pulsanti non rispondono, usa menu a sinistra")
     
-    # Funzione navigazione FIX
+    # Funzione navigazione FIX - evita StreamlitWidgetAlreadyInstantiatedError
     def vai_a(pagina):
         st.session_state.current_page = pagina
-        st.session_state["menu_radio"] = pagina
+        # Rimuovi chiave radio per forzare ricreazione con nuovo index (non settare widget già istanziato)
+        if "menu_radio" in st.session_state:
+            del st.session_state["menu_radio"]
         st.rerun()
     
     c1,c2,c3,c4 = st.columns(4)
