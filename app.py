@@ -25,9 +25,11 @@ if not st.session_state.entered:
     col1, col2, col3 = st.columns([1,2,1])
     with col2:
         try:
-            st.image("logo.png", width=220)
+            st.image("logo.png", width=350, use_container_width=True)
+            st.markdown("<div style='text-align:center; margin-top:-10px;'><small>Logo Ufficiale ANA Varese</small></div>", unsafe_allow_html=True)
         except:
             st.markdown("## 🎖️ ANA Varese")
+            st.warning("⚠️ logo.png non trovato - carica file logo.png su GitHub insieme ad app.py")
     st.markdown("""
     <div style="text-align:center; padding:20px;">
         <h1 style="color:#0e7a3d; font-size:42px; margin-bottom:0;">🎖️ ANA - ASSOCIAZIONE NAZIONALE ALPINI</h1>
@@ -386,7 +388,8 @@ if scelta == "🏠 Dashboard":
         if st.button("🔄 Aggiorna Dashboard", use_container_width=True, key="dash_refresh_final"):
             st.rerun()
         if st.button("⛶ Espandi Pagina", use_container_width=True, key="dash_expand_final"):
-            st.session_state.page_expanded = not st.session_state.page_expanded
+            cur = st.session_state.get("page_expanded", False)
+            st.session_state["page_expanded"] = not cur
             st.rerun()
         st.button("📝 Vai a Brogliaccio + Comunicazioni", use_container_width=True, key="dash_brog_com", on_click=set_page, args=("📝 Brogliaccio",))
     
