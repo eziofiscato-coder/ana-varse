@@ -734,6 +734,12 @@ if st.sidebar.button("📝 Check-In", use_container_width=True):
 st.sidebar.caption(f"👤 Realizzato da Ezio Fiscato")
 st.sidebar.caption(f"📅 {datetime.now().strftime('%d/%m/%Y')}")
 
+# ROUTING RAPIDO PER TASTI DASHBOARD - DEVE ESSERE QUI
+if st.session_state.get("page_extra") == "evento_crea":
+    pagina_crea_evento()
+    st.stop()
+
+
 # Titolo pagina
 st.markdown(f"## {scelta}")
 st.divider()
