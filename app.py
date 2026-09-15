@@ -332,7 +332,13 @@ st.sidebar.caption(f"👤 Realizzato da Ezio Fiscato")
 st.sidebar.caption(f"📅 {datetime.now().strftime('%d/%m/%Y')}")
 
 # Titolo pagina
-st.markdown(f"## {scelta}")
+col_t, col_f = st.columns([5,1])
+with col_t:
+    st.markdown(f"## {scelta}")
+with col_f:
+    st.markdown("""
+    <button onclick="let e=document.documentElement; if(!document.fullscreenElement){e.requestFullscreen&&e.requestFullscreen()}else{document.exitFullscreen&&document.exitFullscreen()}" style="width:100%; padding:6px; background:#388e3c; color:white; border:none; border-radius:6px; cursor:pointer; font-size:13px;">⛶ Fullscreen</button>
+    """, unsafe_allow_html=True)
 st.divider()
 
 
