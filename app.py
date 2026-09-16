@@ -1,10 +1,35 @@
 
 import streamlit as st
 st.markdown("""
+# ===== SFONDO VERDE CHIARO + TASTI ROSSI =====
+st.markdown("""
 <style>
-.stButton button, button { background-color: #d32f2f !important; color: white !important; border: 2px solid #b71c1c !important; font-weight:bold !important; }
-.stApp { background-color: #e8f5e9 !important; }
-.stForm { background-color: #f1f8e9 !important; border: 2px solid #81c784 !important; }
+/* SFONDO VERDE CHIARO TUTTA APP */
+.stApp,.main, [data-testid="stAppViewContainer"],.block-container {
+    background-color: #e8f5e9!important;
+}
+.stForm {
+    background-color: #f1f8e9!important;
+    border: 2px solid #81c784!important;
+    border-radius: 10px!important;
+    padding: 20px!important;
+}
+[data-testid="stSidebar"] {
+    background-color: #c8e6c9!important;
+}
+/* TUTTI I TASTI ROSSI */
+.stButton > button, button[kind="primary"], button[kind="secondary"], [data-testid="baseButton-primary"], [data-testid="baseButton-secondary"] {
+    background-color: #d32f2f!important;
+    color: white!important;
+    border: 2px solid #b71c1c!important;
+    font-weight: bold!important;
+}
+.stButton > button:hover {
+    background-color: #b71c1c!important;
+}
+input, textarea, select {
+    background-color: white!important;
+}
 </style>
 """, unsafe_allow_html=True)
 
