@@ -62,7 +62,7 @@ def get_b64(p):
 
 # 3 LOGHI UFFICIALI per pagina iniziale
 b64_vol=get_b64("/mnt/data/Circular_Volontariato_Emblem")
-b64_ana=get_b64("/mnt/data/Ana_Alpini_Emblem")
+b64_ana=get_b64("/mnt/data/Green_Alpini_Emblem")
 b64_pc=get_b64("/mnt/data/Protezione_Civile_Lombardia_Emblem")
 # Fallback per Streamlit Cloud - cerca in root
 if not b64_vol:
@@ -206,7 +206,7 @@ if not st.session_state.dashboard_entered:
  st.markdown("<h2 style='text-align:center; color:#1b5e20; background:#a5d6a7; padding:12px; border-radius:15px; border:3px solid #2e7d32;'>🟢 ANA Varese - Protezione Civile<br><small>12 Form | 3 Loghi Ufficiali: Volontariato + ANA + PC Lombardia | Libreria Icone da PC | Comuni Combo | Vie Combo Agganciate | Tabella Sotto | Import/Export Excel CSV</small></h2>", unsafe_allow_html=True)
  c1,c2,c3=st.columns([1,2,1])
  with c2:
-  if st.button("ENTRA DASHBOARD", use_container_width=True, type="primary"):
+  if st.button("🚀 ENTRA DASHBOARD 12 FORM - 3 LOGHI", use_container_width=True, type="primary"):
    st.session_state.dashboard_entered=True
    st.rerun()
   if st.button("🔒 Logout", use_container_width=True):
@@ -252,7 +252,7 @@ if scelta=="🏠 Dashboard":
 
 elif scelta=="🚨 Interventi Emergenza":
  st.markdown(LOGHI, unsafe_allow_html=True)
- st.markdown("#### 🚨 Interventi Emergenza - 3 Loghi Ufficiali + Libreria Icone + Comuni Combo + Vie Combo Agganciate")
+ st.markdown("#### 🚨 Interventi Emergenza - Logo Default Volontariato Sezione Varese - 3 Loghi Ufficiali + Libreria Icone + Comuni Combo + Vie Combo Agganciate")
  
  # LIBRERIA ICONE - Carica da PC - BEN VISIBILE
  with st.expander("🎨 LIBRERIA ICONE - Carica icone da PC - Icona associata all'intervento - CLICCA QUI", expanded=True):
