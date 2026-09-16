@@ -1,0 +1,40 @@
+{
+  "name": "ANA Varese - Volontariato Sezione Varese",
+  "short_name": "ANA Varese",
+  "description": "ANA Varese Protezione Civile - 12 Form - Logo Default Volontariato - Apri direttamente come app",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#e8f5e9",
+  "theme_color": "#2e7d32",
+  "orientation": "any",
+  "scope": ".",
+  "lang": "it",
+  "icons": [
+    {
+      "src": "logo_volontariato_varese_192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "logo_volontariato_varese_512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Nuovo Intervento",
+      "short_name": "Intervento",
+      "description": "Inserisci nuovo intervento emergenza",
+      "url": ".",
+      "icons": [
+        {
+          "src": "logo_volontariato_varese_192.png",
+          "sizes": "192x192"
+        }
+      ]
+    }
+  ]
+}
