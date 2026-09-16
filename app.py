@@ -50,7 +50,7 @@ if not st.session_state.dashboard_entered:
     c1,c2,c3=st.columns([1,2,1])
     with c2:
         st.success("Accesso autorizzato")
-        if st.button("🚀 ENTRA IN DASHBOARD", use_container_width=True, type="primary"):
+        if st.button("ENTRA IN DASHBOARD", use_container_width=True, type="primary"):
             st.session_state.dashboard_entered=True
             st.rerun()
     st.stop()
@@ -59,10 +59,10 @@ with st.sidebar:
     st.markdown(LOGO_HTML, unsafe_allow_html=True)
     scelta=st.radio("MENU 12 FORM", ["🏠 Dashboard","📅 Eventi","✅ Check-In","👥 Volontari","📻 Radio DB","📦 Distribuzione","🗺️ Postazioni","🚨 Interventi","📝 Brogliaccio","📝 Registro Radio","💾 Backup","🔗 Link"])
     st.divider()
-    if st.button("🏠 Home", use_container_width=True):
+    if st.button("Home", use_container_width=True):
         st.session_state.dashboard_entered=False
         st.rerun()
-    if st.button("🔒 Logout", use_container_width=True):
+    if st.button("Logout", use_container_width=True):
         st.session_state.authenticated=False
         st.session_state.dashboard_entered=False
         st.rerun()
@@ -96,10 +96,10 @@ if scelta=="🏠 Dashboard":
         st.dataframe(df, use_container_width=True)
     tasto_dash("dash")
 
-elif scelta=="🚨 Interventi":
+elif scelta=="Interventi":
     header_con_logo("🚨 Interventi Emergenza - Via+Civico + Icone")
     ICONE={"🔥 Incendio":"🔥","🌊 Alluvione":"🌊","❄️ Neve":"❄️","⛰️ Frana":"⛰️","🔍 Ricerca":"🔍","👥 Supporto":"👥","👁️ Monitoraggio":"👁️","🚨 Altro":"🚨"}
-    t1,t2=st.tabs(["📝 Nuovo - Via+Civico + Icona","📋 Elenco con Loghi"])
+    t1,t2=st.tabs(["📝 Nuovo - Via+Civico + Icona","Elenco con Loghi"])
     with t1:
         with st.form("form_int", clear_on_submit=True):
             st.markdown(LOGO_HTML, unsafe_allow_html=True)
@@ -111,7 +111,7 @@ elif scelta=="🚨 Interventi":
             with c2:
                 tipo_icona=st.selectbox("Tipo con Icona *", list(ICONE.keys()))
                 priorita=st.selectbox("Priorità", ["🟢 Bassa","🟡 Media","🟠 Alta","🔴 Critica"])
-                stato=st.selectbox("Stato", ["In Corso","Completato","Attesa"])
+                stato=st.selectbox("Stato", ["In Corso","Completato","In Attesa"])
             azione=st.text_area("Azione *", height=100)
             if st.form_submit_button("🔴 SALVA CON ICONA", use_container_width=True, type="primary"):
                 if comune and via_civico and azione and resp:
