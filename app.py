@@ -5,7 +5,7 @@ from datetime import datetime, date
 import json
 from io import BytesIO
 import zipfile
-st.set_page_config(page_title="ANA Varese 12 Form + Loghi", layout="wide")
+st.set_page_config(page_title="ANA Varese", layout="wide")
 
 for k,v in [("authenticated",False),("dashboard_entered",False),("interventi_lista",[]),("eventi",[]),("mem_nomi",["Mario Rossi","Luigi Bianchi"]),("radio_db",[]),("dist_radio",[]),("postazioni",[]),("brogliaccio",[]),("registro_radio",[]),("volontari_full",[]),("checkin",{})]:
     if k not in st.session_state:
@@ -37,7 +37,7 @@ if not st.session_state.authenticated:
         with st.form("login"):
             pwd=st.text_input("Password", type="password", placeholder="ANA2025")
             if st.form_submit_button("ACCEDI", use_container_width=True, type="primary"):
-                if pwd==APP_PASSWORD:
+                if pwd==APP_PASSWORD:"ANA2025"
                     st.session_state.authenticated=True
                     st.rerun()
                 else:
