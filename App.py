@@ -14,7 +14,7 @@ try:
 except:
  HAS=False
 
-st.set_page_config(page_title="ANA Varese 12 Form - Icone Libreria + Comuni + Vie", page_icon="🟢", layout="wide")
+st.set_page_config(page_title="ANA Varese ", page_icon="🟢", layout="wide")
 
 for k,v in [("authenticated",False),("dashboard_entered",False),("interventi_lista",[]),("eventi",[]),("mem_nomi",["Mario Rossi","Luigi Bianchi","Giuseppe Verdi"]),("radio_db",[]),("dist_radio",[]),("postazioni",[]),("brogliaccio",[]),("registro_radio",[]),("volontari_full",[]),("checkin",{}),("icone_personalizzate",[])]:
  if k not in st.session_state:
