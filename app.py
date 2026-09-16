@@ -1699,7 +1699,7 @@ if scelta == " Check-In Volontari":
 
 
 # === DASHBOARD ===
-if scelta == "🏠 Dashboard":
+if scelta == "Dashboard":
  col1,col2,col3,col4,col5 = st.columns(5)
  with col1:
   st.metric(" Volontari", len(st.session_state.mem_nomi))
@@ -1710,9 +1710,9 @@ if scelta == "🏠 Dashboard":
  with col4:
   st.metric(" Distribuzioni", len(st.session_state.dist_radio))
  with col5:
-  st.metric("🗺️ Postazioni", len(st.session_state.postazioni))
+  st.metric(" Postazioni", len(st.session_state.postazioni))
  
- st.markdown("### 🚀 Accesso Rapido - TUTTI I TASTI ATTIVI")
+ st.markdown("###  Accesso Rapido - TUTTI I TASTI ATTIVI")
  st.success(" Tutti i pulsanti sotto sono collegati e funzionanti - clicca per andare alla funzione!")
  
  # Funzione per navigare - robusta
@@ -1731,18 +1731,18 @@ if scelta == "🏠 Dashboard":
  with c2:
   st.markdown("** Operativo**")
   st.button(" Distribuisci Radio", use_container_width=True, type="primary", key="dash_dist_final", on_click=set_page, args=(" Distribuzione Radio",))
-  st.button("🗺️ Mappa Postazioni", use_container_width=True, type="primary", key="dash_mappa_final", on_click=set_page, args=("🗺️ Mappa Postazioni",))
+  st.button("Mappa Postazioni", use_container_width=True, type="primary", key="dash_mappa_final", on_click=set_page, args=("🗺️ Mappa Postazioni",))
   st.button(" Registro Radio", use_container_width=True, key="dash_reg_final", on_click=set_page, args=(" Registro Radio",))
-  st.button("🔗 Link & Aggiornamenti", use_container_width=True, key="dash_link_final", on_click=set_page, args=("🔗 Link & Aggiornamenti",))
+  st.button("Link & Aggiornamenti", use_container_width=True, key="dash_link_final", on_click=set_page, args=("🔗 Link & Aggiornamenti",))
  
  with c3:
   st.markdown("**⚡ Azioni Rapide**")
   if st.button("🏠 Presentazione", use_container_width=True, key="dash_home_final"):
    st.session_state.entered = False
    st.rerun()
-  if st.button("🔄 Aggiorna Dashboard", use_container_width=True, key="dash_refresh_final"):
+  if st.button("Aggiorna Dashboard", use_container_width=True, key="dash_refresh_final"):
    st.rerun()
-  if st.button("⛶ Espandi Pagina", use_container_width=True, key="dash_expand_final"):
+  if st.button("Espandi Pagina", use_container_width=True, key="dash_expand_final"):
    cur = st.session_state.get("page_expanded", False)
    st.session_state["page_expanded"] = not cur
    st.rerun()
