@@ -27,7 +27,7 @@ input, textarea, select {
     background-color: black !important;
 }
 button {
-    color: black !important;
+    color: Red !important;
 }
 [data-testid="stSidebar"] * {
     color: black !important;
