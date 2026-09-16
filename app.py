@@ -6,7 +6,7 @@ import json
 from io import BytesIO
 import zipfile
 st.set_page_config(page_title="ANA Varese 12 Form + Loghi", layout="wide")
-APP_PASSWORD="ANA2025"
+
 for k,v in [("authenticated",False),("dashboard_entered",False),("interventi_lista",[]),("eventi",[]),("mem_nomi",["Mario Rossi","Luigi Bianchi"]),("radio_db",[]),("dist_radio",[]),("postazioni",[]),("brogliaccio",[]),("registro_radio",[]),("volontari_full",[]),("checkin",{})]:
     if k not in st.session_state:
         st.session_state[k]=v
