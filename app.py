@@ -96,7 +96,7 @@ from PIL import Image
 
 # ===== PAGINA INTERVENTI - NUOVA =====
 def pagina_interventi():
-    st.markdown("## 🚨 INTERVENTI")
+    st.markdown("##  INTERVENTI")
     st.markdown("### Registrazione Interventi Protezione Civile")
     
     # Inizializza lista interventi in session_state
