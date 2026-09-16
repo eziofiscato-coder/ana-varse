@@ -36,7 +36,7 @@ if not st.session_state.authenticated:
     with c2:
         with st.form("login"):
             pwd=st.text_input("Password", type="password", placeholder="ANA2025")
-            if st.form_submit_button("🔴 ACCEDI", use_container_width=True, type="primary"):
+            if st.form_submit_button("ACCEDI", use_container_width=True, type="primary"):
                 if pwd==APP_PASSWORD:
                     st.session_state.authenticated=True
                     st.rerun()
@@ -57,7 +57,7 @@ if not st.session_state.dashboard_entered:
 
 with st.sidebar:
     st.markdown(LOGO_HTML, unsafe_allow_html=True)
-    scelta=st.radio("MENU 12 FORM", ["🏠 Dashboard","📅 Eventi","✅ Check-In","👥 Volontari","📻 Radio DB","📦 Distribuzione","🗺️ Postazioni","🚨 Interventi","📝 Brogliaccio","📝 Registro Radio","💾 Backup","🔗 Link"])
+    scelta=st.radio("MENU 12 FORM", ["Dashboard","Eventi","Check-In","Volontari","Radio DB","Distribuzione","Postazioni","Interventi","Brogliaccio","📝 Registro Radio","💾 Backup","🔗 Link"])
     st.divider()
     if st.button("Home", use_container_width=True):
         st.session_state.dashboard_entered=False
@@ -74,10 +74,10 @@ def header_con_logo(titolo):
 def tasto_dash(k):
     c1,c2=st.columns(2)
     with c1:
-        if st.button("🏠 Dashboard", key=f"d_{k}", use_container_width=True):
+        if st.button("Dashboard", key=f"d_{k}", use_container_width=True):
             st.rerun()
     with c2:
-        if st.button("🏠 Home", key=f"h_{k}", use_container_width=True):
+        if st.button("Home", key=f"h_{k}", use_container_width=True):
             st.session_state.dashboard_entered=False
             st.rerun()
 
@@ -97,7 +97,7 @@ if scelta=="🏠 Dashboard":
     tasto_dash("dash")
 
 elif scelta=="Interventi":
-    header_con_logo("🚨 Interventi Emergenza - Via+Civico + Icone")
+    header_con_logo("Interventi Emergenza")
     ICONE={"🔥 Incendio":"🔥","🌊 Alluvione":"🌊","❄️ Neve":"❄️","⛰️ Frana":"⛰️","🔍 Ricerca":"🔍","👥 Supporto":"👥","👁️ Monitoraggio":"👁️","🚨 Altro":"🚨"}
     t1,t2=st.tabs(["📝 Nuovo - Via+Civico + Icona","Elenco con Loghi"])
     with t1:
