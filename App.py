@@ -54,11 +54,38 @@ def get_b64(p):
   pass
  return ""
 
+def mostra_3_loghi():
+    c1,c2,c3=st.columns(3)
+    try:
+        c1.image("/mnt/data/Circular_Volontariato_Emblem", caption="VOLONTARIATO Sezione VARESE", use_container_width=True)
+    except:
+        c1.markdown("**VOLONTARIATO**")
+    try:
+        c2.image("/mnt/data/Green_Alpini_Emblem", caption="ANA Sezione VARESE", use_container_width=True)
+    except:
+        c2.markdown("**ANA VARESE**")
+    try:
+        c3.image("/mnt/data/Protezione_Civile_Lombardia_Emblem", caption="Protezione Civile Lombardia", use_container_width=True)
+    except:
+        c3.markdown("**PC LOMBARDIA**")
+
 b64_vol=get_b64("/mnt/data/Circular_Volontariato_Emblem")
-if b64_vol:
- LOGHI=f"""<div style='display:flex; justify-content:center; align-items:center; gap:20px; background:#a5d6a7; padding:12px; border-radius:15px; border:3px solid #2e7d32; margin-bottom:12px; flex-wrap:wrap;'><img src='data:image/jpeg;base64,{b64_vol}' style='width:110px; height:110px; border-radius:50%; border:3px solid #1b5e20; background:white;'><div><h3 style='color:#1b5e20; margin:0;'>ANA Varese - VOLONTARIATO Sezione Varese</h3><small style='color:#2e7d32;'>12 Form - Icone Libreria da PC - Comuni Combo - Vie Combo Agganciate - Logo Default</small></div></div>"""
+b64_ana=get_b64("/mnt/data/Green_Alpini_Emblem")
+b64_pc=get_b64("/mnt/data/Protezione_Civile_Lombardia_Emblem")
+
+if b64_vol and b64_ana and b64_pc:
+ LOGHI=f"""
+<div style='display:flex; justify-content:center; align-items:center; gap:15px; background:#a5d6a7; padding:12px; border-radius:15px; border:3px solid #2e7d32; margin-bottom:12px; flex-wrap:wrap;'>
+  <img src='data:image/jpeg;base64,{b64_vol}' style='width:90px; height:90px; border-radius:50%; border:3px solid #1b5e20; background:white;'>
+  <img src='data:image/jpeg;base64,{b64_ana}' style='width:100px; height:100px; border-radius:50%; border:4px solid #1b5e20; background:white;'>
+  <img src='data:image/jpeg;base64,{b64_pc}' style='width:90px; height:90px; border-radius:50%; border:3px solid #2e7d32; background:white;'>
+  <div style='text-align:center;'><h3 style='color:#1b5e20; margin:0;'>ANA Varese - Protezione Civile</h3><small style='color:#2e7d32;'>12 Form - Icone Libreria + Comuni Combo + Vie Combo - 3 Loghi Ufficiali</small></div>
+</div>
+"""
+elif b64_vol:
+ LOGHI=f"""<div style='display:flex; justify-content:center; align-items:center; gap:20px; background:#a5d6a7; padding:12px; border-radius:15px; border:3px solid #2e7d32; margin-bottom:12px; flex-wrap:wrap;'><img src='data:image/jpeg;base64,{b64_vol}' style='width:110px; height:110px; border-radius:50%; border:3px solid #1b5e20; background:white;'><div><h3 style='color:#1b5e20; margin:0;'>ANA Varese - VOLONTARIATO Sezione Varese</h3><small style='color:#2e7d32;'>12 Form - Icone Libreria da PC - Comuni Combo - Vie Combo</small></div></div>"""
 else:
- LOGHI="<div style='background:#a5d6a7; padding:12px; border-radius:12px; border:3px solid #2e7d32; text-align:center;'><h3 style='color:#1b5e20; margin:0;'>VOLONTARIATO Sezione di VARESE - Logo Default</h3></div>"
+ LOGHI="<div style='background:#a5d6a7; padding:12px; border-radius:12px; border:3px solid #2e7d32; text-align:center;'><h3 style='color:#1b5e20; margin:0;'>VOLONTARIATO + ANA + PROTEZIONE CIVILE - Logo Default</h3></div>"
 
 st.markdown("""<style>
 .stApp{background:#e8f5e9!important;}
