@@ -4,3 +4,6 @@ openpyxl
 reportlab
    folium
    streamlit-folium
+   folium
+   streamlit-folium
+   openpyxl
