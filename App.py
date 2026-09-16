@@ -66,9 +66,9 @@ b64_ana=get_b64("/mnt/data/Green_Alpini_Emblem")
 b64_pc=get_b64("/mnt/data/Protezione_Civile_Lombardia_Emblem")
 # Fallback per Streamlit Cloud - cerca in root
 if not b64_vol:
- b64_vol=get_b64("logo_volontariato_varese.jpg") or get_b64("Circular_Volontariato_Emblem")
+ b64_vol=get_b64("logo_volontariato_varese.jpg") or get_b64("Volontariato_varese_Emblem")
 if not b64_ana:
- b64_ana=get_b64("logo_ana_varese.jpg") or get_b64("Green_Alpini_Emblem")
+ b64_ana=get_b64("logo_ana_varese.jpg") or get_b64("ana_varese_Emblem")
 if not b64_pc:
  b64_pc=get_b64("logo_protezione_civile_lombardia.jpg") or get_b64("Protezione_Civile_Lombardia_Emblem")
 
