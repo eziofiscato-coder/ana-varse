@@ -1,54 +1,5 @@
 
 import streamlit as st
-st.markdown("""
-# ===== SFONDO VERDE CHIARO + TASTI ROSSI =====
-st.markdown("""
-<style>
-/* SFONDO VERDE CHIARO TUTTA APP */
-.stApp,.main, [data-testid="stAppViewContainer"],.block-container {
-    background-color: #e8f5e9!important;
-}
-.stForm {
-    background-color: #f1f8e9!important;
-    border: 2px solid #81c784!important;
-    border-radius: 10px!important;
-    padding: 20px!important;
-}
-[data-testid="stSidebar"] {
-    background-color: #c8e6c9!important;
-}
-/* TUTTI I TASTI ROSSI */
-.stButton > button, button[kind="primary"], button[kind="secondary"], [data-testid="baseButton-primary"], [data-testid="baseButton-secondary"] {
-    background-color: #d32f2f!important;
-    color: white!important;
-    border: 2px solid #b71c1c!important;
-    font-weight: bold!important;
-}
-.stButton > button:hover {
-    background-color: #b71c1c!important;
-}
-input, textarea, select {
-    background-color: white!important;
-}
-</style>
-""", unsafe_allow_html=True)
-
-ICONS = {
- "volontario": {"nome":"Volontario","color":"blue","forma":"cerchio"},
- "sede": {"nome":"Sede","color":"red","forma":"quadrato"},
- "radio": {"nome":"Radio","color":"orange","forma":"triangolo"},
- "emergenza": {"nome":"Emergenza","color":"red","forma":"stella"},
- "protezione_civile": {"nome":"Prot. Civile","color":"darkblue","forma":"esagono"},
- "ospedale": {"nome":"Ospedale","color":"red","forma":"croce"},
- "postazione": {"nome":"Postazione","color":"green","forma":"bandiera"},
- "auto": {"nome":"Auto","color":"black","forma":"rettangolo"},
- "elicottero": {"nome":"Elicottero","color":"yellow","forma":"rombo"},
- "incendio": {"nome":"Incendio","color":"orange","forma":"fiamma"},
- "alluvione": {"nome":"Alluvione","color":"blue","forma":"goccia"},
- "campo_base": {"nome":"Campo Base","color":"green","forma":"tenda"},
-}
-
-import streamlit as st
 
 
 # CSS TUTTO NERO
@@ -142,6 +93,78 @@ div[style*="background:#e8f5e9"], div[style*="background:#c8e6c9"] {
 import os
 from PIL import Image
 
+
+# ===== PAGINA INTERVENTI - NUOVA =====
+def pagina_interventi():
+    st.markdown("## 🚨 INTERVENTI")
+    st.markdown("### Registrazione Interventi Protezione Civile")
+    
+    # Inizializza lista interventi in session_state
+    if "interventi_lista" not in st.session_state:
+        st.session_state.interventi_lista = []
+    
+    # Form verde chiaro + tasti rossi
+    with st.form("form_intervento", clear_on_submit=True):
+        st.markdown("#### Nuovo Intervento")
+        col1, col2 = st.columns(2)
+        with col1:
+            data_intervento = st.date_input("Data *", key="int_data")
+            ora_intervento = st.time_input("Ora *", key="int_ora")
+            comune_intervento = st.selectbox("Comune *", ["-- Seleziona --"] + lista_comuni_anag[:500] if 'lista_comuni_anag' in globals() else ["-- Seleziona --", "Varese", "Milano", "Como", "Busto Arsizio"], key="int_comune")
+        with col2:
+            via_intervento = st.text_input("Via *", placeholder="Via Roma", key="int_via")
+            civico_intervento = st.text_input("Civico", placeholder="10", key="int_civico")
+            odv_intervento = st.selectbox("ODV Operativa *", ["-- Seleziona --", "ANA Varese", "ANA Sezione Varese", "Protezione Civile Lombardia", "Croce Rossa", "Vigili del Fuoco Volontari", "Alpini", "Altro"], key="int_odv")
+        
+        azione_intervento = st.text_area("Azione *", placeholder="Descrivi l'azione svolta: es. Sgombero neve, supporto alluvione, ricerca disperso...", height=120, key="int_azione")
+        
+        col_btn1, col_btn2 = st.columns(2)
+        with col_btn1:
+            salva_intervento = st.form_submit_button("🚨 SALVA INTERVENTO", use_container_width=True)
+        with col_btn2:
+            pulisci = st.form_submit_button("🗑️ PULISCI", use_container_width=True)
+        
+        if salva_intervento:
+            if comune_intervento == "-- Seleziona --" or odv_intervento == "-- Seleziona --" or not via_intervento or not azione_intervento:
+                st.error("Compila tutti i campi obbligatori *")
+            else:
+                nuovo = {
+                    "Data": str(data_intervento),
+                    "Ora": str(ora_intervento),
+                    "Comune": comune_intervento,
+                    "Via": via_intervento,
+                    "Civico": civico_intervento,
+                    "ODV Operativa": odv_intervento,
+                    "Azione": azione_intervento
+                }
+                st.session_state.interventi_lista.append(nuovo)
+                st.success(f"Intervento salvato! Totale: {len(st.session_state.interventi_lista)}")
+                st.rerun()
+    
+    st.divider()
+    st.markdown("### 📋 Elenco Interventi Registrati")
+    if st.session_state.interventi_lista:
+        import pandas as pd
+        df_int = pd.DataFrame(st.session_state.interventi_lista)
+        st.dataframe(df_int, use_container_width=True)
+        
+        col_exp1, col_exp2 = st.columns(2)
+        with col_exp1:
+            csv_int = df_int.to_csv(index=False).encode('utf-8')
+            st.download_button("📥 Scarica CSV Interventi", csv_int, "interventi.csv", "text/csv", use_container_width=True)
+        with col_exp2:
+            if st.button("🗑️ Cancella Tutti Interventi", use_container_width=True):
+                st.session_state.interventi_lista = []
+                st.rerun()
+        
+        # Mappa interventi se hanno comune
+        st.markdown("#### 🗺️ Mappa Interventi")
+        st.info(f"Totale interventi: {len(st.session_state.interventi_lista)}")
+    else:
+        st.info("Nessun intervento registrato. Compila il form sopra.")
+
+# Se esiste menu principale, aggiungi voce Interventi
+
 def header_3_loghi_fisso():
     # Mostra i 3 loghi in cima a TUTTE le pagine
     c1, c2, c3 = st.columns([1,1,1])
@@ -176,6 +199,29 @@ def header_3_loghi_fisso():
 
 # Mostra header subito
 header_3_loghi_fisso()
+
+import streamlit as st
+st.markdown("""
+<style>
+/* SFONDO VERDE CHIARO PER TUTTI I FORM */
+.stApp, .main, [data-testid="stAppViewContainer"], .block-container {
+    background-color: #e8f5e9 !important;
+}
+.stForm {
+    background-color: #f1f8e9 !important;
+    border: 2px solid #81c784 !important;
+    border-radius: 10px !important;
+}
+[data-testid="stSidebar"] {
+    background-color: #c8e6c9 !important;
+}
+input, textarea, select {
+    background-color: white !important;
+    color: black !important;
+}
+</style>
+""", unsafe_allow_html=True)
+
 st.divider()
 
 
@@ -331,7 +377,7 @@ def pagina_checkin():
  st.success(f"Evento: {ev['Tipo Servizio']} - {ev['Comune']} | Resp: {ev['Responsabile']} {ev['Cellulare Resp']}")
  
  # Tabs: Da Anagrafica o Manuale
- tab1, tab2 = st.tabs(["📚 Da Anagrafica Esistente", "✏️ Inserimento Manuale"])
+ tab1, tab2 = st.tabs(["🚨 INTERVENTI", "📚 Da Anagrafica Esistente", "✏️ Inserimento Manuale"])
  
  with tab1:
   st.markdown("### 📚 Seleziona Volontario da Anagrafica")
@@ -732,7 +778,7 @@ def pagina_backup():
  st.title("Backup, Export CSV, Import CSV - Tutti i Dati")
  st.markdown('<div style="background:#e8f5e9; padding:15px; border-radius:10px; border-left:5px solid #2e7d32;"><b> Gestione Completa Dati:</b> Esporta in CSV/Excel, Importa da CSV, Backup totale ZIP con nome personalizzato</div>', unsafe_allow_html=True)
  
- tab_exp, tab_imp, tab_backup, tab_restore = st.tabs(["Esporta CSV/Excel", "Importa CSV", "Backup Completo", " Ripristina Backup"])
+ tab_exp, tab_imp, tab_backup, tab_restore = st.tabs(["🚨 INTERVENTI", "Esporta CSV/Excel", "Importa CSV", "Backup Completo", " Ripristina Backup"])
  
  with tab_exp:
   st.subheader("Esporta Tutti i Dati in CSV / Excel")
@@ -1699,7 +1745,7 @@ if scelta == " Check-In Volontari":
 
 
 # === DASHBOARD ===
-if scelta == "Dashboard":
+if scelta == "🏠 Dashboard":
  col1,col2,col3,col4,col5 = st.columns(5)
  with col1:
   st.metric(" Volontari", len(st.session_state.mem_nomi))
@@ -1710,9 +1756,9 @@ if scelta == "Dashboard":
  with col4:
   st.metric(" Distribuzioni", len(st.session_state.dist_radio))
  with col5:
-  st.metric(" Postazioni", len(st.session_state.postazioni))
+  st.metric("🗺️ Postazioni", len(st.session_state.postazioni))
  
- st.markdown("###  Accesso Rapido - TUTTI I TASTI ATTIVI")
+ st.markdown("### 🚀 Accesso Rapido - TUTTI I TASTI ATTIVI")
  st.success(" Tutti i pulsanti sotto sono collegati e funzionanti - clicca per andare alla funzione!")
  
  # Funzione per navigare - robusta
@@ -1731,18 +1777,18 @@ if scelta == "Dashboard":
  with c2:
   st.markdown("** Operativo**")
   st.button(" Distribuisci Radio", use_container_width=True, type="primary", key="dash_dist_final", on_click=set_page, args=(" Distribuzione Radio",))
-  st.button("Mappa Postazioni", use_container_width=True, type="primary", key="dash_mappa_final", on_click=set_page, args=("🗺️ Mappa Postazioni",))
+  st.button("🗺️ Mappa Postazioni", use_container_width=True, type="primary", key="dash_mappa_final", on_click=set_page, args=("🗺️ Mappa Postazioni",))
   st.button(" Registro Radio", use_container_width=True, key="dash_reg_final", on_click=set_page, args=(" Registro Radio",))
-  st.button("Link & Aggiornamenti", use_container_width=True, key="dash_link_final", on_click=set_page, args=("🔗 Link & Aggiornamenti",))
+  st.button("🔗 Link & Aggiornamenti", use_container_width=True, key="dash_link_final", on_click=set_page, args=("🔗 Link & Aggiornamenti",))
  
  with c3:
   st.markdown("**⚡ Azioni Rapide**")
   if st.button("🏠 Presentazione", use_container_width=True, key="dash_home_final"):
    st.session_state.entered = False
    st.rerun()
-  if st.button("Aggiorna Dashboard", use_container_width=True, key="dash_refresh_final"):
+  if st.button("🔄 Aggiorna Dashboard", use_container_width=True, key="dash_refresh_final"):
    st.rerun()
-  if st.button("Espandi Pagina", use_container_width=True, key="dash_expand_final"):
+  if st.button("⛶ Espandi Pagina", use_container_width=True, key="dash_expand_final"):
    cur = st.session_state.get("page_expanded", False)
    st.session_state["page_expanded"] = not cur
    st.rerun()
@@ -1791,7 +1837,7 @@ elif scelta == " Volontari":
  st.markdown("### Anagrafica Volontari ANA - Scheda Completa")
  st.caption("Scheda professionale con tutti i dati - agganciata automaticamente a Distribuzione Radio e Mappa")
  
- tab1, tab2, tab3, tab4 = st.tabs(["➕ Nuova Anagrafica Completa", " Lista Volontari", " Cerca/Modifica", "📊 Statistiche & Export"])
+ tab1, tab2, tab3, tab4 = st.tabs(["🚨 INTERVENTI", "➕ Nuova Anagrafica Completa", " Lista Volontari", " Cerca/Modifica", "📊 Statistiche & Export"])
  
  with tab1:
   with st.container(border=True):
@@ -2334,7 +2380,7 @@ elif scelta == " Brogliaccio":
  st.markdown("### Brogliaccio Operativo - Registro Giornaliero Interventi")
  st.caption("Annota Nome e Cognome, Cell, ODV di appartenenza e attività - collegato ad anagrafica volontari")
  
- tab1_brog, tab1b_brog, tab2_brog, tab3_brog = st.tabs(["➕ Nuova Annotazione", " Sottomaschera Comunicazioni", " Registro Brogliaccio", "📊 Export & Stampa"])
+ tab1_brog, tab1b_brog, tab2_brog, tab3_brog = st.tabs(["🚨 INTERVENTI", "➕ Nuova Annotazione", " Sottomaschera Comunicazioni", " Registro Brogliaccio", "📊 Export & Stampa"])
  
  with tab1_brog:
   with st.container(border=True):
