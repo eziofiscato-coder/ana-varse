@@ -62,7 +62,7 @@ def get_b64(p):
 
 # 3 LOGHI UFFICIALI per pagina iniziale
 b64_vol=get_b64("/mnt/data/Circular_Volontariato_Emblem")
-b64_ana=get_b64("/mnt/data/Green_Alpini_Emblem")
+b64_ana=get_b64("/mnt/data/Ana_Alpini_Emblem")
 b64_pc=get_b64("/mnt/data/Protezione_Civile_Lombardia_Emblem")
 # Fallback per Streamlit Cloud - cerca in root
 if not b64_vol:
