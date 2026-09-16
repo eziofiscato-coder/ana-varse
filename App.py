@@ -252,7 +252,7 @@ if scelta=="🏠 Dashboard":
 
 elif scelta=="🚨 Interventi Emergenza":
  st.markdown(LOGHI, unsafe_allow_html=True)
- st.markdown("#### 🚨 Interventi Emergenza - Logo Default Volontariato Sezione Varese - 3 Loghi Ufficiali + Libreria Icone + Comuni Combo + Vie Combo Agganciate")
+ st.markdown("#### 🚨 Interventi Emergenza - 3 Loghi Ufficiali + Libreria Icone + Comuni Combo + Vie Combo Agganciate")
  
  # LIBRERIA ICONE - Carica da PC - BEN VISIBILE
  with st.expander("🎨 LIBRERIA ICONE - Carica icone da PC - Icona associata all'intervento - CLICCA QUI", expanded=True):
