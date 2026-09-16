@@ -110,15 +110,15 @@ elif scelta=="Interventi":
                 resp=st.text_input("Responsabile *")
             with c2:
                 tipo_icona=st.selectbox("Tipo con Icona *", list(ICONE.keys()))
-                priorita=st.selectbox("Priorità", ["🟢 Bassa","🟡 Media","🟠 Alta","🔴 Critica"])
+                priorita=st.selectbox("Priorità", ["Bassa","Media","Alta","Critica"])
                 stato=st.selectbox("Stato", ["In Corso","Completato","In Attesa"])
             azione=st.text_area("Azione *", height=100)
-            if st.form_submit_button("🔴 SALVA CON ICONA", use_container_width=True, type="primary"):
+            if st.form_submit_button("SALVA CON ICONA", use_container_width=True, type="primary"):
                 if comune and via_civico and azione and resp:
                     icona=ICONE[tipo_icona]
                     st.session_state.interventi_lista.append({
                         "ID":len(st.session_state.interventi_lista)+1,
-                        "Logo":"🟢 ANA Varese",
+                        "Logo":"ANA Varese",
                         "Icona":icona,
                         "Tipo":tipo_icona,
                         "Comune":comune,
@@ -139,22 +139,22 @@ elif scelta=="Interventi":
             st.dataframe(df, use_container_width=True, height=400)
             c1,c2=st.columns(2)
             with c1:
-                st.download_button("📥 CSV con Loghi", df.to_csv(index=False).encode('utf-8'), "interventi_loghi.csv", use_container_width=True)
+                st.download_button("CSV con Loghi", df.to_csv(index=False).encode('utf-8'), "interventi_loghi.csv", use_container_width=True)
             with c2:
-                if st.button("🗑️ Cancella", use_container_width=True):
+                if st.button("Cancella", use_container_width=True):
                     st.session_state.interventi_lista=[]
                     st.rerun()
         else:
             st.info("Nessun intervento")
     tasto_dash("int")
 
-elif scelta=="💾 Backup":
+elif scelta=="Backup":
     header_con_logo("💾 Backup Import/Export Vecchio Completo")
     t1,t2=st.tabs(["📤 Export","📥 Import"])
     with t1:
         st.markdown(LOGO_HTML, unsafe_allow_html=True)
         st.markdown("**Export come vecchio form**")
-        if st.button("📥 Excel Completo 12 Form - Rosso", use_container_width=True, type="primary"):
+        if st.button("Excel Completo 12 Form - Rosso", use_container_width=True, type="primary"):
             out=BytesIO()
             has=False
             with pd.ExcelWriter(out, engine='openpyxl') as writer:
@@ -209,7 +209,7 @@ else:
     # Mostra tabella con logo se presente
     if scelta=="📅 Eventi" and st.session_state.eventi:
         df=pd.DataFrame(st.session_state.eventi)
-        df.insert(0,"Logo ANA",["🟢 ANA" for _ in range(len(df))])
+        df.insert(0,"Logo ANA",["ANA" for _ in range(len(df))])
         st.dataframe(df, use_container_width=True)
     elif scelta=="👥 Volontari":
         df=pd.DataFrame({"Logo ANA":["🟢 ANA"]*len(st.session_state.mem_nomi),"Volontari":st.session_state.mem_nomi})
