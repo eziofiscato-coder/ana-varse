@@ -2,8 +2,7 @@
 import pandas as pd
 from datetime import datetime, date
 from io import BytesIO
-import base64, os
-import json
+import base64, os, uuid, json
 
 st.set_page_config(page_title="ANA Varese - Verde ANA", page_icon="🟢", layout="wide")
 
@@ -42,9 +41,11 @@ def get_b64(p):
     except: pass
     return ""
 
-def torna_dashboard():
-    if st.button("Torna Dashboard", use_container_width=True):
-        st.session_state.menu_scelta="🏠 Dashboard"; st.rerun()
+def torna_dashboard(suffix=""):
+    # FIX DuplicateElementId - chiave unica ogni volta
+    if st.button("🏠 Torna alla Dashboard", use_container_width=True, key=f"back_{suffix}_{uuid.uuid4().hex[:8]}"):
+        st.session_state.menu_scelta="🏠 Dashboard"
+        st.rerun()
 
 def header_3_loghi():
     c1,c2,c3=st.columns([1,1,1])
@@ -59,7 +60,7 @@ def header_3_loghi():
     try:
         if os.path.exists("logo_pc_lombardia.png"): c3.image("logo_pc_lombardia.png", width=80)
         else:
-            for nf in ["logo_pc.png","protezione-civile-regione-lombardia-logo-png_seeklogo-113086.png"]:
+            for nf in ["logo_pc.png","protezione-civile-regione-lombardia-logo-png_seeklogo-113086.png","logo_protezione.png"]:
                 if os.path.exists(nf):
                     c3.image(nf, width=80); break
             else: c3.markdown("**Prot Civile Lombardia**")
@@ -91,7 +92,7 @@ with st.sidebar:
     sel=st.radio("MENU", opzioni, index=idx)
     if sel!=st.session_state.menu_scelta:
         st.session_state.menu_scelta=sel; st.rerun()
-    if st.button("Logout", use_container_width=True, type="primary"):
+    if st.button("Logout", use_container_width=True, type="primary", key="logout_btn"):
         st.session_state.authenticated=False; st.rerun()
 
 scelta=st.session_state.menu_scelta
@@ -133,7 +134,7 @@ if scelta=="🏠 Dashboard":
             st.rerun()
 
 elif scelta=="🚨 Emergenze con Loghi":
-    torna_dashboard()
+    torna_dashboard("top_em")
     st.markdown("#### Libreria Loghi")
     cols=st.columns(6)
     for i,(k,v) in enumerate(ICONS.items()):
@@ -159,10 +160,10 @@ elif scelta=="🚨 Emergenze con Loghi":
                 with cL: st.markdown(f"<div style='font-size:45px; text-align:center; background:#e8f5e9; border:2px solid #2e7d32; border-radius:12px; padding:10px;'>{row['Logo']}</div>", unsafe_allow_html=True)
                 with cI: st.markdown(f"**{row['Logo']} {row['Tipo']}** | {row['Comune']} {row['Via']} | {row['Data']}"); st.write(row['Descrizione'])
         st.dataframe(df, use_container_width=True)
-    torna_dashboard()
+    torna_dashboard("bottom_em")
 
 elif scelta=="🗺️ Mappa Postazioni":
-    torna_dashboard()
+    torna_dashboard("top_map")
     with st.container(border=True):
         st.markdown("#### Mappa FULLSCREEN - Google Map e OpenStreetMap")
         if st.session_state.get("selected_postazione"):
@@ -181,7 +182,7 @@ elif scelta=="🗺️ Mappa Postazioni":
         if st.session_state.postazioni:
             df_post=pd.DataFrame(st.session_state.postazioni)
             if "map_type" not in st.session_state: st.session_state.map_type="OpenStreetMap"
-            map_type=st.selectbox("Tipo Mappa:", ["OpenStreetMap","Google Stradale","Google Satellite","Google Ibrida","Google Rilievo"], index=["OpenStreetMap","Google Stradale","Google Satellite","Google Ibrida","Google Rilievo"].index(st.session_state.map_type))
+            map_type=st.selectbox("Tipo Mappa:", ["OpenStreetMap","Google Stradale","Google Satellite","Google Ibrida","Google Rilievo"], index=["OpenStreetMap","Google Stradale","Google Satellite","Google Ibrida","Google Rilievo"].index(st.session_state.map_type), key="map_type_sel")
             st.session_state.map_type=map_type
             if st.session_state.get("selected_postazione"):
                 for _, r in df_post.iterrows():
@@ -199,7 +200,7 @@ elif scelta=="🗺️ Mappa Postazioni":
                 with cols_map[idx%3]:
                     nome=p.get("Postazione","")
                     is_sel=st.session_state.get("selected_postazione")==nome
-                    if st.button(f"{'⭐' if is_sel else '📍'} {nome}", key=f"map_sel_{idx}", use_container_width=True, type="primary" if is_sel else "secondary"):
+                    if st.button(f"{'⭐' if is_sel else '📍'} {nome}", key=f"map_sel_{idx}_{uuid.uuid4().hex[:4]}", use_container_width=True, type="primary" if is_sel else "secondary"):
                         st.session_state.selected_postazione=nome; st.rerun()
             try:
                 import folium
@@ -240,15 +241,15 @@ elif scelta=="🗺️ Mappa Postazioni":
                 with st.container(border=True):
                     c1,c2,c3,c4=st.columns([2,1,1,1])
                     with c1: st.markdown(f"**{r['Postazione']}** - {r['Comune']} {r['Via']}")
-                    with c2: st.link_button("Google Map", f"https://www.google.com/maps/search/?api=1&query={r['Latitudine']},{r['Longitudine']}", use_container_width=True)
-                    with c3: st.link_button("OpenStreetMap", f"https://www.openstreetmap.org/?mlat={r['Latitudine']}&mlon={r['Longitudine']}#map=17/{r['Latitudine']}/{r['Longitudine']}", use_container_width=True)
-                    with c4: st.link_button("Waze", f"https://waze.com/ul?ll={r['Latitudine']},{r['Longitudine']}&navigate=yes", use_container_width=True)
+                    with c2: st.link_button("Google Map", f"https://www.google.com/maps/search/?api=1&query={r['Latitudine']},{r['Longitudine']}", use_container_width=True, key=f"g_{r['Postazione']}_{uuid.uuid4().hex[:4]}")
+                    with c3: st.link_button("OpenStreetMap", f"https://www.openstreetmap.org/?mlat={r['Latitudine']}&mlon={r['Longitudine']}#map=17/{r['Latitudine']}/{r['Longitudine']}", use_container_width=True, key=f"osm_{r['Postazione']}_{uuid.uuid4().hex[:4]}")
+                    with c4: st.link_button("Waze", f"https://waze.com/ul?ll={r['Latitudine']},{r['Longitudine']}&navigate=yes", use_container_width=True, key=f"waze_{r['Postazione']}_{uuid.uuid4().hex[:4]}")
         else:
             st.info("Nessuna postazione")
-    torna_dashboard()
+    torna_dashboard("bottom_map")
 
 elif scelta=="📻 DB Radio Inventario":
-    torna_dashboard()
+    torna_dashboard("top_radio")
     with st.container(border=True):
         st.markdown("#### Database Radio - Form del 15 Settembre")
         with st.form("form_radio_db"):
@@ -272,12 +273,12 @@ elif scelta=="📻 DB Radio Inventario":
                 out=BytesIO(); df_db.to_excel(out, index=False, engine="openpyxl")
                 st.download_button("Scarica Excel DB Radio", out.getvalue(), file_name="db_radio.xlsx", mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", use_container_width=True)
             with col2:
-                if st.button("Cancella DB", use_container_width=True):
+                if st.button("Cancella DB", use_container_width=True, key="del_db"):
                     st.session_state.radio_db=[]; st.rerun()
-    torna_dashboard()
+    torna_dashboard("bottom_radio")
 
 elif scelta=="📦 Distribuzione Radio":
-    torna_dashboard()
+    torna_dashboard("top_dist")
     with st.container(border=True):
         st.markdown("#### Distribuzione Radio - Form del 15 Settembre")
         st.caption(f"Volontari disponibili: {len(st.session_state.mem_nomi)}")
@@ -316,9 +317,28 @@ elif scelta=="📦 Distribuzione Radio":
             st.dataframe(df_dist, use_container_width=True, hide_index=True)
             out=BytesIO(); df_dist.to_excel(out, index=False, engine="openpyxl")
             st.download_button("Scarica Excel Distribuzione", out.getvalue(), file_name="distribuzione.xlsx", mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", use_container_width=True)
-    torna_dashboard()
+    torna_dashboard("bottom_dist")
+
+elif scelta=="👥 Volontari":
+    torna_dashboard("top_vol")
+    with st.form("form_volontari_vecchio", clear_on_submit=True):
+        c1,c2=st.columns(2)
+        with c1: nome=st.text_input("Nome e Cognome *"); assoc=st.text_input("Associazione *", value="ANA Varese"); cell=st.text_input("Cellulare *")
+        with c2: email=st.text_input("Email"); ruolo=st.selectbox("Ruolo *", ["Volontario","Caposquadra","Coordinatore","Autista","Radio","Logistica","Altro"])
+        if st.form_submit_button("SALVA VOLONTARIO", use_container_width=True, type="primary"):
+            if nome and assoc and cell:
+                st.session_state.dati.append({"Nome":nome,"Associazione":assoc,"Cellulare":cell,"Email":email,"Ruolo":ruolo})
+                if nome not in st.session_state.mem_nomi: st.session_state.mem_nomi.append(nome)
+                st.success(f"Aggiunto {nome}"); st.rerun()
+    if st.session_state.dati:
+        df=pd.DataFrame(st.session_state.dati)
+        st.dataframe(df, use_container_width=True, hide_index=True)
+        output=BytesIO()
+        df.to_excel(output, index=False, engine="openpyxl")
+        st.download_button("Scarica Excel", output.getvalue(), file_name="associazioni.xlsx", mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", use_container_width=True)
+    torna_dashboard("bottom_vol")
 
 else:
-    torna_dashboard()
+    torna_dashboard("top_other")
     st.info(f"Sezione {scelta}")
-    torna_dashboard()
+    torna_dashboard("bottom_other")
