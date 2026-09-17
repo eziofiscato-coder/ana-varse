@@ -13,6 +13,7 @@ st.markdown("""<style>
 div[data-testid="stFormSubmitButton"]>button{background-color:#d32f2f!important;color:white!important;}
 .logout-btn>button{background-color:#b71c1c!important;color:white!important;}
 .torna-btn>button{background-color:#1565c0!important;color:white!important;}
+.logo-box{border:2px solid #2e7d32;border-radius:10px;padding:10px;text-align:center;background:#f1f8e9;}
 </style>""", unsafe_allow_html=True)
 def load_json(f, default):
     try:
@@ -28,6 +29,23 @@ def save_json(f,d):
     except Exception as e: st.error(f"Errore {f}: {e}")
 FILE_DATI="dati_volontari.json"; FILE_POST="postazioni.json"; FILE_EMER="emergenze.json"; FILE_RADIO="radio_db.json"; FILE_DIST="dist_radio.json"; FILE_EVENTI="eventi.json"; FILE_CHECK="checkin.json"; FILE_NOMI="mem_nomi.json"
 COMUNI_VARESE=["Varese","Busto Arsizio","Gallarate","Saronno","Cassano Magnago","Tradate","Somma Lombardo","Malnate","Luino","Samarate","Laveno-Mombello","Cittiglio","Besozzo","Gavirate","Vergiate","Sesto Calende","Besnate","Cardano al Campo","Cavaria con Premezzo","Castellanza","Lonate Pozzolo","Fagnano Olona"]
+# LIBRERIA LOGHI PNG VERI EMERGENZA - Trovata in rete + Protezione Civile ufficiale
+EMERGENCY_LOGOS = {
+    "incendio_boschivo": {"nome": "Incendio Boschivo", "emoji": "🔥", "png": "https://cdn-icons-png.flaticon.com/512/206/206887.png", "colore": "red"},
+    "frana": {"nome": "Frana / Smottamento", "emoji": "⛰️", "png": "https://cdn-icons-png.flaticon.com/512/2942/2942041.png", "colore": "brown"},
+    "caduta_albero": {"nome": "Caduta Albero", "emoji": "🌳", "png": "https://cdn-icons-png.flaticon.com/512/740/740934.png", "colore": "green"},
+    "esondazione": {"nome": "Esondazione / Alluvione", "emoji": "🌊", "png": "https://cdn-icons-png.flaticon.com/512/210/210543.png", "colore": "blue"},
+    "allagamento": {"nome": "Allagamento", "emoji": "💧", "png": "https://cdn-icons-png.flaticon.com/512/245/245246.png", "colore": "blue"},
+    "neve_ghiaccio": {"nome": "Neve / Ghiaccio", "emoji": "❄️", "png": "https://cdn-icons-png.flaticon.com/512/642/642102.png", "colore": "lightblue"},
+    "auto_polizia": {"nome": "Auto Polizia", "emoji": "🚓", "png": "https://cdn-icons-png.flaticon.com/512/3774/3774091.png", "colore": "blue"},
+    "polizia_locale": {"nome": "Polizia Locale", "emoji": "👮", "png": "https://cdn-icons-png.flaticon.com/512/3106/3106091.png", "colore": "darkblue"},
+    "vvff": {"nome": "VVFF - Vigili del Fuoco", "emoji": "🚒", "png": "https://cdn-icons-png.flaticon.com/512/599/599502.png", "colore": "red"},
+    "protezione_civile": {"nome": "Mezzi Protezione Civile", "emoji": "🦺", "png": "https://cdn-icons-png.flaticon.com/512/599/599505.png", "colore": "orange"},
+    "ambulanza": {"nome": "Ambulanza / 118", "emoji": "🚑", "png": "https://cdn-icons-png.flaticon.com/512/2751/2751790.png", "colore": "white"},
+    "prima_accoglienza": {"nome": "Area Prima Accoglienza", "emoji": "⛺", "png": "https://cdn-icons-png.flaticon.com/512/109/109345.png", "colore": "green"},
+    "elisoccorso": {"nome": "Elisoccorso", "emoji": "🚁", "png": "https://cdn-icons-png.flaticon.com/512/3079/3079004.png", "colore": "yellow"},
+    "incidente_stradale": {"nome": "Incidente Stradale", "emoji": "🚗", "png": "https://cdn-icons-png.flaticon.com/512/3774/3774086.png", "colore": "red"},
+}
 @st.cache_data(ttl=86400)
 def load_comuni_italia():
     try:
@@ -66,36 +84,8 @@ def get_vie_comune(comune):
                             vie=sorted(list(set(vie)))
                             if len(vie)>=5: return ["-- Seleziona Via --"]+vie
                     except: pass
-                if lat and lon:
-                    try:
-                        q2=f'[out:json][timeout:30];way(around:8000,{lat},{lon})["highway"]["name"];out 3000;'
-                        url="https://overpass-api.de/api/interpreter"
-                        r2=requests.post(url,data={"data":q2},timeout=30)
-                        if r2.status_code==200:
-                            data=r2.json(); vie=[]
-                            for el in data.get("elements",[]):
-                                if "tags" in el and "name" in el["tags"]:
-                                    nome=el["tags"]["name"]
-                                    if 2<len(nome)<80: vie.append(nome.strip())
-                            vie=sorted(list(set(vie)))
-                            if len(vie)>=10: return ["-- Seleziona Via --"]+vie
-                    except: pass
-    except: pass
-    try:
-        q=f'[out:json][timeout:25];area["name"="{comune}"]["admin_level"~"^[6-8]$"]->.a;(way(area.a)["highway"]["name"];);out 2000;'
-        url="https://overpass-api.de/api/interpreter"
-        r=requests.post(url,data={"data":q},timeout=25)
-        if r.status_code==200:
-            data=r.json(); vie=[]
-            for el in data.get("elements",[]):
-                if "tags" in el and "name" in el["tags"]:
-                    nome=el["tags"]["name"]
-                    if 2<len(nome)<80: vie.append(nome.strip())
-            vie=sorted(list(set(vie)))
-            if len(vie)>=5: return ["-- Seleziona Via --"]+vie
     except: pass
     return ["-- Seleziona Via --","Via Roma","Via Garibaldi","Via Milano","Via Sacco","Via Verdi","Via Dante","Via Marconi","Via Mazzini"]
-ICONS={"volontario":{"nome":"Volontario","icon":"👤"},"sede":{"nome":"Sede","icon":"🏠"},"radio":{"nome":"Radio","icon":"📻"},"emergenza":{"nome":"Emergenza","icon":"🚨"},"postazione":{"nome":"Postazione","icon":"📍"},"incendio":{"nome":"Incendio","icon":"🔥"},"alluvione":{"nome":"Alluvione","icon":"🌊"},"frana":{"nome":"Frana","icon":"⛰️"},"neve":{"nome":"Neve/Ghiaccio","icon":"❄️"}}
 if "authenticated" not in st.session_state: st.session_state.authenticated=False
 if "dati" not in st.session_state: st.session_state.dati=load_json(FILE_DATI,[])
 if "postazioni" not in st.session_state: st.session_state.postazioni=load_json(FILE_POST,[])
@@ -152,13 +142,13 @@ if scelta=="Dashboard":
     c5,c6=st.columns(2); c5.metric("Eventi",len(st.session_state.eventi_lista)); c6.metric("Check-in",len(st.session_state.checkin_lista))
     st.info("✅ Tutti i dati memorizzati su disco!")
     if st.session_state.emergenze_lista:
-        st.markdown("### Ultimi 5 Interventi Emergenza")
-        st.dataframe(pd.DataFrame(st.session_state.emergenze_lista[-5:]),use_container_width=True)
-        if st.button("📋 Vedi Tabella Completa Emergenze",use_container_width=True):
-            st.session_state.menu_scelta="Tabella Interventi Emergenza"; st.rerun()
+        st.markdown("### Ultimi 5 Interventi Emergenza con Loghi PNG")
+        df_last=pd.DataFrame(st.session_state.emergenze_lista[-5:])
+        st.dataframe(df_last,use_container_width=True)
 elif scelta=="Emergenze con Loghi":
     torna("top_em")
-    st.markdown("### 🚨 EMERGENZA CON LOGHI - FORM COMPLETO CON TUTTI I CAMPI")
+    st.markdown("### 🚨 EMERGENZA CON LOGHI VERI PNG - LIBRERIA COMPLETA")
+    st.info("💡 NOVITÀ: Ora vedi il LOGO VERO PNG per ogni emergenza! Incendio, Frana, VVFF, Polizia, Ambulanza, Area Accoglienza ecc. - Tutti con PNG trasparente!")
     c1,c2=st.columns(2)
     with c1: comune=st.selectbox("Comune *",COMUNI_TUTTI,key="comune_em")
     with c2:
@@ -169,76 +159,126 @@ elif scelta=="Emergenze con Loghi":
         if via=="-- Seleziona Via --":
             via_man=st.text_input("Via manuale",key="via_man_em"); via_f=via_man if via_man else via
         else: via_f=via
+    st.markdown("#### 🎨 SCEGLI LOGO VERO PNG EMERGENZA")
+    col_logo1,col_logo2,col_logo3=st.columns([2,1,1])
+    with col_logo1:
+        logo_keys=list(EMERGENCY_LOGOS.keys())
+        logo_names=[f"{EMERGENCY_LOGOS[k]['emoji']} {EMERGENCY_LOGOS[k]['nome']}" for k in logo_keys]
+        sel_logo_idx=st.selectbox("Tipo Emergenza con Logo PNG *",range(len(logo_keys)),format_func=lambda i: logo_names[i],key="logo_sel")
+        sel_logo_key=logo_keys[sel_logo_idx]
+        sel_logo_info=EMERGENCY_LOGOS[sel_logo_key]
+    with col_logo2:
+        st.markdown('<div class="logo-box">', unsafe_allow_html=True)
+        st.markdown(f"**{sel_logo_info['nome']}**")
+        st.markdown(f"{sel_logo_info['emoji']} Logo")
+        try:
+            st.image(sel_logo_info['png'],width=80)
+        except:
+            st.markdown(f"# {sel_logo_info['emoji']}")
+        st.markdown('</div>', unsafe_allow_html=True)
+    with col_logo3:
+        st.markdown("**Carica PNG Personalizzato**")
+        custom_logo_upload=st.file_uploader("Carica logo PNG",type=["png","jpg","jpeg"],key="custom_logo")
+        custom_b64=""
+        if custom_logo_upload:
+            st.image(custom_logo_upload,width=80,caption="Anteprima")
+            custom_b64=base64.b64encode(custom_logo_upload.getvalue()).decode()
+            st.success("✅ PNG personalizzato caricato!")
     with st.form("form_em_completo"):
-        st.markdown("#### Dati Emergenza - Tutti i campi")
+        st.markdown("#### Dati Emergenza - Tutti i campi + Logo PNG")
         col1,col2,col3=st.columns(3)
         with col1:
             data_em=st.date_input("Data *",value=date.today())
             ora_em=st.time_input("Ora *",value=datetime.now().time())
-            tipo=st.selectbox("Tipo Emergenza *",list(ICONS.keys()),format_func=lambda x: ICONS[x]["icon"]+" "+ICONS[x]["nome"])
-        with col2:
             gravita=st.selectbox("Gravità *",["Bassa","Media","Alta","Critica"],index=1)
+        with col2:
             stato=st.selectbox("Stato *",["Aperta","In Corso","Chiusa","Archiviata"],index=0)
             civico=st.text_input("Civico")
-        with col3:
             coord=st.text_input("Coordinatore *",value="ANA Varese")
+        with col3:
             volontari_sel=st.multiselect("Volontari Coinvolti",st.session_state.mem_nomi)
             mezzi=st.text_input("Mezzi Utilizzati",placeholder="Es. Fuoristrada 1, Motosega")
-        desc=st.text_area("Descrizione Dettagliata *",value=f"Intervento a {comune} - {via_f}",height=100)
+            st.markdown(f"**Logo selezionato:** {sel_logo_info['emoji']} {sel_logo_info['nome']}")
+        desc=st.text_area("Descrizione Dettagliata *",value=f"Intervento {sel_logo_info['nome']} a {comune} - {via_f}",height=100)
         note=st.text_area("Note Aggiuntive",height=80)
         st.divider()
-        if st.form_submit_button("💾 SALVA EMERGENZA COMPLETA",use_container_width=True,type="primary"):
+        if st.form_submit_button("💾 SALVA EMERGENZA CON LOGO PNG VERO",use_container_width=True,type="primary"):
             if via_f!="-- Seleziona Via --" and via_f!="" and desc!="":
+                logo_png_to_save=sel_logo_info['png'] if not custom_b64 else f"data:image/png;base64,{custom_b64}"
                 st.session_state.emergenze_lista.append({
-                    "Data":str(data_em),"Ora":str(ora_em),"Logo":ICONS[tipo]["icon"],
+                    "Data":str(data_em),"Ora":str(ora_em),
+                    "Logo":sel_logo_info['emoji'],"LogoNome":sel_logo_info['nome'],"LogoPNG":logo_png_to_save,
                     "Comune":comune,"Via":via_f,"Civico":civico,
-                    "Tipo":ICONS[tipo]["nome"],"TipoCod":tipo,"Gravità":gravita,"Stato":stato,
+                    "Tipo":sel_logo_info['nome'],"Gravità":gravita,"Stato":stato,
                     "Descrizione":desc,"Volontari":", ".join(volontari_sel),"Mezzi":mezzi,
                     "Coordinatore":coord,"Note":note
                 })
                 save_json(FILE_EMER,st.session_state.emergenze_lista)
-                st.success(f"✅ Emergenza salvata! {comune} - {via_f}"); st.rerun()
+                st.success(f"✅ Emergenza {sel_logo_info['nome']} salvata con logo PNG vero!"); st.rerun()
             else: st.error("Compila Via e Descrizione!")
     if st.session_state.emergenze_lista:
-        st.markdown("#### Ultime Emergenze Inserite")
+        st.markdown("#### Ultime Emergenze con Loghi PNG Veri")
+        for em in st.session_state.emergenze_lista[-5:][::-1]:
+            c1,c2=st.columns([1,4])
+            with c1:
+                try:
+                    if em.get("LogoPNG","").startswith("data:"):
+                        st.image(em["LogoPNG"],width=60)
+                    else:
+                        st.image(em.get("LogoPNG",""),width=60)
+                except:
+                    st.markdown(f"## {em.get('Logo','🚨')}")
+            with c2:
+                st.markdown(f"**{em.get('Data','')} {em.get('Ora','')} - {em.get('LogoNome','')} - {em.get('Comune','')} {em.get('Via','')}**")
+                st.caption(f"{em.get('Descrizione','')} | Gravità: {em.get('Gravità','')} | Stato: {em.get('Stato','')}")
         st.dataframe(pd.DataFrame(st.session_state.emergenze_lista),use_container_width=True)
     torna("bottom_em")
 elif scelta=="Mappa Postazioni":
     torna("top_map")
     st.markdown("### 🗺️ MAPPA POSTAZIONI - PUNTATORE PNG PERSONALIZZATO")
-    st.info("💡 NOVITÀ: Ora puoi scegliere il PNG per il puntatore e la mappa visualizza SUBITO la postazione appena inserita!")
+    st.info("💡 La mappa visualizza SUBITO la postazione con puntatore PNG che scegli!")
     c1,c2=st.columns(2)
     with c1: comune=st.selectbox("Comune *",COMUNI_TUTTI,key="comune_map")
     with c2:
         with st.spinner(f"Carico TUTTE le vie di {comune}..."): vie=get_vie_comune(comune)
-        if len(vie)>10: st.success(f"Trovate {len(vie)-1} vie - TUTTE!")
-        else: st.warning(f"Solo {len(vie)-1} vie default")
         via=st.selectbox(f"Via * ({comune}) - {len(vie)-1} vie",vie,key="via_map")
         if via=="-- Seleziona Via --":
             via_man=st.text_input("Via manuale",key="via_man_map"); via_f=via_man if via_man else via
         else: via_f=via
     with st.form("form_post"):
-        st.markdown("#### Dati Postazione + Puntatore PNG")
         nome=st.text_input("Nome Postazione *")
         col1,col2=st.columns(2)
         with col1: lat=st.text_input("Lat *",placeholder="45.8205",key="lat_new"); lon=st.text_input("Lon *",placeholder="8.8255",key="lon_new")
         with col2: resp=st.text_input("Responsabile")
-        st.markdown("#### Scegli Puntatore PNG per la Mappa")
         col_icon1,col_icon2=st.columns(2)
         with col_icon1:
-            tipo_puntatore=st.selectbox("Tipo Puntatore *",["📍 Default Rosso","🚨 Emergenza","🏠 Sede ANA","👤 Volontario","🔥 Incendio","🌊 Alluvione","⛰️ Frana","🚑 Sanitario","📻 Radio","⭐ Personalizzato PNG"])
+            tipo_puntatore=st.selectbox("Tipo Puntatore *",["📍 Default Rosso","🚨 Emergenza","🏠 Sede ANA","👤 Volontario","🔥 Incendio","🌊 Alluvione","🚑 Sanitario","📻 Radio","⭐ Personalizzato PNG"])
         with col_icon2:
-            png_upload=st.file_uploader("Carica PNG Personalizzato (32x32 o 48x48)",type=["png","jpg","jpeg"],key="png_up")
+            png_upload=st.file_uploader("Carica PNG Puntatore",type=["png","jpg","jpeg"],key="png_up")
             if png_upload:
-                st.image(png_upload,width=48,caption="Anteprima Puntatore")
-                png_bytes=png_upload.getvalue()
-                b64_png=base64.b64encode(png_bytes).decode()
-                st.session_state["custom_png_b64"]=b64_png
-                st.success("✅ PNG caricato! Sarà usato come puntatore")
-        if st.form_submit_button("➕ Aggiungi alla Mappa e Visualizza Subito"):
+                st.image(png_upload,width=48)
+                st.session_state["custom_png_b64"]=base64.b64encode(png_upload.getvalue()).decode()
+        if st.form_submit_button("➕ Aggiungi e Visualizza Subito"):
             if nome and lat and lon:
-                icon_code=tipo_puntatore
                 custom_b64=st.session_state.get("custom_png_b64","") if tipo_puntatore=="⭐ Personalizzato PNG" else ""
-                st.session_state.postazioni.append({"Postazione":nome,"Comune":comune,"Via":via_f,"Latitudine":lat,"Longitudine":lon,"Responsabile":resp,"Puntatore":icon_code,"CustomPNG":custom_b64})
-                save_json(FILE_POST,st.session_state.postazioni)
-                st.session_state.last_postazione={"Postazione":nome,"Comune":comune,"Via":via_f,"Latitudine":lat,"Longitudine":lon,"Responsabile":resp,"Puntatore":
+                new_post = {
+                    "Postazione": nome,
+                    "Comune": comune,
+                    "Via": via_f,
+                    "Latitudine": lat,
+                    "Longitudine": lon,
+                    "Responsabile": resp,
+                    "Puntatore": tipo_puntatore,
+                    "CustomPNG": custom_b64
+                }
+                st.session_state.postazioni.append(new_post)
+                save_json(FILE_POST, st.session_state.postazioni)
+                st.session_state.last_postazione = new_post
+                st.success(f"✅ {nome} aggiunta con puntatore {tipo_puntatore}!")
+                st.rerun()
+    if st.session_state.postazioni:
+        df=pd.DataFrame(st.session_state.postazioni)
+        st.markdown(f"### 📍 Mappa - {len(df)} Postazioni")
+        if st.session_state.last_postazione:
+            st.info(f"🎯 Ultima: {st.session_state.last_postazione['Postazione']} - {st.session_state.last_postazione['Comune']}")
+        tipo_mappa=st.selectbox("Tipo Mappa",["OpenStreet
