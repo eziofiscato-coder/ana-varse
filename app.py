@@ -36,12 +36,8 @@ st.markdown("""
 div[data-testid="stFormSubmitButton"]>button{
  background-color:#d32f2f!important;
 }
-.logout-btn>button{
- background-color:#b71c1c!important;
-}
-.torna-btn>button{
- background-color:#1565c0!important;
-}
+.logout-btn>button{background-color:#b71c1c!important;}
+.torna-btn>button{background-color:#1565c0!important;}
 .logo-box{
  border:2px solid #2e7d32;
  border-radius:10px;
@@ -81,8 +77,7 @@ FILE_NOMI="mem_nomi.json"
 
 COMUNI_VARESE=[
  "Varese","Busto Arsizio","Gallarate",
- "Saronno","Cassano Magnago","Tradate",
- "Somma Lombardo","Malnate","Luino"
+ "Saronno","Cassano Magnago","Tradate"
 ]
 
 EMERGENCY_LOGOS = {
@@ -92,7 +87,7 @@ EMERGENCY_LOGOS = {
   "png": "https://cdn-icons-png.flaticon.com/512/206/206887.png"
  },
  "frana": {
-  "nome": "Frana / Smottamento",
+  "nome": "Frana",
   "emoji": "⛰️",
   "png": "https://cdn-icons-png.flaticon.com/512/2942/2942041.png"
  },
@@ -105,16 +100,6 @@ EMERGENCY_LOGOS = {
   "nome": "Esondazione / Alluvione",
   "emoji": "🌊",
   "png": "https://cdn-icons-png.flaticon.com/512/210/210543.png"
- },
- "allagamento": {
-  "nome": "Allagamento",
-  "emoji": "💧",
-  "png": "https://cdn-icons-png.flaticon.com/512/245/245246.png"
- },
- "neve_ghiaccio": {
-  "nome": "Neve / Ghiaccio",
-  "emoji": "❄️",
-  "png": "https://cdn-icons-png.flaticon.com/512/642/642102.png"
  },
  "auto_polizia": {
   "nome": "Auto Polizia",
@@ -145,16 +130,6 @@ EMERGENCY_LOGOS = {
   "nome": "Area Prima Accoglienza",
   "emoji": "⛺",
   "png": "https://cdn-icons-png.flaticon.com/512/109/109345.png"
- },
- "elisoccorso": {
-  "nome": "Elisoccorso",
-  "emoji": "🚁",
-  "png": "https://cdn-icons-png.flaticon.com/512/3079/3079004.png"
- },
- "incidente_stradale": {
-  "nome": "Incidente Stradale",
-  "emoji": "🚗",
-  "png": "https://cdn-icons-png.flaticon.com/512/3774/3774086.png"
  },
 }
 
@@ -292,55 +267,3 @@ st.markdown(f"## {scelta}")
 st.divider()
 COMUNI_TUTTI=load_comuni_italia()
 MIME_SHORT="application/octet-stream"
-
-if scelta=="Dashboard":
-    c1,c2,c3,c4=st.columns(4)
-    c1.metric("Emergenze",len(st.session_state.emergenze_lista))
-    c2.metric("Postazioni",len(st.session_state.postazioni))
-    c3.metric("Volontari",len(st.session_state.dati))
-    c4.metric("Radio",len(st.session_state.radio_db))
-    st.info("✅ Dati memorizzati su disco!")
-    if st.session_state.emergenze_lista:
-        st.markdown("### Ultimi Interventi con Loghi PNG")
-        st.dataframe(pd.DataFrame(st.session_state.emergenze_lista[-5:]),use_container_width=True)
-
-elif scelta=="Emergenze con Loghi":
-    torna("top_em")
-    st.markdown("### 🚨 EMERGENZA CON LOGHI VERI PNG")
-    st.info("14 loghi PNG veri: incendio, frana, VVFF, polizia, ambulanza, area accoglienza ecc.")
-    c1,c2=st.columns(2)
-    with c1:
-        comune=st.selectbox("Comune *",COMUNI_TUTTI,key="comune_em")
-    with c2:
-        with st.spinner(f"Carico vie di {comune}..."):
-            vie=get_vie_comune(comune)
-        via=st.selectbox(f"Via * ({len(vie)-1} vie)",vie,key="via_em")
-        if via=="-- Seleziona Via --":
-            via_man=st.text_input("Via manuale",key="via_man_em")
-            via_f=via_man if via_man else via
-        else:
-            via_f=via
-    st.markdown("#### 🎨 SCEGLI LOGO VERO PNG")
-    col_logo1,col_logo2,col_logo3=st.columns([2,1,1])
-    with col_logo1:
-        logo_keys=list(EMERGENCY_LOGOS.keys())
-        logo_names=[f"{EMERGENCY_LOGOS[k]['emoji']} {EMERGENCY_LOGOS[k]['nome']}" for k in logo_keys]
-        sel_logo_idx=st.selectbox("Tipo Emergenza *",range(len(logo_keys)),format_func=lambda i: logo_names[i],key="logo_sel")
-        sel_logo_key=logo_keys[sel_logo_idx]
-        sel_logo_info=EMERGENCY_LOGOS[sel_logo_key]
-    with col_logo2:
-        st.markdown('<div class="logo-box">', unsafe_allow_html=True)
-        st.markdown(f"**{sel_logo_info['nome']}**")
-        try:
-            st.image(sel_logo_info['png'],width=80)
-        except:
-            st.markdown(f"# {sel_logo_info['emoji']}")
-        st.markdown('</div>', unsafe_allow_html=True)
-    with col_logo3:
-        custom_logo_upload=st.file_uploader("Carica PNG",type=["png","jpg","jpeg"],key="custom_logo")
-        custom_b64=""
-        if custom_logo_upload:
-            st.image(custom_logo_upload,width=80)
-            custom_b64=base64.b64encode(custom_logo_upload.getvalue()).decode()
-            st.success("✅ PNG caricato!")
-    with st.form("form_em_completo"):
