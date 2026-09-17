@@ -52,25 +52,17 @@ COMUNI_VARESE = [
     "Lonate Pozzolo","Fagnano Olona",
     "Caronno Pertusella","Gerenzano","Origgio",
     "Uboldo","Cislago","Mozzate","Gornate Olona",
-    "Castelseprio","Gazzada Schianno","Bodio Lomnago",
-    "Buguggiate","Azzate","Brunello","Morazzone",
-    "Caravate","Cocquio-Trevisago","Cuvio","Cuveglio",
-    "Rancio Valcuvia","Brinzio","Bedero Valcuvia",
-    "Maccagno con Pino e Veddasca",
-    "Tronzano Lago Maggiore","Dumenza","Agra",
-    "Brezzo di Bedero","Germignaga",
-    "Montegrino Valtravaglia","Grantola","Mesenzana",
-    "Porto Valtravaglia","Castelveccana","Leggiuno",
-    "Monvalle","Brebbia","Bregnano","Castronno",
-    "Albizzate","Sumirago","Jerago con Orago",
-    "Oggiona con Santo Stefano","Solbiate Arno",
-    "Carnago","Gemonio","Barasso","Luvinate","Casciago"
+    "Castelseprio","Gazzada Schianno","Bodio Lomnago"
 ]
 
 @st.cache_data(ttl=86400)
 def load_comuni_italia():
     try:
-        url = "https://raw.githubusercontent.com/matteocontrini/comuni-json/master/comuni.json"
+        url = (
+            "https://raw.githubusercontent.com/"
+            "matteocontrini/comuni-json/"
+            "master/comuni.json"
+        )
         r = requests.get(url, timeout=10)
         if r.status_code == 200:
             data = r.json()
@@ -80,12 +72,7 @@ def load_comuni_italia():
             return top + altri
     except:
         pass
-    capoluoghi = [
-        "Roma","Milano","Napoli","Torino","Palermo","Genova",
-        "Bologna","Firenze","Bari","Catania","Venezia","Verona"
-    ]
-    tutti = COMUNI_VARESE + capoluoghi
-    return sorted(list(set(tutti)))
+    return sorted(list(set(COMUNI_VARESE)))
 
 @st.cache_data(ttl=3600)
 def get_vie_comune(comune):
@@ -108,12 +95,14 @@ def get_vie_comune(comune):
                         vie.append(nome)
             vie = sorted(list(set(vie)))
             if vie:
-                return ["-- Seleziona Via --"] + vie[:250]
+                base = ["-- Seleziona Via --"]
+                return base + vie[:200]
     except:
         pass
     return [
         "-- Seleziona Via --",
-        "Via Roma","Via Garibaldi","Via Milano","Via Sacco"
+        "Via Roma","Via Garibaldi",
+        "Via Milano","Via Sacco"
     ]
 
 ICONS = {
@@ -123,7 +112,6 @@ ICONS = {
     "emergenza": {"nome":"Emergenza","icon":"🚨"},
     "postazione": {"nome":"Postazione","icon":"📍"},
     "incendio": {"nome":"Incendio","icon":"🔥"},
-    "alluvione": {"nome":"Alluvione","icon":"🌊"},
 }
 
 for k, v in [
@@ -209,6 +197,7 @@ st.markdown(f"## {scelta}")
 st.divider()
 
 COMUNI_TUTTI = load_comuni_italia()
+MIME_XLSX = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
 
 if scelta == "Dashboard":
     c1, c2, c3, c4 = st.columns(4)
@@ -238,10 +227,10 @@ elif scelta == "Emergenze con Loghi":
     torna("top_em")
     c1, c2 = st.columns(2)
     with c1:
-        comune = st.selectbox("Comune - tutti Italia", COMUNI_TUTTI, key="comune_em")
+        comune = st.selectbox("Comune *", COMUNI_TUTTI, key="comune_em")
     with c2:
         vie = get_vie_comune(comune)
-        via = st.selectbox(f"Via - {comune}", vie, key="via_em")
+        via = st.selectbox(f"Via * ({comune})", vie, key="via_em")
         if via == "-- Seleziona Via --":
             via_man = st.text_input("Via manuale")
             via_f = via_man if via_man else via
@@ -249,7 +238,11 @@ elif scelta == "Emergenze con Loghi":
             via_f = via
     with st.form("form_em"):
         data_em = st.date_input("Data", value=date.today())
-        tipo = st.selectbox("Tipo", list(ICONS.keys()), format_func=lambda x: ICONS[x]["icon"] + " " + ICONS[x]["nome"])
+        tipo = st.selectbox(
+            "Tipo",
+            list(ICONS.keys()),
+            format_func=lambda x: ICONS[x]["icon"] + " " + ICONS[x]["nome"]
+        )
         desc = st.text_area("Descrizione", value=f"{comune} - {via_f}")
         if st.form_submit_button("Salva con Logo"):
             if via_f!= "-- Seleziona Via --":
@@ -271,16 +264,17 @@ elif scelta == "Emergenze con Loghi":
         df.to_excel(out, index=False, engine="openpyxl")
         fname = f"emergenze_{date.today()}.xlsx"
         st.download_button(
-            "Backup Emergenze Excel",
-            out.getvalue(),
+            label="Backup Emergenze Excel",
+            data=out.getvalue(),
             file_name=fname,
+            mime=MIME_XLSX,
             use_container_width=True,
             key="back_em"
         )
         fname_csv = f"emergenze_{date.today()}.csv"
         st.download_button(
-            "Backup Emergenze CSV",
-            df.to_csv(index=False).encode("utf-8"),
+            label="Backup Emergenze CSV",
+            data=df.to_csv(index=False).encode("utf-8"),
             file_name=fname_csv,
             use_container_width=True,
             key="back_em_csv"
@@ -291,10 +285,10 @@ elif scelta == "Mappa Postazioni":
     torna("top_map")
     c1, c2 = st.columns(2)
     with c1:
-        comune = st.selectbox("Comune - tutti Italia", COMUNI_TUTTI, key="comune_map")
+        comune = st.selectbox("Comune *", COMUNI_TUTTI, key="comune_map")
     with c2:
         vie = get_vie_comune(comune)
-        via = st.selectbox(f"Via - {comune}", vie, key="via_map")
+        via = st.selectbox(f"Via * ({comune})", vie, key="via_map")
         if via == "-- Seleziona Via --":
             via_man = st.text_input("Via manuale", key="via_man_map")
             via_f = via_man if via_man else via
@@ -322,7 +316,11 @@ elif scelta == "Mappa Postazioni":
                 st.rerun()
     if st.session_state.postazioni:
         df = pd.DataFrame(st.session_state.postazioni)
-        tipo = st.selectbox("Tipo Mappa", ["OpenStreetMap","Google Stradale","Google Satellite","Google Ibrida","Google Rilievo"], key="tipo_mappa")
+        tipo = st.selectbox(
+            "Tipo Mappa",
+            ["OpenStreetMap","Google Stradale","Google Satellite"],
+            key="tipo_mappa"
+        )
         try:
             import folium
             from streamlit_folium import st_folium
@@ -344,15 +342,9 @@ elif scelta == "Mappa Postazioni":
                 if tipo == "Google Stradale":
                     url = "https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}"
                     nome_t = "Google Stradale"
-                elif tipo == "Google Satellite":
+                else:
                     url = "https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}"
                     nome_t = "Google Satellite"
-                elif tipo == "Google Ibrida":
-                    url = "https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}"
-                    nome_t = "Google Ibrida"
-                else:
-                    url = "https://mt1.google.com/vt/lyrs=p&x={x}&y={y}&z={z}"
-                    nome_t = "Google Rilievo"
                 folium.TileLayer(
                     url,
                     attr="Google",
@@ -363,11 +355,15 @@ elif scelta == "Mappa Postazioni":
                 try:
                     la = float(str(r["Latitudine"]).replace(",","."))
                     lo = float(str(r["Longitudine"]).replace(",","."))
-                    folium.Marker([la, lo], popup=r["Postazione"]).add_to(m)
+                    folium.Marker(
+                        [la, lo],
+                        popup=r["Postazione"]
+                    ).add_to(m)
                 except:
                     pass
             st_folium(m, width=700, height=500)
         except ImportError:
+            st.warning("Aggiungi folium a requirements")
             st.map(df.rename(columns={"Latitudine":"lat","Longitudine":"lon"}))
         st.dataframe(df, use_container_width=True)
         st.markdown("#### Backup singolo - Postazioni")
@@ -375,41 +371,43 @@ elif scelta == "Mappa Postazioni":
         df.to_excel(out, index=False, engine="openpyxl")
         fname = f"postazioni_{date.today()}.xlsx"
         st.download_button(
-            "Backup Postazioni Excel",
-            out.getvalue(),
+            label="Backup Postazioni Excel",
+            data=out.getvalue(),
             file_name=fname,
+            mime=MIME_XLSX,
             use_container_width=True,
             key="back_post"
         )
-        for _, r in df.iterrows():
-            with st.container(border=True):
-                c1, c2, c3, c4 = st.columns([2,1,1,1])
-                with c1:
-                    st.write(f"**{r['Postazione']}** {r['Comune']} {r['Via']}")
-                with c2:
-                    url_g = "https://www.google.com/maps/search/?api=1&query=" + r["Latitudine"] + "," + r["Longitudine"]
-                    st.link_button("Google Map", url_g, key=f"g_{uuid.uuid4().hex[:4]}")
-                with c3:
-                    url_osm = "https://www.openstreetmap.org/?mlat=" + r["Latitudine"] + "&mlon=" + r["Longitudine"]
-                    st.link_button("OSM", url_osm, key=f"o_{uuid.uuid4().hex[:4]}")
-                with c4:
-                    url_w = "https://waze.com/ul?ll=" + r["Latitudine"] + "," + r["Longitudine"]
-                    st.link_button("Waze", url_w, key=f"w_{uuid.uuid4().hex[:4]}")
+        fname_csv = f"postazioni_{date.today()}.csv"
+        st.download_button(
+            label="Backup Postazioni CSV",
+            data=df.to_csv(index=False).encode("utf-8"),
+            file_name=fname_csv,
+            use_container_width=True,
+            key="back_post_csv"
+        )
     torna("bottom_map")
 
 elif scelta == "Volontari":
     torna("top_vol")
     st.markdown("### Volontari - Sottomaschere")
-    tab1, tab2, tab3, tab4, tab5 = st.tabs(["Anagrafica","Contatti","Associazione","Ruolo","Disponibilita"])
+    tab1, tab2, tab3, tab4, tab5 = st.tabs([
+        "Anagrafica","Contatti","Associazione",
+        "Ruolo","Disponibilita"
+    ])
     with tab1:
         with st.container(border=True):
             c1, c2 = st.columns(2)
             with c1:
                 nome = st.text_input("Nome *", key="nome_anag")
                 cognome = st.text_input("Cognome *", key="cogn_anag")
-                cf = st.text_input("Codice Fiscale", key="cf_anag")
+                cf = st.text_input("CF", key="cf_anag")
             with c2:
-                data_nasc = st.date_input("Data Nascita", value=date(1980,1,1), key="data_anag")
+                data_nasc = st.date_input(
+                    "Data Nascita",
+                    value=date(1980,1,1),
+                    key="data_anag"
+                )
                 luogo_nasc = st.text_input("Luogo Nascita", key="luogo_anag")
                 sesso = st.selectbox("Sesso", ["M","F"], key="sesso_anag")
     with tab2:
@@ -419,55 +417,84 @@ elif scelta == "Volontari":
                 cell = st.text_input("Cellulare *", key="cell_cont")
                 email = st.text_input("Email", key="email_cont")
             with c2:
-                comune_cont = st.selectbox("Comune Residenza", COMUNI_TUTTI, key="comune_cont")
+                comune_cont = st.selectbox(
+                    "Comune",
+                    COMUNI_TUTTI,
+                    key="comune_cont"
+                )
                 vie_cont = get_vie_comune(comune_cont)
-                via_cont = st.selectbox(f"Via - {comune_cont}", vie_cont, key="via_cont")
+                via_cont = st.selectbox(
+                    f"Via - {comune_cont}",
+                    vie_cont,
+                    key="via_cont"
+                )
                 civico = st.text_input("Civico", key="civ_cont")
     with tab3:
         with st.container(border=True):
             c1, c2 = st.columns(2)
             with c1:
-                assoc = st.text_input("Associazione *", value="ANA Varese", key="assoc_3")
+                assoc = st.text_input(
+                    "Associazione *",
+                    value="ANA Varese",
+                    key="assoc_3"
+                )
                 sezione = st.text_input("Sezione", value="Varese", key="sez_3")
             with c2:
-                tessera = st.text_input("Numero Tessera", key="tess_3")
-                scad = st.date_input("Scadenza Tessera", value=date.today(), key="scad_3")
-                gruppo = st.selectbox("Gruppo", ["Varese","Busto","Gallarate","Luino","Saronno","Altro"], key="gruppo_3")
+                tessera = st.text_input("Tessera", key="tess_3")
+                scad = st.date_input("Scadenza", value=date.today(), key="scad_3")
+                gruppo = st.selectbox(
+                    "Gruppo",
+                    ["Varese","Busto","Gallarate","Luino","Saronno","Altro"],
+                    key="gruppo_3"
+                )
     with tab4:
         with st.container(border=True):
             c1, c2 = st.columns(2)
             with c1:
-                ruolo = st.selectbox("Ruolo *", ["Volontario","Caposquadra","Coordinatore","Autista","Radio","Logistica","Sanitario","Segreteria","Altro"], key="ruolo_4")
-                spec = st.selectbox("Specializzazione", ["AIB","Cinofilo","Sub","Nautico","Alpino","Prot Civile","Sanitario","Logistica","Nessuna"], key="spec_4")
+                ruolo = st.selectbox(
+                    "Ruolo *",
+                    ["Volontario","Caposquadra","Coordinatore","Autista","Radio"],
+                    key="ruolo_4"
+                )
+                spec = st.selectbox(
+                    "Specializzazione",
+                    ["AIB","Cinofilo","Protezione Civile","Sanitario","Nessuna"],
+                    key="spec_4"
+                )
                 patente = st.selectbox("Patente", ["B","C","D","BE","CE","Nessuna"], key="pat_4")
             with c2:
-                formazione = st.text_area("Formazione / Corsi", key="form_4")
+                formazione = st.text_area("Formazione", key="form_4")
                 note = st.text_area("Note", key="note_4")
     with tab5:
         with st.container(border=True):
             c1, c2 = st.columns(2)
             with c1:
-                giorni = st.multiselect("Giorni Disponibili", ["Lun","Mar","Mer","Gio","Ven","Sab","Dom"], key="giorni_5")
+                giorni = st.multiselect(
+                    "Giorni",
+                    ["Lun","Mar","Mer","Gio","Ven","Sab","Dom"],
+                    key="giorni_5"
+                )
                 orari = st.selectbox("Orari", ["Mattina","Pomeriggio","Sera","H24"], key="orari_5")
             with c2:
-                disp_em = st.selectbox("Disponibilita Emergenza", ["Si - Immediata","Si - 2h","Si - 12h","No"], key="disp_5")
+                disp_em = st.selectbox(
+                    "Disp Emergenza",
+                    ["Si - Immediata","Si - 2h","Si - 12h","No"],
+                    key="disp_5"
+                )
     st.divider()
     with st.form("form_vol_completo"):
         st.markdown("#### Salva Volontario")
         c1, c2 = st.columns(2)
         with c1:
             st.write(f"**{nome} {cognome}** - {cell}")
-            st.write(f"{comune_cont} - {via_cont} {civico}")
         with c2:
-            st.write(f"{assoc} - {sezione}")
-            st.write(f"{ruolo} - {spec}")
+            st.write(f"{assoc} - {ruolo}")
         if st.form_submit_button("SALVA VOLONTARIO", use_container_width=True, type="primary"):
             if nome and cognome and cell:
                 nome_completo = f"{nome} {cognome}"
                 st.session_state.dati.append({
                     "Nome": nome_completo,
                     "Cognome": cognome,
-                    "NomeSingolo": nome,
                     "CF": cf,
                     "DataNascita": str(data_nasc),
                     "LuogoNascita": luogo_nasc,
@@ -480,7 +507,7 @@ elif scelta == "Volontari":
                     "Associazione": assoc,
                     "Sezione": sezione,
                     "Tessera": tessera,
-                    "ScadenzaTessera": str(scad),
+                    "Scadenza": str(scad),
                     "Gruppo": gruppo,
                     "Ruolo": ruolo,
                     "Specializzazione": spec,
@@ -493,12 +520,11 @@ elif scelta == "Volontari":
                 })
                 if nome_completo not in st.session_state.mem_nomi:
                     st.session_state.mem_nomi.append(nome_completo)
-                st.success(f"Volontario {nome_completo} aggiunto!")
+                st.success(f"Aggiunto {nome_completo}!")
                 st.rerun()
             else:
-                st.error("Compila Nome, Cognome e Cellulare *")
+                st.error("Compila Nome, Cognome e Cellulare")
     if st.session_state.dati:
-        st.divider()
         df = pd.DataFrame(st.session_state.dati)
         st.dataframe(df, use_container_width=True)
         st.markdown("#### Backup singolo - Volontari")
@@ -506,16 +532,17 @@ elif scelta == "Volontari":
         df.to_excel(out, index=False, engine="openpyxl")
         fname = f"volontari_{date.today()}.xlsx"
         st.download_button(
-            "Backup Volontari Excel",
-            out.getvalue(),
+            label="Backup Volontari Excel",
+            data=out.getvalue(),
             file_name=fname,
+            mime=MIME_XLSX,
             use_container_width=True,
             key="back_vol"
         )
         fname_csv = f"volontari_{date.today()}.csv"
         st.download_button(
-            "Backup Volontari CSV",
-            df.to_csv(index=False).encode("utf-8"),
+            label="Backup Volontari CSV",
+            data=df.to_csv(index=False).encode("utf-8"),
             file_name=fname_csv,
             use_container_width=True,
             key="back_vol_csv"
@@ -534,7 +561,12 @@ elif scelta == "DB Radio":
             note = st.text_input("Note")
         if st.form_submit_button("Salva Radio"):
             if rid and mod:
-                st.session_state.radio_db.append({"Radio ID": rid, "Modello": mod, "Stato": stato, "Note": note})
+                st.session_state.radio_db.append({
+                    "Radio ID": rid,
+                    "Modello": mod,
+                    "Stato": stato,
+                    "Note": note
+                })
                 st.success("Aggiunta!")
                 st.rerun()
     if st.session_state.radio_db:
@@ -545,9 +577,10 @@ elif scelta == "DB Radio":
         df.to_excel(out, index=False, engine="openpyxl")
         fname = f"db_radio_{date.today()}.xlsx"
         st.download_button(
-            "Backup DB Radio Excel",
-            out.getvalue(),
+            label="Backup DB Radio Excel",
+            data=out.getvalue(),
             file_name=fname,
+            mime=MIME_XLSX,
             use_container_width=True,
             key="back_radiodb"
         )
@@ -555,11 +588,13 @@ elif scelta == "DB Radio":
 
 elif scelta == "Distribuzione Radio":
     torna("top_dist")
-    st.markdown("### Distribuzione Radio - Modello agganciato a ID")
+    st.markdown("### Distribuzione - Modello agganciato a ID")
     radio_map = {}
     if st.session_state.radio_db:
         for r in st.session_state.radio_db:
-            radio_map[r.get("Radio ID","")] = r.get("Modello","")
+            rid_key = r.get("Radio ID","")
+            mod_val = r.get("Modello","")
+            radio_map[rid_key] = mod_val
     with st.form("form_dist"):
         c1, c2 = st.columns(2)
         with c1:
@@ -567,14 +602,27 @@ elif scelta == "Distribuzione Radio":
                 lista_id = [r["Radio ID"] for r in st.session_state.radio_db]
                 rid = st.selectbox("Radio ID *", lista_id, key="rid_dist")
                 modello_agg = radio_map.get(rid, "")
-                st.text_input("Modello agganciato", value=modello_agg, disabled=True, key="mod_agg")
+                st.text_input(
+                    "Modello agganciato",
+                    value=modello_agg,
+                    disabled=True,
+                    key="mod_agg"
+                )
             else:
                 rid = st.text_input("Radio ID *", key="rid_man")
                 modello_agg = st.text_input("Modello *", key="mod_man")
-            ass = st.selectbox("Assegnato A *", ["--"] + st.session_state.mem_nomi, key="ass_dist")
+            ass = st.selectbox(
+                "Assegnato A *",
+                ["--"] + st.session_state.mem_nomi,
+                key="ass_dist"
+            )
         with c2:
             posto = st.text_input("Postazione *", key="posto_dist")
-            canale = st.selectbox("Canale", ["CH1 Emergenza","CH2 Logistica","CH3 Coord"], key="can_dist")
+            canale = st.selectbox(
+                "Canale",
+                ["CH1 Emergenza","CH2 Logistica","CH3 Coord"],
+                key="can_dist"
+            )
             note_dist = st.text_input("Note", key="note_dist")
         if st.form_submit_button("Assegna Radio"):
             if rid and ass!="--" and posto:
@@ -587,7 +635,8 @@ elif scelta == "Distribuzione Radio":
                     "Note": note_dist,
                     "Data": str(date.today())
                 })
-                st.success(f"Radio {rid} - {modello_agg} assegnata!")
+                msg = f"Radio {rid} - {modello_agg} assegnata"
+                st.success(msg)
                 st.rerun()
     if st.session_state.dist_radio:
         df = pd.DataFrame(st.session_state.dist_radio)
@@ -597,16 +646,17 @@ elif scelta == "Distribuzione Radio":
         df.to_excel(out, index=False, engine="openpyxl")
         fname = f"distribuzione_{date.today()}.xlsx"
         st.download_button(
-            "Backup Distribuzione Excel",
-            out.getvalue(),
+            label="Backup Distribuzione Excel",
+            data=out.getvalue(),
             file_name=fname,
+            mime=MIME_XLSX,
             use_container_width=True,
             key="back_dist"
         )
         fname_csv = f"distribuzione_{date.today()}.csv"
         st.download_button(
-            "Backup Distribuzione CSV",
-            df.to_csv(index=False).encode("utf-8"),
+            label="Backup Distribuzione CSV",
+            data=df.to_csv(index=False).encode("utf-8"),
             file_name=fname_csv,
             use_container_width=True,
             key="back_dist_csv"
@@ -615,73 +665,108 @@ elif scelta == "Distribuzione Radio":
 
 elif scelta == "Backup":
     torna("top_back")
-    st.markdown("### Backup Completo")
+    st.markdown("### Backup Completo + Singoli")
     c1, c2 = st.columns(2)
     with c1:
-        if st.button("Crea Backup Completo Excel", use_container_width=True, type="primary"):
+        if st.button("Crea Backup Completo", use_container_width=True, type="primary"):
             output = BytesIO()
             with pd.ExcelWriter(output, engine="openpyxl") as writer:
                 if st.session_state.dati:
-                    pd.DataFrame(st.session_state.dati).to_excel(writer, sheet_name="Volontari", index=False)
-                else:
-                    pd.DataFrame([{"Info":"Nessun volontario"}]).to_excel(writer, sheet_name="Volontari", index=False)
+                    pd.DataFrame(st.session_state.dati).to_excel(
+                        writer, sheet_name="Volontari", index=False
+                    )
                 if st.session_state.postazioni:
-                    pd.DataFrame(st.session_state.postazioni).to_excel(writer, sheet_name="Postazioni", index=False)
-                else:
-                    pd.DataFrame([{"Info":"Nessuna postazione"}]).to_excel(writer, sheet_name="Postazioni", index=False)
+                    pd.DataFrame(st.session_state.postazioni).to_excel(
+                        writer, sheet_name="Postazioni", index=False
+                    )
                 if st.session_state.emergenze_lista:
-                    pd.DataFrame(st.session_state.emergenze_lista).to_excel(writer, sheet_name="Emergenze", index=False)
-                else:
-                    pd.DataFrame([{"Info":"Nessuna emergenza"}]).to_excel(writer, sheet_name="Emergenze", index=False)
+                    pd.DataFrame(st.session_state.emergenze_lista).to_excel(
+                        writer, sheet_name="Emergenze", index=False
+                    )
                 if st.session_state.radio_db:
-                    pd.DataFrame(st.session_state.radio_db).to_excel(writer, sheet_name="DB_Radio", index=False)
-                else:
-                    pd.DataFrame([{"Info":"Nessun radio"}]).to_excel(writer, sheet_name="DB_Radio", index=False)
+                    pd.DataFrame(st.session_state.radio_db).to_excel(
+                        writer, sheet_name="DB_Radio", index=False
+                    )
                 if st.session_state.dist_radio:
-                    pd.DataFrame(st.session_state.dist_radio).to_excel(writer, sheet_name="Distribuzione_Radio", index=False)
-                else:
-                    pd.DataFrame([{"Info":"Nessuna distribuzione"}]).to_excel(writer, sheet_name="Distribuzione_Radio", index=False)
+                    pd.DataFrame(st.session_state.dist_radio).to_excel(
+                        writer, sheet_name="Distribuzione", index=False
+                    )
             st.session_state.backup_bytes = output.getvalue()
             st.success("Backup creato!")
     with c2:
         if "backup_bytes" in st.session_state:
-            fname = f"backup_ana_varese_{date.today()}.xlsx"
+            fname = f"backup_{date.today()}.xlsx"
             st.download_button(
-                "Scarica Backup Completo",
-                st.session_state.backup_bytes,
+                label="Scarica Backup Completo",
+                data=st.session_state.backup_bytes,
                 file_name=fname,
+                mime=MIME_XLSX,
                 use_container_width=True
             )
     st.divider()
-    st.markdown("### Backup singoli per singolo form")
+    st.markdown("### Backup singoli per form")
     col1, col2, col3 = st.columns(3)
     with col1:
         if st.session_state.dati:
             out = BytesIO()
             pd.DataFrame(st.session_state.dati).to_excel(out, index=False, engine="openpyxl")
             fname = f"volontari_{date.today()}.xlsx"
-            st.download_button("Volontari Excel", out.getvalue(), file_name=fname, use_container_width=True, key="b_vol")
+            st.download_button(
+                label="Volontari Excel",
+                data=out.getvalue(),
+                file_name=fname,
+                mime=MIME_XLSX,
+                use_container_width=True,
+                key="b_vol"
+            )
+        if st.session_state.postazioni:
+            out = BytesIO()
+            pd.DataFrame(st.session_state.postazioni).to_excel(out, index=False, engine="openpyxl")
+            fname = f"postazioni_{date.today()}.xlsx"
+            st.download_button(
+                label="Postazioni Excel",
+                data=out.getvalue(),
+                file_name=fname,
+                mime=MIME_XLSX,
+                use_container_width=True,
+                key="b_post"
+            )
     with col2:
         if st.session_state.emergenze_lista:
             out = BytesIO()
             pd.DataFrame(st.session_state.emergenze_lista).to_excel(out, index=False, engine="openpyxl")
             fname = f"emergenze_{date.today()}.xlsx"
-            st.download_button("Emergenze Excel", out.getvalue(), file_name=fname, use_container_width=True, key="b_em")
-    with col3:
+            st.download_button(
+                label="Emergenze Excel",
+                data=out.getvalue(),
+                file_name=fname,
+                mime=MIME_XLSX,
+                use_container_width=True,
+                key="b_em"
+            )
         if st.session_state.radio_db:
             out = BytesIO()
             pd.DataFrame(st.session_state.radio_db).to_excel(out, index=False, engine="openpyxl")
             fname = f"db_radio_{date.today()}.xlsx"
-            st.download_button("DB Radio Excel", out.getvalue(), file_name=fname, use_container_width=True, key="b_rdb")
-    st.divider()
-    if st.button("Cancella Tutti i Dati", use_container_width=True):
-        st.session_state.dati = []
-        st.session_state.postazioni = []
-        st.session_state.emergenze_lista = []
-        st.session_state.radio_db = []
-        st.session_state.dist_radio = []
-        st.session_state.mem_nomi = []
-        st.session_state.backup = []
-        st.success("Cancellati!")
-        st.rerun()
+            st.download_button(
+                label="DB Radio Excel",
+                data=out.getvalue(),
+                file_name=fname,
+                mime=MIME_XLSX,
+                use_container_width=True,
+                key="b_rdb"
+            )
+    with col3:
+        if st.session_state.dist_radio:
+            out = BytesIO()
+            pd.DataFrame(st.session_state.dist_radio).to_excel(out, index=False, engine="openpyxl")
+            fname = f"distribuzione_{date.today()}.xlsx"
+            st.download_button(
+                label="Distribuzione Excel",
+                data=out.getvalue(),
+                file_name=fname,
+                mime=MIME_XLSX,
+                use_container_width=True,
+                key="b_dist"
+            )
     torna("bottom_back")
