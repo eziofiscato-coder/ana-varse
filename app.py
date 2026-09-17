@@ -38,16 +38,18 @@ div[data-testid="stFormSubmitButton"]>button{
 }
 .logout-btn>button{background-color:#b71c1c!important;}
 .torna-btn>button{background-color:#1565c0!important;}
+.compila-btn>button{
+ background-color:#ff9800!important;
+ color:white!important;
+ font-weight:bold!important;
+ border:3px solid #e65100!important;
+}
 .logo-box{
  border:2px solid #2e7d32;
  border-radius:10px;
  padding:10px;
  text-align:center;
  background:#f1f8e9;
-}
-.auto-filled{
- background-color:#fff9c4!important;
- border:2px solid #fbc02d!important;
 }
 </style>
 """, unsafe_allow_html=True)
@@ -94,16 +96,6 @@ EMERGENCY_LOGOS = {
   "nome": "Frana",
   "emoji": "⛰️",
   "png": "https://cdn-icons-png.flaticon.com/512/2942/2942041.png"
- },
- "caduta_albero": {
-  "nome": "Caduta Albero",
-  "emoji": "🌳",
-  "png": "https://cdn-icons-png.flaticon.com/512/740/740934.png"
- },
- "esondazione": {
-  "nome": "Esondazione",
-  "emoji": "🌊",
-  "png": "https://cdn-icons-png.flaticon.com/512/210/210543.png"
  },
  "vvff": {
   "nome": "VVFF Vigili del Fuoco",
@@ -221,6 +213,14 @@ if "selected_pointer" not in st.session_state:
     st.session_state.selected_pointer="📍 Default Rosso"
 if "selected_custom_b64" not in st.session_state:
     st.session_state.selected_custom_b64=""
+if "form_lat" not in st.session_state:
+    st.session_state.form_lat=""
+if "form_lon" not in st.session_state:
+    st.session_state.form_lon=""
+if "form_comune" not in st.session_state:
+    st.session_state.form_comune=""
+if "form_via" not in st.session_state:
+    st.session_state.form_via=""
 
 def torna(suffix=""):
     st.markdown('<div class="torna-btn">', unsafe_allow_html=True)
@@ -366,8 +366,8 @@ elif scelta=="Emergenze con Loghi":
 
 elif scelta=="Mappa Postazioni":
     torna("top_map")
-    st.markdown("### 🗺️ MAPPA - CLICK AUTOMATICO NEI CAMPI")
-    st.info("💡 Scegli PNG, poi clicca sulla mappa: lat, lon, comune e via si compilano AUTOMATICAMENTE nei campi gialli sotto!")
+    st.markdown("### 🗺️ MAPPA - COMPILAZIONE AUTOMATICA MASCHERA")
+    st.info("💡 Scegli PNG, clicca sulla mappa, poi premi il pulsante arancione per compilare la maschera nei campi giusti!")
 
     st.markdown("#### 1️⃣ Scegli il puntatore PNG")
     cc1,cc2,cc3=st.columns([2,1,1])
@@ -392,7 +392,7 @@ elif scelta=="Mappa Postazioni":
             st.success("✅ PNG salvato!")
 
     st.divider()
-    st.markdown("#### 2️⃣ Clicca sulla mappa - I campi sotto si riempiono da soli!")
+    st.markdown("#### 2️⃣ Clicca sulla mappa")
 
     try:
         import folium
@@ -449,7 +449,7 @@ elif scelta=="Mappa Postazioni":
             except:
                 pass
 
-        st.markdown("**Clicca dove vuoi - Appare subito il PNG scelto! ⛶ in alto a sinistra per fullscreen**")
+        st.markdown("**Clicca dove vuoi - Appare subito il PNG scelto! ⛶ fullscreen**")
         map_data=st_folium(m_click,width=800,height=600,returned_objects=["last_clicked"])
 
         if map_data and map_data.get("last_clicked"):
@@ -463,80 +463,91 @@ elif scelta=="Mappa Postazioni":
                     st.session_state.clicked_comune=rev_comune
                 if rev_via:
                     st.session_state.clicked_via=rev_via
-            st.success(f"✅ Cliccato: {clicked_lat:.6f}, {clicked_lon:.6f} - {rev_comune} {rev_via} - Campi sotto auto-compilati!")
+            # COMPILA AUTOMATICAMENTE LA MASCHERA QUANDO CLICCHI
+            st.session_state.form_lat=str(clicked_lat)
+            st.session_state.form_lon=str(clicked_lon)
+            st.session_state.form_comune=rev_comune
+            st.session_state.form_via=rev_via
+            st.success(f"✅ Cliccato! Dati compilati automaticamente nella maschera sotto!")
             st.rerun()
     except ImportError:
         st.warning("Installa folium")
 
-    # CAMPI AUTO-COMPILATI FUORI DAL FORM - SI AGGIORNANO SUBITO AL CLICK!
+    # PULSANTE CHE COMPILA LA MASCHERA NEI CAMPI GIUSTI
+    if st.session_state.clicked_lat and st.session_state.clicked_lon:
+        st.divider()
+        st.markdown("#### 📍 Dati presi dalla mappa - Premi per compilare la maschera")
+        c_info1,c_info2,c_info3,c_info4=st.columns(4)
+        c_info1.metric("Lat",st.session_state.clicked_lat)
+        c_info2.metric("Lon",st.session_state.clicked_lon)
+        c_info3.metric("Comune",st.session_state.clicked_comune or "Non rilevato")
+        c_info4.metric("Via",st.session_state.clicked_via or "Non rilevata")
+
+        st.markdown('<div class="compila-btn">', unsafe_allow_html=True)
+        if st.button("🔄 COMPILA MASCHERA CON DATI MAPPA NEI CAMPI GIUSTI",use_container_width=True,key="compila_maschera"):
+            st.session_state.form_lat=st.session_state.clicked_lat
+            st.session_state.form_lon=st.session_state.clicked_lon
+            st.session_state.form_comune=st.session_state.clicked_comune
+            st.session_state.form_via=st.session_state.clicked_via
+            st.success("✅ Maschera compilata nei campi giusti! Scorri sotto!")
+            st.rerun()
+        st.markdown('</div>', unsafe_allow_html=True)
+
     st.divider()
-    st.markdown("#### 3️⃣ Campi auto-compilati dal click (gialli = compilati automaticamente)")
+    st.markdown("#### 3️⃣ Maschera Postazione - Campi compilati automaticamente dal click")
 
-    c_auto1,c_auto2,c_auto3,c_auto4=st.columns(4)
-    with c_auto1:
-        lat_display=st.text_input("📍 Latitudine (auto)",value=st.session_state.clicked_lat,placeholder="Clicca sulla mappa",key="lat_auto")
-    with c_auto2:
-        lon_display=st.text_input("📍 Longitudine (auto)",value=st.session_state.clicked_lon,placeholder="Clicca sulla mappa",key="lon_auto")
-    with c_auto3:
-        comune_display=st.text_input("🏘️ Comune (auto)",value=st.session_state.clicked_comune,placeholder="Auto dal click",key="comune_auto")
-    with c_auto4:
-        via_display=st.text_input("🛣️ Via (auto)",value=st.session_state.clicked_via,placeholder="Auto dal click",key="via_auto")
-
-    if st.session_state.clicked_lat:
-        st.success(f"✅ Dati presi dalla mappa: Lat {st.session_state.clicked_lat}, Lon {st.session_state.clicked_lon}, Comune {st.session_state.clicked_comune}, Via {st.session_state.clicked_via}")
-
-    st.markdown("#### 4️⃣ Completa e salva - I dati sono già dentro!")
-
-    # COMUNE E VIA FINALI - CON VALORI AUTO-COMPILATI
+    # COMUNE E VIA - AUTO-COMPILATI
     c1,c2=st.columns(2)
     with c1:
-        if st.session_state.clicked_comune:
-            comune_default=st.session_state.clicked_comune
-            if comune_default in COMUNI_TUTTI:
-                idx_com=COMUNI_TUTTI.index(comune_default)
-                comune=st.selectbox("Comune *",COMUNI_TUTTI,index=idx_com,key="comune_map_final")
+        # Comune auto-compilato
+        if st.session_state.form_comune:
+            comune_val=st.session_state.form_comune
+            if comune_val in COMUNI_TUTTI:
+                idx_com=COMUNI_TUTTI.index(comune_val)
+                comune=st.selectbox("Comune * (auto-compilato)",COMUNI_TUTTI,index=idx_com,key="comune_map_final")
             else:
                 comune=st.selectbox("Comune *",COMUNI_TUTTI,key="comune_map_final")
-                # Se comune non in lista, usa quello rilevato
-                if st.session_state.clicked_comune:
-                    comune=st.session_state.clicked_comune
-                    st.info(f"Comune rilevato: {comune} (non in lista, uso rilevato)")
+                st.info(f"Comune rilevato: {comune_val}")
+                comune=comune_val
         else:
             comune=st.selectbox("Comune *",COMUNI_TUTTI,key="comune_map_final")
+
     with c2:
         with st.spinner(f"Carico vie di {comune}..."):
             vie=get_vie_comune(comune)
-        if st.session_state.clicked_via and st.session_state.clicked_via in vie:
-            idx_via=vie.index(st.session_state.clicked_via)
-            via=st.selectbox(f"Via * ({len(vie)-1} vie)",vie,index=idx_via,key="via_map_final")
+        # Via auto-compilata
+        if st.session_state.form_via and st.session_state.form_via in vie:
+            idx_via=vie.index(st.session_state.form_via)
+            via=st.selectbox(f"Via * ({len(vie)-1} vie) - auto-compilata",vie,index=idx_via,key="via_map_final")
         else:
             via=st.selectbox(f"Via * ({len(vie)-1} vie)",vie,key="via_map_final")
         if via=="-- Seleziona Via --":
-            via_man=st.text_input("Via manuale",value=st.session_state.clicked_via,key="via_man_map_final")
+            via_man=st.text_input("Via manuale (auto-compilata)",value=st.session_state.form_via,key="via_man_map_final")
             via_f=via_man if via_man else via
         else:
             via_f=via
 
     with st.form("form_post_finale"):
-        st.markdown("#### Conferma con dati auto-compilati")
+        st.markdown("#### Dati Postazione - Compilazione automatica dalla mappa nei campi giusti")
         nome=st.text_input("Nome Postazione *",placeholder="Es. Postazione 1 - Ponte")
         cc1,cc2=st.columns(2)
         with cc1:
-            # I campi lat/lon qui prendono automaticamente i valori cliccati
-            lat_final=st.text_input("Latitudine *",value=st.session_state.clicked_lat,placeholder="Auto dal click",key="lat_final")
-            lon_final=st.text_input("Longitudine *",value=st.session_state.clicked_lon,placeholder="Auto dal click",key="lon_final")
+            # QUESTI CAMPI SONO COMPILATI AUTOMATICAMENTE QUANDO CLICCHI O PREMI IL PULSANTE
+            lat_final=st.text_input("Latitudine * (auto dal click)",value=st.session_state.form_lat,placeholder="Clicca mappa o premi pulsante arancione",key="lat_final")
+            lon_final=st.text_input("Longitudine * (auto dal click)",value=st.session_state.form_lon,placeholder="Clicca mappa o premi pulsante arancione",key="lon_final")
         with cc2:
             resp=st.text_input("Responsabile",placeholder="Nome responsabile")
-            st.markdown(f"**Puntatore:** {st.session_state.selected_pointer}")
+            st.markdown(f"**Puntatore scelto al click:** {st.session_state.selected_pointer}")
             if st.session_state.selected_custom_b64:
                 st.image(f"data:image/png;base64,{st.session_state.selected_custom_b64}",width=40)
 
+        st.info(f"Comune compilato: {comune} | Via compilata: {via_f} | Lat: {lat_final} | Lon: {lon_final}")
+
         if st.form_submit_button("➕ SALVA POSTAZIONE CON DATI AUTO-COMPILATI",use_container_width=True,type="primary"):
-            # Usa i dati auto-compilati se presenti, altrimenti quelli del form
-            final_lat=lat_final or st.session_state.clicked_lat or lat_display
-            final_lon=lon_final or st.session_state.clicked_lon or lon_display
-            final_comune=comune or st.session_state.clicked_comune or comune_display
-            final_via=via_f or st.session_state.clicked_via or via_display
+            final_lat=lat_final or st.session_state.form_lat or st.session_state.clicked_lat
+            final_lon=lon_final or st.session_state.form_lon or st.session_state.clicked_lon
+            final_comune=comune or st.session_state.form_comune or st.session_state.clicked_comune
+            final_via=via_f or st.session_state.form_via or st.session_state.clicked_via
 
             if nome and final_lat and final_lon:
                 custom_b64=st.session_state.selected_custom_b64 if st.session_state.selected_pointer=="⭐ Personalizzato PNG" else ""
@@ -552,7 +563,11 @@ elif scelta=="Mappa Postazioni":
                 st.session_state.clicked_lon=""
                 st.session_state.clicked_comune=""
                 st.session_state.clicked_via=""
-                st.success(f"✅ {nome} salvata! Lat {final_lat} Lon {final_lon} - {final_comune} {final_via} con {st.session_state.selected_pointer}")
+                st.session_state.form_lat=""
+                st.session_state.form_lon=""
+                st.session_state.form_comune=""
+                st.session_state.form_via=""
+                st.success(f"✅ {nome} salvata con dati auto-compilati!")
                 st.rerun()
             else:
                 st.error("Compila Nome e clicca sulla mappa per Lat/Lon!")
