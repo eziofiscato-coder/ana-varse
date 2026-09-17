@@ -35,15 +35,12 @@ st.markdown("""
 }
 div[data-testid="stFormSubmitButton"]>button{
  background-color:#d32f2f!important;
- color:white!important;
 }
 .logout-btn>button{
  background-color:#b71c1c!important;
- color:white!important;
 }
 .torna-btn>button{
  background-color:#1565c0!important;
- color:white!important;
 }
 .logo-box{
  border:2px solid #2e7d32;
@@ -88,91 +85,76 @@ COMUNI_VARESE=[
  "Somma Lombardo","Malnate","Luino"
 ]
 
-# LIBRERIA LOGHI PNG VERI EMERGENZA
 EMERGENCY_LOGOS = {
  "incendio_boschivo": {
   "nome": "Incendio Boschivo",
   "emoji": "🔥",
-  "png": "https://cdn-icons-png.flaticon.com/512/206/206887.png",
-  "colore": "red"
+  "png": "https://cdn-icons-png.flaticon.com/512/206/206887.png"
  },
  "frana": {
   "nome": "Frana / Smottamento",
   "emoji": "⛰️",
-  "png": "https://cdn-icons-png.flaticon.com/512/2942/2942041.png",
-  "colore": "brown"
+  "png": "https://cdn-icons-png.flaticon.com/512/2942/2942041.png"
  },
  "caduta_albero": {
   "nome": "Caduta Albero",
   "emoji": "🌳",
-  "png": "https://cdn-icons-png.flaticon.com/512/740/740934.png",
-  "colore": "green"
+  "png": "https://cdn-icons-png.flaticon.com/512/740/740934.png"
  },
  "esondazione": {
   "nome": "Esondazione / Alluvione",
   "emoji": "🌊",
-  "png": "https://cdn-icons-png.flaticon.com/512/210/210543.png",
-  "colore": "blue"
+  "png": "https://cdn-icons-png.flaticon.com/512/210/210543.png"
  },
  "allagamento": {
   "nome": "Allagamento",
   "emoji": "💧",
-  "png": "https://cdn-icons-png.flaticon.com/512/245/245246.png",
-  "colore": "blue"
+  "png": "https://cdn-icons-png.flaticon.com/512/245/245246.png"
  },
  "neve_ghiaccio": {
   "nome": "Neve / Ghiaccio",
   "emoji": "❄️",
-  "png": "https://cdn-icons-png.flaticon.com/512/642/642102.png",
-  "colore": "lightblue"
+  "png": "https://cdn-icons-png.flaticon.com/512/642/642102.png"
  },
  "auto_polizia": {
   "nome": "Auto Polizia",
   "emoji": "🚓",
-  "png": "https://cdn-icons-png.flaticon.com/512/3774/3774091.png",
-  "colore": "blue"
+  "png": "https://cdn-icons-png.flaticon.com/512/3774/3774091.png"
  },
  "polizia_locale": {
   "nome": "Polizia Locale",
   "emoji": "👮",
-  "png": "https://cdn-icons-png.flaticon.com/512/3106/3106091.png",
-  "colore": "darkblue"
+  "png": "https://cdn-icons-png.flaticon.com/512/3106/3106091.png"
  },
  "vvff": {
-  "nome": "VVFF - Vigili del Fuoco",
+  "nome": "VVFF Vigili del Fuoco",
   "emoji": "🚒",
-  "png": "https://cdn-icons-png.flaticon.com/512/599/599502.png",
-  "colore": "red"
+  "png": "https://cdn-icons-png.flaticon.com/512/599/599502.png"
  },
  "protezione_civile": {
   "nome": "Mezzi Protezione Civile",
   "emoji": "🦺",
-  "png": "https://cdn-icons-png.flaticon.com/512/599/599505.png",
-  "colore": "orange"
+  "png": "https://cdn-icons-png.flaticon.com/512/599/599505.png"
  },
  "ambulanza": {
-  "nome": "Ambulanza / 118",
+  "nome": "Ambulanza 118",
   "emoji": "🚑",
-  "png": "https://cdn-icons-png.flaticon.com/512/2751/2751790.png",
-  "colore": "white"
+  "png": "https://cdn-icons-png.flaticon.com/512/2751/2751790.png"
  },
  "prima_accoglienza": {
   "nome": "Area Prima Accoglienza",
   "emoji": "⛺",
-  "png": "https://cdn-icons-png.flaticon.com/512/109/109345.png",
-  "colore": "green"
+  "png": "https://cdn-icons-png.flaticon.com/512/109/109345.png"
  },
  "elisoccorso": {
   "nome": "Elisoccorso",
   "emoji": "🚁",
-  "png": "https://cdn-icons-png.flaticon.com/512/3079/3079004.png",
-  "colore": "yellow"
+  "png": "https://cdn-icons-png.flaticon.com/512/3079/3079004.png"
  },
  "incidente_stradale": {
   "nome": "Incidente Stradale",
   "emoji": "🚗",
-  "png": "https://cdn-icons-png.flaticon.com/512/3774/3774086.png",
-  "colore": "red"
+  "png": "https://cdn-icons-png.flaticon.com/512/3774/3774086.png"
  },
 }
 
@@ -196,33 +178,18 @@ def get_vie_comune(comune):
     headers={"User-Agent":"ANA-Varese-App"}
     try:
         nom_url="https://nominatim.openstreetmap.org/search"
-        params={
-         "q":f"{comune}, Italy",
-         "format":"json",
-         "limit":3
-        }
-        r=requests.get(
-         nom_url,
-         params=params,
-         headers=headers,
-         timeout=10
-        )
+        params={"q":f"{comune}, Italy","format":"json","limit":3}
+        r=requests.get(nom_url,params=params,headers=headers,timeout=10)
         if r.status_code==200 and r.json():
             for res in r.json():
                 osm_type=res.get("osm_type")
                 osm_id=res.get("osm_id")
-                lat=res.get("lat")
-                lon=res.get("lon")
                 if osm_type=="relation" and osm_id:
                     area_id=3600000000+int(osm_id)
                     try:
                         q=f'[out:json][timeout:30];area({area_id})->.a;(way(area.a)["highway"]["name"];);out 3000;'
                         url="https://overpass-api.de/api/interpreter"
-                        r2=requests.post(
-                         url,
-                         data={"data":q},
-                         timeout=30
-                        )
+                        r2=requests.post(url,data={"data":q},timeout=30)
                         if r2.status_code==200:
                             data=r2.json()
                             vie=[]
@@ -238,11 +205,7 @@ def get_vie_comune(comune):
                         pass
     except:
         pass
-    return [
-     "-- Seleziona Via --",
-     "Via Roma","Via Garibaldi","Via Milano",
-     "Via Sacco","Via Verdi","Via Dante"
-    ]
+    return ["-- Seleziona Via --","Via Roma","Via Garibaldi","Via Milano","Via Sacco","Via Verdi","Via Dante"]
 
 if "authenticated" not in st.session_state:
     st.session_state.authenticated=False
@@ -261,30 +224,19 @@ if "eventi_lista" not in st.session_state:
 if "checkin_lista" not in st.session_state:
     st.session_state.checkin_lista=load_json(FILE_CHECK,[])
 if "mem_nomi" not in st.session_state:
-    st.session_state.mem_nomi=load_json(
-     FILE_NOMI,
-     ["Mario Rossi","Luigi Bianchi"]
-    )
+    st.session_state.mem_nomi=load_json(FILE_NOMI,["Mario Rossi","Luigi Bianchi"])
 if "menu_scelta" not in st.session_state:
     st.session_state.menu_scelta="Dashboard"
 if "last_postazione" not in st.session_state:
     st.session_state.last_postazione=None
 
 def torna(suffix=""):
-    with st.container():
-        st.markdown(
-         '<div class="torna-btn">',
-         unsafe_allow_html=True
-        )
-        k=f"back_{suffix}_{uuid.uuid4().hex[:6]}"
-        if st.button(
-         "🏠 Torna alla Dashboard",
-         key=k,
-         use_container_width=True
-        ):
-            st.session_state.menu_scelta="Dashboard"
-            st.rerun()
-        st.markdown('</div>', unsafe_allow_html=True)
+    st.markdown('<div class="torna-btn">', unsafe_allow_html=True)
+    k=f"back_{suffix}_{uuid.uuid4().hex[:6]}"
+    if st.button("🏠 Torna alla Dashboard",key=k,use_container_width=True):
+        st.session_state.menu_scelta="Dashboard"
+        st.rerun()
+    st.markdown('</div>', unsafe_allow_html=True)
 
 def header_loghi():
     c1,c2,c3=st.columns(3)
@@ -296,28 +248,15 @@ def header_loghi():
         c3.image("logo_pc_lombardia.png",width=80)
 
 if not st.session_state.authenticated:
-    st.markdown(
-     "<style>[data-testid='stSidebar']{display:none;}</style>",
-     unsafe_allow_html=True
-    )
+    st.markdown("<style>[data-testid='stSidebar']{display:none;}</style>", unsafe_allow_html=True)
     header_loghi()
-    st.markdown(
-     "<h2 style='text-align:center; color:#2e7d32;'>Accesso - admin / ana2024</h2>",
-     unsafe_allow_html=True
-    )
+    st.markdown("<h2 style='text-align:center; color:#2e7d32;'>Accesso - admin / ana2024</h2>", unsafe_allow_html=True)
     c1,c2,c3=st.columns([1,2,1])
     with c2:
         with st.form("login"):
             u=st.text_input("Username",value="admin")
-            p=st.text_input(
-             "Password",
-             type="password",
-             value="ana2024"
-            )
-            if st.form_submit_button(
-             "Accedi",
-             use_container_width=True
-            ):
+            p=st.text_input("Password",type="password",value="ana2024")
+            if st.form_submit_button("Accedi",use_container_width=True):
                 if u=="admin" and p=="ana2024":
                     st.session_state.authenticated=True
                     st.rerun()
@@ -331,37 +270,17 @@ with st.sidebar:
         st.image("logo.png",width=80)
     st.markdown("### MENU ANA VARESE")
     opzioni=[
-     "Dashboard",
-     "Emergenze con Loghi",
-     "Mappa Postazioni",
-     "Volontari",
-     "DB Radio",
-     "Distribuzione Radio",
-     "Eventi",
-     "Check-in",
-     "Tabella Interventi Emergenza",
-     "Backup"
+     "Dashboard","Emergenze con Loghi","Mappa Postazioni",
+     "Volontari","DB Radio","Distribuzione Radio",
+     "Eventi","Check-in","Tabella Interventi Emergenza","Backup"
     ]
-    sel=st.radio(
-     "Seleziona",
-     opzioni,
-     index=opzioni.index(
-      st.session_state.menu_scelta
-     ) if st.session_state.menu_scelta in opzioni else 0
-    )
+    sel=st.radio("Seleziona",opzioni,index=opzioni.index(st.session_state.menu_scelta) if st.session_state.menu_scelta in opzioni else 0)
     if sel!=st.session_state.menu_scelta:
         st.session_state.menu_scelta=sel
         st.rerun()
     st.divider()
-    st.markdown(
-     '<div class="logout-btn">',
-     unsafe_allow_html=True
-    )
-    if st.button(
-     "🚪 LOGOUT - Esci",
-     use_container_width=True,
-     key="logout_btn"
-    ):
+    st.markdown('<div class="logout-btn">', unsafe_allow_html=True)
+    if st.button("🚪 LOGOUT - Esci",use_container_width=True,key="logout_btn"):
         st.session_state.authenticated=False
         st.rerun()
     st.markdown('</div>', unsafe_allow_html=True)
@@ -376,66 +295,37 @@ MIME_SHORT="application/octet-stream"
 
 if scelta=="Dashboard":
     c1,c2,c3,c4=st.columns(4)
-    c1.metric(
-     "Emergenze",
-     len(st.session_state.emergenze_lista)
-    )
-    c2.metric(
-     "Postazioni",
-     len(st.session_state.postazioni)
-    )
-    c3.metric(
-     "Volontari",
-     len(st.session_state.dati)
-    )
-    c4.metric(
-     "Radio",
-     len(st.session_state.radio_db)
-    )
+    c1.metric("Emergenze",len(st.session_state.emergenze_lista))
+    c2.metric("Postazioni",len(st.session_state.postazioni))
+    c3.metric("Volontari",len(st.session_state.dati))
+    c4.metric("Radio",len(st.session_state.radio_db))
     st.info("✅ Dati memorizzati su disco!")
+    if st.session_state.emergenze_lista:
+        st.markdown("### Ultimi Interventi con Loghi PNG")
+        st.dataframe(pd.DataFrame(st.session_state.emergenze_lista[-5:]),use_container_width=True)
 
 elif scelta=="Emergenze con Loghi":
     torna("top_em")
     st.markdown("### 🚨 EMERGENZA CON LOGHI VERI PNG")
-    st.info("Loghi veri PNG: Incendio, Frana, VVFF, Polizia, Ambulanza, ecc.")
+    st.info("14 loghi PNG veri: incendio, frana, VVFF, polizia, ambulanza, area accoglienza ecc.")
     c1,c2=st.columns(2)
     with c1:
-        comune=st.selectbox(
-         "Comune *",
-         COMUNI_TUTTI,
-         key="comune_em"
-        )
+        comune=st.selectbox("Comune *",COMUNI_TUTTI,key="comune_em")
     with c2:
         with st.spinner(f"Carico vie di {comune}..."):
             vie=get_vie_comune(comune)
-        via=st.selectbox(
-         f"Via * ({len(vie)-1} vie)",
-         vie,
-         key="via_em"
-        )
+        via=st.selectbox(f"Via * ({len(vie)-1} vie)",vie,key="via_em")
         if via=="-- Seleziona Via --":
-            via_man=st.text_input(
-             "Via manuale",
-             key="via_man_em"
-            )
+            via_man=st.text_input("Via manuale",key="via_man_em")
             via_f=via_man if via_man else via
         else:
             via_f=via
-
     st.markdown("#### 🎨 SCEGLI LOGO VERO PNG")
     col_logo1,col_logo2,col_logo3=st.columns([2,1,1])
     with col_logo1:
         logo_keys=list(EMERGENCY_LOGOS.keys())
-        logo_names=[
-         f"{EMERGENCY_LOGOS[k]['emoji']} {EMERGENCY_LOGOS[k]['nome']}"
-         for k in logo_keys
-        ]
-        sel_logo_idx=st.selectbox(
-         "Tipo Emergenza con Logo PNG *",
-         range(len(logo_keys)),
-         format_func=lambda i: logo_names[i],
-         key="logo_sel"
-        )
+        logo_names=[f"{EMERGENCY_LOGOS[k]['emoji']} {EMERGENCY_LOGOS[k]['nome']}" for k in logo_keys]
+        sel_logo_idx=st.selectbox("Tipo Emergenza *",range(len(logo_keys)),format_func=lambda i: logo_names[i],key="logo_sel")
         sel_logo_key=logo_keys[sel_logo_idx]
         sel_logo_info=EMERGENCY_LOGOS[sel_logo_key]
     with col_logo2:
@@ -447,20 +337,10 @@ elif scelta=="Emergenze con Loghi":
             st.markdown(f"# {sel_logo_info['emoji']}")
         st.markdown('</div>', unsafe_allow_html=True)
     with col_logo3:
-        st.markdown("**Carica PNG Personalizzato**")
-        custom_logo_upload=st.file_uploader(
-         "Carica logo PNG",
-         type=["png","jpg","jpeg"],
-         key="custom_logo"
-        )
+        custom_logo_upload=st.file_uploader("Carica PNG",type=["png","jpg","jpeg"],key="custom_logo")
         custom_b64=""
         if custom_logo_upload:
             st.image(custom_logo_upload,width=80)
-            custom_b64=base64.b64encode(
-             custom_logo_upload.getvalue()
-            ).decode()
+            custom_b64=base64.b64encode(custom_logo_upload.getvalue()).decode()
             st.success("✅ PNG caricato!")
-
     with st.form("form_em_completo"):
-        st.markdown("#### Dati Emergenza")
-        col1
