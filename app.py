@@ -678,4 +678,4 @@ elif scelta == "Backup":
         if st.session_state.dist_radio:
             out = BytesIO()
             pd.DataFrame(st.session_state.dist_radio).to_excel(out, index=False, engine="openpyxl")
-            st.download_button("📥 Distribuzione Radio (solo questo form)", out.getvalue(), f"distribuzione_{date.today()}.xlsx", mime="application/vnd.openxmlformats-officedocument.spreadsheet
+            st.download_button("Distribuzione Radio (solo questo form)", out.getvalue(), f"distribuzione_{date.today()}.xlsx", mime="application/vnd.openxmlformats-officedocument.spreadsheet
