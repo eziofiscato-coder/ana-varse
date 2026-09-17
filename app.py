@@ -160,7 +160,7 @@ elif scelta=="Emergenze con Loghi":
                 st.session_state.emergenze_lista.append({"Data":str(data_em),"Logo":ICONS[tipo]["icon"],"Comune":comune,"Via":via_f,"Tipo":ICONS[tipo]["nome"],"Descrizione":desc})
                 save_json(FILE_EMER,st.session_state.emergenze_lista); st.success("Salvata e memorizzata!"); st.rerun()
     if st.session_state.emergenze_lista: st.dataframe(pd.DataFrame(st.session_state.emergenze_lista),use_container_width=True)
-        elif scelta=="Mappa Postazioni":
+elif scelta=="Mappa Postazioni":
     torna("top_map")
     c1,c2=st.columns(2)
     with c1: comune=st.selectbox("Comune *",COMUNI_TUTTI,key="comune_map")
