@@ -182,6 +182,28 @@ def get_vie_comune(comune):
         pass
     return ["-- Seleziona Via --","Via Roma","Via Garibaldi","Via Milano","Via Sacco","Via Verdi","Via Dante"]
 
+def reverse_geocode(lat, lon):
+    try:
+        url=f"https://nominatim.openstreetmap.org/reverse"
+        params={
+         "format":"json",
+         "lat":lat,
+         "lon":lon,
+         "zoom":18,
+         "addressdetails":1
+        }
+        headers={"User-Agent":"ANA-Varese-App"}
+        r=requests.get(url,params=params,headers=headers,timeout=10)
+        if r.status_code==200:
+            data=r.json()
+            addr=data.get("address",{})
+            comune=addr.get("city") or addr.get("town") or addr.get("village") or addr.get("municipality") or ""
+            via=addr.get("road") or addr.get("pedestrian") or addr.get("footway") or addr.get("residential") or ""
+            return comune, via
+    except:
+        pass
+    return "", ""
+
 if "authenticated" not in st.session_state:
     st.session_state.authenticated=False
 if "dati" not in st.session_state:
@@ -204,6 +226,14 @@ if "menu_scelta" not in st.session_state:
     st.session_state.menu_scelta="Dashboard"
 if "last_postazione" not in st.session_state:
     st.session_state.last_postazione=None
+if "clicked_lat" not in st.session_state:
+    st.session_state.clicked_lat=""
+if "clicked_lon" not in st.session_state:
+    st.session_state.clicked_lon=""
+if "clicked_comune" not in st.session_state:
+    st.session_state.clicked_comune=""
+if "clicked_via" not in st.session_state:
+    st.session_state.clicked_via=""
 
 def torna(suffix=""):
     st.markdown('<div class="torna-btn">', unsafe_allow_html=True)
@@ -317,7 +347,6 @@ elif scelta=="Emergenze con Loghi":
             st.image(custom_logo_upload,width=80)
             custom_b64=base64.b64encode(custom_logo_upload.getvalue()).decode()
             st.success("✅ PNG caricato!")
-    # FIX INDENTAZIONE RIGA 346 - BLOCCO INDENTATO CORRETTO
     with st.form("form_em_completo"):
         st.markdown("#### Dati Emergenza - Tutti i campi")
         cc1,cc2,cc3=st.columns(3)
@@ -360,26 +389,110 @@ elif scelta=="Emergenze con Loghi":
 
 elif scelta=="Mappa Postazioni":
     torna("top_map")
-    st.markdown("### 🗺️ MAPPA POSTAZIONI - PUNTATORE PNG")
-    st.info("La mappa visualizza SUBITO la postazione con puntatore PNG!")
+    st.markdown("### 🗺️ MAPPA POSTAZIONI - CLICK MANUALE + FULLSCREEN")
+    st.info("💡 NOVITÀ: Clicca direttamente sulla mappa dove vuoi! Ti assegna subito lat, lon, comune e via in automatico! Usa il tasto fullscreen in alto a sinistra per estendere la mappa!")
+
+    # MAPPA INTERATTIVA PER CLICK MANUALE - ESTESA
+    st.markdown("#### 👆 Clicca sulla mappa per scegliere la posizione")
+    try:
+        import folium
+        from streamlit_folium import st_folium
+        from folium.plugins import Fullscreen
+
+        # Mappa grande con fullscreen
+        if st.session_state.last_postazione:
+            try:
+                lat_c=float(str(st.session_state.last_postazione["Latitudine"]).replace(",","."))
+                lon_c=float(str(st.session_state.last_postazione["Longitudine"]).replace(",","."))
+                zoom=14
+            except:
+                lat_c=45.8205; lon_c=8.8255; zoom=12
+        else:
+            lat_c=45.8205; lon_c=8.8255; zoom=12
+
+        m_click=folium.Map(location=[lat_c,lon_c],zoom_start=zoom,tiles="OpenStreetMap")
+        Fullscreen(position="topleft", title="Espandi a schermo intero", title_cancel="Esci da fullscreen").add_to(m_click)
+
+        # Aggiungi postazioni esistenti
+        if st.session_state.postazioni:
+            df_temp=pd.DataFrame(st.session_state.postazioni)
+            for idx, r in df_temp.iterrows():
+                try:
+                    la=float(str(r["Latitudine"]).replace(",","."))
+                    lo=float(str(r["Longitudine"]).replace(",","."))
+                    folium.Marker([la,lo],popup=f"{r['Postazione']}",icon=folium.Icon(color="blue",icon="info-sign")).add_to(m_click)
+                except:
+                    pass
+
+        st.markdown("**Clicca dove vuoi mettere la postazione - La mappa si espande con il pulsante in alto a sinistra ⛶**")
+        map_data=st_folium(m_click,width=800,height=600,returned_objects=["last_clicked"])
+
+        if map_data and map_data.get("last_clicked"):
+            clicked_lat=map_data["last_clicked"]["lat"]
+            clicked_lon=map_data["last_clicked"]["lng"]
+            st.session_state.clicked_lat=str(clicked_lat)
+            st.session_state.clicked_lon=str(clicked_lon)
+            # Reverse geocode automatico
+            with st.spinner("Recupero Comune e Via dalla posizione cliccata..."):
+                rev_comune, rev_via=reverse_geocode(clicked_lat, clicked_lon)
+                if rev_comune:
+                    st.session_state.clicked_comune=rev_comune
+                if rev_via:
+                    st.session_state.clicked_via=rev_via
+            st.success(f"✅ Posizione cliccata: Lat {clicked_lat:.6f}, Lon {clicked_lon:.6f} - Comune: {rev_comune} - Via: {rev_via}")
+            st.rerun()
+    except ImportError:
+        st.warning("Installa folium per il click manuale")
+
+    # Mostra valori cliccati
+    if st.session_state.clicked_lat and st.session_state.clicked_lon:
+        st.markdown("#### 📍 Posizione selezionata dalla mappa")
+        cc1,cc2,cc3,cc4=st.columns(4)
+        cc1.metric("Latitudine",st.session_state.clicked_lat)
+        cc2.metric("Longitudine",st.session_state.clicked_lon)
+        cc3.metric("Comune rilevato",st.session_state.clicked_comune or "Non rilevato")
+        cc4.metric("Via rilevata",st.session_state.clicked_via or "Non rilevata")
+
+    st.divider()
+    st.markdown("#### Dati Postazione - Compilazione automatica dal click")
+
     c1,c2=st.columns(2)
     with c1:
-        comune=st.selectbox("Comune *",COMUNI_TUTTI,key="comune_map")
+        # Se hai cliccato, usa comune rilevato, altrimenti scegli
+        if st.session_state.clicked_comune:
+            comune_default=st.session_state.clicked_comune
+            if comune_default in COMUNI_TUTTI:
+                idx_com=COMUNI_TUTTI.index(comune_default)
+            else:
+                idx_com=0
+            comune=st.selectbox("Comune *",COMUNI_TUTTI,index=idx_com,key="comune_map")
+        else:
+            comune=st.selectbox("Comune *",COMUNI_TUTTI,key="comune_map")
     with c2:
         with st.spinner(f"Carico vie di {comune}..."):
             vie=get_vie_comune(comune)
-        via=st.selectbox(f"Via * ({len(vie)-1} vie)",vie,key="via_map")
+        # Se via rilevata dal click, pre-seleziona
+        if st.session_state.clicked_via and st.session_state.clicked_via in vie:
+            idx_via=vie.index(st.session_state.clicked_via)
+            via=st.selectbox(f"Via * ({len(vie)-1} vie)",vie,index=idx_via,key="via_map")
+        else:
+            via=st.selectbox(f"Via * ({len(vie)-1} vie)",vie,key="via_map")
         if via=="-- Seleziona Via --":
-            via_man=st.text_input("Via manuale",key="via_man_map")
+            via_man=st.text_input("Via manuale",value=st.session_state.clicked_via,key="via_man_map")
             via_f=via_man if via_man else via
         else:
             via_f=via
+
     with st.form("form_post"):
+        st.markdown("#### Dati Postazione + Puntatore PNG")
         nome=st.text_input("Nome Postazione *")
         cc1,cc2=st.columns(2)
         with cc1:
-            lat=st.text_input("Lat *",placeholder="45.8205",key="lat_new")
-            lon=st.text_input("Lon *",placeholder="8.8255",key="lon_new")
+            # Auto-compila lat/lon dal click
+            lat_val=st.session_state.clicked_lat if st.session_state.clicked_lat else ""
+            lon_val=st.session_state.clicked_lon if st.session_state.clicked_lon else ""
+            lat=st.text_input("Lat *",value=lat_val,placeholder="45.8205 o clicca mappa",key="lat_new")
+            lon=st.text_input("Lon *",value=lon_val,placeholder="8.8255 o clicca mappa",key="lon_new")
         with cc2:
             resp=st.text_input("Responsabile")
         cc3,cc4=st.columns(2)
@@ -403,17 +516,24 @@ elif scelta=="Mappa Postazioni":
                 st.session_state.postazioni.append(new_post)
                 save_json(FILE_POST,st.session_state.postazioni)
                 st.session_state.last_postazione=new_post
-                st.success(f"✅ {nome} aggiunta!")
+                # Reset click dopo salvataggio
+                st.session_state.clicked_lat=""
+                st.session_state.clicked_lon=""
+                st.session_state.clicked_comune=""
+                st.session_state.clicked_via=""
+                st.success(f"✅ {nome} aggiunta! Lat {lat} Lon {lon} Comune {comune} Via {via_f}")
                 st.rerun()
+            else:
+                st.error("Compila Nome, Lat, Lon! Clicca sulla mappa per auto-compilare!")
+
     if st.session_state.postazioni:
         df=pd.DataFrame(st.session_state.postazioni)
-        st.markdown(f"### 📍 Mappa - {len(df)} Postazioni")
-        if st.session_state.last_postazione:
-            st.info(f"🎯 Ultima: {st.session_state.last_postazione['Postazione']}")
+        st.markdown(f"### 📍 Mappa Finale - {len(df)} Postazioni - Fullscreen ⛶")
         tipo_mappa=st.selectbox("Tipo Mappa",["OpenStreetMap","Google Stradale","Google Satellite"],key="tipo_mappa")
         try:
             import folium
             from streamlit_folium import st_folium
+            from folium.plugins import Fullscreen
             if st.session_state.last_postazione:
                 try:
                     lat_c=float(str(st.session_state.last_postazione["Latitudine"]).replace(",","."))
@@ -434,11 +554,12 @@ elif scelta=="Mappa Postazioni":
                     url="https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}"
                     nome_t="Google Satellite"
                 folium.TileLayer(url,attr="Google",name=nome_t,max_zoom=20).add_to(m)
+            Fullscreen(position="topleft").add_to(m)
             for idx, r in df.iterrows():
                 try:
                     la=float(str(r["Latitudine"]).replace(",","."))
                     lo=float(str(r["Longitudine"]).replace(",","."))
-                    popup_text=f"<b>{r['Postazione']}</b><br>{r['Comune']}"
+                    popup_text=f"<b>{r['Postazione']}</b><br>{r['Comune']} - {r['Via']}"
                     puntatore=r.get("Puntatore","📍 Default Rosso")
                     custom_b64=r.get("CustomPNG","")
                     is_last=False
@@ -462,7 +583,7 @@ elif scelta=="Mappa Postazioni":
                             folium.Marker([la,lo],popup=popup_text,icon=folium.Icon(color=color,icon="info-sign")).add_to(m)
                 except:
                     pass
-            st_folium(m,width=800,height=550,returned_objects=[])
+            st_folium(m,width=800,height=600,returned_objects=[])
         except ImportError:
             st.map(df.rename(columns={"Latitudine":"lat","Longitudine":"lon"}))
         st.dataframe(df.drop(columns=["CustomPNG"],errors="ignore"),use_container_width=True)
