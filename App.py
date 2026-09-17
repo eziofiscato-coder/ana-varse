@@ -14,13 +14,13 @@ try:
 except:
  HAS=False
 
-st.set_page_config(page_title="ANA Varese - Dashboard + Mappa Fix", page_icon="🟢", layout="wide")
+st.set_page_config(page_title="ANA Varese - Dashboard + Mappa", page_icon="🟢", layout="wide")
 
 for k,v in [("authenticated",False),("dashboard_entered",False),("interventi_lista",[]),("eventi",[]),("mem_nomi",["Mario Rossi","Luigi Bianchi","Giuseppe Verdi"]),("radio_db",[]),("dist_radio",[]),("postazioni",[]),("brogliaccio",[]),("registro_radio",[]),("volontari_full",[]),("checkin",{}),("icone_personalizzate",[]),("menu_scelta","🏠 Dashboard")]:
  if k not in st.session_state:
   st.session_state[k]=v
 
-ICONE={"🔥 Incendio Boschivo":"🔥","🌊 Alluvione":"🌊","❄️ Neve":"❄️","⛰️ Frana":"⛰️","🔍 Ricerca Persona":"🔍","👥 Supporto Popolazione":"👥","👁️ Monitoraggio":"👁️","🚧 Presidio":"🚧","🚑 Sanitario":"🚑","🏚️ Crollo":"🏚️","🌲 Antincendio":"🌲","⚡ Blackout":"⚡","🦺 Esercitazione":"🦺","🎪 Manifestazione":"🎪","🚨 Altro":"🚨"}
+ICONE={"🔥 Incendio Boschivo":"🔥","🌊 Alluvione":"🌊","❄️ Neve":"❄️","⛰️ Frana":"⛰️","🔍 Ricerca Persona":"🔍","👥 Supporto Popolazione":"👥","👁️ Monitoraggio":"👁️","🚧 Presidio":"🚧","🚑 Sanitario":"🚑","🏚️ Crollo":"🏚️","🌲 Antincendio":"🌲","⚡ Blackout":"⚡","🦺 Esercitazione":"🦺","🎪 Manifestazione":"🎪","🚨 Altro":"🚨","📍 Postazione":"📍","🏕️ Campo":"🏕️","🚒 VVF":"🚒"}
 LIB_ICONE=[{"nome":k,"icona":v} for k,v in ICONE.items()]
 
 try:
@@ -31,7 +31,7 @@ except:
   df_com=pd.read_csv("/mnt/data/comuni_italiani.csv")
   LISTA_COMUNI=sorted(df_com["Comune"].astype(str).unique().tolist())
  except:
-  LISTA_COMUNI=["Varese","Busto Arsizio","Gallarate","Saronno","Venegono Superiore","Venegono Inferiore","Milano","Como","Varese"]
+  LISTA_COMUNI=["Varese","Busto Arsizio","Gallarate","Saronno","Venegono Superiore","Venegono Inferiore","Milano","Como"]
 
 try:
  df_vie=pd.read_csv("vie_per_comune.csv")
@@ -39,7 +39,7 @@ try:
  for c in df_vie["Comune"].unique():
   VIE_PER_COMUNE[c]=df_vie[df_vie["Comune"]==c]["Via"].astype(str).unique().tolist()
 except:
- VIE_PER_COMUNE={"Varese":["Via Roma","Via Milano","Via Garibaldi","Via Verdi","Via Manzoni","Via Cavour"]}
+ VIE_PER_COMUNE={"Varese":["Via Roma","Via Milano","Via Garibaldi","Via Verdi","Via Manzoni","Via Cavour","Piazza Monte Grappa","Via Sacco"]}
 
 def get_b64(p):
  try:
@@ -54,15 +54,15 @@ b64_vol=get_b64("logo_volontariato_varese.jpg") or get_b64("/mnt/data/Circular_V
 b64_ana=get_b64("logo_ana_varese.jpg") or get_b64("/mnt/data/Green_Alpini_Emblem")
 b64_pc=get_b64("logo_protezione_civile_lombardia.jpg") or get_b64("/mnt/data/Protezione_Civile_Lombardia_Emblem")
 
+# LOGHI PULITI - SOLO 3 IMMAGINI SENZA TESTO
 if b64_vol and b64_ana and b64_pc:
- LOGHI=f"""<div style='display:flex; justify-content:center; align-items:center; gap:15px; background:#a5d6a7; padding:12px; border-radius:15px; border:3px solid #2e7d32; margin-bottom:12px; flex-wrap:wrap;'>
-  <div style='text-align:center;'><img src='data:image/jpeg;base64,{b64_vol}' style='width:90px; height:90px; border-radius:50%; border:3px solid #1b5e20; background:white;'><br><small style='color:#1b5e20; font-weight:bold; font-size:9px;'>VOLONTARIATO<br>Sezione VARESE</small></div>
-  <div style='text-align:center;'><img src='data:image/jpeg;base64,{b64_ana}' style='width:100px; height:100px; border-radius:50%; border:4px solid #1b5e20; background:white;'><br><small style='color:#1b5e20; font-weight:bold; font-size:9px;'>ANA<br>Sezione VARESE</small></div>
-  <div style='text-align:center;'><img src='data:image/jpeg;base64,{b64_pc}' style='width:90px; height:90px; border-radius:50%; border:3px solid #2e7d32; background:white;'><br><small style='color:#1b5e20; font-weight:bold; font-size:9px;'>PROTEZIONE CIVILE<br>Regione Lombardia</small></div>
-  <div style='text-align:center; flex:1; min-width:200px;'><h3 style='color:#1b5e20; margin:0;'>ANA Varese - Protezione Civile</h3></div>
+ LOGHI=f"""<div style='display:flex; justify-content:center; align-items:center; gap:25px; background:#a5d6a7; padding:15px; border-radius:15px; border:3px solid #2e7d32; margin-bottom:15px; flex-wrap:wrap;'>
+  <img src='data:image/jpeg;base64,{b64_vol}' style='width:90px; height:90px; border-radius:50%; border:3px solid #1b5e20; background:white; object-fit:cover;'>
+  <img src='data:image/jpeg;base64,{b64_ana}' style='width:100px; height:100px; border-radius:50%; border:4px solid #1b5e20; background:white; object-fit:cover;'>
+  <img src='data:image/jpeg;base64,{b64_pc}' style='width:90px; height:90px; border-radius:50%; border:3px solid #2e7d32; background:white; object-fit:cover;'>
 </div>"""
 else:
- LOGHI="<div style='background:#a5d6a7; padding:12px; border-radius:12px; border:3px solid #2e7d32; text-align:center;'><h3 style='color:#1b5e20; margin:0;'>ANA Varese - Protezione Civile</h3></div>"
+ LOGHI="<div style='background:#a5d6a7; padding:12px; border-radius:12px; border:3px solid #2e7d32; text-align:center;'><h3 style='color:#1b5e20; margin:0;'>ANA Varese</h3></div>"
 
 st.markdown("""<style>
 .stApp{background:#e8f5e9!important;}
@@ -115,10 +115,9 @@ def tabella_import_export(nome, lista):
  else:
   st.info(f"Nessun dato in {nome}")
 
-# LOGIN
+# LOGIN - SENZA ETICHETTA ACCESSO RISERVATO, SOLO LOGHI
 if not st.session_state.authenticated:
  st.markdown(LOGHI, unsafe_allow_html=True)
- st.markdown("<h2 style='text-align:center; color:#1b5e20; background:#a5d6a7; padding:10px; border-radius:12px;'>🔐 Accesso Riservato</h2>", unsafe_allow_html=True)
  c1,c2,c3=st.columns([1,2,1])
  with c2:
   with st.form("login"):
@@ -133,7 +132,6 @@ if not st.session_state.authenticated:
 
 if not st.session_state.dashboard_entered:
  st.markdown(LOGHI, unsafe_allow_html=True)
- st.markdown("<h2 style='text-align:center; color:#1b5e20; background:#a5d6a7; padding:12px; border-radius:15px;'>🟢 ANA Varese - Protezione Civile</h2>", unsafe_allow_html=True)
  c1,c2,c3=st.columns([1,2,1])
  with c2:
   if st.button("🚀 ENTRA DASHBOARD", use_container_width=True, type="primary"):
@@ -157,7 +155,6 @@ with st.sidebar:
   st.session_state.dashboard_entered=False
   st.rerun()
 
-st.markdown(f"<h2 style='color:#1b5e20; background:#a5d6a7; padding:10px; border-radius:12px; border:3px solid #2e7d32;'>🟢 {st.session_state.menu_scelta} - 3 Loghi</h2>", unsafe_allow_html=True)
 scelta=st.session_state.menu_scelta
 
 def dash_btn(k):
@@ -171,7 +168,7 @@ def dash_btn(k):
    st.session_state.dashboard_entered=False
    st.rerun()
 
-# DASHBOARD CON TASTI MENU VELOCE - NUOVO
+# DASHBOARD CON TASTI SCELTA RAPIDA
 if scelta=="🏠 Dashboard":
  st.markdown(LOGHI, unsafe_allow_html=True)
  c1,c2,c3,c4=st.columns(4)
@@ -181,9 +178,7 @@ if scelta=="🏠 Dashboard":
  c4.metric("Radio", len(st.session_state.radio_db))
  
  st.markdown("### ⚡ MENU VELOCE - Clicca per aprire subito")
- st.info("Tasti rapidi per accedere ai form senza passare dal menu laterale")
  
- # RIGA 1 - 4 tasti grandi
  r1c1,r1c2,r1c3,r1c4=st.columns(4)
  with r1c1:
   if st.button("🚨\nInterventi\nEmergenza", key="quick_int", use_container_width=True, type="primary"):
@@ -202,7 +197,6 @@ if scelta=="🏠 Dashboard":
    st.session_state.menu_scelta="✅ Check-In Volontari"
    st.rerun()
  
- # RIGA 2
  r2c1,r2c2,r2c3,r2c4=st.columns(4)
  with r2c1:
   if st.button("👥\nVolontari\nAnagrafica", key="quick_vol", use_container_width=True):
@@ -221,7 +215,6 @@ if scelta=="🏠 Dashboard":
    st.session_state.menu_scelta="📝 Brogliaccio ODV"
    st.rerun()
  
- # RIGA 3
  r3c1,r3c2,r3c3,r3c4=st.columns(4)
  with r3c1:
   if st.button("📝\nRegistro\nRadio", key="quick_reg", use_container_width=True):
@@ -244,69 +237,104 @@ if scelta=="🏠 Dashboard":
   st.markdown("#### Ultimi 5 interventi")
   st.dataframe(pd.DataFrame(st.session_state.interventi_lista).tail(5), use_container_width=True)
 
-# MAPPA POSTAZIONI CON OPENSTREETMAP + GOOGLE MAPS - FIX
+# MAPPA POSTAZIONI CON TUTTO: MAPPE + ICONE MANUALI + MAPPOINT
 elif scelta=="🗺️ Mappa Postazioni":
  st.markdown(LOGHI, unsafe_allow_html=True)
- st.markdown("### 🗺️ Mappa Postazioni - OpenStreetMap + Google Maps")
- 
+ st.markdown("### 🗺️ Mappa Postazioni")
+
+ # 1. IMPORT MAPPOINT SE PRESENTE SU PC
+ with st.expander("🔗 Importa da Microsoft MapPoint / Excel / CSV (se presente su PC)", expanded=False):
+  st.info("Se hai MapPoint installato sul PC: esporta i Pushpin in Excel (File > Esporta). Carica qui il file.")
+  up_mp = st.file_uploader("Carica file MapPoint / Excel / CSV", type=["csv","xlsx","xls"], key="mappoint_file")
+  if up_mp:
+   try:
+    if up_mp.name.endswith(".csv"):
+     df_mp = pd.read_csv(up_mp)
+    else:
+     df_mp = pd.read_excel(up_mp)
+    st.write("Anteprima file MapPoint:")
+    st.dataframe(df_mp.head(), use_container_width=True)
+    # Prova a indovinare colonne lat/lon
+    cols = df_mp.columns.tolist()
+    lat_col = st.selectbox("Colonna Latitudine", cols, index=0 if len(cols)>0 else 0, key="mp_lat")
+    lon_col = st.selectbox("Colonna Longitudine", cols, index=1 if len(cols)>1 else 0, key="mp_lon")
+    nome_col = st.selectbox("Colonna Nome Postazione", cols, index=0, key="mp_nome")
+    if st.button("📥 Importa tutte da MapPoint", use_container_width=True, type="primary", key="mp_import"):
+     count=0
+     for _, row in df_mp.iterrows():
+      try:
+       lat = float(str(row[lat_col]).replace(",","."))
+       lon = float(str(row[lon_col]).replace(",","."))
+       nome = str(row[nome_col])
+       st.session_state.postazioni.append({"Postazione":nome,"Comune":"Import MapPoint","Via":"","Civico":"","Latitudine":str(lat),"Longitudine":str(lon),"Responsabile":"","Data":str(date.today()),"Icona":"📍","Fonte":"MapPoint"})
+       count+=1
+      except: pass
+     st.success(f"Importate {count} postazioni da MapPoint!")
+   except Exception as e:
+    st.error(f"Errore lettura MapPoint: {e}")
+
+ # 2. INSERIMENTO MANUALE CON ICONA
+ st.markdown("#### 📍 Inserimento manuale con icona")
  with st.form("post_form", clear_on_submit=True):
   c1,c2=st.columns(2)
   with c1:
    nome=st.text_input("Nome Postazione *", placeholder="Postazione 1 - Piazza")
-   comune=st.selectbox("Comune * - COMBO", options=LISTA_COMUNI, index=LISTA_COMUNI.index("Varese") if "Varese" in LISTA_COMUNI else 0)
+   comune=st.selectbox("Comune *", options=LISTA_COMUNI, index=LISTA_COMUNI.index("Varese") if "Varese" in LISTA_COMUNI else 0)
    via_list=VIE_PER_COMUNE.get(comune, ["Via Roma","Via Milano"])
    via=st.selectbox(f"Via * - Vie di {comune}", options=via_list)
-  with c2:
    civ=st.text_input("Civico", placeholder="15")
-   lat=st.text_input("Latitudine *", placeholder="45.8205 - es. 45.8205")
-   lon=st.text_input("Longitudine *", placeholder="8.8255 - es. 8.8255")
+   tutte_icone=LIB_ICONE+st.session_state.icone_personalizzate
+   opts=[f"{ic.get('icona','🔹')} {ic.get('nome','')}" for ic in tutte_icone]
+   tipo_icona=st.selectbox("Icona *", options=opts)
+   icona_sel=tipo_icona.split(" ")[0] if tipo_icona else "📍"
+  with c2:
+   lat=st.text_input("Latitudine *", placeholder="45.8205")
+   lon=st.text_input("Longitudine *", placeholder="8.8255")
    resp=st.text_input("Responsabile")
+   st.markdown("💡 **Come trovare coordinate:** Clicca su Google Maps > tasto dx > copia coordinate")
   if st.form_submit_button("🔴 SALVA POSTAZIONE", use_container_width=True, type="primary"):
    if nome and comune and lat and lon:
     try:
      float(lat); float(lon)
-     st.session_state.postazioni.append({"Postazione":nome,"Comune":comune,"Via":via,"Civico":civ,"Latitudine":lat,"Longitudine":lon,"Responsabile":resp,"Data":str(date.today())})
-     st.success(f"Salvata {nome}!")
+     st.session_state.postazioni.append({"Postazione":nome,"Comune":comune,"Via":via,"Civico":civ,"Latitudine":lat,"Longitudine":lon,"Responsabile":resp,"Data":str(date.today()),"Icona":icona_sel,"Tipo":tipo_icona})
+     st.success(f"Salvata {icona_sel} {nome}!")
+     st.rerun()
     except:
      st.error("Latitudine e Longitudine devono essere numeri es: 45.8205 e 8.8255")
    else:
     st.error("Compila Nome, Comune, Latitudine, Longitudine *")
 
- # MAPPA VISUALIZZAZIONE
+ # 3. VISUALIZZAZIONE MAPPE
  if st.session_state.postazioni:
   df_post=pd.DataFrame(st.session_state.postazioni)
   st.markdown(f"#### 📍 {len(df_post)} Postazioni salvate - Mappa")
   
-  # Prepara dati per st.map (OpenStreetMap)
   try:
    df_map=df_post.copy()
    df_map["lat"]=pd.to_numeric(df_map["Latitudine"], errors='coerce')
    df_map["lon"]=pd.to_numeric(df_map["Longitudine"], errors='coerce')
    df_map=df_map.dropna(subset=["lat","lon"])
    if not df_map.empty:
-    st.markdown("**🗺️ OpenStreetMap - Mappa interattiva**")
+    st.markdown("**🗺️ OpenStreetMap - Mappa interattiva di tutte le postazioni**")
     st.map(df_map[["lat","lon"]], zoom=11, use_container_width=True)
    else:
     st.warning("Nessuna coordinata valida per mappa")
   except Exception as e:
    st.error(f"Errore mappa: {e}")
 
-  # GOOGLE MAPS LINKS per ogni postazione
-  st.markdown("#### 🌐 Link Google Maps + OpenStreetMap per ogni postazione")
+  st.markdown("#### 🌐 Link navigazione per ogni postazione")
   for idx, row in df_post.iterrows():
    try:
     lat=row.get("Latitudine",""); lon=row.get("Longitudine","")
-    nome=row.get("Postazione","")
-    comune=row.get("Comune","")
-    via=row.get("Via","")
-    st.markdown(f"**{nome} - {comune} {via}** - Lat: {lat} Lon: {lon}")
+    nome=row.get("Postazione",""); comune=row.get("Comune",""); via=row.get("Via",""); icona=row.get("Icona","📍")
+    st.markdown(f"**{icona} {nome} - {comune} {via}** - Lat: {lat} Lon: {lon}")
     c1,c2,c3,c4=st.columns(4)
     with c1:
      st.link_button("🔍 Google Maps", f"https://www.google.com/maps/search/?api=1&query={lat},{lon}", use_container_width=True)
     with c2:
-     st.link_button("🧭 Naviga Google", f"https://www.google.com/maps/dir/?api=1&destination={lat},{lon}", use_container_width=True)
+     st.link_button("🧭 Naviga", f"https://www.google.com/maps/dir/?api=1&destination={lat},{lon}", use_container_width=True)
     with c3:
-     st.link_button("🗺️ OpenStreetMap", f"https://www.openstreetmap.org/?mlat={lat}&mlon={lon}#map=16/{lat}/{lon}", use_container_width=True)
+     st.link_button("🗺️ OSM", f"https://www.openstreetmap.org/?mlat={lat}&mlon={lon}#map=16/{lat}/{lon}", use_container_width=True)
     with c4:
      st.link_button("🚗 Waze", f"https://waze.com/ul?ll={lat},{lon}&navigate=yes", use_container_width=True)
    except:
@@ -315,16 +343,14 @@ elif scelta=="🗺️ Mappa Postazioni":
   tabella_import_export("Postazioni", st.session_state.postazioni)
  else:
   st.info("📭 Nessuna postazione - Aggiungi la prima sopra!")
-  # Mappa di esempio Varese
   st.markdown("#### 🗺️ Mappa di esempio - Varese")
   df_example=pd.DataFrame([{"lat":45.8205,"lon":8.8255}])
   st.map(df_example, zoom=12)
   st.link_button("🔍 Apri Varese su Google Maps", "https://www.google.com/maps/search/?api=1&query=45.8205,8.8255", use_container_width=True)
 
-# ALTRI FORM SEMPLIFICATI
 elif scelta=="🚨 Interventi Emergenza":
  st.markdown(LOGHI, unsafe_allow_html=True)
- with st.expander("🎨 Libreria icone", expanded=False):
+ with st.expander("🎨 Libreria icone da PC", expanded=False):
   ups=st.file_uploader("Carica icone da PC", type=["png","jpg","jpeg","ico"], accept_multiple_files=True, key="up_icone")
   if ups:
    for up in ups:
@@ -359,16 +385,15 @@ elif scelta=="🚨 Interventi Emergenza":
     st.success(f"Salvato {via_civico}, {comune}")
    else:
     st.error("Compila campi *")
-  # Link mappa se lat/lon presenti
   if st.session_state.interventi_lista:
    ultimo=st.session_state.interventi_lista[-1]
    if ultimo.get("Lat") and ultimo.get("Lon"):
     lat_u=ultimo["Lat"]; lon_u=ultimo["Lon"]
     c1,c2=st.columns(2)
     with c1:
-     st.link_button("🗺️ Vedi su OpenStreetMap", f"https://www.openstreetmap.org/?mlat={lat_u}&mlon={lon_u}#map=16/{lat_u}/{lon_u}", use_container_width=True)
+     st.link_button("🗺️ Vedi su OSM", f"https://www.openstreetmap.org/?mlat={lat_u}&mlon={lon_u}#map=16/{lat_u}/{lon_u}", use_container_width=True)
     with c2:
-     st.link_button("🔍 Vedi su Google Maps", f"https://www.google.com/maps/search/?api=1&query={lat_u},{lon_u}", use_container_width=True)
+     st.link_button("🔍 Google Maps", f"https://www.google.com/maps/search/?api=1&query={lat_u},{lon_u}", use_container_width=True)
  tabella_import_export("Interventi", st.session_state.interventi_lista)
 
 elif scelta=="📅 Gestione Eventi":
@@ -468,5 +493,3 @@ elif scelta=="🔗 Link & Icona PWA":
  url=st.text_input("URL App", placeholder="https://ana-varese.streamlit.app")
  if url:
   st.link_button("📱 Condividi WhatsApp", f"https://wa.me/?text=Installa ANA Varese: {url}", use_container_width=True)
-
-st.caption("ANA Varese - Dashboard con tasti menu veloce + Mappa Postazioni OpenStreetMap + Google Maps")
