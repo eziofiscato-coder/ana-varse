@@ -261,6 +261,12 @@ with st.sidebar:
     st.markdown('</div>', unsafe_allow_html=True)
     st.divider()
     st.caption("💾 Dati memorizzati!")
+
+scelta=st.session_state.menu_scelta
+st.markdown(f"## {scelta}")
+st.divider()
+COMUNI_TUTTI=load_comuni_italia()
+MIME_SHORT="application/octet-stream"
 if scelta=="Dashboard":
     c1,c2,c3,c4=st.columns(4)
     c1.metric("Emergenze",len(st.session_state.emergenze_lista))
@@ -584,8 +590,3 @@ elif scelta=="Backup":
         fname=f"backup_{date.today()}.xlsx"
         st.download_button("Scarica Backup",st.session_state.backup_bytes,file_name=fname,mime=MIME_SHORT,use_container_width=True)
     torna("bottom_back")
-scelta=st.session_state.menu_scelta
-st.markdown(f"## {scelta}")
-st.divider()
-COMUNI_TUTTI=load_comuni_italia()
-MIME_SHORT="application/octet-stream"
