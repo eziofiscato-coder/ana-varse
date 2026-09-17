@@ -9,8 +9,10 @@ st.markdown("""<style>
 .main.block-container{background-color:white!important;border-radius:18px;padding:25px!important;}
 [data-testid="stSidebar"]{background-color:#a5d6a7!important;border-right:4px solid #2e7d32!important;}
 .stForm{background-color:#c8e6c9!important;border:3px solid #2e7d32!important;border-radius:15px!important;}
-.stButton>button{background-color:#2e7d32!important;color:white!important;font-weight:bold!important;min-height:60px!important;}
+.stButton>button{background-color:#2e7d32!important;color:white!important;font-weight:bold!important;min-height:55px!important;}
 div[data-testid="stFormSubmitButton"]>button{background-color:#d32f2f!important;color:white!important;}
+.logout-btn>button{background-color:#b71c1c!important;color:white!important;}
+.torna-btn>button{background-color:#1565c0!important;color:white!important;}
 </style>""", unsafe_allow_html=True)
 def load_json(f, default):
     try:
@@ -105,9 +107,12 @@ if "checkin_lista" not in st.session_state: st.session_state.checkin_lista=load_
 if "mem_nomi" not in st.session_state: st.session_state.mem_nomi=load_json(FILE_NOMI,["Mario Rossi","Luigi Bianchi"])
 if "menu_scelta" not in st.session_state: st.session_state.menu_scelta="Dashboard"
 def torna(suffix=""):
-    k=f"back_{suffix}_{uuid.uuid4().hex[:6]}"
-    if st.button("Torna Dashboard",key=k,use_container_width=True):
-        st.session_state.menu_scelta="Dashboard"; st.rerun()
+    with st.container():
+        st.markdown('<div class="torna-btn">', unsafe_allow_html=True)
+        k=f"back_{suffix}_{uuid.uuid4().hex[:6]}"
+        if st.button("🏠 Torna alla Dashboard",key=k,use_container_width=True):
+            st.session_state.menu_scelta="Dashboard"; st.rerun()
+        st.markdown('</div>', unsafe_allow_html=True)
 def header_loghi():
     c1,c2,c3=st.columns(3)
     if os.path.exists("logo.png"): c1.image("logo.png",width=80)
@@ -127,9 +132,17 @@ if not st.session_state.authenticated:
 header_loghi(); st.divider()
 with st.sidebar:
     if os.path.exists("logo.png"): st.image("logo.png",width=80)
-    opzioni=["Dashboard","Emergenze con Loghi","Mappa Postazioni","Volontari","DB Radio","Distribuzione Radio","Eventi","Check-in","Backup"]
-    sel=st.radio("MENU",opzioni,index=0)
+    st.markdown("### MENU ANA VARESE")
+    opzioni=["Dashboard","Emergenze con Loghi","Mappa Postazioni","Volontari","DB Radio","Distribuzione Radio","Eventi","Check-in","Tabella Interventi Emergenza","Backup"]
+    sel=st.radio("Seleziona",opzioni,index=opzioni.index(st.session_state.menu_scelta) if st.session_state.menu_scelta in opzioni else 0)
     if sel!=st.session_state.menu_scelta: st.session_state.menu_scelta=sel; st.rerun()
+    st.divider()
+    st.markdown('<div class="logout-btn">', unsafe_allow_html=True)
+    if st.button("🚪 LOGOUT - Esci",use_container_width=True,key="logout_btn"):
+        st.session_state.authenticated=False
+        st.success("Logout effettuato!")
+        st.rerun()
+    st.markdown('</div>', unsafe_allow_html=True)
     st.divider(); st.caption("💾 Dati memorizzati automaticamente!")
 scelta=st.session_state.menu_scelta; st.markdown(f"## {scelta}"); st.divider()
 COMUNI_TUTTI=load_comuni_italia(); MIME_SHORT="application/octet-stream"
@@ -139,6 +152,12 @@ if scelta=="Dashboard":
     c3.metric("Volontari",len(st.session_state.dati)); c4.metric("Radio",len(st.session_state.radio_db))
     c5,c6=st.columns(2); c5.metric("Eventi",len(st.session_state.eventi_lista)); c6.metric("Check-in",len(st.session_state.checkin_lista))
     st.info("✅ Tutti i dati memorizzati su disco! Non perdi più nulla al reboot.")
+    if st.session_state.emergenze_lista:
+        st.markdown("### Ultimi 5 Interventi Emergenza")
+        df_last=pd.DataFrame(st.session_state.emergenze_lista[-5:])
+        st.dataframe(df_last,use_container_width=True)
+        if st.button("📋 Vedi Tabella Completa Emergenze",use_container_width=True):
+            st.session_state.menu_scelta="Tabella Interventi Emergenza"; st.rerun()
 elif scelta=="Emergenze con Loghi":
     torna("top_em")
     c1,c2=st.columns(2)
@@ -160,6 +179,7 @@ elif scelta=="Emergenze con Loghi":
                 st.session_state.emergenze_lista.append({"Data":str(data_em),"Logo":ICONS[tipo]["icon"],"Comune":comune,"Via":via_f,"Tipo":ICONS[tipo]["nome"],"Descrizione":desc})
                 save_json(FILE_EMER,st.session_state.emergenze_lista); st.success("Salvata e memorizzata!"); st.rerun()
     if st.session_state.emergenze_lista: st.dataframe(pd.DataFrame(st.session_state.emergenze_lista),use_container_width=True)
+    torna("bottom_em")
 elif scelta=="Mappa Postazioni":
     torna("top_map")
     c1,c2=st.columns(2)
@@ -241,6 +261,7 @@ elif scelta=="Volontari":
                 if nome_completo not in st.session_state.mem_nomi: st.session_state.mem_nomi.append(nome_completo); save_json(FILE_NOMI,st.session_state.mem_nomi)
                 st.success(f"Aggiunto {nome_completo} e memorizzato!"); st.rerun()
     if st.session_state.dati: st.dataframe(pd.DataFrame(st.session_state.dati),use_container_width=True)
+    torna("bottom_vol")
 elif scelta=="DB Radio":
     torna("top_radio")
     st.markdown("### DB Radio - MEMORIZZAZIONE PERMANENTE")
@@ -255,6 +276,7 @@ elif scelta=="DB Radio":
     if st.session_state.radio_db:
         st.dataframe(pd.DataFrame(st.session_state.radio_db),use_container_width=True)
         st.success(f"✅ {len(st.session_state.radio_db)} radio memorizzate!")
+    torna("bottom_radio")
 elif scelta=="Distribuzione Radio":
     torna("top_dist")
     st.markdown("### Distribuzione - Modello agganciato a ID + MEMORIZZAZIONE")
@@ -276,6 +298,7 @@ elif scelta=="Distribuzione Radio":
                 st.session_state.dist_radio.append({"RadioID":rid,"Modello":modello_agg,"Assegnatario":ass,"Postazione":posto,"Canale":canale,"Note":note_dist,"Data":str(date.today())})
                 save_json(FILE_DIST,st.session_state.dist_radio); st.success(f"Radio {rid} - {modello_agg} assegnata!"); st.rerun()
     if st.session_state.dist_radio: st.dataframe(pd.DataFrame(st.session_state.dist_radio),use_container_width=True)
+    torna("bottom_dist")
 elif scelta=="Eventi":
     torna("top_eventi")
     c1,c2=st.columns(2)
@@ -296,6 +319,7 @@ elif scelta=="Eventi":
                 st.session_state.eventi_lista.append({"NomeEvento":nome_ev,"Data":str(data_ev),"Comune":comune_ev,"Via":via_f_ev,"Responsabile":resp_ev,"Tipo":tipo_ev,"Descrizione":desc_ev})
                 save_json(FILE_EVENTI,st.session_state.eventi_lista); st.success("Evento salvato!"); st.rerun()
     if st.session_state.eventi_lista: st.dataframe(pd.DataFrame(st.session_state.eventi_lista),use_container_width=True)
+    torna("bottom_eventi")
 elif scelta=="Check-in":
     torna("top_checkin")
     if st.session_state.dati: vol_check=st.selectbox("Volontario *",[d["Nome"] for d in st.session_state.dati],key="vol_check")
@@ -309,6 +333,37 @@ elif scelta=="Check-in":
                 st.session_state.checkin_lista.append({"Volontario":vol_check,"Evento":evento_check,"Data":str(data_check),"OraIngresso":str(ora_in),"Stato":stato_check})
                 save_json(FILE_CHECK,st.session_state.checkin_lista); st.success("Check-in registrato!"); st.rerun()
     if st.session_state.checkin_lista: st.dataframe(pd.DataFrame(st.session_state.checkin_lista),use_container_width=True)
+    torna("bottom_checkin")
+elif scelta=="Tabella Interventi Emergenza":
+    torna("top_tab")
+    st.markdown("### 📋 TABELLA COMPLETA INTERVENTI EMERGENZA")
+    st.info("Qui vedi TUTTI gli interventi emergenza inseriti, con filtri e ricerca")
+    if not st.session_state.emergenze_lista:
+        st.warning("Nessun intervento emergenza ancora inserito! Vai in Emergenze con Loghi per inserirne uno.")
+    else:
+        df=pd.DataFrame(st.session_state.emergenze_lista)
+        c1,c2,c3=st.columns(3)
+        with c1: filtro_comune=st.selectbox("Filtra per Comune",["Tutti"]+sorted(df["Comune"].unique().tolist()))
+        with c2: filtro_tipo=st.selectbox("Filtra per Tipo",["Tutti"]+sorted(df["Tipo"].unique().tolist()))
+        with c3: ricerca=st.text_input("🔍 Cerca in Descrizione/Via")
+        df_filtrato=df.copy()
+        if filtro_comune!="Tutti": df_filtrato=df_filtrato[df_filtrato["Comune"]==filtro_comune]
+        if filtro_tipo!="Tutti": df_filtrato=df_filtrato[df_filtrato["Tipo"]==filtro_tipo]
+        if ricerca: df_filtrato=df_filtrato[df_filtrato.apply(lambda row: ricerca.lower() in str(row["Descrizione"]).lower() or ricerca.lower() in str(row["Via"]).lower() or ricerca.lower() in str(row["Comune"]).lower(), axis=1)]
+        st.markdown(f"**Totale interventi: {len(df)} | Filtrati: {len(df_filtrato)}**")
+        st.dataframe(df_filtrato,use_container_width=True,hide_index=True)
+        c1,c2,c3=st.columns(3)
+        with c1:
+            out=BytesIO(); df_filtrato.to_excel(out,index=False,engine="openpyxl")
+            st.download_button("📥 Scarica Excel Filtrato",out.getvalue(),file_name=f"interventi_emergenza_{date.today()}.xlsx",mime=MIME_SHORT,use_container_width=True)
+        with c2:
+            if st.button("🗑️ Cancella Filtri",use_container_width=True): st.rerun()
+        with c3:
+            if st.button("📊 Statistiche",use_container_width=True):
+                st.markdown("#### Statistiche Interventi")
+                st.write(f"Per Comune: {df['Comune'].value_counts().to_dict()}")
+                st.write(f"Per Tipo: {df['Tipo'].value_counts().to_dict()}")
+    torna("bottom_tab")
 elif scelta=="Backup":
     torna("top_back")
     st.markdown("### Backup Completo + Singoli + Memorizzazione Permanente")
