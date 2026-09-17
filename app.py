@@ -97,7 +97,7 @@ EMERGENCY_LOGOS = {
   "png": "https://cdn-icons-png.flaticon.com/512/740/740934.png"
  },
  "esondazione": {
-  "nome": "Esondazione / Alluvione",
+  "nome": "Esondazione",
   "emoji": "🌊",
   "png": "https://cdn-icons-png.flaticon.com/512/210/210543.png"
  },
@@ -185,20 +185,14 @@ def get_vie_comune(comune):
 def reverse_geocode(lat, lon):
     try:
         url=f"https://nominatim.openstreetmap.org/reverse"
-        params={
-         "format":"json",
-         "lat":lat,
-         "lon":lon,
-         "zoom":18,
-         "addressdetails":1
-        }
+        params={"format":"json","lat":lat,"lon":lon,"zoom":18,"addressdetails":1}
         headers={"User-Agent":"ANA-Varese-App"}
         r=requests.get(url,params=params,headers=headers,timeout=10)
         if r.status_code==200:
             data=r.json()
             addr=data.get("address",{})
-            comune=addr.get("city") or addr.get("town") or addr.get("village") or addr.get("municipality") or ""
-            via=addr.get("road") or addr.get("pedestrian") or addr.get("footway") or addr.get("residential") or ""
+            comune=addr.get("city") or addr.get("town") or addr.get("village") or ""
+            via=addr.get("road") or addr.get("pedestrian") or ""
             return comune, via
     except:
         pass
@@ -234,6 +228,10 @@ if "clicked_comune" not in st.session_state:
     st.session_state.clicked_comune=""
 if "clicked_via" not in st.session_state:
     st.session_state.clicked_via=""
+if "selected_pointer" not in st.session_state:
+    st.session_state.selected_pointer="📍 Default Rosso"
+if "selected_custom_b64" not in st.session_state:
+    st.session_state.selected_custom_b64=""
 
 def torna(suffix=""):
     st.markdown('<div class="torna-btn">', unsafe_allow_html=True)
@@ -389,17 +387,43 @@ elif scelta=="Emergenze con Loghi":
 
 elif scelta=="Mappa Postazioni":
     torna("top_map")
-    st.markdown("### 🗺️ MAPPA POSTAZIONI - CLICK MANUALE + FULLSCREEN")
-    st.info("💡 NOVITÀ: Clicca direttamente sulla mappa dove vuoi! Ti assegna subito lat, lon, comune e via in automatico! Usa il tasto fullscreen in alto a sinistra per estendere la mappa!")
+    st.markdown("### 🗺️ MAPPA - CLICK + PUNTATORE PNG SCELTO")
+    st.info("💡 Scegli prima il puntatore PNG (libreria o tuo PNG), poi clicca sulla mappa: ti appare subito il puntatore scelto!")
 
-    # MAPPA INTERATTIVA PER CLICK MANUALE - ESTESA
-    st.markdown("#### 👆 Clicca sulla mappa per scegliere la posizione")
+    # SELEZIONE PUNTATORE PRIMA DEL CLICK
+    st.markdown("#### 1️⃣ Scegli il puntatore PNG che vuoi usare al click")
+    cc1,cc2,cc3=st.columns([2,1,1])
+    with cc1:
+        tipo_puntatore=st.selectbox("Tipo Puntatore *",["📍 Default Rosso","🚨 Emergenza","🏠 Sede ANA","👤 Volontario","🔥 Incendio","🌊 Alluvione","🚑 Sanitario","📻 Radio","⭐ Personalizzato PNG"],key="pointer_select")
+        st.session_state.selected_pointer=tipo_puntatore
+    with cc2:
+        st.markdown('<div class="logo-box">', unsafe_allow_html=True)
+        st.markdown(f"**{tipo_puntatore}**")
+        if tipo_puntatore=="⭐ Personalizzato PNG" and st.session_state.selected_custom_b64:
+            try:
+                st.image(f"data:image/png;base64,{st.session_state.selected_custom_b64}",width=60)
+            except:
+                st.markdown("PNG caricato")
+        else:
+            st.markdown(f"# {tipo_puntatore[:2]}")
+        st.markdown('</div>', unsafe_allow_html=True)
+    with cc3:
+        png_upload=st.file_uploader("Carica PNG tuo",type=["png","jpg","jpeg"],key="png_up")
+        if png_upload:
+            st.image(png_upload,width=60)
+            b64=base64.b64encode(png_upload.getvalue()).decode()
+            st.session_state.selected_custom_b64=b64
+            st.session_state["custom_png_b64"]=b64
+            st.success("✅ PNG salvato!")
+
+    st.divider()
+    st.markdown("#### 2️⃣ Clicca sulla mappa - Appare subito il puntatore scelto")
+
     try:
         import folium
         from streamlit_folium import st_folium
         from folium.plugins import Fullscreen
 
-        # Mappa grande con fullscreen
         if st.session_state.last_postazione:
             try:
                 lat_c=float(str(st.session_state.last_postazione["Latitudine"]).replace(",","."))
@@ -411,20 +435,48 @@ elif scelta=="Mappa Postazioni":
             lat_c=45.8205; lon_c=8.8255; zoom=12
 
         m_click=folium.Map(location=[lat_c,lon_c],zoom_start=zoom,tiles="OpenStreetMap")
-        Fullscreen(position="topleft", title="Espandi a schermo intero", title_cancel="Esci da fullscreen").add_to(m_click)
+        Fullscreen(position="topleft", title="Espandi", title_cancel="Esci").add_to(m_click)
 
-        # Aggiungi postazioni esistenti
+        # Postazioni esistenti
         if st.session_state.postazioni:
             df_temp=pd.DataFrame(st.session_state.postazioni)
             for idx, r in df_temp.iterrows():
                 try:
                     la=float(str(r["Latitudine"]).replace(",","."))
                     lo=float(str(r["Longitudine"]).replace(",","."))
-                    folium.Marker([la,lo],popup=f"{r['Postazione']}",icon=folium.Icon(color="blue",icon="info-sign")).add_to(m_click)
+                    punt=r.get("Puntatore","📍 Default Rosso")
+                    cb64=r.get("CustomPNG","")
+                    if punt=="⭐ Personalizzato PNG" and cb64:
+                        icon_url=f"data:image/png;base64,{cb64}"
+                        icon=folium.CustomIcon(icon_url,icon_size=(40,40),icon_anchor=(20,40))
+                        folium.Marker([la,lo],popup=f"{r['Postazione']}",icon=icon).add_to(m_click)
+                    else:
+                        color_map={"📍 Default Rosso":"red","🚨 Emergenza":"red","🏠 Sede ANA":"green","👤 Volontario":"blue","🔥 Incendio":"orange","🌊 Alluvione":"blue","🚑 Sanitario":"white","📻 Radio":"cadetblue"}
+                        color=color_map.get(punt,"red")
+                        folium.Marker([la,lo],popup=f"{r['Postazione']}",icon=folium.Icon(color=color,icon="info-sign")).add_to(m_click)
                 except:
                     pass
 
-        st.markdown("**Clicca dove vuoi mettere la postazione - La mappa si espande con il pulsante in alto a sinistra ⛶**")
+        # MOSTRA SUBITO PUNTATORE SCELTO AL CLICK PRECEDENTE
+        if st.session_state.clicked_lat and st.session_state.clicked_lon:
+            try:
+                clat=float(st.session_state.clicked_lat)
+                clon=float(st.session_state.clicked_lon)
+                sel_ptr=st.session_state.selected_pointer
+                sel_b64=st.session_state.selected_custom_b64
+                if sel_ptr=="⭐ Personalizzato PNG" and sel_b64:
+                    icon_url=f"data:image/png;base64,{sel_b64}"
+                    icon=folium.CustomIcon(icon_url,icon_size=(50,50),icon_anchor=(25,50))
+                    folium.Marker([clat,clon],popup=f"🎯 NUOVA - {sel_ptr}",icon=icon).add_to(m_click)
+                else:
+                    color_map={"📍 Default Rosso":"red","🚨 Emergenza":"red","🏠 Sede ANA":"green","👤 Volontario":"blue","🔥 Incendio":"orange","🌊 Alluvione":"blue","🚑 Sanitario":"white","📻 Radio":"cadetblue"}
+                    color=color_map.get(sel_ptr,"red")
+                    folium.Marker([clat,clon],popup=f"🎯 NUOVA - {sel_ptr}",icon=folium.Icon(color=color,icon="star",prefix="fa")).add_to(m_click)
+                folium.CircleMarker([clat,clon],radius=25,color="yellow",fill=False,weight=4).add_to(m_click)
+            except:
+                pass
+
+        st.markdown("**Clicca dove vuoi - Appare subito il PNG scelto! Pulsante ⛶ in alto a sinistra per fullscreen**")
         map_data=st_folium(m_click,width=800,height=600,returned_objects=["last_clicked"])
 
         if map_data and map_data.get("last_clicked"):
@@ -432,33 +484,33 @@ elif scelta=="Mappa Postazioni":
             clicked_lon=map_data["last_clicked"]["lng"]
             st.session_state.clicked_lat=str(clicked_lat)
             st.session_state.clicked_lon=str(clicked_lon)
-            # Reverse geocode automatico
-            with st.spinner("Recupero Comune e Via dalla posizione cliccata..."):
+            with st.spinner("Recupero Comune e Via..."):
                 rev_comune, rev_via=reverse_geocode(clicked_lat, clicked_lon)
                 if rev_comune:
                     st.session_state.clicked_comune=rev_comune
                 if rev_via:
                     st.session_state.clicked_via=rev_via
-            st.success(f"✅ Posizione cliccata: Lat {clicked_lat:.6f}, Lon {clicked_lon:.6f} - Comune: {rev_comune} - Via: {rev_via}")
+            st.success(f"✅ Cliccato con puntatore {st.session_state.selected_pointer}: Lat {clicked_lat:.6f}, Lon {clicked_lon:.6f} - {rev_comune} {rev_via}")
             st.rerun()
     except ImportError:
         st.warning("Installa folium per il click manuale")
 
-    # Mostra valori cliccati
     if st.session_state.clicked_lat and st.session_state.clicked_lon:
-        st.markdown("#### 📍 Posizione selezionata dalla mappa")
+        st.markdown("#### 📍 Posizione selezionata con puntatore scelto")
         cc1,cc2,cc3,cc4=st.columns(4)
         cc1.metric("Latitudine",st.session_state.clicked_lat)
         cc2.metric("Longitudine",st.session_state.clicked_lon)
-        cc3.metric("Comune rilevato",st.session_state.clicked_comune or "Non rilevato")
-        cc4.metric("Via rilevata",st.session_state.clicked_via or "Non rilevata")
+        cc3.metric("Comune",st.session_state.clicked_comune or "Non rilevato")
+        cc4.metric("Via",st.session_state.clicked_via or "Non rilevata")
+        st.markdown(f"**Puntatore scelto:** {st.session_state.selected_pointer}")
+        if st.session_state.selected_custom_b64:
+            st.image(f"data:image/png;base64,{st.session_state.selected_custom_b64}",width=50)
 
     st.divider()
-    st.markdown("#### Dati Postazione - Compilazione automatica dal click")
+    st.markdown("#### 3️⃣ Dati Postazione - Auto-compilati dal click + PNG scelto")
 
     c1,c2=st.columns(2)
     with c1:
-        # Se hai cliccato, usa comune rilevato, altrimenti scegli
         if st.session_state.clicked_comune:
             comune_default=st.session_state.clicked_comune
             if comune_default in COMUNI_TUTTI:
@@ -471,7 +523,6 @@ elif scelta=="Mappa Postazioni":
     with c2:
         with st.spinner(f"Carico vie di {comune}..."):
             vie=get_vie_comune(comune)
-        # Se via rilevata dal click, pre-seleziona
         if st.session_state.clicked_via and st.session_state.clicked_via in vie:
             idx_via=vie.index(st.session_state.clicked_via)
             via=st.selectbox(f"Via * ({len(vie)-1} vie)",vie,index=idx_via,key="via_map")
@@ -484,47 +535,36 @@ elif scelta=="Mappa Postazioni":
             via_f=via
 
     with st.form("form_post"):
-        st.markdown("#### Dati Postazione + Puntatore PNG")
+        st.markdown("#### Conferma e salva con PNG scelto al click")
         nome=st.text_input("Nome Postazione *")
         cc1,cc2=st.columns(2)
         with cc1:
-            # Auto-compila lat/lon dal click
             lat_val=st.session_state.clicked_lat if st.session_state.clicked_lat else ""
             lon_val=st.session_state.clicked_lon if st.session_state.clicked_lon else ""
-            lat=st.text_input("Lat *",value=lat_val,placeholder="45.8205 o clicca mappa",key="lat_new")
-            lon=st.text_input("Lon *",value=lon_val,placeholder="8.8255 o clicca mappa",key="lon_new")
+            lat=st.text_input("Lat *",value=lat_val,placeholder="Clicca mappa",key="lat_new")
+            lon=st.text_input("Lon *",value=lon_val,placeholder="Clicca mappa",key="lon_new")
         with cc2:
             resp=st.text_input("Responsabile")
-        cc3,cc4=st.columns(2)
-        with cc3:
-            tipo_puntatore=st.selectbox("Tipo Puntatore *",["📍 Default Rosso","🚨 Emergenza","🏠 Sede ANA","👤 Volontario","🔥 Incendio","🌊 Alluvione","🚑 Sanitario","📻 Radio","⭐ Personalizzato PNG"])
-        with cc4:
-            png_upload=st.file_uploader("Carica PNG Puntatore",type=["png","jpg","jpeg"],key="png_up")
-            if png_upload:
-                st.image(png_upload,width=48)
-                st.session_state["custom_png_b64"]=base64.b64encode(png_upload.getvalue()).decode()
-        if st.form_submit_button("➕ Aggiungi e Visualizza Subito"):
+            st.markdown(f"**Puntatore che apparirà:** {st.session_state.selected_pointer}")
+        if st.form_submit_button("➕ Aggiungi e Visualizza Subito con PNG"):
             if nome and lat and lon:
-                custom_b64=""
-                if tipo_puntatore=="⭐ Personalizzato PNG":
-                    custom_b64=st.session_state.get("custom_png_b64","")
+                custom_b64=st.session_state.selected_custom_b64 if st.session_state.selected_pointer=="⭐ Personalizzato PNG" else ""
                 new_post={
                  "Postazione":nome,"Comune":comune,"Via":via_f,
                  "Latitudine":lat,"Longitudine":lon,
-                 "Responsabile":resp,"Puntatore":tipo_puntatore,"CustomPNG":custom_b64
+                 "Responsabile":resp,"Puntatore":st.session_state.selected_pointer,"CustomPNG":custom_b64
                 }
                 st.session_state.postazioni.append(new_post)
                 save_json(FILE_POST,st.session_state.postazioni)
                 st.session_state.last_postazione=new_post
-                # Reset click dopo salvataggio
                 st.session_state.clicked_lat=""
                 st.session_state.clicked_lon=""
                 st.session_state.clicked_comune=""
                 st.session_state.clicked_via=""
-                st.success(f"✅ {nome} aggiunta! Lat {lat} Lon {lon} Comune {comune} Via {via_f}")
+                st.success(f"✅ {nome} aggiunta con {st.session_state.selected_pointer}!")
                 st.rerun()
             else:
-                st.error("Compila Nome, Lat, Lon! Clicca sulla mappa per auto-compilare!")
+                st.error("Compila Nome, Lat, Lon! Clicca sulla mappa!")
 
     if st.session_state.postazioni:
         df=pd.DataFrame(st.session_state.postazioni)
