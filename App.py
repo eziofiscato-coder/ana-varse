@@ -201,7 +201,36 @@ elif scelta=="🚨 Emergenze con Loghi":
                         st.session_state.emergenze_lista.pop(idx); st.rerun()
         st.dataframe(df, use_container_width=True)
         st.download_button("📥 Scarica CSV", df.to_csv(index=False).encode('utf-8'), "emergenze_con_loghi.csv", use_container_width=True)
-    torna_dashboard()
+                if map_type == "OpenStreetMap":
+                m = folium.Map(
+                    location=[center_lat, center_lon],
+                    zoom_start=zoom,
+                    tiles="OpenStreetMap"
+                )
+            else:
+                m = folium.Map(
+                    location=[center_lat, center_lon],
+                    zoom_start=zoom,
+                    tiles=None
+                )
+                if map_type == "Google Stradale":
+                    url = "https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}"
+                    name = "Google Stradale"
+                elif map_type == "Google Satellite":
+                    url = "https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}"
+                    name = "Google Satellite"
+                elif map_type == "Google Ibrida":
+                    url = "https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}"
+                    name = "Google Ibrida"
+                else:
+                    url = "https://mt1.google.com/vt/lyrs=p&x={x}&y={y}&z={z}"
+                    name = "Google Rilievo"
+                folium.TileLayer(
+                    url,
+                    attr="Google",
+                    name=name,
+                    max_zoom=20
+                ).add_to(m)
 
 # ALTRI FORM VECCHI CON CAMPI
 elif scelta=="👥 Volontari":
