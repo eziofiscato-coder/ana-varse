@@ -45,6 +45,10 @@ div[data-testid="stFormSubmitButton"]>button{
  text-align:center;
  background:#f1f8e9;
 }
+.auto-filled{
+ background-color:#fff9c4!important;
+ border:2px solid #fbc02d!important;
+}
 </style>
 """, unsafe_allow_html=True)
 
@@ -101,25 +105,10 @@ EMERGENCY_LOGOS = {
   "emoji": "🌊",
   "png": "https://cdn-icons-png.flaticon.com/512/210/210543.png"
  },
- "auto_polizia": {
-  "nome": "Auto Polizia",
-  "emoji": "🚓",
-  "png": "https://cdn-icons-png.flaticon.com/512/3774/3774091.png"
- },
- "polizia_locale": {
-  "nome": "Polizia Locale",
-  "emoji": "👮",
-  "png": "https://cdn-icons-png.flaticon.com/512/3106/3106091.png"
- },
  "vvff": {
   "nome": "VVFF Vigili del Fuoco",
   "emoji": "🚒",
   "png": "https://cdn-icons-png.flaticon.com/512/599/599502.png"
- },
- "protezione_civile": {
-  "nome": "Mezzi Protezione Civile",
-  "emoji": "🦺",
-  "png": "https://cdn-icons-png.flaticon.com/512/599/599505.png"
  },
  "ambulanza": {
   "nome": "Ambulanza 118",
@@ -302,14 +291,10 @@ if scelta=="Dashboard":
     c3.metric("Volontari",len(st.session_state.dati))
     c4.metric("Radio",len(st.session_state.radio_db))
     st.info("✅ Dati memorizzati su disco!")
-    if st.session_state.emergenze_lista:
-        st.markdown("### Ultimi Interventi con Loghi PNG")
-        st.dataframe(pd.DataFrame(st.session_state.emergenze_lista[-5:]),use_container_width=True)
 
 elif scelta=="Emergenze con Loghi":
     torna("top_em")
     st.markdown("### 🚨 EMERGENZA CON LOGHI VERI PNG")
-    st.info("14 loghi PNG veri: incendio, frana, VVFF, polizia, ambulanza, area accoglienza ecc.")
     c1,c2=st.columns(2)
     with c1:
         comune=st.selectbox("Comune *",COMUNI_TUTTI,key="comune_em")
@@ -332,7 +317,6 @@ elif scelta=="Emergenze con Loghi":
         sel_logo_info=EMERGENCY_LOGOS[sel_logo_key]
     with col_logo2:
         st.markdown('<div class="logo-box">', unsafe_allow_html=True)
-        st.markdown(f"**{sel_logo_info['nome']}**")
         try:
             st.image(sel_logo_info['png'],width=80)
         except:
@@ -344,9 +328,7 @@ elif scelta=="Emergenze con Loghi":
         if custom_logo_upload:
             st.image(custom_logo_upload,width=80)
             custom_b64=base64.b64encode(custom_logo_upload.getvalue()).decode()
-            st.success("✅ PNG caricato!")
     with st.form("form_em_completo"):
-        st.markdown("#### Dati Emergenza - Tutti i campi")
         cc1,cc2,cc3=st.columns(3)
         with cc1:
             data_em=st.date_input("Data *",value=date.today())
@@ -358,10 +340,9 @@ elif scelta=="Emergenze con Loghi":
             coord=st.text_input("Coordinatore *",value="ANA Varese")
         with cc3:
             volontari_sel=st.multiselect("Volontari",st.session_state.mem_nomi)
-            mezzi=st.text_input("Mezzi Utilizzati",placeholder="Es. Fuoristrada 1")
+            mezzi=st.text_input("Mezzi Utilizzati")
         desc=st.text_area("Descrizione *",value=f"{sel_logo_info['nome']} a {comune} - {via_f}",height=100)
         note=st.text_area("Note",height=80)
-        st.divider()
         if st.form_submit_button("💾 SALVA CON LOGO PNG VERO",use_container_width=True,type="primary"):
             if via_f!="-- Seleziona Via --" and via_f!="" and desc!="":
                 if custom_b64:
@@ -377,21 +358,18 @@ elif scelta=="Emergenze con Loghi":
                  "Coordinatore":coord,"Note":note
                 })
                 save_json(FILE_EMER,st.session_state.emergenze_lista)
-                st.success("✅ Emergenza salvata con logo PNG!")
+                st.success("✅ Emergenza salvata!")
                 st.rerun()
-            else:
-                st.error("Compila Via e Descrizione!")
     if st.session_state.emergenze_lista:
         st.dataframe(pd.DataFrame(st.session_state.emergenze_lista),use_container_width=True)
     torna("bottom_em")
 
 elif scelta=="Mappa Postazioni":
     torna("top_map")
-    st.markdown("### 🗺️ MAPPA - CLICK + PUNTATORE PNG SCELTO")
-    st.info("💡 Scegli prima il puntatore PNG (libreria o tuo PNG), poi clicca sulla mappa: ti appare subito il puntatore scelto!")
+    st.markdown("### 🗺️ MAPPA - CLICK AUTOMATICO NEI CAMPI")
+    st.info("💡 Scegli PNG, poi clicca sulla mappa: lat, lon, comune e via si compilano AUTOMATICAMENTE nei campi gialli sotto!")
 
-    # SELEZIONE PUNTATORE PRIMA DEL CLICK
-    st.markdown("#### 1️⃣ Scegli il puntatore PNG che vuoi usare al click")
+    st.markdown("#### 1️⃣ Scegli il puntatore PNG")
     cc1,cc2,cc3=st.columns([2,1,1])
     with cc1:
         tipo_puntatore=st.selectbox("Tipo Puntatore *",["📍 Default Rosso","🚨 Emergenza","🏠 Sede ANA","👤 Volontario","🔥 Incendio","🌊 Alluvione","🚑 Sanitario","📻 Radio","⭐ Personalizzato PNG"],key="pointer_select")
@@ -400,10 +378,7 @@ elif scelta=="Mappa Postazioni":
         st.markdown('<div class="logo-box">', unsafe_allow_html=True)
         st.markdown(f"**{tipo_puntatore}**")
         if tipo_puntatore=="⭐ Personalizzato PNG" and st.session_state.selected_custom_b64:
-            try:
-                st.image(f"data:image/png;base64,{st.session_state.selected_custom_b64}",width=60)
-            except:
-                st.markdown("PNG caricato")
+            st.image(f"data:image/png;base64,{st.session_state.selected_custom_b64}",width=60)
         else:
             st.markdown(f"# {tipo_puntatore[:2]}")
         st.markdown('</div>', unsafe_allow_html=True)
@@ -417,7 +392,7 @@ elif scelta=="Mappa Postazioni":
             st.success("✅ PNG salvato!")
 
     st.divider()
-    st.markdown("#### 2️⃣ Clicca sulla mappa - Appare subito il puntatore scelto")
+    st.markdown("#### 2️⃣ Clicca sulla mappa - I campi sotto si riempiono da soli!")
 
     try:
         import folium
@@ -437,7 +412,6 @@ elif scelta=="Mappa Postazioni":
         m_click=folium.Map(location=[lat_c,lon_c],zoom_start=zoom,tiles="OpenStreetMap")
         Fullscreen(position="topleft", title="Espandi", title_cancel="Esci").add_to(m_click)
 
-        # Postazioni esistenti
         if st.session_state.postazioni:
             df_temp=pd.DataFrame(st.session_state.postazioni)
             for idx, r in df_temp.iterrows():
@@ -457,7 +431,6 @@ elif scelta=="Mappa Postazioni":
                 except:
                     pass
 
-        # MOSTRA SUBITO PUNTATORE SCELTO AL CLICK PRECEDENTE
         if st.session_state.clicked_lat and st.session_state.clicked_lon:
             try:
                 clat=float(st.session_state.clicked_lat)
@@ -476,7 +449,7 @@ elif scelta=="Mappa Postazioni":
             except:
                 pass
 
-        st.markdown("**Clicca dove vuoi - Appare subito il PNG scelto! Pulsante ⛶ in alto a sinistra per fullscreen**")
+        st.markdown("**Clicca dove vuoi - Appare subito il PNG scelto! ⛶ in alto a sinistra per fullscreen**")
         map_data=st_folium(m_click,width=800,height=600,returned_objects=["last_clicked"])
 
         if map_data and map_data.get("last_clicked"):
@@ -490,68 +463,86 @@ elif scelta=="Mappa Postazioni":
                     st.session_state.clicked_comune=rev_comune
                 if rev_via:
                     st.session_state.clicked_via=rev_via
-            st.success(f"✅ Cliccato con puntatore {st.session_state.selected_pointer}: Lat {clicked_lat:.6f}, Lon {clicked_lon:.6f} - {rev_comune} {rev_via}")
+            st.success(f"✅ Cliccato: {clicked_lat:.6f}, {clicked_lon:.6f} - {rev_comune} {rev_via} - Campi sotto auto-compilati!")
             st.rerun()
     except ImportError:
-        st.warning("Installa folium per il click manuale")
+        st.warning("Installa folium")
 
-    if st.session_state.clicked_lat and st.session_state.clicked_lon:
-        st.markdown("#### 📍 Posizione selezionata con puntatore scelto")
-        cc1,cc2,cc3,cc4=st.columns(4)
-        cc1.metric("Latitudine",st.session_state.clicked_lat)
-        cc2.metric("Longitudine",st.session_state.clicked_lon)
-        cc3.metric("Comune",st.session_state.clicked_comune or "Non rilevato")
-        cc4.metric("Via",st.session_state.clicked_via or "Non rilevata")
-        st.markdown(f"**Puntatore scelto:** {st.session_state.selected_pointer}")
-        if st.session_state.selected_custom_b64:
-            st.image(f"data:image/png;base64,{st.session_state.selected_custom_b64}",width=50)
-
+    # CAMPI AUTO-COMPILATI FUORI DAL FORM - SI AGGIORNANO SUBITO AL CLICK!
     st.divider()
-    st.markdown("#### 3️⃣ Dati Postazione - Auto-compilati dal click + PNG scelto")
+    st.markdown("#### 3️⃣ Campi auto-compilati dal click (gialli = compilati automaticamente)")
 
+    c_auto1,c_auto2,c_auto3,c_auto4=st.columns(4)
+    with c_auto1:
+        lat_display=st.text_input("📍 Latitudine (auto)",value=st.session_state.clicked_lat,placeholder="Clicca sulla mappa",key="lat_auto")
+    with c_auto2:
+        lon_display=st.text_input("📍 Longitudine (auto)",value=st.session_state.clicked_lon,placeholder="Clicca sulla mappa",key="lon_auto")
+    with c_auto3:
+        comune_display=st.text_input("🏘️ Comune (auto)",value=st.session_state.clicked_comune,placeholder="Auto dal click",key="comune_auto")
+    with c_auto4:
+        via_display=st.text_input("🛣️ Via (auto)",value=st.session_state.clicked_via,placeholder="Auto dal click",key="via_auto")
+
+    if st.session_state.clicked_lat:
+        st.success(f"✅ Dati presi dalla mappa: Lat {st.session_state.clicked_lat}, Lon {st.session_state.clicked_lon}, Comune {st.session_state.clicked_comune}, Via {st.session_state.clicked_via}")
+
+    st.markdown("#### 4️⃣ Completa e salva - I dati sono già dentro!")
+
+    # COMUNE E VIA FINALI - CON VALORI AUTO-COMPILATI
     c1,c2=st.columns(2)
     with c1:
         if st.session_state.clicked_comune:
             comune_default=st.session_state.clicked_comune
             if comune_default in COMUNI_TUTTI:
                 idx_com=COMUNI_TUTTI.index(comune_default)
+                comune=st.selectbox("Comune *",COMUNI_TUTTI,index=idx_com,key="comune_map_final")
             else:
-                idx_com=0
-            comune=st.selectbox("Comune *",COMUNI_TUTTI,index=idx_com,key="comune_map")
+                comune=st.selectbox("Comune *",COMUNI_TUTTI,key="comune_map_final")
+                # Se comune non in lista, usa quello rilevato
+                if st.session_state.clicked_comune:
+                    comune=st.session_state.clicked_comune
+                    st.info(f"Comune rilevato: {comune} (non in lista, uso rilevato)")
         else:
-            comune=st.selectbox("Comune *",COMUNI_TUTTI,key="comune_map")
+            comune=st.selectbox("Comune *",COMUNI_TUTTI,key="comune_map_final")
     with c2:
         with st.spinner(f"Carico vie di {comune}..."):
             vie=get_vie_comune(comune)
         if st.session_state.clicked_via and st.session_state.clicked_via in vie:
             idx_via=vie.index(st.session_state.clicked_via)
-            via=st.selectbox(f"Via * ({len(vie)-1} vie)",vie,index=idx_via,key="via_map")
+            via=st.selectbox(f"Via * ({len(vie)-1} vie)",vie,index=idx_via,key="via_map_final")
         else:
-            via=st.selectbox(f"Via * ({len(vie)-1} vie)",vie,key="via_map")
+            via=st.selectbox(f"Via * ({len(vie)-1} vie)",vie,key="via_map_final")
         if via=="-- Seleziona Via --":
-            via_man=st.text_input("Via manuale",value=st.session_state.clicked_via,key="via_man_map")
+            via_man=st.text_input("Via manuale",value=st.session_state.clicked_via,key="via_man_map_final")
             via_f=via_man if via_man else via
         else:
             via_f=via
 
-    with st.form("form_post"):
-        st.markdown("#### Conferma e salva con PNG scelto al click")
-        nome=st.text_input("Nome Postazione *")
+    with st.form("form_post_finale"):
+        st.markdown("#### Conferma con dati auto-compilati")
+        nome=st.text_input("Nome Postazione *",placeholder="Es. Postazione 1 - Ponte")
         cc1,cc2=st.columns(2)
         with cc1:
-            lat_val=st.session_state.clicked_lat if st.session_state.clicked_lat else ""
-            lon_val=st.session_state.clicked_lon if st.session_state.clicked_lon else ""
-            lat=st.text_input("Lat *",value=lat_val,placeholder="Clicca mappa",key="lat_new")
-            lon=st.text_input("Lon *",value=lon_val,placeholder="Clicca mappa",key="lon_new")
+            # I campi lat/lon qui prendono automaticamente i valori cliccati
+            lat_final=st.text_input("Latitudine *",value=st.session_state.clicked_lat,placeholder="Auto dal click",key="lat_final")
+            lon_final=st.text_input("Longitudine *",value=st.session_state.clicked_lon,placeholder="Auto dal click",key="lon_final")
         with cc2:
-            resp=st.text_input("Responsabile")
-            st.markdown(f"**Puntatore che apparirà:** {st.session_state.selected_pointer}")
-        if st.form_submit_button("➕ Aggiungi e Visualizza Subito con PNG"):
-            if nome and lat and lon:
+            resp=st.text_input("Responsabile",placeholder="Nome responsabile")
+            st.markdown(f"**Puntatore:** {st.session_state.selected_pointer}")
+            if st.session_state.selected_custom_b64:
+                st.image(f"data:image/png;base64,{st.session_state.selected_custom_b64}",width=40)
+
+        if st.form_submit_button("➕ SALVA POSTAZIONE CON DATI AUTO-COMPILATI",use_container_width=True,type="primary"):
+            # Usa i dati auto-compilati se presenti, altrimenti quelli del form
+            final_lat=lat_final or st.session_state.clicked_lat or lat_display
+            final_lon=lon_final or st.session_state.clicked_lon or lon_display
+            final_comune=comune or st.session_state.clicked_comune or comune_display
+            final_via=via_f or st.session_state.clicked_via or via_display
+
+            if nome and final_lat and final_lon:
                 custom_b64=st.session_state.selected_custom_b64 if st.session_state.selected_pointer=="⭐ Personalizzato PNG" else ""
                 new_post={
-                 "Postazione":nome,"Comune":comune,"Via":via_f,
-                 "Latitudine":lat,"Longitudine":lon,
+                 "Postazione":nome,"Comune":final_comune,"Via":final_via,
+                 "Latitudine":final_lat,"Longitudine":final_lon,
                  "Responsabile":resp,"Puntatore":st.session_state.selected_pointer,"CustomPNG":custom_b64
                 }
                 st.session_state.postazioni.append(new_post)
@@ -561,14 +552,14 @@ elif scelta=="Mappa Postazioni":
                 st.session_state.clicked_lon=""
                 st.session_state.clicked_comune=""
                 st.session_state.clicked_via=""
-                st.success(f"✅ {nome} aggiunta con {st.session_state.selected_pointer}!")
+                st.success(f"✅ {nome} salvata! Lat {final_lat} Lon {final_lon} - {final_comune} {final_via} con {st.session_state.selected_pointer}")
                 st.rerun()
             else:
-                st.error("Compila Nome, Lat, Lon! Clicca sulla mappa!")
+                st.error("Compila Nome e clicca sulla mappa per Lat/Lon!")
 
     if st.session_state.postazioni:
         df=pd.DataFrame(st.session_state.postazioni)
-        st.markdown(f"### 📍 Mappa Finale - {len(df)} Postazioni - Fullscreen ⛶")
+        st.markdown(f"### 📍 Mappa Finale - {len(df)} Postazioni")
         tipo_mappa=st.selectbox("Tipo Mappa",["OpenStreetMap","Google Stradale","Google Satellite"],key="tipo_mappa")
         try:
             import folium
