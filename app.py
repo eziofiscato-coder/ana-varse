@@ -2,9 +2,9 @@
 import pandas as pd
 from datetime import datetime, date
 from io import BytesIO
-import base64, os, uuid, json
+import base64, os, uuid, json, requests
 
-st.set_page_config(page_title="ANA Varese - Verde ANA", page_icon="🟢", layout="wide")
+st.set_page_config(page_title="ANA Varese", page_icon="🟢", layout="wide")
 
 st.markdown("""
 <style>
@@ -21,6 +21,35 @@ h1,h2,h3{color:#1b5e20!important;}
 </style>
 """, unsafe_allow_html=True)
 
+# ELENCO COMUNI ITALIANI - COMBO AGGANCIATA
+COMUNI_VARESE = ["Varese","Busto Arsizio","Gallarate","Saronno","Cassano Magnago","Tradate","Somma Lombardo","Malnate","Luino","Samarate","Laveno-Mombello","Cittiglio","Besozzo","Gavirate","Vergiate","Sesto Calende","Besnate","Cardano al Campo","Cavaria con Premezzo","Castellanza","Lonate Pozzolo","Fagnano Olona","Caronno Pertusella","Gerenzano","Origgio","Uboldo","Cislago","Mozzate","Gornate Olona","Castelseprio","Gazzada Schianno","Bodio Lomnago","Buguggiate","Azzate","Brunello","Morazzone","Caravate","Cocquio-Trevisago","Cuvio","Cuveglio","Rancio Valcuvia","Brinzio","Bedero Valcuvia","Masciago Primo","Ferrera di Varese","Maccagno con Pino e Veddasca","Tronzano Lago Maggiore","Pino sulla Sponda","Curiglia con Monteviasco","Dumenza","Agra","Brezzo di Bedero","Germignaga","Brezzo di Bedero","Montegrino Valtravaglia","Grantola","Mesenzana","Brissago-Valtravaglia","Cassano Valcuvia","Duno","Porto Valtravaglia","Castelveccana","Laveno-Mombello","Leggiuno","Monvalle","Besozzo","Brebbia","Malnate","Bregnano","Castronno","Albizzate","Sumirago","Jerago con Orago","Oggiona con Santo Stefano","Solbiate Arno","Carnago","Caravate","Gemonio","Azzio","Orino","Cocquio","Barasso","Luvinate","Casciago","Varese"]
+
+COMUNI_LOMBARDIA = COMUNI_VARESE + ["Milano","Como","Lecco","Bergamo","Brescia","Pavia","Lodi","Cremona","Mantova","Monza","Sondrio","Varese","Busto Arsizio","Gallarate"]
+
+# FUNZIONE PER PRENDERE VIE DA OVERPASS API - COMBO AGGANCIATA
+@st.cache_data(ttl=3600)
+def get_vie_comune(comune):
+    try:
+        # Overpass query per vie del comune
+        query = f"""
+        [out:json][timeout:10];
+        area[name="{comune}"][admin_level=8]->.searchArea;
+        (
+          way(area.searchArea)["highway"]["name"];
+        );
+        out 100;
+        """
+        url = "https://overpass-api.de/api/interpreter"
+        r = requests.post(url, data={"data": query}, timeout=8)
+        if r.status_code == 200:
+            data = r.json()
+            vie = sorted(list(set([el["tags"]["name"] for el in data.get("elements", []) if "tags" in el and "name" in el["tags"]])))
+            if vie:
+                return ["-- Seleziona Via --"] + vie[:200] # prime 200
+        return ["-- Seleziona Via --", "Via Roma", "Via Garibaldi", "Via Milano", "Via Verdi", "Via Dante", "Via Volta", "Via Sacco", "Corso Matteotti", "Piazza Libertà", "Via XX Settembre"]
+    except:
+        return ["-- Seleziona Via --", "Via Roma", "Via Garibaldi", "Via Milano", "Via Verdi", "Via Dante", "Via Sacco", "Corso Matteotti"]
+
 ICONS = {
  "volontario": {"nome":"Volontario","icon":"👤"}, "sede": {"nome":"Sede","icon":"🏠"},
  "radio": {"nome":"Radio","icon":"📻"}, "emergenza": {"nome":"Emergenza","icon":"🚨"},
@@ -30,22 +59,13 @@ ICONS = {
  "alluvione": {"nome":"Alluvione","icon":"🌊"}, "campo_base": {"nome":"Campo Base","icon":"⛺"},
 }
 
-for k,v in [("authenticated",False),("emergenze_lista",[]),("interventi_lista",[]),("dati",[]),("mem_nomi",["Mario Rossi","Luigi Bianchi","Giuseppe Verdi"]),("postazioni",[]),("radio_db",[]),("dist_radio",[]),("menu_scelta","🏠 Dashboard"),("selected_postazione",None)]:
+for k,v in [("authenticated",False),("emergenze_lista",[]),("interventi_lista",[]),("dati",[]),("mem_nomi",["Mario Rossi","Luigi Bianchi","Giuseppe Verdi"]),("postazioni",[]),("radio_db",[]),("dist_radio",[]),("menu_scelta","🏠 Dashboard"),("selected_postazione",None),("comune_sel","Varese")]:
     if k not in st.session_state:
         st.session_state[k]=v
 
-def get_b64(p):
-    try:
-        if os.path.exists(p):
-            with open(p,"rb") as f: return base64.b64encode(f.read()).decode()
-    except: pass
-    return ""
-
 def torna_dashboard(suffix=""):
-    # FIX DuplicateElementId - chiave unica ogni volta
-    if st.button("🏠 Torna alla Dashboard", use_container_width=True, key=f"back_{suffix}_{uuid.uuid4().hex[:8]}"):
-        st.session_state.menu_scelta="🏠 Dashboard"
-        st.rerun()
+    if st.button("🏠 Torna Dashboard", use_container_width=True, key=f"back_{suffix}_{uuid.uuid4().hex[:8]}"):
+        st.session_state.menu_scelta="🏠 Dashboard"; st.rerun()
 
 def header_3_loghi():
     c1,c2,c3=st.columns([1,1,1])
@@ -59,27 +79,22 @@ def header_3_loghi():
     except: c2.markdown("**Logo 2**")
     try:
         if os.path.exists("logo_pc_lombardia.png"): c3.image("logo_pc_lombardia.png", width=80)
-        else:
-            for nf in ["logo_pc.png","protezione-civile-regione-lombardia-logo-png_seeklogo-113086.png","logo_protezione.png"]:
-                if os.path.exists(nf):
-                    c3.image(nf, width=80); break
-            else: c3.markdown("**Prot Civile Lombardia**")
+        else: c3.markdown("**Prot Civile Lombardia**")
     except: c3.markdown("**Prot Civile**")
 
 if not st.session_state.authenticated:
     st.markdown("""<style>[data-testid="stSidebar"]{display:none;}</style>""", unsafe_allow_html=True)
     header_3_loghi()
     st.divider()
-    st.markdown("<h2 style='text-align:center; color:#2e7d32;'>Accesso Riservato<br>ANA Varese</h2>", unsafe_allow_html=True)
+    st.markdown("<h2 style='text-align:center; color:#2e7d32;'>Accesso Riservato - admin / ana2024</h2>", unsafe_allow_html=True)
     c1,c2,c3=st.columns([1,2,1])
     with c2:
         with st.form("login_form"):
             u=st.text_input("Username", value="admin"); p=st.text_input("Password", type="password", value="ana2024")
-            st.caption("admin / ana2024")
             if st.form_submit_button("Accedi", use_container_width=True, type="primary"):
                 if u=="admin" and p=="ana2024":
                     st.session_state.authenticated=True; st.rerun()
-                else: st.error("Password errata!")
+                else: st.error("admin / ana2024")
     st.stop()
 
 header_3_loghi()
@@ -87,7 +102,7 @@ st.divider()
 
 with st.sidebar:
     st.image("logo.png", width=100) if os.path.exists("logo.png") else st.markdown("### ANA Varese")
-    opzioni=["🏠 Dashboard","🚨 Emergenze con Loghi","🗺️ Mappa Postazioni","🚨 Interventi Emergenza","👥 Volontari","📻 DB Radio Inventario","📦 Distribuzione Radio","💾 Backup"]
+    opzioni=["🏠 Dashboard","🚨 Emergenze con Loghi","🗺️ Mappa Postazioni","🚨 Interventi Emergenza","👥 Volontari","📻 DB Radio","📦 Distribuzione Radio","💾 Backup"]
     idx = opzioni.index(st.session_state.menu_scelta) if st.session_state.menu_scelta in opzioni else 0
     sel=st.radio("MENU", opzioni, index=idx)
     if sel!=st.session_state.menu_scelta:
@@ -105,10 +120,6 @@ if scelta=="🏠 Dashboard":
     c2.metric("Emergenze", len(st.session_state.emergenze_lista))
     c3.metric("Volontari", len(st.session_state.mem_nomi))
     c4.metric("Postazioni", len(st.session_state.postazioni))
-    c5,c6=st.columns(2)
-    c5.metric("Radio in DB", len(st.session_state.radio_db))
-    c6.metric("Distribuzioni", len(st.session_state.dist_radio))
-    st.markdown("### MENU SCELTA RAPIDA - TUTTI ATTIVI")
     r1c1,r1c2,r1c3,r1c4=st.columns(4)
     with r1c1:
         if st.button("Emergenze con Loghi", key="q1", use_container_width=True):
@@ -122,16 +133,6 @@ if scelta=="🏠 Dashboard":
     with r1c4:
         if st.button("Volontari", key="q4", use_container_width=True):
             st.session_state.menu_scelta="👥 Volontari"; st.rerun()
-    r2c1,r2c2,r2c3=st.columns(3)
-    with r2c1:
-        if st.button("DB Radio", key="q5", use_container_width=True):
-            st.session_state.menu_scelta="📻 DB Radio Inventario"; st.rerun()
-    with r2c2:
-        if st.button("Distribuzione Radio", key="q6", use_container_width=True):
-            st.session_state.menu_scelta="📦 Distribuzione Radio"; st.rerun()
-    with r2c3:
-        if st.button("Aggiorna", key="q7", use_container_width=True):
-            st.rerun()
 
 elif scelta=="🚨 Emergenze con Loghi":
     torna_dashboard("top_em")
@@ -141,204 +142,63 @@ elif scelta=="🚨 Emergenze con Loghi":
         with cols[i%6]:
             st.markdown(f"<div style='background:white; border:2px solid #2e7d32; border-radius:10px; padding:8px; text-align:center;'><div style='font-size:28px;'>{v['icon']}</div><div style='font-size:10px;'>{v['nome']}</div></div>", unsafe_allow_html=True)
     st.divider()
+    # COMUNE COMBO AGGANCIATA + VIA COMBO AGGANCIATA
+    st.markdown("### Form con Comune e Via combo agganciate")
+    c_com1,c_com2=st.columns(2)
+    with c_com1:
+        comune_sel = st.selectbox("Comune * (combo con ricerca)", COMUNI_VARESE, index=COMUNI_VARESE.index("Varese") if "Varese" in COMUNI_VARESE else 0, key="comune_combo")
+        st.session_state.comune_sel = comune_sel
+    with c_com2:
+        with st.spinner(f"Carico vie di {comune_sel}..."):
+            vie_list = get_vie_comune(comune_sel)
+        via_sel = st.selectbox(f"Via * (combo agganciata a {comune_sel} - {len(vie_list)-1} vie)", vie_list, key="via_combo")
+        if via_sel == "-- Seleziona Via --":
+            via_manual = st.text_input("Oppure scrivi Via manualmente", placeholder="Via Sacco 5")
+            via_final = via_manual if via_manual else via_sel
+        else:
+            via_final = via_sel
     with st.form("form_em", clear_on_submit=True):
         c1,c2,c3=st.columns(3)
-        with c1: data_em=st.date_input("Data *", value=date.today()); comune=st.text_input("Comune *", value="Varese")
-        with c2: via=st.text_input("Via *"); tipo_key=st.selectbox("Tipo + Logo *", list(ICONS.keys()), format_func=lambda x: f"{ICONS[x]['icon']} {ICONS[x]['nome']}")
+        with c1: data_em=st.date_input("Data *", value=date.today()); st.text_input("Comune *", value=comune_sel, disabled=True)
+        with c2: st.text_input("Via *", value=via_final, disabled=True); tipo_key=st.selectbox("Tipo + Logo *", list(ICONS.keys()), format_func=lambda x: f"{ICONS[x]['icon']} {ICONS[x]['nome']}")
         with c3: odv=st.selectbox("ODV", ["ANA Varese","Prot Civile","Altro"]); st.markdown(f"<div style='background:#c8e6c9; border:3px solid #2e7d32; border-radius:12px; padding:10px; text-align:center;'><div style='font-size:40px;'>{ICONS[tipo_key]['icon']}</div><b>{ICONS[tipo_key]['nome']}</b></div>", unsafe_allow_html=True)
-        desc=st.text_area("Descrizione *", height=80)
+        desc=st.text_area("Descrizione *", height=80, value=f"{comune_sel} - {via_final}")
         if st.form_submit_button("SALVA CON LOGO", use_container_width=True, type="primary"):
-            if comune and via and desc:
-                st.session_state.emergenze_lista.append({"Data":str(data_em),"Logo":ICONS[tipo_key]['icon'],"Tipo":ICONS[tipo_key]['nome'],"Comune":comune,"Via":via,"ODV":odv,"Descrizione":desc})
-                st.success(f"Salvata {ICONS[tipo_key]['icon']}!"); st.balloons(); st.rerun()
+            if via_final!= "-- Seleziona Via --" and desc:
+                st.session_state.emergenze_lista.append({"Data":str(data_em),"Logo":ICONS[tipo_key]['icon'],"Tipo":ICONS[tipo_key]['nome'],"Comune":comune_sel,"Via":via_final,"ODV":odv,"Descrizione":desc})
+                st.success(f"Salvata {ICONS[tipo_key]['icon']} {comune_sel} {via_final}!"); st.balloons(); st.rerun()
     if st.session_state.emergenze_lista:
         df=pd.DataFrame(st.session_state.emergenze_lista)
-        st.markdown(f"### Tabella {len(df)} Emergenze con Logo")
-        for idx,row in df.iterrows():
-            with st.container(border=True):
-                cL,cI=st.columns([1,4])
-                with cL: st.markdown(f"<div style='font-size:45px; text-align:center; background:#e8f5e9; border:2px solid #2e7d32; border-radius:12px; padding:10px;'>{row['Logo']}</div>", unsafe_allow_html=True)
-                with cI: st.markdown(f"**{row['Logo']} {row['Tipo']}** | {row['Comune']} {row['Via']} | {row['Data']}"); st.write(row['Descrizione'])
         st.dataframe(df, use_container_width=True)
     torna_dashboard("bottom_em")
 
 elif scelta=="🗺️ Mappa Postazioni":
     torna_dashboard("top_map")
     with st.container(border=True):
-        st.markdown("#### Mappa FULLSCREEN - Google Map e OpenStreetMap")
-        if st.session_state.get("selected_postazione"):
-            st.success(f"Evidenziata: {st.session_state.selected_postazione}")
-        with st.expander("Aggiungi Postazione", expanded=True):
-            with st.form("form_post", clear_on_submit=True):
-                c1,c2,c3=st.columns(3)
-                with c1: nome_post=st.text_input("Nome Postazione *"); comune_post=st.text_input("Comune *", value="Varese"); via_post=st.text_input("Via *")
-                with c2: lat=st.text_input("Latitudine *", placeholder="45.8205"); lon=st.text_input("Longitudine *", placeholder="8.8255"); civico_post=st.text_input("Civico")
-                with c3: resp_post=st.text_input("Responsabile"); radio_post=st.text_input("Radio"); tipo_post=st.selectbox("Tipo", ["Controllo accessi","Viabilita","Sicurezza","Logistica","COC","Altro"])
-                note_post=st.text_input("Note")
-                if st.form_submit_button("Aggiungi alla Mappa", use_container_width=True, type="primary"):
-                    if nome_post and lat and lon:
-                        st.session_state.postazioni.append({"Data":str(date.today()),"Postazione":nome_post,"Comune":comune_post,"Via":via_post,"Civico":civico_post,"Latitudine":lat,"Longitudine":lon,"Responsabile":resp_post,"Radio":radio_post,"Tipo":tipo_post,"Note":note_post})
-                        st.success(f"{nome_post} aggiunta!"); st.rerun()
+        st.markdown("#### Mappa FULLSCREEN - Google Map e OpenStreetMap + Comune e Via combo")
+        st.info("Se non vedi la mappa, aggiungi al file requirements.txt su GitHub: folium e streamlit-folium")
+        # COMBO COMUNE E VIA AGGANCIATE ANCHE QUI
+        c_com1,c_com2=st.columns(2)
+        with c_com1:
+            comune_map = st.selectbox("Comune * (combo)", COMUNI_VARESE, index=0, key="comune_map")
+        with c_com2:
+            vie_map = get_vie_comune(comune_map)
+            via_map = st.selectbox(f"Via * (combo {comune_map})", vie_map, key="via_map")
+        with st.form("form_post", clear_on_submit=True):
+            c1,c2,c3=st.columns(3)
+            with c1: nome_post=st.text_input("Nome Postazione *"); st.text_input("Comune *", value=comune_map, disabled=True)
+            with c2: st.text_input("Via *", value=via_map if via_map!="-- Seleziona Via --" else "", disabled=True); lat=st.text_input("Latitudine *", placeholder="45.8205"); lon=st.text_input("Longitudine *", placeholder="8.8255")
+            with c3: resp_post=st.text_input("Responsabile"); radio_post=st.text_input("Radio"); tipo_post=st.selectbox("Tipo", ["Controllo accessi","Viabilita","Sicurezza","Logistica","COC","Altro"])
+            if st.form_submit_button("Aggiungi alla Mappa", use_container_width=True, type="primary"):
+                if nome_post and lat and lon:
+                    st.session_state.postazioni.append({"Data":str(date.today()),"Postazione":nome_post,"Comune":comune_map,"Via":via_map,"Latitudine":lat,"Longitudine":lon,"Responsabile":resp_post,"Radio":radio_post,"Tipo":tipo_post})
+                    st.success(f"{nome_post} aggiunta!"); st.rerun()
         if st.session_state.postazioni:
             df_post=pd.DataFrame(st.session_state.postazioni)
-            if "map_type" not in st.session_state: st.session_state.map_type="OpenStreetMap"
-            map_type=st.selectbox("Tipo Mappa:", ["OpenStreetMap","Google Stradale","Google Satellite","Google Ibrida","Google Rilievo"], index=["OpenStreetMap","Google Stradale","Google Satellite","Google Ibrida","Google Rilievo"].index(st.session_state.map_type), key="map_type_sel")
-            st.session_state.map_type=map_type
-            if st.session_state.get("selected_postazione"):
-                for _, r in df_post.iterrows():
-                    if r.get("Postazione")==st.session_state.selected_postazione:
-                        lat_s=r.get("Latitudine"); lon_s=r.get("Longitudine")
-                        st.markdown(f"**Naviga verso: {st.session_state.selected_postazione}**")
-                        c1,c2,c3,c4=st.columns(4)
-                        with c1: st.link_button("Google Maps", f"https://www.google.com/maps/search/?api=1&query={lat_s},{lon_s}", use_container_width=True, type="primary")
-                        with c2: st.link_button("Google Naviga", f"https://www.google.com/maps/dir/?api=1&destination={lat_s},{lon_s}", use_container_width=True)
-                        with c3: st.link_button("Waze", f"https://waze.com/ul?ll={lat_s},{lon_s}&navigate=yes&zoom=17", use_container_width=True)
-                        with c4: st.link_button("OpenStreetMap", f"https://www.openstreetmap.org/?mlat={lat_s}&mlon={lon_s}#map=18/{lat_s}/{lon_s}", use_container_width=True)
-            st.markdown("**Clicca postazione per centrare:**")
-            cols_map=st.columns(3)
-            for idx, p in enumerate(st.session_state.postazioni):
-                with cols_map[idx%3]:
-                    nome=p.get("Postazione","")
-                    is_sel=st.session_state.get("selected_postazione")==nome
-                    if st.button(f"{'⭐' if is_sel else '📍'} {nome}", key=f"map_sel_{idx}_{uuid.uuid4().hex[:4]}", use_container_width=True, type="primary" if is_sel else "secondary"):
-                        st.session_state.selected_postazione=nome; st.rerun()
+            # MAPPA FOLIUM CON GOOGLE E OSM
+            map_type=st.selectbox("Tipo Mappa:", ["OpenStreetMap","Google Stradale","Google Satellite","Google Ibrida","Google Rilievo"], key="map_type_sel")
             try:
                 import folium
                 from streamlit_folium import st_folium
-                selected=st.session_state.get("selected_postazione")
-                center_lat, center_lon=45.8205, 8.8255; zoom=14
-                if selected:
-                    for _, r in df_post.iterrows():
-                        if r.get("Postazione")==selected:
-                            try: center_lat=float(str(r.get("Latitudine")).replace(",",".")); center_lon=float(str(r.get("Longitudine")).replace(",",".")); zoom=17
-                            except: pass
-                if map_type=="OpenStreetMap": m=folium.Map(location=[center_lat, center_lon], zoom_start=zoom, tiles="OpenStreetMap")
-                elif map_type=="Google Stradale": m=folium.Map(location=[center_lat, center_lon], zoom_start=zoom, tiles=None); folium.TileLayer('https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', attr='Google', name='Google Stradale', max_zoom=20).add_to(m)
-                elif map_type=="Google Satellite": m=folium.Map(location=[center_lat, center_lon], zoom_start=zoom, tiles=None); folium.TileLayer('https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}', attr='Google', name='Google Satellite', max_zoom=20).add_to(m)
-                elif map_type=="Google Ibrida": m=folium.Map(location=[center_lat, center_lon], zoom_start=zoom, tiles=None); folium.TileLayer('https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', attr='Google', name='Google Ibrida', max_zoom=20).add_to(m)
-                elif map_type=="Google Rilievo": m=folium.Map(location=[center_lat, center_lon], zoom_start=zoom, tiles=None); folium.TileLayer('https://mt1.google.com/vt/lyrs=p&x={x}&y={y}&z={z}', attr='Google', name='Google Rilievo', max_zoom=20).add_to(m)
-                try:
-                    from folium.plugins import Fullscreen, LocateControl
-                    Fullscreen(position="topleft").add_to(m); LocateControl().add_to(m)
-                except: pass
-                for _, r in df_post.iterrows():
-                    try:
-                        lat_f=float(str(r.get("Latitudine")).replace(",",".")); lon_f=float(str(r.get("Longitudine")).replace(",","."))
-                        nome_p=r.get('Postazione',''); is_sel=nome_p==selected
-                        popup=f"<b>{nome_p}</b><br>{r.get('Via','')} {r.get('Civico','')}, {r.get('Comune','')}<br><a href='https://www.google.com/maps/search/?api=1&query={lat_f},{lon_f}' target='_blank'>Google Maps</a> | <a href='https://waze.com/ul?ll={lat_f},{lon_f}&navigate=yes' target='_blank'>Waze</a>"
-                        folium.Marker([lat_f, lon_f], popup=folium.Popup(popup, max_width=250), tooltip=nome_p, icon=folium.Icon(color="red" if is_sel else "green", icon="star" if is_sel else "info-sign")).add_to(m)
-                    except: pass
-                st_folium(m, width=1400, height=600, use_container_width=True)
-            except ImportError:
-                st.warning("Aggiungi folium e streamlit-folium ai requirements.txt")
-                try:
-                    dfm=df_post.copy(); dfm["lat"]=pd.to_numeric(dfm["Latitudine"].astype(str).str.replace(",","."), errors='coerce'); dfm["lon"]=pd.to_numeric(dfm["Longitudine"].astype(str).str.replace(",","."), errors='coerce')
-                    dfm=dfm.dropna(subset=["lat","lon"])
-                    if not dfm.empty: st.map(dfm[["lat","lon"]], zoom=11)
-                except: pass
-            st.dataframe(df_post, use_container_width=True, hide_index=True)
-            for _, r in df_post.iterrows():
-                with st.container(border=True):
-                    c1,c2,c3,c4=st.columns([2,1,1,1])
-                    with c1: st.markdown(f"**{r['Postazione']}** - {r['Comune']} {r['Via']}")
-                    with c2: st.link_button("Google Map", f"https://www.google.com/maps/search/?api=1&query={r['Latitudine']},{r['Longitudine']}", use_container_width=True, key=f"g_{r['Postazione']}_{uuid.uuid4().hex[:4]}")
-                    with c3: st.link_button("OpenStreetMap", f"https://www.openstreetmap.org/?mlat={r['Latitudine']}&mlon={r['Longitudine']}#map=17/{r['Latitudine']}/{r['Longitudine']}", use_container_width=True, key=f"osm_{r['Postazione']}_{uuid.uuid4().hex[:4]}")
-                    with c4: st.link_button("Waze", f"https://waze.com/ul?ll={r['Latitudine']},{r['Longitudine']}&navigate=yes", use_container_width=True, key=f"waze_{r['Postazione']}_{uuid.uuid4().hex[:4]}")
-        else:
-            st.info("Nessuna postazione")
-    torna_dashboard("bottom_map")
-
-elif scelta=="📻 DB Radio Inventario":
-    torna_dashboard("top_radio")
-    with st.container(border=True):
-        st.markdown("#### Database Radio - Form del 15 Settembre")
-        with st.form("form_radio_db"):
-            c1,c2,c3,c4=st.columns(4)
-            with c1: radio_id_db=st.text_input("Radio ID *", placeholder="R-01"); modello_db=st.selectbox("Modello *", ["Baofeng UV-5R","Motorola T82","Midland G9","Altro"])
-            with c2: seriale=st.text_input("Seriale"); frequenza=st.text_input("Frequenza", placeholder="145.500 MHz")
-            with c3: batteria=st.selectbox("Batteria", ["Carica","Da caricare","Guasta","Nuova"]); accessori=st.text_input("Accessori")
-            with c4: stato_radio_db=st.selectbox("Stato", ["Disponibile","In uso","Guasta","In riparazione"]); note_radio_db=st.text_input("Note")
-            if st.form_submit_button("Salva Radio nel DB", use_container_width=True, type="primary"):
-                if radio_id_db and modello_db:
-                    if any(r.get("Radio ID")==radio_id_db for r in st.session_state.radio_db): st.error(f"Radio {radio_id_db} gia esistente!")
-                    else:
-                        st.session_state.radio_db.append({"Radio ID":radio_id_db,"Modello":modello_db,"Seriale":seriale,"Frequenza":frequenza,"Batteria":batteria,"Accessori":accessori,"Stato":stato_radio_db,"Note":note_radio_db,"Data Inserimento":str(date.today())})
-                        st.success(f"Radio {radio_id_db} aggiunta!"); st.rerun()
-                else: st.error("Radio ID e Modello obbligatori")
-        if st.session_state.radio_db:
-            df_db=pd.DataFrame(st.session_state.radio_db).iloc[::-1]
-            st.dataframe(df_db, use_container_width=True, hide_index=True)
-            col1,col2=st.columns(2)
-            with col1:
-                out=BytesIO(); df_db.to_excel(out, index=False, engine="openpyxl")
-                st.download_button("Scarica Excel DB Radio", out.getvalue(), file_name="db_radio.xlsx", mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", use_container_width=True)
-            with col2:
-                if st.button("Cancella DB", use_container_width=True, key="del_db"):
-                    st.session_state.radio_db=[]; st.rerun()
-    torna_dashboard("bottom_radio")
-
-elif scelta=="📦 Distribuzione Radio":
-    torna_dashboard("top_dist")
-    with st.container(border=True):
-        st.markdown("#### Distribuzione Radio - Form del 15 Settembre")
-        st.caption(f"Volontari disponibili: {len(st.session_state.mem_nomi)}")
-        with st.form("form_dist"):
-            c1,c2,c3,c4=st.columns(4)
-            with c1:
-                data_d=st.date_input("Data", value=datetime.now())
-                if st.session_state.radio_db:
-                    radio_list=[f"{r.get('Radio ID')} | {r.get('Modello')} | {r.get('Stato')}" for r in st.session_state.radio_db]
-                    scelta_display=st.selectbox("Radio ID dal DB *", ["-- Seleziona --"]+radio_list)
-                    if scelta_display!="-- Seleziona --": radio_id=scelta_display.split(" | ")[0]; modello=scelta_display.split(" | ")[1] if len(scelta_display.split(" | "))>1 else ""
-                    else: radio_id=""; modello=""
-                    st.session_state["_tmp_radio_id"]=radio_id; st.session_state["_tmp_modello"]=modello
-                else:
-                    st.error("DB Radio vuoto! Vai in DB Radio")
-                    radio_id=st.text_input("Radio ID *", placeholder="R-01"); modello=st.text_input("Modello *"); st.session_state["_tmp_radio_id"]=radio_id; st.session_state["_tmp_modello"]=modello
-            with c2:
-                assegnatario=st.selectbox("Assegnato A *", ["--"]+st.session_state.mem_nomi); consegnato_da=st.selectbox("Consegnata DA *", ["--"]+st.session_state.mem_nomi)
-            with c3:
-                opzioni_post=["-- Nuova --"]+[p.get("Postazione","") for p in st.session_state.postazioni]
-                scelta_post=st.selectbox("Postazione *", opzioni_post)
-                if scelta_post=="-- Nuova --": postazione=st.text_input("Nuova Postazione *", placeholder="Posto 1")
-                else: postazione=scelta_post
-                canale=st.selectbox("Canale", ["CH 1 - Emergenza","CH 2 - Logistica","CH 3 - Coordinamento","VHF 145.500"])
-            with c4:
-                ora_cons=st.text_input("Ora consegna", value=datetime.now().strftime("%H:%M")); ora_ric=st.text_input("Ora riconsegna", placeholder="Al rientro"); stato_r=st.selectbox("Stato", ["Consegnata","Riconsegnata","Guasta"])
-            note_d=st.text_input("Note", placeholder="Con batteria carica")
-            if st.form_submit_button("Assegna Radio", use_container_width=True, type="primary"):
-                radio_id_final=st.session_state.get("_tmp_radio_id",""); modello_final=st.session_state.get("_tmp_modello","")
-                if radio_id_final and assegnatario!="--" and postazione and consegnato_da!="--" and modello_final:
-                    st.session_state.dist_radio.append({"Data":str(data_d),"RadioID":radio_id_final,"Modello":modello_final,"Assegnatario":assegnatario,"Consegnata DA":consegnato_da,"Postazione":postazione,"Canale":canale,"OraConsegna":ora_cons,"OraRiconsegna":ora_ric,"Stato":stato_r,"Note":note_d})
-                    st.success(f"Radio {radio_id_final} consegnata a {assegnatario}"); st.rerun()
-                else: st.error("Compila Radio, Assegnato A, Consegnata DA, Postazione")
-        if st.session_state.dist_radio:
-            df_dist=pd.DataFrame(st.session_state.dist_radio).iloc[::-1]
-            st.dataframe(df_dist, use_container_width=True, hide_index=True)
-            out=BytesIO(); df_dist.to_excel(out, index=False, engine="openpyxl")
-            st.download_button("Scarica Excel Distribuzione", out.getvalue(), file_name="distribuzione.xlsx", mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", use_container_width=True)
-    torna_dashboard("bottom_dist")
-
-elif scelta=="👥 Volontari":
-    torna_dashboard("top_vol")
-    with st.form("form_volontari_vecchio", clear_on_submit=True):
-        c1,c2=st.columns(2)
-        with c1: nome=st.text_input("Nome e Cognome *"); assoc=st.text_input("Associazione *", value="ANA Varese"); cell=st.text_input("Cellulare *")
-        with c2: email=st.text_input("Email"); ruolo=st.selectbox("Ruolo *", ["Volontario","Caposquadra","Coordinatore","Autista","Radio","Logistica","Altro"])
-        if st.form_submit_button("SALVA VOLONTARIO", use_container_width=True, type="primary"):
-            if nome and assoc and cell:
-                st.session_state.dati.append({"Nome":nome,"Associazione":assoc,"Cellulare":cell,"Email":email,"Ruolo":ruolo})
-                if nome not in st.session_state.mem_nomi: st.session_state.mem_nomi.append(nome)
-                st.success(f"Aggiunto {nome}"); st.rerun()
-    if st.session_state.dati:
-        df=pd.DataFrame(st.session_state.dati)
-        st.dataframe(df, use_container_width=True, hide_index=True)
-        output=BytesIO()
-        df.to_excel(output, index=False, engine="openpyxl")
-        st.download_button("Scarica Excel", output.getvalue(), file_name="associazioni.xlsx", mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", use_container_width=True)
-    torna_dashboard("bottom_vol")
-
-else:
-    torna_dashboard("top_other")
-    st.info(f"Sezione {scelta}")
-    torna_dashboard("bottom_other")
+                center_lat, center_lon=45.8205, 8.8255; zoom=12
+                if map_type=="OpenStreetMap": m=folium.Map(location=[center_lat, center_lon], zoom_start=zoom, tiles="OpenStreet
