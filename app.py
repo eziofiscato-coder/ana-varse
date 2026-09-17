@@ -7,7 +7,7 @@ import uuid
 import requests
 
 st.set_page_config(
-    page_title="ANA Varese - Verde ANA",
+    page_title="ANA Varese",
     page_icon="🟢",
     layout="wide"
 )
@@ -42,7 +42,8 @@ div[data-testid="stFormSubmitButton"]>button{
 </style>
 """, unsafe_allow_html=True)
 
-COMUNI = [
+# COMUNI VARESE BASE (fallback veloce)
+COMUNI_VARESE = [
     "Varese","Busto Arsizio","Gallarate","Saronno",
     "Cassano Magnago","Tradate","Somma Lombardo",
     "Malnate","Luino","Samarate","Laveno-Mombello",
@@ -67,33 +68,77 @@ COMUNI = [
     "Carnago","Gemonio","Barasso","Luvinate","Casciago"
 ]
 
+@st.cache_data(ttl=86400)
+def load_comuni_italia():
+    """Carica tutti i comuni d'Italia - 7900 comuni"""
+    try:
+        # Prova a caricare da repo pubblico comuni-json
+        url = "https://raw.githubusercontent.com/matteocontrini/comuni-json/master/comuni.json"
+        r = requests.get(url, timeout=10)
+        if r.status_code == 200:
+            data = r.json()
+            comuni = sorted([c["nome"] for c in data])
+            # Metti Varese e provincia in alto
+            varese_top = [c for c in COMUNI_VARESE if c in comuni]
+            altri = [c for c in comuni if c not in varese_top]
+            return varese_top + altri
+    except:
+        pass
+    try:
+        # Fallback 2: ISTAT csv
+        url2 = "https://raw.githubusercontent.com/comuni-ita/comuni-ita/master/comuni.json"
+        r = requests.get(url2, timeout=10)
+        if r.status_code == 200:
+            data = r.json()
+            return sorted(list(set([d["nome"] if isinstance(d, dict) else d for d in data])))[:7900]
+    except:
+        pass
+    # Fallback finale: lista Varese + capoluoghi
+    capoluoghi = [
+        "Roma","Milano","Napoli","Torino","Palermo","Genova","Bologna",
+        "Firenze","Bari","Catania","Venezia","Verona","Messina","Padova",
+        "Trieste","Brescia","Parma","Prato","Modena","Reggio Calabria",
+        "Reggio Emilia","Perugia","Livorno","Ravenna","Cagliari","Foggia",
+        "Rimini","Salerno","Ferrara","Sassari","Latina","Giugliano in Campania",
+        "Monza","Siracusa","Pescara","Bergamo","Forli","Trento","Vicenza",
+        "Terni","Bolzano","Novara","Piacenza","Ancona","Andria","Arezzo",
+        "Udine","Cesena","Lecce","La Spezia","Pesaro","Alessandria",
+        "Barletta","Catanzaro","Pistoia","Brindisi","Pisa","Torre del Greco"
+    ]
+    tutti = COMUNI_VARESE + capoluoghi
+    return sorted(list(set(tutti)))
+
 @st.cache_data(ttl=3600)
-def get_vie(comune):
+def get_vie_comune(comune):
+    """Carica vie vere del comune da OpenStreetMap"""
     try:
         q = (
             '[out:json][timeout:10];'
             f'area[name="{comune}"][admin_level=8]->.a;'
             '(way(area.a)["highway"]["name"];);'
-            'out 100;'
+            'out 150;'
         )
         url = "https://overpass-api.de/api/interpreter"
-        r = requests.post(url, data={"data": q}, timeout=8)
+        r = requests.post(url, data={"data": q}, timeout=10)
         if r.status_code == 200:
             data = r.json()
             vie = []
             for el in data.get("elements", []):
                 if "tags" in el and "name" in el["tags"]:
-                    vie.append(el["tags"]["name"])
+                    nome = el["tags"]["name"]
+                    if len(nome) > 2:
+                        vie.append(nome)
             vie = sorted(list(set(vie)))
             if vie:
-                base = ["-- Seleziona Via --"]
-                return base + vie[:200]
+                return ["-- Seleziona Via --"] + vie[:250]
     except:
         pass
     return [
         "-- Seleziona Via --",
-        "Via Roma","Via Garibaldi",
-        "Via Milano","Via Sacco"
+        "Via Roma","Via Garibaldi","Via Milano",
+        "Via Verdi","Via Dante","Via Sacco",
+        "Corso Matteotti","Piazza Liberta",
+        "Via Marconi","Via Mazzini"
     ]
 
 ICONS = {
@@ -121,7 +166,7 @@ for k, v in [
 
 def torna(suffix=""):
     k = f"back_{suffix}_{uuid.uuid4().hex[:6]}"
-    if st.button("Torna Dashboard", key=k, use_container_width=True):
+    if st.button("🏠 Torna Dashboard", key=k, use_container_width=True):
         st.session_state.menu_scelta = "Dashboard"
         st.rerun()
 
@@ -188,12 +233,17 @@ scelta = st.session_state.menu_scelta
 st.markdown(f"## {scelta}")
 st.divider()
 
+# Carica comuni una volta sola
+with st.spinner("Carico comuni d'Italia..."):
+    COMUNI_TUTTI = load_comuni_italia()
+
 if scelta == "Dashboard":
     c1, c2, c3, c4 = st.columns(4)
     c1.metric("Emergenze", len(st.session_state.emergenze_lista))
     c2.metric("Postazioni", len(st.session_state.postazioni))
     c3.metric("Volontari", len(st.session_state.dati))
     c4.metric("Radio", len(st.session_state.radio_db))
+    st.markdown("### Scelta rapida")
     r1, r2, r3, r4 = st.columns(4)
     with r1:
         if st.button("Emergenze", key="b1", use_container_width=True):
@@ -211,44 +261,42 @@ if scelta == "Dashboard":
         if st.button("DB Radio", key="b4", use_container_width=True):
             st.session_state.menu_scelta = "DB Radio"
             st.rerun()
+    st.info(f"Comuni caricati: {len(COMUNI_TUTTI)} - scrivi le prime lettere nella combo per filtrare")
 
 elif scelta == "Emergenze con Loghi":
     torna("top_em")
-    st.markdown("### Libreria Loghi")
-    cols = st.columns(6)
-    for i, (k, v) in enumerate(ICONS.items()):
-        with cols[i % 6]:
-            st.markdown(
-                f"<div style='background:white; "
-                f"border:2px solid #2e7d32; border-radius:10px; "
-                f"padding:8px; text-align:center;'>"
-                f"<div style='font-size:28px;'>{v['icon']}</div>"
-                f"<div style='font-size:10px;'>{v['nome']}</div></div>",
-                unsafe_allow_html=True
-            )
-    st.divider()
-    st.markdown("### Comune e Via combo agganciate")
+    st.markdown("### Comune (tutti Italia) + Via agganciata")
     c1, c2 = st.columns(2)
     with c1:
-        comune = st.selectbox("Comune *", COMUNI, key="comune_em")
+        comune = st.selectbox(
+            "Comune * - tutti Italia (scrivi per filtrare)",
+            COMUNI_TUTTI,
+            index=0,
+            key="comune_em"
+        )
     with c2:
-        vie = get_vie(comune)
-        via = st.selectbox(f"Via * ({comune})", vie, key="via_em")
+        with st.spinner(f"Carico vie di {comune}..."):
+            vie = get_vie_comune(comune)
+        via = st.selectbox(
+            f"Via * ({comune}) - {len(vie)-1} vie trovate",
+            vie,
+            key="via_em"
+        )
         if via == "-- Seleziona Via --":
-            via_man = st.text_input("Via manuale")
+            via_man = st.text_input("Oppure scrivi via manuale")
             via_f = via_man if via_man else via
         else:
             via_f = via
     with st.form("form_em"):
         data_em = st.date_input("Data", value=date.today())
         tipo = st.selectbox(
-            "Tipo",
+            "Tipo + Logo",
             list(ICONS.keys()),
             format_func=lambda x: ICONS[x]["icon"] + " " + ICONS[x]["nome"]
         )
         desc = st.text_area("Descrizione", value=f"{comune} - {via_f}")
         if st.form_submit_button("Salva con Logo"):
-            if via_f!= "-- Seleziona Via --":
+            if via_f!= "-- Seleziona Via --" and desc:
                 st.session_state.emergenze_lista.append({
                     "Data": str(data_em),
                     "Logo": ICONS[tipo]["icon"],
@@ -260,21 +308,30 @@ elif scelta == "Emergenze con Loghi":
                 st.success("Salvata!")
                 st.rerun()
     if st.session_state.emergenze_lista:
-        st.dataframe(pd.DataFrame(st.session_state.emergenze_lista))
+        st.dataframe(pd.DataFrame(st.session_state.emergenze_lista), use_container_width=True)
     torna("bottom_em")
 
 elif scelta == "Mappa Postazioni":
     torna("top_map")
-    st.markdown("### Mappa - Google e OpenStreetMap")
-    st.info("Richiede: folium, streamlit-folium, requests")
+    st.markdown("### Mappa - Tutti comuni Italia + vie agganciate")
     c1, c2 = st.columns(2)
     with c1:
-        comune = st.selectbox("Comune *", COMUNI, key="comune_map")
+        comune = st.selectbox(
+            "Comune * - tutti Italia (scrivi per filtrare)",
+            COMUNI_TUTTI,
+            index=0,
+            key="comune_map"
+        )
     with c2:
-        vie = get_vie(comune)
-        via = st.selectbox(f"Via * ({comune})", vie, key="via_map")
+        with st.spinner(f"Carico vie di {comune}..."):
+            vie = get_vie_comune(comune)
+        via = st.selectbox(
+            f"Via * ({comune}) - {len(vie)-1} vie",
+            vie,
+            key="via_map"
+        )
         if via == "-- Seleziona Via --":
-            via_man = st.text_input("Via manuale map")
+            via_man = st.text_input("Via manuale", key="via_man_map")
             via_f = via_man if via_man else via
         else:
             via_f = via
@@ -282,9 +339,9 @@ elif scelta == "Mappa Postazioni":
         nome = st.text_input("Nome Postazione *")
         col1, col2 = st.columns(2)
         with col1:
-            lat = st.text_input("Lat *", placeholder="45.8205")
+            lat = st.text_input("Latitudine *", placeholder="45.8205")
         with col2:
-            lon = st.text_input("Lon *", placeholder="8.8255")
+            lon = st.text_input("Longitudine *", placeholder="8.8255")
         resp = st.text_input("Responsabile")
         if st.form_submit_button("Aggiungi alla Mappa"):
             if nome and lat and lon:
@@ -311,6 +368,12 @@ elif scelta == "Mappa Postazioni":
             lat_c = 45.8205
             lon_c = 8.8255
             zoom = 12
+            if len(df) > 0:
+                try:
+                    lat_c = float(str(df.iloc[0]["Latitudine"]).replace(",","."))
+                    lon_c = float(str(df.iloc[0]["Longitudine"]).replace(",","."))
+                except:
+                    pass
             if tipo == "OpenStreetMap":
                 m = folium.Map(
                     location=[lat_c, lon_c],
@@ -352,40 +415,43 @@ elif scelta == "Mappa Postazioni":
                     lo = float(str(r["Longitudine"]).replace(",","."))
                     folium.Marker(
                         [la, lo],
-                        popup=r["Postazione"]
+                        popup=f"{r['Postazione']}<br>{r['Comune']} {r['Via']}",
+                        tooltip=r["Postazione"]
                     ).add_to(m)
                 except:
                     pass
-            st_folium(m, width=700, height=500)
+            st_folium(m, width=1200, height=600, use_container_width=True)
+        except ImportError as e:
+            st.error("Mappa folium non disponibile - installa requirements.txt")
+            st.warning(f"Errore: {e}")
+            try:
+                dfm = df.copy()
+                dfm["lat"] = pd.to_numeric(dfm["Latitudine"].astype(str).str.replace(",","."), errors='coerce')
+                dfm["lon"] = pd.to_numeric(dfm["Longitudine"].astype(str).str.replace(",","."), errors='coerce')
+                dfm = dfm.dropna(subset=["lat","lon"])
+                if not dfm.empty:
+                    st.map(dfm[["lat","lon"]], zoom=11)
+            except:
+                pass
         except Exception as e:
-            st.error(f"Mappa: {e}")
-            st.map(df.rename(columns={"Latitudine":"lat","Longitudine":"lon"}))
+            st.error(f"Errore mappa: {e}")
         st.dataframe(df, use_container_width=True)
         for _, r in df.iterrows():
             with st.container(border=True):
                 c1, c2, c3, c4 = st.columns([2,1,1,1])
                 with c1:
-                    st.write(f"**{r['Postazione']}** {r['Comune']} {r['Via']}")
+                    st.write(f"**{r['Postazione']}** - {r['Comune']} {r['Via']}")
                 with c2:
-                    url_g = (
-                        "https://www.google.com/maps/search/?api=1&query="
-                        + r["Latitudine"] + "," + r["Longitudine"]
-                    )
+                    url_g = "https://www.google.com/maps/search/?api=1&query=" + r["Latitudine"] + "," + r["Longitudine"]
                     st.link_button("Google Map", url_g, key=f"g_{uuid.uuid4().hex[:4]}")
                 with c3:
-                    url_osm = (
-                        "https://www.openstreetmap.org/?mlat="
-                        + r["Latitudine"] + "&mlon=" + r["Longitudine"]
-                    )
+                    url_osm = "https://www.openstreetmap.org/?mlat=" + r["Latitudine"] + "&mlon=" + r["Longitudine"]
                     st.link_button("OSM", url_osm, key=f"o_{uuid.uuid4().hex[:4]}")
                 with c4:
-                    url_w = (
-                        "https://waze.com/ul?ll="
-                        + r["Latitudine"] + "," + r["Longitudine"]
-                    )
+                    url_w = "https://waze.com/ul?ll=" + r["Latitudine"] + "," + r["Longitudine"]
                     st.link_button("Waze", url_w, key=f"w_{uuid.uuid4().hex[:4]}")
     else:
-        st.info("Nessuna postazione - usa combo Comune/Via")
+        st.info("Nessuna postazione - seleziona Comune d'Italia e Via agganciata")
     torna("bottom_map")
 
 elif scelta == "Volontari":
@@ -442,7 +508,7 @@ elif scelta == "DB Radio":
                 st.success("Aggiunta!")
                 st.rerun()
     if st.session_state.radio_db:
-        st.dataframe(pd.DataFrame(st.session_state.radio_db))
+        st.dataframe(pd.DataFrame(st.session_state.radio_db), use_container_width=True)
     torna("bottom_radio")
 
 elif scelta == "Distribuzione Radio":
@@ -471,5 +537,5 @@ elif scelta == "Distribuzione Radio":
                 st.success("Assegnata!")
                 st.rerun()
     if st.session_state.dist_radio:
-        st.dataframe(pd.DataFrame(st.session_state.dist_radio))
+        st.dataframe(pd.DataFrame(st.session_state.dist_radio), use_container_width=True)
     torna("bottom_dist")
