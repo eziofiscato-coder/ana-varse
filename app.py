@@ -21,6 +21,7 @@ div[data-testid="stFormSubmitButton"]>button{background-color:#d32f2f!important;
 .logo-box{border:2px solid #2e7d32;border-radius:10px;padding:10px;text-align:center;background:#f1f8e9;}
 .via-desc{background-color:#e3f2fd;border:2px solid #1976d2;border-radius:10px;padding:15px;margin:10px 0;}
 .emergenza-box{background-color:#fce4ec;border:3px solid #c62828;border-radius:12px;padding:15px;margin:10px 0;}
+.pdf-box{background-color:#fff3e0;border:2px solid #ef6c00;border-radius:10px;padding:15px;margin:10px 0;}
 </style>
 """, unsafe_allow_html=True)
 
@@ -41,6 +42,105 @@ def save_json(f,d):
             json.dump(d,fh,ensure_ascii=False,indent=2)
     except Exception as e:
         st.error(f"Errore {f}: {e}")
+
+def create_pdf_report(df, title, subtitle=""):
+    """Crea PDF con anteprima stampa per singolo form"""
+    try:
+        from reportlab.lib import colors
+        from reportlab.lib.pagesizes import A4, landscape
+        from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
+        from reportlab.lib.styles import getSampleStyleSheet
+        from reportlab.lib.units import inch
+
+        buffer = BytesIO()
+        # Usa landscape se molte colonne
+        if len(df.columns) > 6:
+            doc = SimpleDocTemplate(buffer, pagesize=landscape(A4), leftMargin=30, rightMargin=30, topMargin=30, bottomMargin=30)
+        else:
+            doc = SimpleDocTemplate(buffer, pagesize=A4, leftMargin=40, rightMargin=40, topMargin=40, bottomMargin=40)
+
+        styles = getSampleStyleSheet()
+        elements = []
+
+        # Titolo
+        title_style = styles['Heading1']
+        title_style.textColor = colors.HexColor('#2e7d32')
+        elements.append(Paragraph(title, title_style))
+        elements.append(Spacer(1, 12))
+
+        if subtitle:
+            elements.append(Paragraph(subtitle, styles['Normal']))
+            elements.append(Spacer(1, 12))
+
+        elements.append(Paragraph(f"Data stampa: {datetime.now().strftime('%d/%m/%Y %H:%M')} - Totale record: {len(df)}", styles['Normal']))
+        elements.append(Spacer(1, 20))
+
+        # Prepara dati per tabella - limita colonne per PDF
+        df_pdf = df.copy()
+        # Rimuovi colonne troppo lunghe per PDF
+        for col in df_pdf.columns:
+            if 'PNG' in col or 'Dati' in col or 'CustomPNG' in col:
+                df_pdf = df_pdf.drop(columns=[col])
+
+        # Tronca testi lunghi
+        for col in df_pdf.columns:
+            df_pdf[col] = df_pdf[col].astype(str).apply(lambda x: x[:60] + "..." if len(x) > 60 else x)
+
+        # Limita righe per anteprima PDF (max 50)
+        if len(df_pdf) > 50:
+            df_pdf = df_pdf.head(50)
+
+        data = [list(df_pdf.columns)] + df_pdf.values.tolist()
+
+        # Crea tabella
+        col_width = 500 / len(df_pdf.columns) if len(df_pdf.columns) > 0 else 100
+        table = Table(data, colWidths=[col_width]*len(df_pdf.columns) if len(df_pdf.columns) > 0 else [100])
+        table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#2e7d32')),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, 0), 8),
+            ('FONTSIZE', (0, 1), (-1, -1), 6),
+            ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+            ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
+            ('GRID', (0, 0), (-1, -1), 1, colors.black),
+            ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.HexColor('#e8f5e9')]),
+        ]))
+        elements.append(table)
+
+        if len(df) > 50:
+            elements.append(Spacer(1, 20))
+            elements.append(Paragraph(f"... e altri {len(df)-50} record (vedi Excel per completo)", styles['Italic']))
+
+        doc.build(elements)
+        buffer.seek(0)
+        return buffer.getvalue()
+    except Exception as e:
+        # Fallback se reportlab non disponibile - crea PDF semplice con testo
+        try:
+            from reportlab.pdfgen import canvas
+            from reportlab.lib.pagesizes import A4
+            buffer = BytesIO()
+            c = canvas.Canvas(buffer, pagesize=A4)
+            c.setFont("Helvetica-Bold", 16)
+            c.drawString(50, 800, title)
+            c.setFont("Helvetica", 10)
+            c.drawString(50, 780, f"Data: {datetime.now().strftime('%d/%m/%Y')} - Record: {len(df)}")
+            y = 750
+            for idx, row in df.head(30).iterrows():
+                if y < 50:
+                    c.showPage()
+                    y = 800
+                text = " | ".join([str(v)[:30] for v in row.values][:5])
+                c.drawString(50, y, text[:120])
+                y -= 15
+            c.save()
+            buffer.seek(0)
+            return buffer.getvalue()
+        except Exception as e2:
+            st.error(f"Errore creazione PDF: {e} / {e2}")
+            return None
 
 FILE_DATI="dati_volontari.json"
 FILE_POST="postazioni.json"
@@ -621,301 +721,4 @@ elif scelta=="Mappa Postazioni":
                     lo=float(str(r["Longitudine"]).replace(",","."))
                     popup_text=f"<b>{r['Postazione']}</b><br>{r['Comune']} - {r['Via']}<br>Emerg: {r.get('EmergenzaNome','Nessuna')}"
                     puntatore=r.get("Puntatore","📍 Default Rosso")
-                    custom_b64=r.get("CustomPNG","")
-                    is_last=False
-                    if st.session_state.last_postazione:
-                        if r["Postazione"]==st.session_state.last_postazione["Postazione"]:
-                            is_last=True
-                    if puntatore=="⭐ Personalizzato PNG" and custom_b64:
-                        try:
-                            icon_url=f"data:image/png;base64,{custom_b64}"
-                            icon=folium.CustomIcon(icon_url,icon_size=(40,40),icon_anchor=(20,40))
-                            folium.Marker([la,lo],popup=folium.Popup(popup_text,max_width=300),icon=icon).add_to(m)
-                        except:
-                            folium.Marker([la,lo],popup=popup_text,icon=folium.Icon(color="red",icon="info-sign")).add_to(m)
-                    else:
-                        color_map={"📍 Default Rosso":"red","🚨 Emergenza":"red","🏠 Sede ANA":"green","👤 Volontario":"blue","🔥 Incendio":"orange","🌊 Alluvione":"blue","🚑 Sanitario":"white","📻 Radio":"cadetblue"}
-                        color=color_map.get(puntatore,"red")
-                        if is_last:
-                            folium.Marker([la,lo],popup=folium.Popup(f"🎯 ULTIMA<br>{popup_text}",max_width=300),icon=folium.Icon(color=color,icon="star",prefix="fa")).add_to(m)
-                            folium.CircleMarker([la,lo],radius=20,color="yellow",fill=False,weight=3).add_to(m)
-                        else:
-                            folium.Marker([la,lo],popup=popup_text,icon=folium.Icon(color=color,icon="info-sign")).add_to(m)
-                except:
-                    pass
-            st_folium(m,width=800,height=600,returned_objects=[])
-        except ImportError:
-            st.map(df.rename(columns={"Latitudine":"lat","Longitudine":"lon"}))
-        st.dataframe(df.drop(columns=["CustomPNG"],errors="ignore"),use_container_width=True)
-    torna("bottom_map")
-
-elif scelta=="Volontari":
-    torna("top_vol")
-    with st.form("form_vol"):
-        nome=st.text_input("Nome *")
-        cognome=st.text_input("Cognome *")
-        cell=st.text_input("Cellulare *")
-        comune_cont=st.selectbox("Comune Residenza *",COMUNI_TUTTI,key="comune_cont")
-        with st.spinner(f"Carico vie {comune_cont}..."):
-            vie_cont=get_vie_comune(comune_cont)
-        via_cont=st.selectbox(f"Via - {comune_cont}",vie_cont,key="via_cont")
-        if via_cont=="-- Seleziona Via --":
-            via_man_cont=st.text_input("Via manuale",key="via_man_cont")
-            via_f_cont=via_man_cont if via_man_cont else via_cont
-        else:
-            via_f_cont=via_cont
-        ruolo=st.selectbox("Ruolo *",["Volontario","Caposquadra","Coordinatore","Autista","Radio"],key="ruolo_4")
-        if st.form_submit_button("SALVA VOLONTARIO",use_container_width=True,type="primary"):
-            if nome and cognome and cell:
-                nome_completo=f"{nome} {cognome}"
-                st.session_state.dati.append({"Nome":nome_completo,"Cellulare":cell,"Comune":comune_cont,"Via":via_f_cont,"Ruolo":ruolo})
-                save_json(FILE_DATI,st.session_state.dati)
-                if nome_completo not in st.session_state.mem_nomi:
-                    st.session_state.mem_nomi.append(nome_completo)
-                    save_json(FILE_NOMI,st.session_state.mem_nomi)
-                st.success(f"Aggiunto {nome_completo}!")
-                st.rerun()
-    if st.session_state.dati:
-        st.dataframe(pd.DataFrame(st.session_state.dati),use_container_width=True)
-    torna("bottom_vol")
-
-elif scelta=="Tabella Interventi Emergenza":
-    torna("top_tab")
-    st.markdown("### 📋 TABELLA INTERVENTI + CREA POSTAZIONE AGGANCIATA")
-    if not st.session_state.emergenze_lista:
-        st.warning("Nessun intervento!")
-    else:
-        df=pd.DataFrame(st.session_state.emergenze_lista)
-        cc1,cc2,cc3=st.columns(3)
-        with cc1:
-            filtro_comune=st.selectbox("Filtra Comune",["Tutti"]+sorted(df["Comune"].unique().tolist()))
-        with cc2:
-            filtro_tipo=st.selectbox("Filtra Tipo",["Tutti"]+sorted(df["Tipo"].unique().tolist()))
-        with cc3:
-            ricerca=st.text_input("🔍 Cerca")
-        df_f=df.copy()
-        if filtro_comune!="Tutti":
-            df_f=df_f[df_f["Comune"]==filtro_comune]
-        if filtro_tipo!="Tutti":
-            df_f=df_f[df_f["Tipo"]==filtro_tipo]
-        if ricerca:
-            df_f=df_f[df_f.apply(lambda row: ricerca.lower() in str(row["Descrizione"]).lower(),axis=1)]
-        for idx, row in df_f.iterrows():
-            c1,c2,c3,c4=st.columns([1,2,2,1])
-            with c1:
-                try:
-                    st.image(row.get("LogoPNG",""),width=50)
-                except:
-                    st.markdown(f"## {row.get('Logo','🚨')}")
-            with c2:
-                st.markdown(f"**{row.get('Tipo','')} - {row.get('Comune','')}**")
-                st.caption(f"{row.get('Data','')} {row.get('Via','')} ID:{row.get('ID','')}")
-            with c3:
-                st.caption(row.get('Descrizione','')[:100])
-            with c4:
-                st.markdown('<div class="aggancia-btn">', unsafe_allow_html=True)
-                if st.button(f"📍 Crea Postazione",key=f"crea_post_{row.get('ID','')}_{idx}",use_container_width=True):
-                    st.session_state.emergenza_agganciata=row
-                    st.session_state.form_comune=row.get("Comune","")
-                    st.session_state.form_via=row.get("Via","")
-                    st.session_state.form_lat=row.get("Latitudine","")
-                    st.session_state.form_lon=row.get("Longitudine","")
-                    st.session_state.form_desc=f"{row.get('Tipo','')} - {row.get('Descrizione','')} - {row.get('Comune','')} {row.get('Via','')}"
-                    st.session_state.menu_scelta="Mappa Postazioni"
-                    st.rerun()
-                st.markdown('</div>', unsafe_allow_html=True)
-        st.divider()
-        st.dataframe(df_f,use_container_width=True,hide_index=True)
-        out=BytesIO()
-        df_f.to_excel(out,index=False,engine="openpyxl")
-        st.download_button("📥 Scarica Excel",out.getvalue(),file_name=f"emergenze_{date.today()}.xlsx",mime=MIME_SHORT,use_container_width=True)
-    torna("bottom_tab")
-
-elif scelta=="Backup":
-    torna("top_back")
-    st.markdown("### 💾 BACKUP - GENERALE + SINGOLE FORM + IMPORT")
-    st.info("Backup generale + backup per singola form + import dati per singola form")
-    tab1, tab2, tab3 = st.tabs(["📦 Backup Generale", "📋 Backup Singole Form", "📥 Import Singole Form"])
-    with tab1:
-        st.markdown("#### 📦 Backup Generale - Tutto in un file Excel")
-        if st.button("Crea Backup Completo Generale",use_container_width=True,type="primary",key="backup_gen"):
-            output=BytesIO()
-            with pd.ExcelWriter(output,engine="openpyxl") as writer:
-                if st.session_state.dati:
-                    pd.DataFrame(st.session_state.dati).to_excel(writer,sheet_name="Volontari",index=False)
-                if st.session_state.postazioni:
-                    pd.DataFrame(st.session_state.postazioni).to_excel(writer,sheet_name="Postazioni",index=False)
-                if st.session_state.emergenze_lista:
-                    pd.DataFrame(st.session_state.emergenze_lista).to_excel(writer,sheet_name="Emergenze",index=False)
-                if st.session_state.radio_db:
-                    pd.DataFrame(st.session_state.radio_db).to_excel(writer,sheet_name="DB_Radio",index=False)
-                if st.session_state.dist_radio:
-                    pd.DataFrame(st.session_state.dist_radio).to_excel(writer,sheet_name="Dist_Radio",index=False)
-                if st.session_state.eventi_lista:
-                    pd.DataFrame(st.session_state.eventi_lista).to_excel(writer,sheet_name="Eventi",index=False)
-                if st.session_state.checkin_lista:
-                    pd.DataFrame(st.session_state.checkin_lista).to_excel(writer,sheet_name="Checkin",index=False)
-            st.session_state.backup_bytes=output.getvalue()
-            st.success(f"✅ Backup generale creato! {len(st.session_state.dati)} volontari, {len(st.session_state.postazioni)} postazioni, {len(st.session_state.emergenze_lista)} emergenze")
-        if "backup_bytes" in st.session_state:
-            fname=f"backup_generale_{date.today()}.xlsx"
-            st.download_button("📥 Scarica Backup Generale Excel",st.session_state.backup_bytes,file_name=fname,mime=MIME_SHORT,use_container_width=True,key="dl_gen")
-        st.divider()
-        st.markdown("#### 📦 Backup Generale JSON")
-        if st.button("Crea Backup JSON Generale",use_container_width=True,key="backup_json_gen"):
-            all_data={"volontari": st.session_state.dati,"postazioni": st.session_state.postazioni,"emergenze": st.session_state.emergenze_lista,"radio_db": st.session_state.radio_db,"dist_radio": st.session_state.dist_radio,"eventi": st.session_state.eventi_lista,"checkin": st.session_state.checkin_lista}
-            json_str=json.dumps(all_data,ensure_ascii=False,indent=2)
-            st.session_state.backup_json_bytes=json_str.encode('utf-8')
-            st.success("✅ JSON generale creato!")
-        if "backup_json_bytes" in st.session_state:
-            st.download_button("📥 Scarica Backup Generale JSON",st.session_state.backup_json_bytes,file_name=f"backup_generale_{date.today()}.json",mime="application/json",use_container_width=True,key="dl_json_gen")
-    with tab2:
-        st.markdown("#### 📋 Backup per Singola Form")
-        st.info("Scarica Excel o JSON per ogni singola form")
-        st.markdown("**👤 Volontari**")
-        c1,c2,c3=st.columns([1,1,2])
-        with c1:
-            if st.session_state.dati:
-                out=BytesIO()
-                pd.DataFrame(st.session_state.dati).to_excel(out,index=False,engine="openpyxl")
-                st.download_button(f"📥 Excel ({len(st.session_state.dati)})",out.getvalue(),file_name=f"volontari_{date.today()}.xlsx",mime=MIME_SHORT,use_container_width=True,key="dl_vol")
-            else:
-                st.caption("Nessun dato")
-        with c2:
-            if st.session_state.dati:
-                json_bytes=json.dumps(st.session_state.dati,ensure_ascii=False,indent=2).encode('utf-8')
-                st.download_button(f"📥 JSON ({len(st.session_state.dati)})",json_bytes,file_name=f"volontari_{date.today()}.json",mime="application/json",use_container_width=True,key="dl_vol_json")
-        with c3:
-            st.caption(f"{len(st.session_state.dati)} volontari")
-        st.markdown("**📍 Postazioni Mappa**")
-        c1,c2,c3=st.columns([1,1,2])
-        with c1:
-            if st.session_state.postazioni:
-                out=BytesIO()
-                pd.DataFrame(st.session_state.postazioni).to_excel(out,index=False,engine="openpyxl")
-                st.download_button(f"📥 Excel ({len(st.session_state.postazioni)})",out.getvalue(),file_name=f"postazioni_{date.today()}.xlsx",mime=MIME_SHORT,use_container_width=True,key="dl_post")
-            else:
-                st.caption("Nessun dato")
-        with c2:
-            if st.session_state.postazioni:
-                json_bytes=json.dumps(st.session_state.postazioni,ensure_ascii=False,indent=2).encode('utf-8')
-                st.download_button(f"📥 JSON ({len(st.session_state.postazioni)})",json_bytes,file_name=f"postazioni_{date.today()}.json",mime="application/json",use_container_width=True,key="dl_post_json")
-        with c3:
-            st.caption(f"{len(st.session_state.postazioni)} postazioni")
-        st.markdown("**🚨 Emergenze con Loghi**")
-        c1,c2,c3=st.columns([1,1,2])
-        with c1:
-            if st.session_state.emergenze_lista:
-                out=BytesIO()
-                pd.DataFrame(st.session_state.emergenze_lista).to_excel(out,index=False,engine="openpyxl")
-                st.download_button(f"📥 Excel ({len(st.session_state.emergenze_lista)})",out.getvalue(),file_name=f"emergenze_{date.today()}.xlsx",mime=MIME_SHORT,use_container_width=True,key="dl_emer")
-            else:
-                st.caption("Nessun dato")
-        with c2:
-            if st.session_state.emergenze_lista:
-                json_bytes=json.dumps(st.session_state.emergenze_lista,ensure_ascii=False,indent=2).encode('utf-8')
-                st.download_button(f"📥 JSON ({len(st.session_state.emergenze_lista)})",json_bytes,file_name=f"emergenze_{date.today()}.json",mime="application/json",use_container_width=True,key="dl_emer_json")
-        with c3:
-            st.caption(f"{len(st.session_state.emergenze_lista)} emergenze")
-        st.markdown("**📻 DB Radio**")
-        c1,c2,c3=st.columns([1,1,2])
-        with c1:
-            if st.session_state.radio_db:
-                out=BytesIO()
-                pd.DataFrame(st.session_state.radio_db).to_excel(out,index=False,engine="openpyxl")
-                st.download_button(f"📥 Excel ({len(st.session_state.radio_db)})",out.getvalue(),file_name=f"radio_db_{date.today()}.xlsx",mime=MIME_SHORT,use_container_width=True,key="dl_radio")
-            else:
-                st.caption("Nessun dato")
-        with c2:
-            if st.session_state.radio_db:
-                json_bytes=json.dumps(st.session_state.radio_db,ensure_ascii=False,indent=2).encode('utf-8')
-                st.download_button(f"📥 JSON ({len(st.session_state.radio_db)})",json_bytes,file_name=f"radio_db_{date.today()}.json",mime="application/json",use_container_width=True,key="dl_radio_json")
-        with c3:
-            st.caption(f"{len(st.session_state.radio_db)} radio")
-        st.markdown("**📡 Distribuzione Radio**")
-        c1,c2,c3=st.columns([1,1,2])
-        with c1:
-            if st.session_state.dist_radio:
-                out=BytesIO()
-                pd.DataFrame(st.session_state.dist_radio).to_excel(out,index=False,engine="openpyxl")
-                st.download_button(f"📥 Excel ({len(st.session_state.dist_radio)})",out.getvalue(),file_name=f"dist_radio_{date.today()}.xlsx",mime=MIME_SHORT,use_container_width=True,key="dl_dist")
-            else:
-                st.caption("Nessun dato")
-        with c2:
-            if st.session_state.dist_radio:
-                json_bytes=json.dumps(st.session_state.dist_radio,ensure_ascii=False,indent=2).encode('utf-8')
-                st.download_button(f"📥 JSON ({len(st.session_state.dist_radio)})",json_bytes,file_name=f"dist_radio_{date.today()}.json",mime="application/json",use_container_width=True,key="dl_dist_json")
-        with c3:
-            st.caption(f"{len(st.session_state.dist_radio)} distribuzioni")
-    with tab3:
-        st.markdown("#### 📥 Import Dati per Singola Form")
-        st.warning("Importa Excel o JSON per ogni singola form - Scegli se aggiungere o sovrascrivere")
-        import_type=st.selectbox("Tipo di Import *",["Volontari","Postazioni Mappa","Emergenze con Loghi","DB Radio","Distribuzione Radio"],key="import_type")
-        col1,col2=st.columns(2)
-        with col1:
-            modo_import=st.selectbox("Modalità *",["Aggiungi ai dati esistenti","Sovrascrivi tutti i dati"],key="modo_import")
-        with col2:
-            file_type=st.selectbox("Formato file *",["Excel (.xlsx)","JSON (.json)"],key="file_type")
-        uploaded_file=st.file_uploader(f"Carica file {import_type} - {file_type}",type=["xlsx","json"],key="import_file")
-        if uploaded_file:
-            st.info(f"File caricato: {uploaded_file.name} - {uploaded_file.size} bytes")
-            if st.button(f"📥 IMPORTA {import_type} - {modo_import}",use_container_width=True,type="primary",key="import_btn"):
-                try:
-                    if file_type=="Excel (.xlsx)":
-                        df_import=pd.read_excel(uploaded_file,engine="openpyxl")
-                        data_import=df_import.to_dict('records')
-                    else:
-                        data_import=json.load(uploaded_file)
-                        if isinstance(data_import, dict):
-                            key_map={"Volontari":"volontari","Postazioni Mappa":"postazioni","Emergenze con Loghi":"emergenze","DB Radio":"radio_db","Distribuzione Radio":"dist_radio"}
-                            k=key_map.get(import_type,"volontari")
-                            if k in data_import:
-                                data_import=data_import[k]
-                    if import_type=="Volontari":
-                        if modo_import=="Sovrascrivi tutti i dati":
-                            st.session_state.dati=data_import
-                        else:
-                            st.session_state.dati.extend(data_import)
-                        save_json(FILE_DATI,st.session_state.dati)
-                        for rec in data_import:
-                            nome=rec.get("Nome","")
-                            if nome and nome not in st.session_state.mem_nomi:
-                                st.session_state.mem_nomi.append(nome)
-                        save_json(FILE_NOMI,st.session_state.mem_nomi)
-                    elif import_type=="Postazioni Mappa":
-                        if modo_import=="Sovrascrivi tutti i dati":
-                            st.session_state.postazioni=data_import
-                        else:
-                            st.session_state.postazioni.extend(data_import)
-                        save_json(FILE_POST,st.session_state.postazioni)
-                    elif import_type=="Emergenze con Loghi":
-                        if modo_import=="Sovrascrivi tutti i dati":
-                            st.session_state.emergenze_lista=data_import
-                        else:
-                            st.session_state.emergenze_lista.extend(data_import)
-                        save_json(FILE_EMER,st.session_state.emergenze_lista)
-                    elif import_type=="DB Radio":
-                        if modo_import=="Sovrascrivi tutti i dati":
-                            st.session_state.radio_db=data_import
-                        else:
-                            st.session_state.radio_db.extend(data_import)
-                        save_json(FILE_RADIO,st.session_state.radio_db)
-                    elif import_type=="Distribuzione Radio":
-                        if modo_import=="Sovrascrivi tutti i dati":
-                            st.session_state.dist_radio=data_import
-                        else:
-                            st.session_state.dist_radio.extend(data_import)
-                        save_json(FILE_DIST,st.session_state.dist_radio)
-                    st.success(f"✅ Import {import_type} riuscito! {len(data_import)} record - {modo_import}")
-                    st.rerun()
-                except Exception as e:
-                    st.error(f"❌ Errore import: {e}")
-        st.divider()
-        st.markdown("#### 📋 Anteprima dati attuali per import")
-        if import_type=="Volontari" and st.session_state.dati:
-            st.dataframe(pd.DataFrame(st.session_state.dati).head(5),use_container_width=True)
-        elif import_type=="Postazioni Mappa" and st.session_state.postazioni:
-            st.dataframe(pd.DataFrame(st.session_state.postazioni).head(5),use_container_width=True)
-        elif import_type=="Emergenze con Loghi" and st.session_state.emergenze_lista:
-            st.dataframe(pd.DataFrame(st.session_state.emergenze_lista).head(5),use_container_width=True)
-    torna("bottom_back")
+                    custom
