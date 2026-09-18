@@ -44,17 +44,6 @@ def save_json(f, d):
     except Exception as e:
         st.error(f"Errore {f}: {e}")
 
-FILE_DATI = "dati_volontari.json"
-FILE_POST = "postazioni.json"
-FILE_EMER = "emergenze.json"
-FILE_RADIO = "radio_db.json"
-FILE_DIST = "dist_radio.json"
-FILE_EVENTI = "eventi.json"
-FILE_CHECK = "checkin.json"
-FILE_NOMI = "mem_nomi.json"
-FILE_DETTAGLI = "volontari_dettagli.json"
-FILE_INTERVENTI = "interventi_emergenza.json"
-
 COMUNI_VARESE = ["Varese","Busto Arsizio","Gallarate","Saronno","Cassano Magnago","Tradate","Malnate","Luino","Venegono Superiore","Venegono Inferiore","Castiglione Olona","Lozza"]
 EMERGENCY_LOGOS = {
     "incendio_boschivo": {"nome": "Incendio Boschivo", "emoji": "🔥"},
