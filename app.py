@@ -3,6 +3,7 @@ import pandas as pd
 from datetime import date, datetime
 from io import BytesIO
 import os, json, base64, requests
+from PIL import Image
 
 st.set_page_config(page_title="ANA Varese", page_icon="🟢", layout="wide")
 
@@ -11,15 +12,16 @@ st.markdown("""
 .stApp{background:#e8f5e9!important;}
 .main.block-container{background:white!important;border-radius:18px;padding:20px!important;max-width:98%!important;}
 [data-testid="stSidebar"]{background:#a5d6a7!important;border-right:4px solid #2e7d32!important;}
-.stForm{background:#c8e6c9!important;border:3px solid #2e7d32!important;border-radius:15px!important;}
+.stForm{background:#c8e6c9!important;border:3px solid #2e7d32!important;border-radius:15px!important;padding:15px!important;}
 .stButton>button{background:#2e7d32!important;color:white!important;font-weight:bold!important;min-height:50px!important;border-radius:10px!important;}
 div[data-testid="stFormSubmitButton"]>button{background:#d32f2f!important;}
-.quick-btn>button{background:linear-gradient(135deg,#ff9800,#ef6c00)!important;min-height:90px!important;font-size:15px!important;}
-.quick-btn-green>button{background:linear-gradient(135deg,#2e7d32,#1b5e20)!important;min-height:90px!important;font-size:15px!important;}
-.quick-btn-red>button{background:linear-gradient(135deg,#c62828,#b71c1c)!important;min-height:90px!important;}
+.quick-btn-green>button{background:linear-gradient(135deg,#2e7d32,#1b5e20)!important;min-height:90px!important;}
 .quick-btn-blue>button{background:linear-gradient(135deg,#1565c0,#0d47a1)!important;min-height:90px!important;}
+.quick-btn-red>button{background:linear-gradient(135deg,#c62828,#b71c1c)!important;min-height:90px!important;}
+.quick-btn>button{background:linear-gradient(135deg,#ff9800,#ef6c00)!important;min-height:90px!important;}
 .vol-selected{background:#fff3e0!important;border:4px solid #ef6c00!important;border-radius:12px!important;padding:20px!important;margin:10px 0!important;}
 .submask{background:#f1f8e9!important;border:3px solid #2e7d32!important;border-radius:12px!important;padding:15px!important;margin:8px 0!important;}
+.icon-lib{border:2px solid #2e7d32;border-radius:10px;padding:10px;background:white;margin:5px;}
 </style>
 """, unsafe_allow_html=True)
 
@@ -44,19 +46,28 @@ def get_b64(p):
     except: pass
     return ""
 
+def img_to_b64(file):
+    try:
+        return base64.b64encode(file.getvalue()).decode()
+    except: return ""
+
 FILE_DATI="dati_volontari.json"
 FILE_POST="postazioni.json"
-FILE_DETTAGLI="volontari_dettagli.json"
 FILE_INTERVENTI="interventi_emergenza.json"
-COMUNI=["Varese","Busto Arsizio","Gallarate","Saronno","Venegono Superiore","Venegono Inferiore","Castiglione Olona","Lozza","Tradate","Malnate","Luino"]
-ICONS=["📍","🚨","🏕️","🚧","👥","🔥","🌊","⛰️","🚑","🚒","🦺","📻","🏠"]
+FILE_ICONE="libreria_icone.json"
+FILE_ICONE_EM="libreria_icone_emergenze.json"
 
-for k,v in [("dati",[]),("postazioni",[]),("vol_dettagli",{}),("interventi_lista",[]),("menu_scelta","Dashboard"),("volontario_selezionato",None),("volontario_idx",None),("form_nome",""),("form_cognome",""),("form_cell",""),("form_assoc","ANA Varese"),("map_lat",45.8205),("map_lon",8.8250),("map_comune","Varese"),("map_via",""),("authenticated",False)]:
+COMUNI=["Varese","Busto Arsizio","Gallarate","Saronno","Venegono Superiore","Venegono Inferiore","Castiglione Olona","Lozza","Tradate","Malnate","Luino"]
+ICONS_BASE=["📍","🚨","🏕️","🚧","👥","🔥","🌊","⛰️","🚑","🚒","🦺","📻","🏠","🏢","⚡","🚑","🔥","🌊"]
+
+for k,v in [("dati",[]),("postazioni",[]),("interventi_lista",[]),("icone_lib",[]),("icone_em_lib",[]),("menu_scelta","Dashboard"),("volontario_selezionato",None),("volontario_idx",None),("form_nome",""),("form_cognome",""),("form_cell",""),("form_assoc","ANA Varese"),("map_lat",45.8205),("map_lon",8.8250),("map_comune","Varese"),("map_via",""),("authenticated",False)]:
     if k not in st.session_state: st.session_state[k]=v
 
 if not st.session_state.dati: st.session_state.dati=load_json(FILE_DATI,[])
 if not st.session_state.postazioni: st.session_state.postazioni=load_json(FILE_POST,[])
 if not st.session_state.interventi_lista: st.session_state.interventi_lista=load_json(FILE_INTERVENTI,[])
+if not st.session_state.icone_lib: st.session_state.icone_lib=load_json(FILE_ICONE,[])
+if not st.session_state.icone_em_lib: st.session_state.icone_em_lib=load_json(FILE_ICONE_EM,[])
 
 def header_loghi():
     b64=get_b64("logo.png")
@@ -65,7 +76,6 @@ def header_loghi():
     else:
         st.markdown("<h2 style='text-align:center;color:#0e7a3d;'>VOLONTARIATO<br>Sezione di Varese</h2>", unsafe_allow_html=True)
 
-# LOGIN PAGE COME IERI
 if not st.session_state.authenticated:
     header_loghi()
     st.markdown("<h2 style='text-align:center;color:#2e7a3d;'>🔒 Accesso Riservato</h2>", unsafe_allow_html=True)
@@ -75,11 +85,10 @@ if not st.session_state.authenticated:
             u=st.text_input("Username",value="admin")
             p=st.text_input("Password",type="password",value="ana2024")
             if st.form_submit_button("🔴 ACCEDI",use_container_width=True,type="primary"):
-                if (u=="admin" and p=="ana2024") or p=="ANA2025" or p=="admin":
+                if (u=="admin" and p=="ana2024") or p=="ANA2025":
                     st.session_state.authenticated=True
                     st.rerun()
-                else:
-                    st.error("Password errata")
+                else: st.error("Password errata")
     st.stop()
 
 header_loghi()
@@ -102,10 +111,9 @@ with st.sidebar:
 scelta=st.session_state.menu_scelta
 MIME="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
 
+# DASHBOARD
 if scelta=="Dashboard":
     st.markdown("## 🏠 DASHBOARD - MENU ALLINEATO")
-    st.markdown("### ⚡ Tasti tutti allineati a posto")
-    # RIGA 1 - 4 tasti allineati uguali
     c1,c2,c3,c4=st.columns(4)
     with c1:
         st.markdown('<div class="quick-btn-green">',unsafe_allow_html=True)
@@ -123,35 +131,21 @@ if scelta=="Dashboard":
             st.session_state.menu_scelta="Tabella Emergenze"; st.rerun()
         st.markdown('</div>',unsafe_allow_html=True)
     with c4:
-        st.markdown('<div class="quick-btn">',unsafe_allow_html=True)
         if st.button("💾\nBACKUP\nExcel",key="q_back",use_container_width=True):
             st.session_state.menu_scelta="Backup"; st.rerun()
-        st.markdown('</div>',unsafe_allow_html=True)
-    # RIGA 2 - altri 4 allineati
-    c5,c6,c7,c8=st.columns(4)
-    with c5:
-        if st.button("➕\nNUOVO\nVolontario",key="q_new_vol",use_container_width=True):
-            st.session_state.volontario_selezionato=None; st.session_state.form_nome=""; st.session_state.form_cognome=""; st.session_state.form_cell=""; st.session_state.menu_scelta="Volontari"; st.rerun()
-    with c6:
-        if st.button("📍\nNUOVA\nPostazione",key="q_new_post",use_container_width=True):
-            st.session_state.menu_scelta="Mappa Postazioni"; st.rerun()
-    with c7:
-        if st.button("🚨\nNUOVA\nEmergenza",key="q_new_em",use_container_width=True):
-            st.session_state.menu_scelta="Tabella Emergenze"; st.rerun()
-    with c8:
-        if st.button("🔄\nAGGIORNA",key="q_refresh",use_container_width=True):
-            st.rerun()
     st.divider()
     c1,c2,c3,c4=st.columns(4)
-    c1.metric("👥 Volontari",len(st.session_state.dati))
-    c2.metric("📍 Postazioni",len(st.session_state.postazioni))
-    c3.metric("🚨 Emergenze",len(st.session_state.interventi_lista))
-    c4.metric("📅 Oggi",date.today().strftime("%d/%m/%Y"))
+    c1.metric("Volontari",len(st.session_state.dati))
+    c2.metric("Postazioni",len(st.session_state.postazioni))
+    c3.metric("Emergenze",len(st.session_state.interventi_lista))
+    c4.metric("Oggi",date.today().strftime("%d/%m/%Y"))
 
+# VOLONTARI CON TABELLA SOTTO
 elif scelta=="Volontari":
     if st.button("🏠 Dashboard",use_container_width=True):
         st.session_state.menu_scelta="Dashboard"; st.rerun()
-    st.markdown("## 👥 VOLONTARI - 6 SOTTOMASCHERE")
+    st.markdown("## 👥 VOLONTARI - CON 6 SOTTOMASCHERE")
+
     if st.session_state.volontario_selezionato is not None:
         vol=st.session_state.volontario_selezionato
         idx=st.session_state.volontario_idx
@@ -161,17 +155,17 @@ elif scelta=="Volontari":
         if st.button("❌ Chiudi",key="chiudi"):
             st.session_state.volontario_selezionato=None; st.session_state.volontario_idx=None; st.rerun()
         st.markdown('</div>',unsafe_allow_html=True)
-        t1,t2,t3,t4,t5,t6=st.tabs(["📋 Anagrafica","📻 Radio","📅 Eventi","✅ Presenze","🚨 Emergenze","📄 Note"])
+        t1,t2,t3,t4,t5,t6=st.tabs(["Anagrafica","Radio","Eventi","Presenze","Emergenze","Note"])
         with t1:
             st.markdown('<div class="submask">',unsafe_allow_html=True)
-            st.markdown("#### Sottomaschera 1 - Anagrafica Completa")
+            st.markdown("#### Sottomaschera 1 - Anagrafica")
             with st.form("form_anag"):
                 parti=vol.get('Nome','').split(" ",1)
                 nome=st.text_input("Nome *",value=parti[0] if len(parti)>0 else "")
                 cognome=st.text_input("Cognome *",value=parti[1] if len(parti)>1 else "")
                 cell=st.text_input("Cellulare *",value=vol.get('Cellulare',''))
                 comune=st.selectbox("Comune",COMUNI,index=0)
-                ruolo=st.selectbox("Ruolo",["Volontario","Caposquadra","Coordinatore","Autista","Radio","Logistica"],index=0)
+                ruolo=st.selectbox("Ruolo",["Volontario","Caposquadra","Coordinatore"],index=0)
                 if st.form_submit_button("💾 SALVA",use_container_width=True,type="primary"):
                     st.session_state.dati[idx]={"Nome":f"{nome} {cognome}","Cellulare":cell,"Comune":comune,"Ruolo":ruolo,"Associazione":vol.get('Associazione','ANA Varese')}
                     save_json(FILE_DATI,st.session_state.dati)
@@ -196,13 +190,13 @@ elif scelta=="Volontari":
             if st.button("Salva Note"):
                 if vol_id not in st.session_state.vol_dettagli: st.session_state.vol_dettagli[vol_id]={}
                 st.session_state.vol_dettagli[vol_id]['Note']=note
-                save_json(FILE_DETTAGLI,st.session_state.vol_dettagli)
                 st.success("Salvata!")
             if st.button(f"ELIMINA {vol.get('Nome','')}"):
-                st.session_state.dati.pop(idx); save_json(FILE_DATI,st.session_state.dati); st.session_state.volontario_selezionato=None; st.session_state.volontario_idx=None; st.rerun()
+                st.session_state.dati.pop(idx); save_json(FILE_DATI,st.session_state.dati); st.session_state.volontario_selezionato=None; st.rerun()
             st.markdown('</div>',unsafe_allow_html=True)
         st.divider()
-    st.markdown("### FORM VOLONTARI")
+
+    st.markdown("### ➕ FORM VOLONTARI")
     with st.form("form"):
         c1,c2=st.columns(2)
         with c1:
@@ -211,9 +205,9 @@ elif scelta=="Volontari":
             cell=st.text_input("Cellulare *",value=st.session_state.form_cell)
         with c2:
             assoc=st.text_input("Associazione *",value=st.session_state.form_assoc)
-            ruolo=st.selectbox("Ruolo *",["Volontario","Caposquadra","Coordinatore","Autista","Radio","Logistica","Segreteria","Sanitario","Altro"])
+            ruolo=st.selectbox("Ruolo *",["Volontario","Caposquadra","Coordinatore","Autista","Radio","Logistica"])
         col1,col2=st.columns(2)
-        with col1: sub=st.form_submit_button("✅ SALVA",use_container_width=True)
+        with col1: sub=st.form_submit_button("✅ SALVA",use_container_width=True,type="primary")
         with col2: pul=st.form_submit_button("🆕 PULISCI",use_container_width=True)
         if sub:
             if nome and cognome and cell and assoc:
@@ -224,12 +218,17 @@ elif scelta=="Volontari":
                 else:
                     st.session_state.dati.append({"Nome":nome_compl,"Associazione":assoc,"Cellulare":cell,"Ruolo":ruolo})
                 save_json(FILE_DATI,st.session_state.dati)
+                st.success(f"Salvato {nome_compl}")
                 st.rerun()
         if pul:
             st.session_state.form_nome=""; st.session_state.form_cognome=""; st.session_state.form_cell=""
-            st.session_state.volontario_selezionato=None; st.session_state.volontario_idx=None; st.rerun()
+            st.session_state.volontario_selezionato=None; st.rerun()
+
+    # TABELLA SOTTO MASCHERA - SEMPRE VISIBILE
     st.divider()
+    st.markdown("### 👥 TABELLA VOLONTARI - Dati inseriti (sotto maschera)")
     if st.session_state.dati:
+        df=pd.DataFrame(st.session_state.dati)
         for idx, vol in enumerate(st.session_state.dati):
             c1,c2,c3=st.columns([3,2,2])
             with c1:
@@ -241,24 +240,73 @@ elif scelta=="Volontari":
                     st.session_state.volontario_selezionato=vol; st.session_state.volontario_idx=idx; st.rerun()
             with c2: st.write(vol.get('Cellulare',''))
             with c3: st.write(vol.get('Ruolo',''))
+        st.divider()
+        st.dataframe(df,use_container_width=True,hide_index=True)
+        out=BytesIO(); df.to_excel(out,index=False,engine="openpyxl")
+        st.download_button("📥 Scarica Excel Volontari",out.getvalue(),file_name=f"volontari_{date.today()}.xlsx",mime=MIME,use_container_width=True)
+    else:
+        st.info("Nessun volontario ancora")
 
+# MAPPA POSTAZIONI CON LIBRERIA ICONE PNG
 elif scelta=="Mappa Postazioni":
     if st.button("🏠 Dashboard",use_container_width=True):
         st.session_state.menu_scelta="Dashboard"; st.rerun()
-    st.markdown("## 📍 MAPPA POSTAZIONI - Con Google / OSM / Waze")
+    st.markdown("## 📍 MAPPA POSTAZIONI - Libreria Icone PNG")
+
+    # LIBRERIA ICONE POSTAZIONI
+    st.markdown("### 🎨 LIBRERIA ICONE POSTAZIONI - Carica PNG e crea libreria logo")
+    c_up1,c_up2=st.columns([2,1])
+    with c_up1:
+        uploaded=st.file_uploader("Carica icona PNG per postazione (es. logo presidio, tenda, ecc.)", type=["png","jpg","jpeg"], key="up_icon_post")
+        if uploaded:
+            b64=img_to_b64(uploaded)
+            nome_icona=st.text_input("Nome icona", value=uploaded.name.split(".")[0], key="nome_icona_post")
+            if st.button("💾 Salva in libreria postazioni",key="save_icon_post"):
+                st.session_state.icone_lib.append({"nome":nome_icona,"b64":b64,"file":uploaded.name})
+                save_json(FILE_ICONE,st.session_state.icone_lib)
+                st.success(f"Icona {nome_icona} salvata in libreria!")
+                st.rerun()
+    with c_up2:
+        st.markdown("#### Icone base")
+        for ic in ICONS_BASE:
+            if st.button(f"{ic}",key=f"base_{ic}_post"):
+                st.session_state.icone_lib.append({"nome":ic,"b64":"","emoji":ic})
+                save_json(FILE_ICONE,st.session_state.icone_lib)
+                st.rerun()
+
+    if st.session_state.icone_lib:
+        st.markdown("#### 📚 Libreria icone postazioni - Clicca per scaricare PNG")
+        cols=st.columns(6)
+        for i, ic in enumerate(st.session_state.icone_lib):
+            with cols[i%6]:
+                st.markdown('<div class="icon-lib">',unsafe_allow_html=True)
+                if ic.get("b64"):
+                    st.image(f"data:image/png;base64,{ic['b64']}",width=60)
+                    st.download_button(f"📥 {ic['nome']}", base64.b64decode(ic['b64']), file_name=f"{ic['nome']}.png", mime="image/png", key=f"dl_post_{i}")
+                else:
+                    st.markdown(f"<div style='font-size:40px;text-align:center;'>{ic.get('emoji',ic.get('nome','📍'))}</div>",unsafe_allow_html=True)
+                    st.write(ic.get('nome',''))
+                if st.button(f"🗑️",key=f"del_post_{i}"):
+                    st.session_state.icone_lib.pop(i); save_json(FILE_ICONE,st.session_state.icone_lib); st.rerun()
+                st.markdown('</div>',unsafe_allow_html=True)
+
+    st.divider()
+
     try:
         import folium
         from streamlit_folium import st_folium
         HAS_FOLIUM=True
     except:
         HAS_FOLIUM=False
+
     c1,c2=st.columns([2,1])
     with c1:
         st.markdown("### 🗺️ Clicca sulla mappa per mettere icona")
         if HAS_FOLIUM:
             m=folium.Map(location=[st.session_state.map_lat, st.session_state.map_lon], zoom_start=13)
             for p in st.session_state.postazioni:
-                try: folium.Marker([float(p['Latitudine']), float(p['Longitudine'])], popup=f"{p.get('Icona','📍')} {p['Postazione']}", tooltip=p['Postazione']).add_to(m)
+                try:
+                    folium.Marker([float(p['Latitudine']), float(p['Longitudine'])], popup=f"{p.get('Icona','📍')} {p['Postazione']}", tooltip=p['Postazione']).add_to(m)
                 except: pass
             folium.Marker([st.session_state.map_lat, st.session_state.map_lon], popup="Nuova", icon=folium.Icon(color="red")).add_to(m)
             map_data=st_folium(m,width=700,height=500,key="mappa_click")
@@ -276,44 +324,102 @@ elif scelta=="Mappa Postazioni":
                 st.rerun()
         else:
             st.map(pd.DataFrame([{"lat":st.session_state.map_lat,"lon":st.session_state.map_lon}]),zoom=12)
-        # LINK GOOGLE MAPS / OSM / WAZE COME IERI
-        st.markdown("### 🌐 Apri in:")
+        # LINK GOOGLE / OSM / WAZE
         lat=st.session_state.map_lat; lon=st.session_state.map_lon
         c_osm,c_gm,c_waze=st.columns(3)
         with c_osm: st.link_button("🗺️ OpenStreetMap", f"https://www.openstreetmap.org/?mlat={lat}&mlon={lon}#map=16/{lat}/{lon}", use_container_width=True)
         with c_gm: st.link_button("🔍 Google Maps", f"https://www.google.com/maps/search/?api=1&query={lat},{lon}", use_container_width=True)
         with c_waze: st.link_button("🚗 Waze", f"https://waze.com/ul?ll={lat},{lon}&navigate=yes", use_container_width=True)
+
     with c2:
+        st.markdown("### 📋 Maschera Postazione con Logo")
         st.info(f"📍 {st.session_state.map_lat:.6f}, {st.session_state.map_lon:.6f}")
+        # Selezione logo da libreria
+        opzioni_logo=["📍 Default"] + [f"{ic['nome']}" for ic in st.session_state.icone_lib]
+        sel_logo=st.selectbox("Scegli logo da libreria", opzioni_logo, key="sel_logo_post")
         with st.form("form_post"):
             nome_post=st.text_input("Nome Postazione *")
             comune_post=st.selectbox("Comune *",COMUNI,index=COMUNI.index(st.session_state.map_comune) if st.session_state.map_comune in COMUNI else 0)
             via_post=st.text_input("Via *",value=st.session_state.map_via)
             lat_post=st.text_input("Latitudine *",value=str(st.session_state.map_lat))
             lon_post=st.text_input("Longitudine *",value=str(st.session_state.map_lon))
-            icona_post=st.selectbox("Icona",ICONS,index=0)
-            if st.form_submit_button("📍 SALVA CON ICONA",use_container_width=True,type="primary"):
+            icona_post=sel_logo
+            tipo_post=st.selectbox("Tipo",["Presidio","Campo Base","Magazzino","Sede","Altro"])
+            desc=st.text_area("Descrizione")
+            if st.form_submit_button("📍 SALVA CON LOGO",use_container_width=True,type="primary"):
                 if nome_post and lat_post and lon_post:
-                    new={"Postazione":nome_post,"Comune":comune_post,"Via":via_post,"Latitudine":lat_post,"Longitudine":lon_post,"Icona":icona_post}
+                    new={"Postazione":nome_post,"Comune":comune_post,"Via":via_post,"Latitudine":lat_post,"Longitudine":lon_post,"Icona":icona_post,"Tipo":tipo_post,"Descrizione":desc}
                     st.session_state.postazioni.append(new); save_json(FILE_POST,st.session_state.postazioni); st.success(f"{icona_post} {nome_post} salvata!"); st.rerun()
+
+    # TABELLA SOTTO MASCHERA
     st.divider()
+    st.markdown("### 📋 TABELLA POSTAZIONI - Sotto maschera")
     if st.session_state.postazioni:
-        st.markdown("### Postazioni con link Google / OSM / Waze")
+        df=pd.DataFrame(st.session_state.postazioni)
+        st.dataframe(df,use_container_width=True)
+        # Mostra con link
         for p in st.session_state.postazioni:
-            c1,c2,c3=st.columns([2,2,3])
+            c1,c2,c3,c4=st.columns([2,2,2,2])
             with c1: st.write(f"{p.get('Icona','📍')} {p.get('Postazione','')}")
             with c2: st.write(f"{p.get('Via','')} {p.get('Comune','')}")
-            with c3:
+            with c3: st.write(f"{p.get('Latitudine','')}, {p.get('Longitudine','')}")
+            with c4:
                 lat=p.get('Latitudine',''); lon=p.get('Longitudine','')
                 ca,cb,cc=st.columns(3)
                 with ca: st.link_button("OSM",f"https://www.openstreetmap.org/?mlat={lat}&mlon={lon}#map=16/{lat}/{lon}")
                 with cb: st.link_button("Google",f"https://www.google.com/maps/search/?api=1&query={lat},{lon}")
                 with cc: st.link_button("Waze",f"https://waze.com/ul?ll={lat},{lon}&navigate=yes")
+        st.divider()
+        out=BytesIO(); df.to_excel(out,index=False,engine="openpyxl")
+        st.download_button("📥 Scarica Excel Postazioni",out.getvalue(),file_name=f"postazioni_{date.today()}.xlsx",mime=MIME,use_container_width=True)
+        if st.button("🗑️ Cancella tutte postazioni"):
+            st.session_state.postazioni=[]; save_json(FILE_POST,[]); st.rerun()
+    else:
+        st.info("Nessuna postazione")
 
+# TABELLA EMERGENZE CON LIBRERIA LOGHI
 elif scelta=="Tabella Emergenze":
     if st.button("🏠 Dashboard",use_container_width=True):
         st.session_state.menu_scelta="Dashboard"; st.rerun()
-    st.markdown("## 🚨 TABELLA EMERGENZE")
+    st.markdown("## 🚨 TABELLA EMERGENZE - Libreria Loghi")
+
+    st.markdown("### 🎨 LIBRERIA ICONE EMERGENZE - Carica PNG")
+    c_up1,c_up2=st.columns([2,1])
+    with c_up1:
+        up_em=st.file_uploader("Carica icona PNG emergenza (es. incendio, alluvione)", type=["png","jpg","jpeg"], key="up_icon_em")
+        if up_em:
+            b64=img_to_b64(up_em)
+            nome_em=st.text_input("Nome icona emergenza", value=up_em.name.split(".")[0], key="nome_icona_em")
+            if st.button("💾 Salva in libreria emergenze",key="save_icon_em"):
+                st.session_state.icone_em_lib.append({"nome":nome_em,"b64":b64,"file":up_em.name})
+                save_json(FILE_ICONE_EM,st.session_state.icone_em_lib)
+                st.success(f"Icona {nome_em} salvata!"); st.rerun()
+    with c_up2:
+        for ic in ["🔥","🌊","⛰️","🚑","🚒","🦺"]:
+            if st.button(f"{ic}",key=f"base_{ic}_em"):
+                st.session_state.icone_em_lib.append({"nome":ic,"b64":"","emoji":ic})
+                save_json(FILE_ICONE_EM,st.session_state.icone_em_lib); st.rerun()
+
+    if st.session_state.icone_em_lib:
+        st.markdown("#### 📚 Libreria emergenze - Scarica PNG")
+        cols=st.columns(6)
+        for i, ic in enumerate(st.session_state.icone_em_lib):
+            with cols[i%6]:
+                st.markdown('<div class="icon-lib">',unsafe_allow_html=True)
+                if ic.get("b64"):
+                    st.image(f"data:image/png;base64,{ic['b64']}",width=60)
+                    st.download_button(f"📥 {ic['nome']}", base64.b64decode(ic['b64']), file_name=f"{ic['nome']}.png", mime="image/png", key=f"dl_em_{i}")
+                else:
+                    st.markdown(f"<div style='font-size:40px;text-align:center;'>{ic.get('emoji',ic.get('nome','🚨'))}</div>",unsafe_allow_html=True)
+                    st.write(ic.get('nome',''))
+                if st.button(f"🗑️",key=f"del_em_{i}"):
+                    st.session_state.icone_em_lib.pop(i); save_json(FILE_ICONE_EM,st.session_state.icone_em_lib); st.rerun()
+                st.markdown('</div>',unsafe_allow_html=True)
+
+    st.divider()
+    st.markdown("### 🚨 FORM EMERGENZA CON LOGO")
+    opzioni_logo_em=["🚨 Default"] + [f"{ic['nome']}" for ic in st.session_state.icone_em_lib]
+    sel_logo_em=st.selectbox("Scegli logo emergenza da libreria", opzioni_logo_em, key="sel_logo_em")
     with st.form("form_em",clear_on_submit=True):
         c1,c2,c3=st.columns(3)
         with c1:
@@ -326,18 +432,30 @@ elif scelta=="Tabella Emergenze":
             civico_int=st.text_input("Civico",placeholder="10")
             odv_int=st.selectbox("ODV *",["ANA Varese","Protezione Civile Lombardia","Croce Rossa","Altro"])
         azione_int=st.text_area("Azione *",height=100)
-        if st.form_submit_button("🔴 SALVA",use_container_width=True):
+        st.markdown(f"**Logo selezionato:** {sel_logo_em}")
+        if st.form_submit_button("🔴 SALVA CON LOGO",use_container_width=True):
             if comune_int and via_int and azione_int:
-                st.session_state.interventi_lista.append({"Data":str(data_int),"Ora":str(ora_int),"Comune":comune_int,"Via":via_int,"Civico":civico_int,"ODV Operativa":odv_int,"Azione":azione_int})
+                st.session_state.interventi_lista.append({"Data":str(data_int),"Ora":str(ora_int),"Comune":comune_int,"Via":via_int,"Civico":civico_int,"ODV Operativa":odv_int,"Azione":azione_int,"Logo":sel_logo_em})
                 save_json(FILE_INTERVENTI,st.session_state.interventi_lista)
-                st.success("Salvato!"); st.rerun()
+                st.success(f"Salvato con logo {sel_logo_em}!"); st.rerun()
+
+    # TABELLA SOTTO MASCHERA
+    st.divider()
+    st.markdown("### 📋 TABELLA EMERGENZE - Sotto maschera")
     if st.session_state.interventi_lista:
-        st.dataframe(pd.DataFrame(st.session_state.interventi_lista),use_container_width=True)
+        df=pd.DataFrame(st.session_state.interventi_lista)
+        st.dataframe(df,use_container_width=True)
+        out=BytesIO(); df.to_excel(out,index=False,engine="openpyxl")
+        st.download_button("📥 Scarica Excel Emergenze",out.getvalue(),file_name=f"emergenze_{date.today()}.xlsx",mime=MIME,use_container_width=True)
+        if st.button("🗑️ Cancella tutti",use_container_width=True):
+            st.session_state.interventi_lista=[]; save_json(FILE_INTERVENTI,[]); st.rerun()
+    else:
+        st.info("Nessun intervento")
 
 elif scelta=="Backup":
     if st.button("🏠 Dashboard",use_container_width=True):
         st.session_state.menu_scelta="Dashboard"; st.rerun()
-    st.markdown("## 💾 BACKUP")
+    st.markdown("## 💾 BACKUP UNICO")
     tot=len(st.session_state.dati)+len(st.session_state.postazioni)+len(st.session_state.interventi_lista)
     st.metric("Totale",tot)
     if st.button("📦 CREA EXCEL UNICO",use_container_width=True,type="primary"):
@@ -346,6 +464,8 @@ elif scelta=="Backup":
             if st.session_state.dati: pd.DataFrame(st.session_state.dati).to_excel(writer,sheet_name="Volontari",index=False)
             if st.session_state.postazioni: pd.DataFrame(st.session_state.postazioni).to_excel(writer,sheet_name="Postazioni",index=False)
             if st.session_state.interventi_lista: pd.DataFrame(st.session_state.interventi_lista).to_excel(writer,sheet_name="Emergenze",index=False)
+            if st.session_state.icone_lib: pd.DataFrame(st.session_state.icone_lib).to_excel(writer,sheet_name="IconePostazioni",index=False)
+            if st.session_state.icone_em_lib: pd.DataFrame(st.session_state.icone_em_lib).to_excel(writer,sheet_name="IconeEmergenze",index=False)
         st.session_state["backup_unico"]=out.getvalue()
         st.success("Creato!")
     if "backup_unico" in st.session_state:
