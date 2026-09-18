@@ -1,5 +1,7 @@
 streamlit
 pandas
 openpyxl
-Pillow
+folium
+streamlit-folium
 requests
+Pillow
