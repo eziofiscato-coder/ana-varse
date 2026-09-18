@@ -51,6 +51,13 @@ div[data-testid="stFormSubmitButton"]>button{
  text-align:center;
  background:#f1f8e9;
 }
+.via-desc{
+ background-color:#e3f2fd;
+ border:2px solid #1976d2;
+ border-radius:10px;
+ padding:15px;
+ margin:10px 0;
+}
 </style>
 """, unsafe_allow_html=True)
 
@@ -97,6 +104,16 @@ EMERGENCY_LOGOS = {
   "emoji": "⛰️",
   "png": "https://cdn-icons-png.flaticon.com/512/2942/2942041.png"
  },
+ "caduta_albero": {
+  "nome": "Caduta Albero",
+  "emoji": "🌳",
+  "png": "https://cdn-icons-png.flaticon.com/512/740/740934.png"
+ },
+ "esondazione": {
+  "nome": "Esondazione",
+  "emoji": "🌊",
+  "png": "https://cdn-icons-png.flaticon.com/512/210/210543.png"
+ },
  "vvff": {
   "nome": "VVFF Vigili del Fuoco",
   "emoji": "🚒",
@@ -106,11 +123,6 @@ EMERGENCY_LOGOS = {
   "nome": "Ambulanza 118",
   "emoji": "🚑",
   "png": "https://cdn-icons-png.flaticon.com/512/2751/2751790.png"
- },
- "prima_accoglienza": {
-  "nome": "Area Prima Accoglienza",
-  "emoji": "⛺",
-  "png": "https://cdn-icons-png.flaticon.com/512/109/109345.png"
  },
 }
 
@@ -163,21 +175,49 @@ def get_vie_comune(comune):
         pass
     return ["-- Seleziona Via --","Via Roma","Via Garibaldi","Via Milano","Via Sacco","Via Verdi","Via Dante"]
 
-def reverse_geocode(lat, lon):
+def reverse_geocode_dettagliato(lat, lon):
+    """
+    Ritorna descrizione completa via + comune
+    quando clicchi sulle coordinate
+    """
     try:
         url=f"https://nominatim.openstreetmap.org/reverse"
-        params={"format":"json","lat":lat,"lon":lon,"zoom":18,"addressdetails":1}
-        headers={"User-Agent":"ANA-Varese-App"}
+        params={
+         "format":"json",
+         "lat":lat,
+         "lon":lon,
+         "zoom":18,
+         "addressdetails":1
+        }
+        headers={"User-Agent":"ANA-Varese-App-Descrizione-Vie"}
         r=requests.get(url,params=params,headers=headers,timeout=10)
         if r.status_code==200:
             data=r.json()
+            display_name=data.get("display_name","")
             addr=data.get("address",{})
-            comune=addr.get("city") or addr.get("town") or addr.get("village") or ""
-            via=addr.get("road") or addr.get("pedestrian") or ""
-            return comune, via
-    except:
+            # Estrai tutti i dettagli
+            road=addr.get("road") or addr.get("pedestrian") or addr.get("footway") or ""
+            house=addr.get("house_number") or ""
+            suburb=addr.get("suburb") or addr.get("neighbourhood") or ""
+            city=addr.get("city") or addr.get("town") or addr.get("village") or addr.get("municipality") or ""
+            postcode=addr.get("postcode") or ""
+            county=addr.get("county") or ""
+            state=addr.get("state") or ""
+            # Costruisci descrizione completa via + comune
+            if road and city:
+                if house:
+                    desc_via_comune=f"{road}, {house} - {postcode} {city} ({county})"
+                else:
+                    desc_via_comune=f"{road} - {postcode} {city} ({county})"
+                if suburb:
+                    desc_via_comune+=f" - Quartiere {suburb}"
+                desc_completa=f"📍 {display_name}"
+                return city, road, desc_via_comune, desc_completa, addr
+            else:
+                return city, road, display_name, display_name, addr
+    except Exception as e:
         pass
-    return "", ""
+    return "", "", "", "", {}
 
 if "authenticated" not in st.session_state:
     st.session_state.authenticated=False
@@ -209,6 +249,10 @@ if "clicked_comune" not in st.session_state:
     st.session_state.clicked_comune=""
 if "clicked_via" not in st.session_state:
     st.session_state.clicked_via=""
+if "clicked_desc_via" not in st.session_state:
+    st.session_state.clicked_desc_via=""
+if "clicked_desc_completa" not in st.session_state:
+    st.session_state.clicked_desc_completa=""
 if "selected_pointer" not in st.session_state:
     st.session_state.selected_pointer="📍 Default Rosso"
 if "selected_custom_b64" not in st.session_state:
@@ -221,6 +265,8 @@ if "form_comune" not in st.session_state:
     st.session_state.form_comune=""
 if "form_via" not in st.session_state:
     st.session_state.form_via=""
+if "form_desc" not in st.session_state:
+    st.session_state.form_desc=""
 
 def torna(suffix=""):
     st.markdown('<div class="torna-btn">', unsafe_allow_html=True)
@@ -366,8 +412,8 @@ elif scelta=="Emergenze con Loghi":
 
 elif scelta=="Mappa Postazioni":
     torna("top_map")
-    st.markdown("### 🗺️ MAPPA - COMPILAZIONE AUTOMATICA MASCHERA")
-    st.info("💡 Scegli PNG, clicca sulla mappa, poi premi il pulsante arancione per compilare la maschera nei campi giusti!")
+    st.markdown("### 🗺️ MAPPA - DESCRIZIONE VIA + COMUNE DALLE COORDINATE")
+    st.info("💡 Clicca su una via nella mappa: ti do subito la descrizione della via abbinata al comune! Con coordinate, CAP, quartiere!")
 
     st.markdown("#### 1️⃣ Scegli il puntatore PNG")
     cc1,cc2,cc3=st.columns([2,1,1])
@@ -392,7 +438,7 @@ elif scelta=="Mappa Postazioni":
             st.success("✅ PNG salvato!")
 
     st.divider()
-    st.markdown("#### 2️⃣ Clicca sulla mappa")
+    st.markdown("#### 2️⃣ Clicca su una via nella mappa - Descrizione via + comune")
 
     try:
         import folium
@@ -440,16 +486,16 @@ elif scelta=="Mappa Postazioni":
                 if sel_ptr=="⭐ Personalizzato PNG" and sel_b64:
                     icon_url=f"data:image/png;base64,{sel_b64}"
                     icon=folium.CustomIcon(icon_url,icon_size=(50,50),icon_anchor=(25,50))
-                    folium.Marker([clat,clon],popup=f"🎯 NUOVA - {sel_ptr}",icon=icon).add_to(m_click)
+                    folium.Marker([clat,clon],popup=f"🎯 {st.session_state.clicked_desc_via}",icon=icon).add_to(m_click)
                 else:
                     color_map={"📍 Default Rosso":"red","🚨 Emergenza":"red","🏠 Sede ANA":"green","👤 Volontario":"blue","🔥 Incendio":"orange","🌊 Alluvione":"blue","🚑 Sanitario":"white","📻 Radio":"cadetblue"}
                     color=color_map.get(sel_ptr,"red")
-                    folium.Marker([clat,clon],popup=f"🎯 NUOVA - {sel_ptr}",icon=folium.Icon(color=color,icon="star",prefix="fa")).add_to(m_click)
+                    folium.Marker([clat,clon],popup=f"🎯 {st.session_state.clicked_desc_via}",icon=folium.Icon(color=color,icon="star",prefix="fa")).add_to(m_click)
                 folium.CircleMarker([clat,clon],radius=25,color="yellow",fill=False,weight=4).add_to(m_click)
             except:
                 pass
 
-        st.markdown("**Clicca dove vuoi - Appare subito il PNG scelto! ⛶ fullscreen**")
+        st.markdown("**Clicca su una via - Ti do descrizione via + comune! ⛶ fullscreen**")
         map_data=st_folium(m_click,width=800,height=600,returned_objects=["last_clicked"])
 
         if map_data and map_data.get("last_clicked"):
@@ -457,26 +503,33 @@ elif scelta=="Mappa Postazioni":
             clicked_lon=map_data["last_clicked"]["lng"]
             st.session_state.clicked_lat=str(clicked_lat)
             st.session_state.clicked_lon=str(clicked_lon)
-            with st.spinner("Recupero Comune e Via..."):
-                rev_comune, rev_via=reverse_geocode(clicked_lat, clicked_lon)
-                if rev_comune:
-                    st.session_state.clicked_comune=rev_comune
-                if rev_via:
-                    st.session_state.clicked_via=rev_via
-            # COMPILA AUTOMATICAMENTE LA MASCHERA QUANDO CLICCHI
-            st.session_state.form_lat=str(clicked_lat)
-            st.session_state.form_lon=str(clicked_lon)
-            st.session_state.form_comune=rev_comune
-            st.session_state.form_via=rev_via
-            st.success(f"✅ Cliccato! Dati compilati automaticamente nella maschera sotto!")
+            with st.spinner("Recupero descrizione via + comune dalle coordinate..."):
+                city, road, desc_via_comune, desc_completa, addr_dict=reverse_geocode_dettagliato(clicked_lat, clicked_lon)
+                st.session_state.clicked_comune=city
+                st.session_state.clicked_via=road
+                st.session_state.clicked_desc_via=desc_via_comune
+                st.session_state.clicked_desc_completa=desc_completa
+                st.session_state.form_lat=str(clicked_lat)
+                st.session_state.form_lon=str(clicked_lon)
+                st.session_state.form_comune=city
+                st.session_state.form_via=road
+                st.session_state.form_desc=desc_completa
+            st.success(f"✅ Via rilevata: {desc_via_comune}")
             st.rerun()
     except ImportError:
         st.warning("Installa folium")
 
-    # PULSANTE CHE COMPILA LA MASCHERA NEI CAMPI GIUSTI
     if st.session_state.clicked_lat and st.session_state.clicked_lon:
         st.divider()
-        st.markdown("#### 📍 Dati presi dalla mappa - Premi per compilare la maschera")
+        st.markdown("#### 📍 Descrizione Via + Comune dalle coordinate")
+        # BOX DESCRIZIONE VIA ABBINATA AL COMUNE
+        st.markdown('<div class="via-desc">', unsafe_allow_html=True)
+        st.markdown(f"**🛣️ Descrizione Via + Comune:**")
+        st.markdown(f"### {st.session_state.clicked_desc_via}")
+        st.markdown(f"**📋 Descrizione Completa:** {st.session_state.clicked_desc_completa}")
+        st.markdown(f"**🌍 Coordinate:** Lat {st.session_state.clicked_lat} - Lon {st.session_state.clicked_lon}")
+        st.markdown('</div>', unsafe_allow_html=True)
+
         c_info1,c_info2,c_info3,c_info4=st.columns(4)
         c_info1.metric("Lat",st.session_state.clicked_lat)
         c_info2.metric("Lon",st.session_state.clicked_lon)
@@ -484,77 +537,83 @@ elif scelta=="Mappa Postazioni":
         c_info4.metric("Via",st.session_state.clicked_via or "Non rilevata")
 
         st.markdown('<div class="compila-btn">', unsafe_allow_html=True)
-        if st.button("🔄 COMPILA MASCHERA CON DATI MAPPA NEI CAMPI GIUSTI",use_container_width=True,key="compila_maschera"):
+        if st.button("🔄 COMPILA MASCHERA CON DESCRIZIONE VIA + COMUNE",use_container_width=True,key="compila_maschera"):
             st.session_state.form_lat=st.session_state.clicked_lat
             st.session_state.form_lon=st.session_state.clicked_lon
             st.session_state.form_comune=st.session_state.clicked_comune
             st.session_state.form_via=st.session_state.clicked_via
-            st.success("✅ Maschera compilata nei campi giusti! Scorri sotto!")
+            st.session_state.form_desc=st.session_state.clicked_desc_completa
+            st.success("✅ Maschera compilata con descrizione via + comune!")
             st.rerun()
         st.markdown('</div>', unsafe_allow_html=True)
 
     st.divider()
-    st.markdown("#### 3️⃣ Maschera Postazione - Campi compilati automaticamente dal click")
+    st.markdown("#### 3️⃣ Maschera Postazione - Con descrizione via + comune")
 
-    # COMUNE E VIA - AUTO-COMPILATI
     c1,c2=st.columns(2)
     with c1:
-        # Comune auto-compilato
         if st.session_state.form_comune:
             comune_val=st.session_state.form_comune
             if comune_val in COMUNI_TUTTI:
                 idx_com=COMUNI_TUTTI.index(comune_val)
-                comune=st.selectbox("Comune * (auto-compilato)",COMUNI_TUTTI,index=idx_com,key="comune_map_final")
+                comune=st.selectbox("Comune * (auto)",COMUNI_TUTTI,index=idx_com,key="comune_map_final")
             else:
                 comune=st.selectbox("Comune *",COMUNI_TUTTI,key="comune_map_final")
                 st.info(f"Comune rilevato: {comune_val}")
                 comune=comune_val
         else:
             comune=st.selectbox("Comune *",COMUNI_TUTTI,key="comune_map_final")
-
     with c2:
         with st.spinner(f"Carico vie di {comune}..."):
             vie=get_vie_comune(comune)
-        # Via auto-compilata
         if st.session_state.form_via and st.session_state.form_via in vie:
             idx_via=vie.index(st.session_state.form_via)
-            via=st.selectbox(f"Via * ({len(vie)-1} vie) - auto-compilata",vie,index=idx_via,key="via_map_final")
+            via=st.selectbox(f"Via * ({len(vie)-1} vie) - auto",vie,index=idx_via,key="via_map_final")
         else:
             via=st.selectbox(f"Via * ({len(vie)-1} vie)",vie,key="via_map_final")
         if via=="-- Seleziona Via --":
-            via_man=st.text_input("Via manuale (auto-compilata)",value=st.session_state.form_via,key="via_man_map_final")
+            via_man=st.text_input("Via manuale (auto)",value=st.session_state.form_via,key="via_man_map_final")
             via_f=via_man if via_man else via
         else:
             via_f=via
 
+    # MOSTRA DESCRIZIONE VIA + COMUNE NELLA MASCHERA
+    if st.session_state.form_desc:
+        st.markdown('<div class="via-desc">', unsafe_allow_html=True)
+        st.markdown(f"**Descrizione Via + Comune dalle coordinate:**")
+        st.markdown(f"{st.session_state.form_desc}")
+        st.markdown(f"**Via abbinata al Comune:** {st.session_state.form_via} - {st.session_state.form_comune}")
+        st.markdown('</div>', unsafe_allow_html=True)
+
     with st.form("form_post_finale"):
-        st.markdown("#### Dati Postazione - Compilazione automatica dalla mappa nei campi giusti")
-        nome=st.text_input("Nome Postazione *",placeholder="Es. Postazione 1 - Ponte")
+        st.markdown("#### Dati Postazione + Descrizione Via")
+        nome=st.text_input("Nome Postazione *",placeholder="Es. Postazione 1 - Ponte Via Roma")
         cc1,cc2=st.columns(2)
         with cc1:
-            # QUESTI CAMPI SONO COMPILATI AUTOMATICAMENTE QUANDO CLICCHI O PREMI IL PULSANTE
-            lat_final=st.text_input("Latitudine * (auto dal click)",value=st.session_state.form_lat,placeholder="Clicca mappa o premi pulsante arancione",key="lat_final")
-            lon_final=st.text_input("Longitudine * (auto dal click)",value=st.session_state.form_lon,placeholder="Clicca mappa o premi pulsante arancione",key="lon_final")
+            lat_final=st.text_input("Latitudine * (auto)",value=st.session_state.form_lat,placeholder="Clicca mappa",key="lat_final")
+            lon_final=st.text_input("Longitudine * (auto)",value=st.session_state.form_lon,placeholder="Clicca mappa",key="lon_final")
         with cc2:
             resp=st.text_input("Responsabile",placeholder="Nome responsabile")
-            st.markdown(f"**Puntatore scelto al click:** {st.session_state.selected_pointer}")
-            if st.session_state.selected_custom_b64:
-                st.image(f"data:image/png;base64,{st.session_state.selected_custom_b64}",width=40)
+            st.markdown(f"**Puntatore:** {st.session_state.selected_pointer}")
 
-        st.info(f"Comune compilato: {comune} | Via compilata: {via_f} | Lat: {lat_final} | Lon: {lon_final}")
+        # CAMPO DESCRIZIONE VIA + COMUNE
+        desc_via_final=st.text_area("Descrizione Via + Comune (auto dalle coordinate)",value=st.session_state.form_desc,placeholder="Descrizione completa via + comune dalle coordinate",height=80,key="desc_via_final")
+        st.info(f"Comune: {comune} | Via: {via_f} | Lat: {lat_final} | Lon: {lon_final}")
 
-        if st.form_submit_button("➕ SALVA POSTAZIONE CON DATI AUTO-COMPILATI",use_container_width=True,type="primary"):
+        if st.form_submit_button("➕ SALVA POSTAZIONE CON DESCRIZIONE VIA + COMUNE",use_container_width=True,type="primary"):
             final_lat=lat_final or st.session_state.form_lat or st.session_state.clicked_lat
             final_lon=lon_final or st.session_state.form_lon or st.session_state.clicked_lon
             final_comune=comune or st.session_state.form_comune or st.session_state.clicked_comune
             final_via=via_f or st.session_state.form_via or st.session_state.clicked_via
+            final_desc=desc_via_final or st.session_state.form_desc or st.session_state.clicked_desc_completa
 
             if nome and final_lat and final_lon:
                 custom_b64=st.session_state.selected_custom_b64 if st.session_state.selected_pointer=="⭐ Personalizzato PNG" else ""
                 new_post={
                  "Postazione":nome,"Comune":final_comune,"Via":final_via,
                  "Latitudine":final_lat,"Longitudine":final_lon,
-                 "Responsabile":resp,"Puntatore":st.session_state.selected_pointer,"CustomPNG":custom_b64
+                 "Responsabile":resp,"Puntatore":st.session_state.selected_pointer,"CustomPNG":custom_b64,
+                 "DescrizioneVia":final_desc
                 }
                 st.session_state.postazioni.append(new_post)
                 save_json(FILE_POST,st.session_state.postazioni)
@@ -563,14 +622,17 @@ elif scelta=="Mappa Postazioni":
                 st.session_state.clicked_lon=""
                 st.session_state.clicked_comune=""
                 st.session_state.clicked_via=""
+                st.session_state.clicked_desc_via=""
+                st.session_state.clicked_desc_completa=""
                 st.session_state.form_lat=""
                 st.session_state.form_lon=""
                 st.session_state.form_comune=""
                 st.session_state.form_via=""
-                st.success(f"✅ {nome} salvata con dati auto-compilati!")
+                st.session_state.form_desc=""
+                st.success(f"✅ {nome} salvata! {final_via} - {final_comune} | {final_desc[:50]}")
                 st.rerun()
             else:
-                st.error("Compila Nome e clicca sulla mappa per Lat/Lon!")
+                st.error("Compila Nome e clicca sulla mappa!")
 
     if st.session_state.postazioni:
         df=pd.DataFrame(st.session_state.postazioni)
@@ -605,7 +667,7 @@ elif scelta=="Mappa Postazioni":
                 try:
                     la=float(str(r["Latitudine"]).replace(",","."))
                     lo=float(str(r["Longitudine"]).replace(",","."))
-                    popup_text=f"<b>{r['Postazione']}</b><br>{r['Comune']} - {r['Via']}"
+                    popup_text=f"<b>{r['Postazione']}</b><br>{r['Comune']} - {r['Via']}<br>{r.get('DescrizioneVia','')[:50]}"
                     puntatore=r.get("Puntatore","📍 Default Rosso")
                     custom_b64=r.get("CustomPNG","")
                     is_last=False
