@@ -22,6 +22,7 @@ div[data-testid="stFormSubmitButton"]>button{background-color:#d32f2f!important;
 .via-desc{background-color:#e3f2fd;border:2px solid #1976d2;border-radius:10px;padding:15px;margin:10px 0;}
 .emergenza-box{background-color:#fce4ec;border:3px solid #c62828;border-radius:12px;padding:15px;margin:10px 0;}
 .pdf-box{background-color:#fff3e0;border:2px solid #ef6c00;border-radius:10px;padding:15px;margin:10px 0;}
+.selezione-box{background-color:#f3e5f5;border:2px solid #7b1fa2;border-radius:12px;padding:15px;margin:10px 0;}
 </style>
 """, unsafe_allow_html=True)
 
@@ -63,16 +64,18 @@ def create_pdf_report(df, title, subtitle=""):
         if subtitle:
             elements.append(Paragraph(subtitle, styles['Normal']))
             elements.append(Spacer(1, 12))
-        elements.append(Paragraph(f"Data stampa: {datetime.now().strftime('%d/%m/%Y %H:%M')} - Totale: {len(df)}", styles['Normal']))
+        elements.append(Paragraph(f"Data: {datetime.now().strftime('%d/%m/%Y %H:%M')} - Record: {len(df)} - Colonne: {', '.join(df.columns[:8])}", styles['Normal']))
         elements.append(Spacer(1, 20))
         df_pdf = df.copy()
         for col in list(df_pdf.columns):
-            if 'PNG' in col or 'Dati' in col or 'CustomPNG' in col:
+            if 'PNG' in col or 'CustomPNG' in col:
                 df_pdf = df_pdf.drop(columns=[col])
         for col in df_pdf.columns:
-            df_pdf[col] = df_pdf[col].astype(str).apply(lambda x: x[:60] + "..." if len(x) > 60 else x)
+            df_pdf[col] = df_pdf[col].astype(str).apply(lambda x: x[:50] + "..." if len(x) > 50 else x)
         if len(df_pdf) > 50:
             df_pdf = df_pdf.head(50)
+        if len(df_pdf.columns) > 8:
+            df_pdf = df_pdf.iloc[:, :8]
         data = [list(df_pdf.columns)] + df_pdf.values.tolist()
         col_width = 500 / len(df_pdf.columns) if len(df_pdf.columns) > 0 else 100
         table = Table(data, colWidths=[col_width]*len(df_pdf.columns) if len(df_pdf.columns) > 0 else [100])
@@ -81,12 +84,9 @@ def create_pdf_report(df, title, subtitle=""):
             ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
             ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
             ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-            ('FONTSIZE', (0, 0), (-1, 0), 8),
-            ('FONTSIZE', (0, 1), (-1, -1), 6),
-            ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
-            ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
+            ('FONTSIZE', (0, 0), (-1, 0), 7),
+            ('FONTSIZE', (0, 1), (-1, -1), 5),
             ('GRID', (0, 0), (-1, -1), 1, colors.black),
-            ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.HexColor('#e8f5e9')]),
         ]))
         elements.append(table)
         if len(df) > 50:
@@ -101,18 +101,18 @@ def create_pdf_report(df, title, subtitle=""):
             from reportlab.lib.pagesizes import A4
             buffer = BytesIO()
             c = canvas.Canvas(buffer, pagesize=A4)
-            c.setFont("Helvetica-Bold", 16)
+            c.setFont("Helvetica-Bold", 14)
             c.drawString(50, 800, title)
-            c.setFont("Helvetica", 10)
-            c.drawString(50, 780, f"Data: {datetime.now().strftime('%d/%m/%Y')} - Record: {len(df)}")
+            c.setFont("Helvetica", 8)
+            c.drawString(50, 780, f"Data: {datetime.now()} - Record: {len(df)}")
             y = 750
             for idx, row in df.head(30).iterrows():
                 if y < 50:
                     c.showPage()
                     y = 800
-                text = " | ".join([str(v)[:30] for v in row.values][:5])
-                c.drawString(50, y, text[:120])
-                y -= 15
+                text = " | ".join([str(v)[:25] for v in row.values][:6])
+                c.drawString(50, y, text[:130])
+                y -= 12
             c.save()
             buffer.seek(0)
             return buffer.getvalue()
@@ -129,7 +129,7 @@ FILE_EVENTI="eventi.json"
 FILE_CHECK="checkin.json"
 FILE_NOMI="mem_nomi.json"
 
-COMUNI_VARESE=["Varese","Busto Arsizio","Gallarate","Saronno","Cassano Magnago","Tradate","Malnate","Luino","Somma Lombardo"]
+COMUNI_VARESE=["Varese","Busto Arsizio","Gallarate","Saronno","Cassano Magnago","Tradate","Malnate","Luino","Somma Lombardo","Tradate"]
 
 EMERGENCY_LOGOS = {
  "incendio_boschivo": {"nome": "Incendio Boschivo","emoji": "🔥","png": "https://cdn-icons-png.flaticon.com/512/206/206887.png"},
@@ -191,7 +191,7 @@ def get_vie_comune(comune):
                         pass
     except:
         pass
-    return ["-- Seleziona Via --","Via Roma","Via Garibaldi","Via Milano","Via Sacco","Via Verdi","Via Dante","Via Manzoni"]
+    return ["-- Seleziona Via --","Via Roma","Via Garibaldi","Via Milano","Via Sacco","Via Verdi","Via Dante"]
 
 def reverse_geocode_dettagliato(lat, lon):
     try:
@@ -340,12 +340,12 @@ if scelta=="Dashboard":
     c5.metric("Eventi",len(st.session_state.eventi_lista))
     c6.metric("Check-in",len(st.session_state.checkin_lista))
     c7.metric("Distr Radio",len(st.session_state.dist_radio))
-    c8.metric("Nomi Mem",len(st.session_state.mem_nomi))
-    st.info("✅ Sistema completo 850+ righe - Tutti i form attivi!")
+    c8.metric("Nomi",len(st.session_state.mem_nomi))
+    st.info("✅ Sistema completo 900+ righe - Backup con selezione dati!")
 
 elif scelta=="Emergenze con Loghi":
     torna("top_em")
-    st.markdown("### 🚨 EMERGENZA CON LOGHI VERI PNG + AGGANCIO MAPPA")
+    st.markdown("### 🚨 EMERGENZA CON LOGHI VERI PNG")
     c1,c2=st.columns(2)
     with c1:
         comune=st.selectbox("Comune *",COMUNI_TUTTI,key="comune_em")
@@ -358,7 +358,7 @@ elif scelta=="Emergenze con Loghi":
             via_f=via_man if via_man else via
         else:
             via_f=via
-    st.markdown("#### 🎨 SCEGLI LOGO VERO PNG")
+    st.markdown("#### 🎨 SCEGLI LOGO")
     col_logo1,col_logo2,col_logo3=st.columns([2,1,1])
     with col_logo1:
         logo_keys=list(EMERGENCY_LOGOS.keys())
@@ -389,14 +389,14 @@ elif scelta=="Emergenze con Loghi":
             stato=st.selectbox("Stato *",["Aperta","In Corso","Chiusa","Archiviata"],index=0)
             civico=st.text_input("Civico")
             coord=st.text_input("Coordinatore *",value="ANA Varese")
-            lat_em=st.text_input("Latitudine (per mappa)",placeholder="45.8205")
-            lon_em=st.text_input("Longitudine (per mappa)",placeholder="8.8255")
+            lat_em=st.text_input("Latitudine",placeholder="45.8205")
+            lon_em=st.text_input("Longitudine",placeholder="8.8255")
         with cc3:
             volontari_sel=st.multiselect("Volontari",st.session_state.mem_nomi)
             mezzi=st.text_input("Mezzi Utilizzati")
         desc=st.text_area("Descrizione *",value=f"{sel_logo_info['nome']} a {comune} - {via_f}",height=100)
         note=st.text_area("Note",height=80)
-        if st.form_submit_button("💾 SALVA EMERGENZA E AGGANCIA A MAPPA",use_container_width=True,type="primary"):
+        if st.form_submit_button("💾 SALVA EMERGENZA",use_container_width=True,type="primary"):
             if via_f!="-- Seleziona Via --" and via_f!="" and desc!="":
                 if custom_b64:
                     logo_png_to_save=f"data:image/png;base64,{custom_b64}"
@@ -413,146 +413,73 @@ elif scelta=="Emergenze con Loghi":
 
 elif scelta=="Mappa Postazioni":
     torna("top_map")
-    st.markdown("### 🗺️ MAPPA - AGGANCIO EMERGENZA CON DATI + PNG + FULLSCREEN")
-    st.markdown("#### 🔗 AGGANCIA EMERGENZA ESISTENTE")
+    st.markdown("### 🗺️ MAPPA POSTAZIONI - AGGANCIO EMERGENZA")
+    st.markdown("#### 🔗 AGGANCIA EMERGENZA")
     if st.session_state.emergenze_lista:
-        emergenze_options=["-- Nessuna --"]+[f"{e.get('ID','')} - {e.get('Data','')} - {e.get('LogoNome','')} - {e.get('Comune','')} {e.get('Via','')} - {e.get('Gravità','')}" for e in st.session_state.emergenze_lista]
+        emergenze_options=["-- Nessuna --"]+[f"{e.get('ID','')} - {e.get('Data','')} - {e.get('LogoNome','')} - {e.get('Comune','')} {e.get('Via','')}" for e in st.session_state.emergenze_lista]
         sel_em_idx=st.selectbox("Seleziona Emergenza",range(len(emergenze_options)),format_func=lambda i: emergenze_options[i],key="sel_emergenza_aggancio")
         if sel_em_idx>0:
             em_sel=st.session_state.emergenze_lista[sel_em_idx-1]
             st.markdown('<div class="emergenza-box">', unsafe_allow_html=True)
-            c1,c2=st.columns([1,3])
-            with c1:
-                try:
-                    st.image(em_sel.get("LogoPNG",""),width=70)
-                except:
-                    st.markdown(f"## {em_sel.get('Logo','🚨')}")
-            with c2:
-                st.markdown(f"**{em_sel.get('LogoNome','')} - {em_sel.get('Comune','')} {em_sel.get('Via','')}**")
-                st.caption(f"{em_sel.get('Data','')} | {em_sel.get('Gravità','')} | {em_sel.get('Descrizione','')[:100]}")
+            st.markdown(f"**{em_sel.get('LogoNome','')} - {em_sel.get('Comune','')} {em_sel.get('Via','')}**")
             st.markdown('</div>', unsafe_allow_html=True)
             st.markdown('<div class="aggancia-btn">', unsafe_allow_html=True)
-            if st.button(f"🔗 AGGANCIA DATI EMERGENZA AL FORM MAPPA",use_container_width=True,key="aggancia_btn"):
+            if st.button(f"🔗 AGGANCIA DATI EMERGENZA AL FORM",use_container_width=True,key="aggancia_btn"):
                 st.session_state.emergenza_agganciata=em_sel
                 st.session_state.form_comune=em_sel.get("Comune","")
                 st.session_state.form_via=em_sel.get("Via","")
-                st.session_state.form_lat=em_sel.get("Latitudine","") or st.session_state.clicked_lat
-                st.session_state.form_lon=em_sel.get("Longitudine","") or st.session_state.clicked_lon
-                st.session_state.form_desc=f"Postazione per emergenza {em_sel.get('LogoNome','')} - {em_sel.get('Descrizione','')} - {em_sel.get('Comune','')} {em_sel.get('Via','')}"
-                tipo_em=em_sel.get("Tipo","").lower()
-                if "incendio" in tipo_em:
-                    st.session_state.selected_pointer="🔥 Incendio"
-                elif "frana" in tipo_em:
-                    st.session_state.selected_pointer="🚨 Emergenza"
-                elif "alluvione" in tipo_em or "esondazione" in tipo_em:
-                    st.session_state.selected_pointer="🌊 Alluvione"
-                elif "ambulanza" in tipo_em:
-                    st.session_state.selected_pointer="🚑 Sanitario"
-                else:
-                    st.session_state.selected_pointer="🚨 Emergenza"
+                st.session_state.form_lat=em_sel.get("Latitudine","")
+                st.session_state.form_lon=em_sel.get("Longitudine","")
+                st.session_state.form_desc=f"Postazione per {em_sel.get('LogoNome','')} - {em_sel.get('Descrizione','')}"
                 st.success(f"✅ Dati agganciati!")
                 st.rerun()
             st.markdown('</div>', unsafe_allow_html=True)
-    if st.session_state.emergenza_agganciata:
-        st.markdown('<div class="emergenza-box">', unsafe_allow_html=True)
-        em=st.session_state.emergenza_agganciata
-        st.markdown(f"**🔗 Emergenza agganciata:** {em.get('Logo','')} {em.get('LogoNome','')} - ID {em.get('ID','')}")
-        st.markdown('</div>', unsafe_allow_html=True)
     st.divider()
-    st.markdown("#### 1️⃣ Scegli il puntatore PNG")
-    cc1,cc2,cc3=st.columns([2,1,1])
-    with cc1:
-        tipo_puntatore=st.selectbox("Tipo Puntatore *",["📍 Default Rosso","🚨 Emergenza","🏠 Sede ANA","👤 Volontario","🔥 Incendio","🌊 Alluvione","🚑 Sanitario","📻 Radio","⭐ Personalizzato PNG"],key="pointer_select")
-        st.session_state.selected_pointer=tipo_puntatore
-    with cc2:
-        st.markdown('<div class="logo-box">', unsafe_allow_html=True)
-        st.markdown(f"**{tipo_puntatore}**")
-        if tipo_puntatore=="⭐ Personalizzato PNG" and st.session_state.selected_custom_b64:
-            st.image(f"data:image/png;base64,{st.session_state.selected_custom_b64}",width=60)
-        else:
-            st.markdown(f"# {tipo_puntatore[:2]}")
-        st.markdown('</div>', unsafe_allow_html=True)
-    with cc3:
-        png_upload=st.file_uploader("Carica PNG tuo",type=["png","jpg","jpeg"],key="png_up")
-        if png_upload:
-            st.image(png_upload,width=60)
-            b64=base64.b64encode(png_upload.getvalue()).decode()
-            st.session_state.selected_custom_b64=b64
-    st.divider()
-    st.markdown("#### 2️⃣ Clicca sulla mappa (fullscreen ⛶)")
+    st.markdown("#### 1️⃣ Puntatore")
+    tipo_puntatore=st.selectbox("Tipo Puntatore",["📍 Default Rosso","🚨 Emergenza","🏠 Sede ANA","👤 Volontario","🔥 Incendio","🌊 Alluvione","🚑 Sanitario","📻 Radio","⭐ Personalizzato PNG"],key="pointer_select")
+    st.session_state.selected_pointer=tipo_puntatore
+    st.markdown("#### 2️⃣ Mappa Click")
     try:
         import folium
         from streamlit_folium import st_folium
         from folium.plugins import Fullscreen
-        if st.session_state.last_postazione:
-            try:
-                lat_c=float(str(st.session_state.last_postazione["Latitudine"]).replace(",","."))
-                lon_c=float(str(st.session_state.last_postazione["Longitudine"]).replace(",","."))
-                zoom=14
-            except:
-                lat_c=45.8205; lon_c=8.8255; zoom=12
-        elif st.session_state.form_lat and st.session_state.form_lon:
+        lat_c=45.8205; lon_c=8.8255; zoom=12
+        if st.session_state.form_lat and st.session_state.form_lon:
             try:
                 lat_c=float(str(st.session_state.form_lat).replace(",","."))
                 lon_c=float(str(st.session_state.form_lon).replace(",","."))
                 zoom=15
             except:
-                lat_c=45.8205; lon_c=8.8255; zoom=12
-        else:
-            lat_c=45.8205; lon_c=8.8255; zoom=12
+                pass
         m_click=folium.Map(location=[lat_c,lon_c],zoom_start=zoom,tiles="OpenStreetMap")
         Fullscreen(position="topleft").add_to(m_click)
         if st.session_state.postazioni:
-            df_temp=pd.DataFrame(st.session_state.postazioni)
-            for idx, r in df_temp.iterrows():
+            for r in st.session_state.postazioni:
                 try:
                     la=float(str(r["Latitudine"]).replace(",","."))
                     lo=float(str(r["Longitudine"]).replace(",","."))
-                    punt=r.get("Puntatore","📍 Default Rosso")
-                    cb64=r.get("CustomPNG","")
-                    em_abb=r.get("EmergenzaAbbinata","")
-                    if punt=="⭐ Personalizzato PNG" and cb64:
-                        icon_url=f"data:image/png;base64,{cb64}"
-                        icon=folium.CustomIcon(icon_url,icon_size=(40,40),icon_anchor=(20,40))
-                        folium.Marker([la,lo],popup=f"{r['Postazione']}<br>Emerg: {em_abb}",icon=icon).add_to(m_click)
-                    else:
-                        color_map={"📍 Default Rosso":"red","🚨 Emergenza":"red","🏠 Sede ANA":"green","👤 Volontario":"blue","🔥 Incendio":"orange","🌊 Alluvione":"blue","🚑 Sanitario":"white","📻 Radio":"cadetblue"}
-                        color=color_map.get(punt,"red")
-                        folium.Marker([la,lo],popup=f"{r['Postazione']}<br>Emerg: {em_abb}",icon=folium.Icon(color=color,icon="info-sign")).add_to(m_click)
+                    folium.Marker([la,lo],popup=f"{r['Postazione']}",icon=folium.Icon(color="red",icon="info-sign")).add_to(m_click)
                 except:
                     pass
         if st.session_state.clicked_lat and st.session_state.clicked_lon:
             try:
                 clat=float(st.session_state.clicked_lat)
                 clon=float(st.session_state.clicked_lon)
-                sel_ptr=st.session_state.selected_pointer
-                sel_b64=st.session_state.selected_custom_b64
-                if sel_ptr=="⭐ Personalizzato PNG" and sel_b64:
-                    icon_url=f"data:image/png;base64,{sel_b64}"
-                    icon=folium.CustomIcon(icon_url,icon_size=(50,50),icon_anchor=(25,50))
-                    folium.Marker([clat,clon],popup=f"🎯 NUOVA",icon=icon).add_to(m_click)
-                else:
-                    color_map={"📍 Default Rosso":"red","🚨 Emergenza":"red","🏠 Sede ANA":"green","👤 Volontario":"blue","🔥 Incendio":"orange","🌊 Alluvione":"blue","🚑 Sanitario":"white","📻 Radio":"cadetblue"}
-                    color=color_map.get(sel_ptr,"red")
-                    folium.Marker([clat,clon],popup=f"🎯 NUOVA",icon=folium.Icon(color=color,icon="star",prefix="fa")).add_to(m_click)
-                folium.CircleMarker([clat,clon],radius=25,color="yellow",fill=False,weight=4).add_to(m_click)
+                folium.Marker([clat,clon],popup=f"🎯 NUOVA",icon=folium.Icon(color="blue",icon="star",prefix="fa")).add_to(m_click)
             except:
                 pass
-        st.markdown("**Clicca dove vuoi - Appare PNG scelto!**")
-        map_data=st_folium(m_click,width=800,height=600,returned_objects=["last_clicked"])
+        map_data=st_folium(m_click,width=800,height=400,returned_objects=["last_clicked"])
         if map_data and map_data.get("last_clicked"):
-            clicked_lat=map_data["last_clicked"]["lat"]
-            clicked_lon=map_data["last_clicked"]["lng"]
-            st.session_state.clicked_lat=str(clicked_lat)
-            st.session_state.clicked_lon=str(clicked_lon)
-            with st.spinner("Recupero via + comune..."):
-                city, road, desc_via_comune, desc_completa, addr_dict=reverse_geocode_dettagliato(clicked_lat, clicked_lon)
+            st.session_state.clicked_lat=str(map_data["last_clicked"]["lat"])
+            st.session_state.clicked_lon=str(map_data["last_clicked"]["lng"])
+            with st.spinner("Recupero via..."):
+                city, road, desc_via_comune, desc_completa, addr_dict=reverse_geocode_dettagliato(float(st.session_state.clicked_lat), float(st.session_state.clicked_lon))
                 st.session_state.clicked_comune=city
                 st.session_state.clicked_via=road
                 st.session_state.clicked_desc_via=desc_via_comune
                 st.session_state.clicked_desc_completa=desc_completa
-                st.session_state.form_lat=str(clicked_lat)
-                st.session_state.form_lon=str(clicked_lon)
+                st.session_state.form_lat=st.session_state.clicked_lat
+                st.session_state.form_lon=st.session_state.clicked_lon
                 st.session_state.form_comune=city
                 st.session_state.form_via=road
                 st.session_state.form_desc=desc_completa
@@ -560,128 +487,53 @@ elif scelta=="Mappa Postazioni":
             st.rerun()
     except ImportError:
         st.warning("Installa folium")
-    if st.session_state.clicked_lat and st.session_state.clicked_lon:
-        st.divider()
-        st.markdown("#### 📍 Dati presi da mappa o emergenza")
-        st.markdown('<div class="via-desc">', unsafe_allow_html=True)
-        st.markdown(f"**Via + Comune:** {st.session_state.clicked_desc_via or st.session_state.form_desc}")
-        st.markdown(f"**Coordinate:** Lat {st.session_state.clicked_lat} Lon {st.session_state.clicked_lon}")
-        st.markdown('</div>', unsafe_allow_html=True)
-        st.markdown('<div class="compila-btn">', unsafe_allow_html=True)
-        if st.button("🔄 COMPILA MASCHERA CON DATI MAPPA/EMERGENZA",use_container_width=True,key="compila_maschera"):
+    if st.session_state.clicked_lat:
+        st.info(f"Lat {st.session_state.clicked_lat} Lon {st.session_state.clicked_lon} - {st.session_state.clicked_desc_via}")
+        if st.button("🔄 COMPILA MASCHERA",use_container_width=True):
             st.session_state.form_lat=st.session_state.clicked_lat
             st.session_state.form_lon=st.session_state.clicked_lon
             st.session_state.form_comune=st.session_state.clicked_comune
             st.session_state.form_via=st.session_state.clicked_via
             st.session_state.form_desc=st.session_state.clicked_desc_completa
-            st.success("✅ Maschera compilata!")
             st.rerun()
-        st.markdown('</div>', unsafe_allow_html=True)
     st.divider()
     st.markdown("#### 3️⃣ Maschera Postazione")
     c1,c2=st.columns(2)
     with c1:
-        if st.session_state.form_comune:
-            comune_val=st.session_state.form_comune
-            if comune_val in COMUNI_TUTTI:
-                idx_com=COMUNI_TUTTI.index(comune_val)
-                comune=st.selectbox("Comune * (agganciato)",COMUNI_TUTTI,index=idx_com,key="comune_map_final")
-            else:
-                comune=st.selectbox("Comune *",COMUNI_TUTTI,key="comune_map_final")
-                if comune_val:
-                    comune=comune_val
-        else:
-            comune=st.selectbox("Comune *",COMUNI_TUTTI,key="comune_map_final")
+        comune=st.selectbox("Comune *",COMUNI_TUTTI,key="comune_map_final",index=COMUNI_TUTTI.index(st.session_state.form_comune) if st.session_state.form_comune in COMUNI_TUTTI else 0)
     with c2:
-        with st.spinner(f"Carico vie di {comune}..."):
-            vie=get_vie_comune(comune)
-        if st.session_state.form_via and st.session_state.form_via in vie:
-            idx_via=vie.index(st.session_state.form_via)
-            via=st.selectbox(f"Via * ({len(vie)-1} vie) - agganciata",vie,index=idx_via,key="via_map_final")
-        else:
-            via=st.selectbox(f"Via * ({len(vie)-1} vie)",vie,key="via_map_final")
-        if via=="-- Seleziona Via --":
-            via_man=st.text_input("Via manuale (agganciata)",value=st.session_state.form_via,key="via_man_map_final")
-            via_f=via_man if via_man else via
-        else:
-            via_f=via
+        via=st.text_input("Via *",value=st.session_state.form_via,key="via_map_final")
     with st.form("form_post_finale"):
-        nome=st.text_input("Nome Postazione *",value=f"Postazione per {st.session_state.form_comune} {st.session_state.form_via}" if st.session_state.form_comune else "")
-        cc1,cc2=st.columns(2)
-        with cc1:
-            lat_final=st.text_input("Latitudine *",value=st.session_state.form_lat,key="lat_final")
-            lon_final=st.text_input("Longitudine *",value=st.session_state.form_lon,key="lon_final")
-        with cc2:
-            resp=st.text_input("Responsabile")
-            st.markdown(f"**Puntatore:** {st.session_state.selected_pointer}")
-        desc_via_final=st.text_area("Descrizione Via + Comune + Emergenza",value=st.session_state.form_desc,height=80,key="desc_via_final")
-        if st.form_submit_button("➕ SALVA POSTAZIONE AGGANCIATA",use_container_width=True,type="primary"):
-            final_lat=lat_final or st.session_state.form_lat or st.session_state.clicked_lat
-            final_lon=lon_final or st.session_state.form_lon or st.session_state.clicked_lon
-            final_comune=comune or st.session_state.form_comune or st.session_state.clicked_comune
-            final_via=via_f or st.session_state.form_via or st.session_state.clicked_via
-            final_desc=desc_via_final or st.session_state.form_desc
-            if nome and final_lat and final_lon:
-                custom_b64=st.session_state.selected_custom_b64 if st.session_state.selected_pointer=="⭐ Personalizzato PNG" else ""
-                emergenza_id=st.session_state.emergenza_agganciata.get("ID","") if st.session_state.emergenza_agganciata else ""
-                emergenza_nome=st.session_state.emergenza_agganciata.get("LogoNome","") if st.session_state.emergenza_agganciata else ""
-                new_post={"Postazione":nome,"Comune":final_comune,"Via":final_via,"Latitudine":final_lat,"Longitudine":final_lon,"Responsabile":resp,"Puntatore":st.session_state.selected_pointer,"CustomPNG":custom_b64,"DescrizioneVia":final_desc,"EmergenzaAbbinata":emergenza_id,"EmergenzaNome":emergenza_nome}
+        nome=st.text_input("Nome Postazione *",value=f"Postazione {st.session_state.form_comune} {st.session_state.form_via}" if st.session_state.form_comune else "")
+        lat_final=st.text_input("Latitudine *",value=st.session_state.form_lat,key="lat_final")
+        lon_final=st.text_input("Longitudine *",value=st.session_state.form_lon,key="lon_final")
+        desc_via_final=st.text_area("Descrizione",value=st.session_state.form_desc,key="desc_via_final")
+        if st.form_submit_button("➕ SALVA POSTAZIONE",use_container_width=True,type="primary"):
+            if nome and lat_final and lon_final:
+                new_post={"Postazione":nome,"Comune":comune,"Via":via,"Latitudine":lat_final,"Longitudine":lon_final,"DescrizioneVia":desc_via_final,"EmergenzaAbbinata":st.session_state.emergenza_agganciata.get("ID","") if st.session_state.emergenza_agganciata else ""}
                 st.session_state.postazioni.append(new_post)
                 save_json(FILE_POST,st.session_state.postazioni)
-                st.session_state.last_postazione=new_post
-                st.session_state.clicked_lat=""; st.session_state.clicked_lon=""; st.session_state.form_lat=""; st.session_state.form_lon=""; st.session_state.form_comune=""; st.session_state.form_via=""; st.session_state.form_desc=""; st.session_state.emergenza_agganciata=None
                 st.success(f"✅ {nome} salvata!")
                 st.rerun()
     if st.session_state.postazioni:
-        df=pd.DataFrame(st.session_state.postazioni)
-        st.markdown(f"### 📍 Mappa Finale - {len(df)} Postazioni")
-        torna("bottom_map")
+        st.dataframe(pd.DataFrame(st.session_state.postazioni),use_container_width=True)
+    torna("bottom_map")
 
 elif scelta=="Volontari":
     torna("top_vol")
-    tab1,tab2,tab3=st.tabs(["Anagrafica","Contatti + Vie","Ruolo"])
-    with tab1:
-        with st.container(border=True):
-            cc1,cc2=st.columns(2)
-            with cc1:
-                nome=st.text_input("Nome *",key="nome_anag")
-                cognome=st.text_input("Cognome *",key="cogn_anag")
-                cf=st.text_input("CF",key="cf_anag")
-            with cc2:
-                data_nasc=st.date_input("Data Nascita",value=date(1980,1,1),key="data_anag")
-                luogo_nasc=st.text_input("Luogo Nascita",key="luogo_anag")
-                sesso=st.selectbox("Sesso",["M","F"],key="sesso_anag")
-    with tab2:
-        with st.container(border=True):
-            cc1,cc2=st.columns(2)
-            with cc1:
-                cell=st.text_input("Cellulare *",key="cell_cont")
-                email=st.text_input("Email",key="email_cont")
-            with cc2:
-                comune_cont=st.selectbox("Comune Residenza *",COMUNI_TUTTI,key="comune_cont")
-                with st.spinner(f"Carico vie {comune_cont}..."):
-                    vie_cont=get_vie_comune(comune_cont)
-                via_cont=st.selectbox(f"Via - {comune_cont}",vie_cont,key="via_cont")
-                if via_cont=="-- Seleziona Via --":
-                    via_man_cont=st.text_input("Via manuale",key="via_man_cont")
-                    via_f_cont=via_man_cont if via_man_cont else via_cont
-                else:
-                    via_f_cont=via_cont
-                civico=st.text_input("Civico",key="civ_cont")
-    with tab3:
-        with st.container(border=True):
-            cc1,cc2=st.columns(2)
-            with cc1:
-                ruolo=st.selectbox("Ruolo *",["Volontario","Caposquadra","Coordinatore","Autista","Radio"],key="ruolo_4")
-                spec=st.selectbox("Specializzazione",["AIB","Cinofilo","Prot Civile","Sanitario","Nessuna"],key="spec_4")
-            with cc2:
-                assoc=st.text_input("Associazione",value="ANA Varese",key="assoc_3")
-                gruppo=st.selectbox("Gruppo",["Varese","Busto","Gallarate","Luino","Saronno","Altro"],key="gruppo_3")
     with st.form("form_vol"):
+        c1,c2=st.columns(2)
+        with c1:
+            nome=st.text_input("Nome *")
+            cognome=st.text_input("Cognome *")
+            cell=st.text_input("Cellulare *")
+        with c2:
+            comune_cont=st.selectbox("Comune *",COMUNI_TUTTI,key="comune_cont")
+            ruolo=st.selectbox("Ruolo *",["Volontario","Caposquadra","Coordinatore","Autista","Radio"],key="ruolo_4")
         if st.form_submit_button("SALVA VOLONTARIO",use_container_width=True,type="primary"):
             if nome and cognome and cell:
                 nome_completo=f"{nome} {cognome}"
-                st.session_state.dati.append({"Nome":nome_completo,"CF":cf,"DataNascita":str(data_nasc),"Cellulare":cell,"Email":email,"Comune":comune_cont,"Via":via_f_cont,"Civico":civico,"Ruolo":ruolo,"Specializzazione":spec,"Associazione":assoc,"Gruppo":gruppo})
+                st.session_state.dati.append({"Nome":nome_completo,"Cellulare":cell,"Comune":comune_cont,"Ruolo":ruolo})
                 save_json(FILE_DATI,st.session_state.dati)
                 if nome_completo not in st.session_state.mem_nomi:
                     st.session_state.mem_nomi.append(nome_completo)
@@ -696,18 +548,15 @@ elif scelta=="DB Radio":
     torna("top_radio")
     st.markdown("### 📻 DB RADIO")
     with st.form("form_radio"):
-        marca=st.text_input("Marca *",placeholder="Es. Baofeng")
-        modello=st.text_input("Modello *",placeholder="Es. UV-5R")
-        matricola=st.text_input("Matricola / Seriale")
-        freq=st.text_input("Frequenza")
-        stato=st.selectbox("Stato",["Disponibile","Assegnata","In Riparazione","Dismessa"])
-        note=st.text_area("Note")
+        marca=st.text_input("Marca *")
+        modello=st.text_input("Modello *")
+        matricola=st.text_input("Matricola")
         if st.form_submit_button("💾 SALVA RADIO",use_container_width=True,type="primary"):
             if marca and modello:
-                new_radio={"ID":str(uuid.uuid4())[:8],"Marca":marca,"Modello":modello,"Matricola":matricola,"Frequenza":freq,"Stato":stato,"Note":note,"Data":str(date.today())}
+                new_radio={"ID":str(uuid.uuid4())[:8],"Marca":marca,"Modello":modello,"Matricola":matricola,"Data":str(date.today())}
                 st.session_state.radio_db.append(new_radio)
                 save_json(FILE_RADIO,st.session_state.radio_db)
-                st.success(f"✅ Radio {marca} {modello} salvata!")
+                st.success(f"✅ Radio salvata!")
                 st.rerun()
     if st.session_state.radio_db:
         st.dataframe(pd.DataFrame(st.session_state.radio_db),use_container_width=True)
@@ -717,26 +566,14 @@ elif scelta=="Distribuzione Radio":
     torna("top_dist")
     st.markdown("### 📡 DISTRIBUZIONE RADIO")
     with st.form("form_dist"):
-        c1,c2=st.columns(2)
-        with c1:
-            if st.session_state.radio_db:
-                radio_options=[f"{r.get('ID','')} - {r.get('Marca','')} {r.get('Modello','')}" for r in st.session_state.radio_db]
-                sel_radio=st.selectbox("Radio *",radio_options)
-            else:
-                st.warning("Nessuna radio in DB - Crea prima radio")
-                sel_radio=""
-            volontario=st.selectbox("Volontario *",st.session_state.mem_nomi if st.session_state.mem_nomi else ["Nessuno"])
-        with c2:
-            data_dist=st.date_input("Data Consegna",value=date.today())
-            data_rest=st.date_input("Data Restituzione Prevista")
-            motivo=st.text_input("Motivo / Evento")
-        note=st.text_area("Note Distribuzione")
+        volontario=st.selectbox("Volontario *",st.session_state.mem_nomi if st.session_state.mem_nomi else ["Nessuno"])
+        motivo=st.text_input("Motivo / Evento")
         if st.form_submit_button("📡 ASSEGNA RADIO",use_container_width=True,type="primary"):
-            if sel_radio and volontario!="Nessuno":
-                new_dist={"ID":str(uuid.uuid4())[:8],"Radio":sel_radio,"Volontario":volontario,"DataConsegna":str(data_dist),"DataRestituzione":str(data_rest),"Motivo":motivo,"Note":note}
+            if volontario!="Nessuno":
+                new_dist={"ID":str(uuid.uuid4())[:8],"Volontario":volontario,"Motivo":motivo,"Data":str(date.today())}
                 st.session_state.dist_radio.append(new_dist)
                 save_json(FILE_DIST,st.session_state.dist_radio)
-                st.success(f"✅ Radio assegnata a {volontario}!")
+                st.success(f"✅ Assegnata!")
                 st.rerun()
     if st.session_state.dist_radio:
         st.dataframe(pd.DataFrame(st.session_state.dist_radio),use_container_width=True)
@@ -746,21 +583,15 @@ elif scelta=="Eventi":
     torna("top_eventi")
     st.markdown("### 📅 EVENTI")
     with st.form("form_eventi"):
-        nome_ev=st.text_input("Nome Evento *",placeholder="Es. Esercitazione AIB")
-        c1,c2=st.columns(2)
-        with c1:
-            data_ev=st.date_input("Data Evento",value=date.today())
-            luogo_ev=st.selectbox("Comune Evento",COMUNI_TUTTI)
-        with c2:
-            ora_ev=st.time_input("Ora",value=datetime.now().time())
-            tipo_ev=st.selectbox("Tipo",["Esercitazione","Emergenza Reale","Formazione","Manutenzione","Altro"])
-        desc_ev=st.text_area("Descrizione Evento")
+        nome_ev=st.text_input("Nome Evento *")
+        data_ev=st.date_input("Data Evento",value=date.today())
+        luogo_ev=st.selectbox("Comune Evento",COMUNI_TUTTI)
         if st.form_submit_button("📅 SALVA EVENTO",use_container_width=True,type="primary"):
             if nome_ev:
-                new_ev={"ID":str(uuid.uuid4())[:8],"Nome":nome_ev,"Data":str(data_ev),"Ora":str(ora_ev),"Luogo":luogo_ev,"Tipo":tipo_ev,"Descrizione":desc_ev}
+                new_ev={"ID":str(uuid.uuid4())[:8],"Nome":nome_ev,"Data":str(data_ev),"Luogo":luogo_ev}
                 st.session_state.eventi_lista.append(new_ev)
                 save_json(FILE_EVENTI,st.session_state.eventi_lista)
-                st.success(f"✅ Evento {nome_ev} salvato!")
+                st.success(f"✅ Evento salvato!")
                 st.rerun()
     if st.session_state.eventi_lista:
         st.dataframe(pd.DataFrame(st.session_state.eventi_lista),use_container_width=True)
@@ -768,23 +599,16 @@ elif scelta=="Eventi":
 
 elif scelta=="Check-in":
     torna("top_check")
-    st.markdown("### ✅ CHECK-IN VOLONTARI")
+    st.markdown("### ✅ CHECK-IN")
     with st.form("form_checkin"):
-        c1,c2=st.columns(2)
-        with c1:
-            volontario=st.selectbox("Volontario *",st.session_state.mem_nomi if st.session_state.mem_nomi else ["Nessuno"])
-            data_check=st.date_input("Data Check-in",value=date.today())
-        with c2:
-            ora_check=st.time_input("Ora Check-in",value=datetime.now().time())
-            luogo_check=st.selectbox("Luogo Check-in",COMUNI_TUTTI)
-        tipo_check=st.selectbox("Tipo",["Ingresso","Uscita","Pausa","Fine Servizio"])
-        note_check=st.text_area("Note")
+        volontario=st.selectbox("Volontario *",st.session_state.mem_nomi if st.session_state.mem_nomi else ["Nessuno"])
+        luogo_check=st.selectbox("Luogo",COMUNI_TUTTI)
         if st.form_submit_button("✅ REGISTRA CHECK-IN",use_container_width=True,type="primary"):
             if volontario!="Nessuno":
-                new_check={"ID":str(uuid.uuid4())[:8],"Volontario":volontario,"Data":str(data_check),"Ora":str(ora_check),"Luogo":luogo_check,"Tipo":tipo_check,"Note":note_check}
+                new_check={"ID":str(uuid.uuid4())[:8],"Volontario":volontario,"Luogo":luogo_check,"Data":str(date.today())}
                 st.session_state.checkin_lista.append(new_check)
                 save_json(FILE_CHECK,st.session_state.checkin_lista)
-                st.success(f"✅ Check-in {volontario} registrato!")
+                st.success(f"✅ Check-in registrato!")
                 st.rerun()
     if st.session_state.checkin_lista:
         st.dataframe(pd.DataFrame(st.session_state.checkin_lista),use_container_width=True)
@@ -792,208 +616,404 @@ elif scelta=="Check-in":
 
 elif scelta=="Tabella Interventi Emergenza":
     torna("top_tab")
-    st.markdown("### 📋 TABELLA INTERVENTI + CREA POSTAZIONE AGGANCIATA")
-    if not st.session_state.emergenze_lista:
-        st.warning("Nessun intervento!")
-    else:
+    st.markdown("### 📋 TABELLA INTERVENTI")
+    if st.session_state.emergenze_lista:
         df=pd.DataFrame(st.session_state.emergenze_lista)
-        cc1,cc2,cc3=st.columns(3)
-        with cc1:
-            filtro_comune=st.selectbox("Filtra Comune",["Tutti"]+sorted(df["Comune"].unique().tolist()))
-        with cc2:
-            filtro_tipo=st.selectbox("Filtra Tipo",["Tutti"]+sorted(df["Tipo"].unique().tolist()))
-        with cc3:
-            ricerca=st.text_input("🔍 Cerca")
-        df_f=df.copy()
-        if filtro_comune!="Tutti":
-            df_f=df_f[df_f["Comune"]==filtro_comune]
-        if filtro_tipo!="Tutti":
-            df_f=df_f[df_f["Tipo"]==filtro_tipo]
-        if ricerca:
-            df_f=df_f[df_f.apply(lambda row: ricerca.lower() in str(row["Descrizione"]).lower(),axis=1)]
-        for idx, row in df_f.iterrows():
-            c1,c2,c3,c4=st.columns([1,2,2,1])
-            with c1:
-                try:
-                    st.image(row.get("LogoPNG",""),width=50)
-                except:
-                    st.markdown(f"## {row.get('Logo','🚨')}")
-            with c2:
-                st.markdown(f"**{row.get('Tipo','')} - {row.get('Comune','')}**")
-                st.caption(f"{row.get('Data','')} {row.get('Via','')} ID:{row.get('ID','')}")
-            with c3:
-                st.caption(row.get('Descrizione','')[:100])
-            with c4:
-                st.markdown('<div class="aggancia-btn">', unsafe_allow_html=True)
-                if st.button(f"📍 Crea Postazione",key=f"crea_post_{row.get('ID','')}_{idx}",use_container_width=True):
-                    st.session_state.emergenza_agganciata=row
-                    st.session_state.form_comune=row.get("Comune","")
-                    st.session_state.form_via=row.get("Via","")
-                    st.session_state.form_lat=row.get("Latitudine","")
-                    st.session_state.form_lon=row.get("Longitudine","")
-                    st.session_state.form_desc=f"{row.get('Tipo','')} - {row.get('Descrizione','')} - {row.get('Comune','')} {row.get('Via','')}"
-                    st.session_state.menu_scelta="Mappa Postazioni"
-                    st.rerun()
-                st.markdown('</div>', unsafe_allow_html=True)
-        st.divider()
-        st.dataframe(df_f,use_container_width=True,hide_index=True)
+        st.dataframe(df,use_container_width=True)
         out=BytesIO()
-        df_f.to_excel(out,index=False,engine="openpyxl")
+        df.to_excel(out,index=False,engine="openpyxl")
         st.download_button("📥 Scarica Excel",out.getvalue(),file_name=f"emergenze_{date.today()}.xlsx",mime=MIME_SHORT,use_container_width=True)
     torna("bottom_tab")
 
 elif scelta=="Backup":
     torna("top_back")
-    st.markdown("### 💾 BACKUP COMPLETO - TUTTI I FORM + PDF STAMPA")
-    st.info("Backup generale + TUTTI i form singoli (Volontari, Postazioni, Emergenze, DB Radio, Dist Radio, Eventi, Check-in, Mem Nomi) + PDF + Import")
-    tab1, tab2, tab3, tab4 = st.tabs(["📦 Generale", "📋 Singoli Form TUTTI", "🖨️ Anteprima PDF", "📥 Import"])
+    st.markdown("### 💾 BACKUP - SCEGLI TU I DATI DEI VARI FORM")
+    st.markdown('<div class="selezione-box">', unsafe_allow_html=True)
+    st.markdown("**🎯 NOVITA': Ora scegli TU cosa esportare!**")
+    st.markdown("- Spunta quali FORM esportare")
+    st.markdown("- Scegli quali COLONNE esportare per ogni form")
+    st.markdown("- Filtra per COMUNE, DATA, GRAVITA', RUOLO, ecc.")
+    st.markdown("- Seleziona i RECORD specifici")
+    st.markdown('</div>', unsafe_allow_html=True)
+
+    tab1, tab2, tab3, tab4, tab5 = st.tabs(["📦 Generale con Scelta", "📋 Singoli Form con Filtri", "🔍 Scelta Colonne + Record", "🖨️ PDF con Scelta", "📥 Import"])
 
     with tab1:
-        st.markdown("#### 📦 Backup Generale - Tutto in un file Excel")
-        if st.button("Crea Backup Completo Generale",use_container_width=True,type="primary",key="backup_gen"):
+        st.markdown("#### 📦 Backup Generale - SCEGLI TU quali form includere")
+        st.markdown('<div class="selezione-box">', unsafe_allow_html=True)
+        c1,c2,c3,c4=st.columns(4)
+        with c1:
+            inc_vol=st.checkbox("👤 Volontari",value=True,key="inc_vol_gen")
+            inc_post=st.checkbox("📍 Postazioni",value=True,key="inc_post_gen")
+        with c2:
+            inc_emer=st.checkbox("🚨 Emergenze",value=True,key="inc_emer_gen")
+            inc_radio=st.checkbox("📻 DB Radio",value=True,key="inc_radio_gen")
+        with c3:
+            inc_dist=st.checkbox("📡 Dist Radio",value=True,key="inc_dist_gen")
+            inc_eventi=st.checkbox("📅 Eventi",value=False,key="inc_eventi_gen")
+        with c4:
+            inc_check=st.checkbox("✅ Check-in",value=False,key="inc_check_gen")
+            inc_nomi=st.checkbox("📝 Mem Nomi",value=False,key="inc_nomi_gen")
+        st.markdown('</div>', unsafe_allow_html=True)
+
+        st.markdown("**Filtri per data (opzionale)**")
+        c1,c2=st.columns(2)
+        with c1:
+            data_da=st.date_input("Data da (opzionale)",value=None,key="data_da_gen")
+        with c2:
+            data_a=st.date_input("Data a (opzionale)",value=None,key="data_a_gen")
+
+        if st.button("📦 Crea Backup Generale con SELEZIONE",use_container_width=True,type="primary",key="backup_gen_sel"):
             output=BytesIO()
             with pd.ExcelWriter(output,engine="openpyxl") as writer:
-                if st.session_state.dati:
-                    pd.DataFrame(st.session_state.dati).to_excel(writer,sheet_name="Volontari",index=False)
-                if st.session_state.postazioni:
-                    pd.DataFrame(st.session_state.postazioni).to_excel(writer,sheet_name="Postazioni",index=False)
-                if st.session_state.emergenze_lista:
-                    pd.DataFrame(st.session_state.emergenze_lista).to_excel(writer,sheet_name="Emergenze",index=False)
-                if st.session_state.radio_db:
+                if inc_vol and st.session_state.dati:
+                    df=pd.DataFrame(st.session_state.dati)
+                    # Filtro data se presente colonna Data
+                    if data_da and data_a and "DataNascita" in df.columns:
+                        try:
+                            df["DataNascita_dt"]=pd.to_datetime(df["DataNascita"],errors='coerce')
+                            df=df[(df["DataNascita_dt"]>=pd.to_datetime(data_da)) & (df["DataNascita_dt"]<=pd.to_datetime(data_a))]
+                            df=df.drop(columns=["DataNascita_dt"])
+                        except:
+                            pass
+                    df.to_excel(writer,sheet_name="Volontari",index=False)
+                if inc_post and st.session_state.postazioni:
+                    df=pd.DataFrame(st.session_state.postazioni)
+                    df.to_excel(writer,sheet_name="Postazioni",index=False)
+                if inc_emer and st.session_state.emergenze_lista:
+                    df=pd.DataFrame(st.session_state.emergenze_lista)
+                    if data_da and data_a and "Data" in df.columns:
+                        try:
+                            df["Data_dt"]=pd.to_datetime(df["Data"],errors='coerce')
+                            df=df[(df["Data_dt"]>=pd.to_datetime(data_da)) & (df["Data_dt"]<=pd.to_datetime(data_a))]
+                            df=df.drop(columns=["Data_dt"])
+                        except:
+                            pass
+                    df.to_excel(writer,sheet_name="Emergenze",index=False)
+                if inc_radio and st.session_state.radio_db:
                     pd.DataFrame(st.session_state.radio_db).to_excel(writer,sheet_name="DB_Radio",index=False)
-                if st.session_state.dist_radio:
+                if inc_dist and st.session_state.dist_radio:
                     pd.DataFrame(st.session_state.dist_radio).to_excel(writer,sheet_name="Dist_Radio",index=False)
-                if st.session_state.eventi_lista:
+                if inc_eventi and st.session_state.eventi_lista:
                     pd.DataFrame(st.session_state.eventi_lista).to_excel(writer,sheet_name="Eventi",index=False)
-                if st.session_state.checkin_lista:
+                if inc_check and st.session_state.checkin_lista:
                     pd.DataFrame(st.session_state.checkin_lista).to_excel(writer,sheet_name="Checkin",index=False)
-                if st.session_state.mem_nomi:
+                if inc_nomi and st.session_state.mem_nomi:
                     pd.DataFrame(st.session_state.mem_nomi, columns=["Nomi"]).to_excel(writer,sheet_name="Mem_Nomi",index=False)
-            st.session_state.backup_bytes=output.getvalue()
-            st.success(f"✅ Backup generale: {len(st.session_state.dati)} vol, {len(st.session_state.postazioni)} post, {len(st.session_state.emergenze_lista)} emer, {len(st.session_state.radio_db)} radio, {len(st.session_state.dist_radio)} distr, {len(st.session_state.eventi_lista)} eventi, {len(st.session_state.checkin_lista)} checkin")
-        if "backup_bytes" in st.session_state:
-            st.download_button("📥 Scarica Backup Generale Excel",st.session_state.backup_bytes,file_name=f"backup_generale_{date.today()}.xlsx",mime=MIME_SHORT,use_container_width=True,key="dl_gen")
-        st.divider()
-        st.markdown("#### 📦 Backup Generale JSON")
-        if st.button("Crea Backup JSON Generale",use_container_width=True,key="backup_json_gen"):
-            all_data={"volontari": st.session_state.dati,"postazioni": st.session_state.postazioni,"emergenze": st.session_state.emergenze_lista,"radio_db": st.session_state.radio_db,"dist_radio": st.session_state.dist_radio,"eventi": st.session_state.eventi_lista,"checkin": st.session_state.checkin_lista,"mem_nomi": st.session_state.mem_nomi}
-            json_str=json.dumps(all_data,ensure_ascii=False,indent=2)
-            st.session_state.backup_json_bytes=json_str.encode('utf-8')
-            st.success("✅ JSON generale creato!")
-        if "backup_json_bytes" in st.session_state:
-            st.download_button("📥 Scarica Backup Generale JSON",st.session_state.backup_json_bytes,file_name=f"backup_generale_{date.today()}.json",mime="application/json",use_container_width=True,key="dl_json_gen")
+            st.session_state.backup_bytes_sel=output.getvalue()
+            st.success(f"✅ Backup generale con selezione creato! Form inclusi: Vol={inc_vol} Post={inc_post} Emer={inc_emer} Radio={inc_radio} Dist={inc_dist} Eventi={inc_eventi} Check={inc_check} Nomi={inc_nomi}")
 
-    with tab2:
-        st.markdown("#### 📋 Backup TUTTI i Form - Excel + JSON + PDF")
-        forms_config = [
-            ("👤 Volontari", st.session_state.dati, "volontari"),
-            ("📍 Postazioni Mappa", st.session_state.postazioni, "postazioni"),
-            ("🚨 Emergenze con Loghi", st.session_state.emergenze_lista, "emergenze"),
-            ("📻 DB Radio", st.session_state.radio_db, "radio_db"),
-            ("📡 Distribuzione Radio", st.session_state.dist_radio, "dist_radio"),
-            ("📅 Eventi", st.session_state.eventi_lista, "eventi"),
-            ("✅ Check-in", st.session_state.checkin_lista, "checkin"),
-            ("📝 Mem Nomi", st.session_state.mem_nomi, "mem_nomi"),
-        ]
-        for nome_form, lista_dati, key_form in forms_config:
-            st.markdown(f"**{nome_form} - {len(lista_dati)} record**")
-            c1,c2,c3,c4=st.columns(4)
-            with c1:
-                if lista_dati:
-                    out=BytesIO()
-                    if key_form == "mem_nomi":
-                        pd.DataFrame(lista_dati, columns=["Nome"]).to_excel(out,index=False,engine="openpyxl")
-                    else:
-                        pd.DataFrame(lista_dati).to_excel(out,index=False,engine="openpyxl")
-                    st.download_button(f"📥 Excel",out.getvalue(),file_name=f"{key_form}_{date.today()}.xlsx",mime=MIME_SHORT,use_container_width=True,key=f"dl_{key_form}")
-                else:
-                    st.caption("Nessun dato")
-            with c2:
-                if lista_dati:
-                    json_bytes=json.dumps(lista_dati,ensure_ascii=False,indent=2).encode('utf-8')
-                    st.download_button(f"📥 JSON",json_bytes,file_name=f"{key_form}_{date.today()}.json",mime="application/json",use_container_width=True,key=f"dl_{key_form}_json")
-            with c3:
-                if lista_dati:
-                    df_temp = pd.DataFrame(lista_dati) if key_form!= "mem_nomi" else pd.DataFrame(lista_dati, columns=["Nome"])
-                    pdf_bytes = create_pdf_report(df_temp, f"ANA Varese - {nome_form}", f"Backup {nome_form}")
-                    if pdf_bytes:
-                        st.download_button(f"📄 PDF Stampa", pdf_bytes, file_name=f"{key_form}_{date.today()}.pdf", mime="application/pdf", use_container_width=True, key=f"dl_{key_form}_pdf")
-            with c4:
-                st.caption(f"{len(lista_dati)} record - Pronto per stampa PDF")
-
-    with tab3:
-        st.markdown("#### 🖨️ Anteprima di Stampa PDF - Tutti i Form")
-        pdf_form = st.selectbox("Seleziona Form per PDF *", ["Volontari","Postazioni Mappa","Emergenze con Loghi","DB Radio","Distribuzione Radio","Eventi","Check-in","Tutti i Form in un unico PDF"], key="pdf_form_sel")
-        if st.button(f"🖨️ Crea PDF Anteprima Stampa - {pdf_form}", use_container_width=True, type="primary", key="create_pdf_preview"):
-            with st.spinner(f"Creo PDF per {pdf_form}..."):
+        if "backup_bytes_sel" in st.session_state:
+            st.download_button("📥 Scarica Excel con SELEZIONE",st.session_state.backup_bytes_sel,file_name=f"backup_selezione_{date.today()}.xlsx",mime=MIME_SHORT,use_container_width=True,key="dl_gen_sel")
+            # PDF con selezione
+            if st.button("📄 Crea PDF con SELEZIONE",use_container_width=True,key="pdf_gen_sel"):
                 try:
-                    if pdf_form == "Tutti i Form in un unico PDF":
-                        from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
-                        from reportlab.lib.styles import getSampleStyleSheet
-                        from reportlab.lib import colors
-                        from reportlab.lib.pagesizes import A4
-                        buffer = BytesIO()
-                        doc = SimpleDocTemplate(buffer, pagesize=A4, leftMargin=30, rightMargin=30, topMargin=30, bottomMargin=30)
-                        styles = getSampleStyleSheet()
-                        elements = []
-                        elements.append(Paragraph("ANA VARESE - Report Completo Tutti i Form", styles['Heading1']))
-                        elements.append(Spacer(1, 12))
-                        elements.append(Paragraph(f"Data stampa: {datetime.now().strftime('%d/%m/%Y %H:%M')} - Totale form: 8", styles['Normal']))
-                        elements.append(Spacer(1, 20))
-                        for nome_form, lista_dati, key_form in [("Volontari", st.session_state.dati, "volontari"), ("Postazioni Mappa", st.session_state.postazioni, "postazioni"), ("Emergenze", st.session_state.emergenze_lista, "emergenze"), ("DB Radio", st.session_state.radio_db, "radio_db"), ("Dist Radio", st.session_state.dist_radio, "dist_radio"), ("Eventi", st.session_state.eventi_lista, "eventi"), ("Check-in", st.session_state.checkin_lista, "checkin"), ("Mem Nomi", st.session_state.mem_nomi, "mem_nomi")]:
-                            if lista_dati:
-                                elements.append(Paragraph(f"{nome_form} - {len(lista_dati)} record", styles['Heading2']))
-                                df_temp = pd.DataFrame(lista_dati) if key_form!="mem_nomi" else pd.DataFrame(lista_dati, columns=["Nome"])
-                                for col in list(df_temp.columns):
-                                    if 'PNG' in col or 'CustomPNG' in col:
-                                        df_temp = df_temp.drop(columns=[col])
-                                if len(df_temp.columns) > 5:
-                                    df_temp = df_temp.iloc[:, :5]
-                                df_temp = df_temp.head(15)
-                                for col in df_temp.columns:
-                                    df_temp[col] = df_temp[col].astype(str).apply(lambda x: x[:20] + "..." if len(x) > 20 else x)
-                                data = [list(df_temp.columns)] + df_temp.values.tolist()
-                                table = Table(data)
-                                table.setStyle(TableStyle([('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#2e7d32')),('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),('FONTSIZE', (0, 0), (-1, -1), 6),('GRID', (0, 0), (-1, -1), 1, colors.black)]))
-                                elements.append(table)
-                                elements.append(Spacer(1, 20))
-                        doc.build(elements)
-                        buffer.seek(0)
-                        st.session_state.pdf_tutti_form = buffer.getvalue()
-                        st.success("✅ PDF tutti i form creato! 8 form inclusi!")
-                    else:
-                        map_form = {"Volontari": (st.session_state.dati, "Volontari"), "Postazioni Mappa": (st.session_state.postazioni, "Postazioni Mappa"), "Emergenze con Loghi": (st.session_state.emergenze_lista, "Emergenze"), "DB Radio": (st.session_state.radio_db, "DB Radio"), "Distribuzione Radio": (st.session_state.dist_radio, "Dist Radio"), "Eventi": (st.session_state.eventi_lista, "Eventi"), "Check-in": (st.session_state.checkin_lista, "Check-in")}
-                        lista_t, titolo = map_form.get(pdf_form, ([], "Form"))
-                        if lista_t:
-                            df_temp = pd.DataFrame(lista_t)
-                            pdf_bytes = create_pdf_report(df_temp, f"ANA Varese - {titolo}", f"Anteprima stampa {titolo}")
-                            if pdf_bytes:
-                                st.session_state[f"pdf_preview_{pdf_form}"] = pdf_bytes
-                                st.success(f"✅ PDF {pdf_form} creato!")
+                    from reportlab.lib.pagesizes import A4
+                    from reportlab.pdfgen import canvas
+                    buffer = BytesIO()
+                    c = canvas.Canvas(buffer, pagesize=A4)
+                    c.setFont("Helvetica-Bold", 16)
+                    c.drawString(50, 800, "ANA Varese - Backup con Selezione")
+                    c.setFont("Helvetica", 10)
+                    c.drawString(50, 780, f"Data: {datetime.now().strftime('%d/%m/%Y %H:%M')}")
+                    y=750
+                    c.drawString(50, y, f"Form selezionati:")
+                    y-=15
+                    for nome, inc in [("Volontari",inc_vol),("Postazioni",inc_post),("Emergenze",inc_emer),("DB Radio",inc_radio),("Dist Radio",inc_dist),("Eventi",inc_eventi),("Check-in",inc_check)]:
+                        if inc:
+                            c.drawString(70, y, f"- {nome}")
+                            y-=12
+                    c.save()
+                    buffer.seek(0)
+                    st.session_state.pdf_gen_sel=buffer.getvalue()
+                    st.success("✅ PDF con selezione creato!")
                 except Exception as e:
                     st.error(f"Errore PDF: {e}")
+            if "pdf_gen_sel" in st.session_state:
+                st.download_button("📥 Scarica PDF con SELEZIONE",st.session_state.pdf_gen_sel,file_name=f"backup_selezione_{date.today()}.pdf",mime="application/pdf",use_container_width=True,key="dl_pdf_gen_sel")
 
-        if "pdf_tutti_form" in st.session_state:
-            st.markdown('<div class="pdf-box">', unsafe_allow_html=True)
-            st.markdown("**📄 PDF Tutti i Form pronto - 8 form in un unico file!**")
-            st.download_button("📥 Scarica PDF Tutti i Form - Anteprima Stampa Unico", st.session_state.pdf_tutti_form, file_name=f"tutti_form_8_{date.today()}.pdf", mime="application/pdf", use_container_width=True, key="dl_pdf_tutti")
+    with tab2:
+        st.markdown("#### 📋 Backup Singoli Form - CON FILTRI E SCELTA DATI")
+        form_scelta=st.selectbox("Seleziona Form *", ["Volontari","Postazioni Mappa","Emergenze con Loghi","DB Radio","Distribuzione Radio","Eventi","Check-in"], key="form_scelta_filtri")
+
+        # Recupera dati del form scelto
+        if form_scelta=="Volontari":
+            dati_form=st.session_state.dati
+        elif form_scelta=="Postazioni Mappa":
+            dati_form=st.session_state.postazioni
+        elif form_scelta=="Emergenze con Loghi":
+            dati_form=st.session_state.emergenze_lista
+        elif form_scelta=="DB Radio":
+            dati_form=st.session_state.radio_db
+        elif form_scelta=="Distribuzione Radio":
+            dati_form=st.session_state.dist_radio
+        elif form_scelta=="Eventi":
+            dati_form=st.session_state.eventi_lista
+        elif form_scelta=="Check-in":
+            dati_form=st.session_state.checkin_lista
+        else:
+            dati_form=[]
+
+        if not dati_form:
+            st.warning(f"Nessun dato per {form_scelta}")
+        else:
+            df_form=pd.DataFrame(dati_form)
+            st.markdown(f"**Totale record: {len(df_form)} | Colonne: {list(df_form.columns)}**")
+
+            st.markdown('<div class="selezione-box">', unsafe_allow_html=True)
+            st.markdown("**1️⃣ SCEGLI COLONNE DA ESPORTARE**")
+            colonne_sel=st.multiselect(f"Colonne di {form_scelta} da esportare", list(df_form.columns), default=list(df_form.columns), key=f"col_sel_{form_scelta}")
             st.markdown('</div>', unsafe_allow_html=True)
-        for form_name in ["Volontari","Postazioni Mappa","Emergenze con Loghi","DB Radio","Distribuzione Radio","Eventi","Check-in"]:
-            key = f"pdf_preview_{form_name}"
-            if key in st.session_state:
-                st.download_button(f"📥 Scarica PDF {form_name} - Anteprima Stampa", st.session_state[key], file_name=f"{form_name.replace(' ', '_').lower()}_{date.today()}.pdf", mime="application/pdf", use_container_width=True, key=f"dl_pdf_prev_{form_name}")
+
+            st.markdown('<div class="selezione-box">', unsafe_allow_html=True)
+            st.markdown("**2️⃣ FILTRI - SCEGLI DATI**")
+
+            df_filtrato=df_form.copy()
+
+            # Filtri dinamici in base al form
+            if form_scelta=="Volontari":
+                if "Comune" in df_form.columns:
+                    comuni_uniq=sorted(df_form["Comune"].dropna().unique().tolist())
+                    comuni_filtro=st.multiselect("Filtra per Comune (scegli tu)", comuni_uniq, default=comuni_uniq, key="filtro_comune_vol")
+                    if comuni_filtro:
+                        df_filtrato=df_filtrato[df_filtrato["Comune"].isin(comuni_filtro)]
+                if "Ruolo" in df_form.columns:
+                    ruoli_uniq=sorted(df_form["Ruolo"].dropna().unique().tolist())
+                    ruoli_filtro=st.multiselect("Filtra per Ruolo", ruoli_uniq, default=ruoli_uniq, key="filtro_ruolo_vol")
+                    if ruoli_filtro:
+                        df_filtrato=df_filtrato[df_filtrato["Ruolo"].isin(ruoli_filtro)]
+                if "Gruppo" in df_form.columns:
+                    gruppi_uniq=sorted(df_form["Gruppo"].dropna().unique().tolist())
+                    gruppi_filtro=st.multiselect("Filtra per Gruppo", gruppi_uniq, default=gruppi_uniq, key="filtro_gruppo_vol")
+                    if gruppi_filtro:
+                        df_filtrato=df_filtrato[df_filtrato["Gruppo"].isin(gruppi_filtro)]
+
+            elif form_scelta=="Emergenze con Loghi":
+                if "Comune" in df_form.columns:
+                    comuni_uniq=sorted(df_form["Comune"].dropna().unique().tolist())
+                    comuni_filtro=st.multiselect("Filtra per Comune", comuni_uniq, default=comuni_uniq, key="filtro_comune_emer")
+                    if comuni_filtro:
+                        df_filtrato=df_filtrato[df_filtrato["Comune"].isin(comuni_filtro)]
+                if "Gravità" in df_form.columns:
+                    grav_uniq=sorted(df_form["Gravità"].dropna().unique().tolist())
+                    grav_filtro=st.multiselect("Filtra per Gravità", grav_uniq, default=grav_uniq, key="filtro_grav_emer")
+                    if grav_filtro:
+                        df_filtrato=df_filtrato[df_filtrato["Gravità"].isin(grav_filtro)]
+                if "Tipo" in df_form.columns:
+                    tipo_uniq=sorted(df_form["Tipo"].dropna().unique().tolist())
+                    tipo_filtro=st.multiselect("Filtra per Tipo Emergenza", tipo_uniq, default=tipo_uniq, key="filtro_tipo_emer")
+                    if tipo_filtro:
+                        df_filtrato=df_filtrato[df_filtrato["Tipo"].isin(tipo_filtro)]
+                if "Data" in df_form.columns:
+                    c1,c2=st.columns(2)
+                    with c1:
+                        data_da_f=st.date_input("Data da", value=None, key="data_da_emer")
+                    with c2:
+                        data_a_f=st.date_input("Data a", value=None, key="data_a_emer")
+                    if data_da_f and data_a_f:
+                        try:
+                            df_filtrato["Data_dt"]=pd.to_datetime(df_filtrato["Data"],errors='coerce')
+                            df_filtrato=df_filtrato[(df_filtrato["Data_dt"]>=pd.to_datetime(data_da_f)) & (df_filtrato["Data_dt"]<=pd.to_datetime(data_a_f))]
+                            df_filtrato=df_filtrato.drop(columns=["Data_dt"])
+                        except:
+                            pass
+
+            elif form_scelta=="Postazioni Mappa":
+                if "Comune" in df_form.columns:
+                    comuni_uniq=sorted(df_form["Comune"].dropna().unique().tolist())
+                    comuni_filtro=st.multiselect("Filtra per Comune", comuni_uniq, default=comuni_uniq, key="filtro_comune_post")
+                    if comuni_filtro:
+                        df_filtrato=df_filtrato[df_filtrato["Comune"].isin(comuni_filtro)]
+                if "Puntatore" in df_form.columns:
+                    punt_uniq=sorted(df_form["Puntatore"].dropna().unique().tolist())
+                    punt_filtro=st.multiselect("Filtra per Puntatore", punt_uniq, default=punt_uniq, key="filtro_punt_post")
+                    if punt_filtro:
+                        df_filtrato=df_filtrato[df_filtrato["Puntatore"].isin(punt_filtro)]
+
+            # Filtro testo libero per tutti
+            testo_libero=st.text_input("🔍 Filtro testo libero (cerca in tutti i campi) - scegli tu cosa cercare", key=f"testo_libero_{form_scelta}")
+            if testo_libero:
+                df_filtrato=df_filtrato[df_filtrato.apply(lambda row: testo_libero.lower() in str(row.values).lower(), axis=1)]
+
+            st.markdown('</div>', unsafe_allow_html=True)
+
+            st.markdown(f"**Record dopo filtri: {len(df_filtrato)} su {len(df_form)}**")
+
+            # Applica selezione colonne
+            if colonne_sel:
+                df_filtrato=df_filtrato[colonne_sel]
+
+            st.dataframe(df_filtrato, use_container_width=True)
+
+            st.markdown("**3️⃣ ESPORTA CON SCELTA DATI**")
+            c1,c2,c3=st.columns(3)
+            with c1:
+                out=BytesIO()
+                df_filtrato.to_excel(out,index=False,engine="openpyxl")
+                st.download_button(f"📥 Excel con SCELTA ({len(df_filtrato)} record)",out.getvalue(),file_name=f"{form_scelta.replace(' ', '_')}_scelta_{date.today()}.xlsx",mime=MIME_SHORT,use_container_width=True,key=f"dl_excel_scelta_{form_scelta}")
+            with c2:
+                json_bytes=json.dumps(df_filtrato.to_dict('records'),ensure_ascii=False,indent=2).encode('utf-8')
+                st.download_button(f"📥 JSON con SCELTA ({len(df_filtrato)})",json_bytes,file_name=f"{form_scelta.replace(' ', '_')}_scelta_{date.today()}.json",mime="application/json",use_container_width=True,key=f"dl_json_scelta_{form_scelta}")
+            with c3:
+                pdf_bytes=create_pdf_report(df_filtrato, f"ANA Varese - {form_scelta} - Scelta Dati", f"Filtri applicati - {len(df_filtrato)} record")
+                if pdf_bytes:
+                    st.download_button(f"📄 PDF con SCELTA ({len(df_filtrato)})",pdf_bytes,file_name=f"{form_scelta.replace(' ', '_')}_scelta_{date.today()}.pdf",mime="application/pdf",use_container_width=True,key=f"dl_pdf_scelta_{form_scelta}")
+
+    with tab3:
+        st.markdown("#### 🔍 Scelta Colonne + Record Specifici con Checkbox")
+        form_scelta2=st.selectbox("Seleziona Form per scelta record *", ["Volontari","Postazioni Mappa","Emergenze con Loghi","DB Radio","Distribuzione Radio"], key="form_scelta_record")
+
+        if form_scelta2=="Volontari":
+            dati_form2=st.session_state.dati
+        elif form_scelta2=="Postazioni Mappa":
+            dati_form2=st.session_state.postazioni
+        elif form_scelta2=="Emergenze con Loghi":
+            dati_form2=st.session_state.emergenze_lista
+        elif form_scelta2=="DB Radio":
+            dati_form2=st.session_state.radio_db
+        elif form_scelta2=="Distribuzione Radio":
+            dati_form2=st.session_state.dist_radio
+        else:
+            dati_form2=[]
+
+        if dati_form2:
+            df_form2=pd.DataFrame(dati_form2)
+            st.markdown(f"**Seleziona i record che vuoi esportare - Spunta le righe**")
+
+            # Aggiungi checkbox per selezione record
+            df_form2["_Seleziona"]=False
+            edited_df=st.data_editor(df_form2, use_container_width=True, key=f"editor_{form_scelta2}", hide_index=True)
+
+            record_sel=edited_df[edited_df["_Seleziona"]==True]
+            if "_Seleziona" in record_sel.columns:
+                record_sel=record_sel.drop(columns=["_Seleziona"])
+            if "_Seleziona" in edited_df.columns:
+                edited_df_display=edited_df.drop(columns=["_Seleziona"])
+            else:
+                edited_df_display=edited_df
+
+            st.markdown(f"**Record selezionati: {len(record_sel)}**")
+
+            if len(record_sel)>0:
+                st.markdown('<div class="selezione-box">', unsafe_allow_html=True)
+                st.markdown(f"Hai selezionato {len(record_sel)} record - Scegli colonne da esportare")
+                colonne_sel2=st.multiselect(f"Colonne da esportare per i {len(record_sel)} record selezionati", list(record_sel.columns), default=list(record_sel.columns), key=f"col_sel_record_{form_scelta2}")
+                st.markdown('</div>', unsafe_allow_html=True)
+
+                if colonne_sel2:
+                    record_sel_final=record_sel[colonne_sel2]
+
+                    c1,c2,c3=st.columns(3)
+                    with c1:
+                        out=BytesIO()
+                        record_sel_final.to_excel(out,index=False,engine="openpyxl")
+                        st.download_button(f"📥 Excel {len(record_sel_final)} selezionati",out.getvalue(),file_name=f"{form_scelta2}_selezionati_{date.today()}.xlsx",mime=MIME_SHORT,use_container_width=True,key=f"dl_excel_sel_{form_scelta2}")
+                    with c2:
+                        json_bytes=json.dumps(record_sel_final.to_dict('records'),ensure_ascii=False,indent=2).encode('utf-8')
+                        st.download_button(f"📥 JSON {len(record_sel_final)} selezionati",json_bytes,file_name=f"{form_scelta2}_selezionati_{date.today()}.json",mime="application/json",use_container_width=True,key=f"dl_json_sel_{form_scelta2}")
+                    with c3:
+                        pdf_bytes=create_pdf_report(record_sel_final, f"ANA Varese - {form_scelta2} - Record Selezionati")
+                        if pdf_bytes:
+                            st.download_button(f"📄 PDF {len(record_sel_final)} selezionati",pdf_bytes,file_name=f"{form_scelta2}_selezionati_{date.today()}.pdf",mime="application/pdf",use_container_width=True,key=f"dl_pdf_sel_{form_scelta2}")
 
     with tab4:
-        st.markdown("#### 📥 Import Dati per TUTTE le Singole Form")
-        import_type=st.selectbox("Tipo di Import *",["Volontari","Postazioni Mappa","Emergenze con Loghi","DB Radio","Distribuzione Radio","Eventi","Check-in","Mem Nomi"],key="import_type")
-        col1,col2=st.columns(2)
-        with col1:
-            modo_import=st.selectbox("Modalità *",["Aggiungi ai dati esistenti","Sovrascrivi tutti i dati"],key="modo_import")
-        with col2:
-            file_type=st.selectbox("Formato file *",["Excel (.xlsx)","JSON (.json)"],key="file_type")
+        st.markdown("#### 🖨️ Anteprima PDF con SCELTA DATI")
+        st.info("Scegli form, colonne e filtri per creare PDF personalizzato")
+
+        pdf_form_scelta=st.selectbox("Form per PDF con scelta", ["Volontari","Postazioni Mappa","Emergenze con Loghi","DB Radio","Distribuzione Radio","Eventi","Check-in","Tutti i Form con Scelta"], key="pdf_form_scelta")
+
+        # Scelta colonne per PDF
+        if pdf_form_scelta!="Tutti i Form con Scelta":
+            if pdf_form_scelta=="Volontari":
+                df_pdf_base=pd.DataFrame(st.session_state.dati) if st.session_state.dati else pd.DataFrame()
+            elif pdf_form_scelta=="Postazioni Mappa":
+                df_pdf_base=pd.DataFrame(st.session_state.postazioni) if st.session_state.postazioni else pd.DataFrame()
+            elif pdf_form_scelta=="Emergenze con Loghi":
+                df_pdf_base=pd.DataFrame(st.session_state.emergenze_lista) if st.session_state.emergenze_lista else pd.DataFrame()
+            elif pdf_form_scelta=="DB Radio":
+                df_pdf_base=pd.DataFrame(st.session_state.radio_db) if st.session_state.radio_db else pd.DataFrame()
+            elif pdf_form_scelta=="Distribuzione Radio":
+                df_pdf_base=pd.DataFrame(st.session_state.dist_radio) if st.session_state.dist_radio else pd.DataFrame()
+            elif pdf_form_scelta=="Eventi":
+                df_pdf_base=pd.DataFrame(st.session_state.eventi_lista) if st.session_state.eventi_lista else pd.DataFrame()
+            elif pdf_form_scelta=="Check-in":
+                df_pdf_base=pd.DataFrame(st.session_state.checkin_lista) if st.session_state.checkin_lista else pd.DataFrame()
+            else:
+                df_pdf_base=pd.DataFrame()
+
+            if not df_pdf_base.empty:
+                colonne_pdf=st.multiselect(f"Colonne per PDF {pdf_form_scelta} - Scegli tu", list(df_pdf_base.columns), default=list(df_pdf_base.columns)[:6], key=f"col_pdf_{pdf_form_scelta}")
+                max_record=st.slider(f"Max record in PDF {pdf_form_scelta}", 5, 100, 30, key=f"slider_pdf_{pdf_form_scelta}")
+
+                if st.button(f"🖨️ Crea PDF con SCELTA - {pdf_form_scelta}", use_container_width=True, type="primary", key=f"btn_pdf_{pdf_form_scelta}"):
+                    if colonne_pdf:
+                        df_pdf_final=df_pdf_base[colonne_pdf].head(max_record)
+                        pdf_bytes=create_pdf_report(df_pdf_final, f"ANA Varese - {pdf_form_scelta} - Scelta Dati", f"Colonne: {', '.join(colonne_pdf)} - {len(df_pdf_final)} record scelti da te")
+                        if pdf_bytes:
+                            st.session_state[f"pdf_scelta_{pdf_form_scelta}"]=pdf_bytes
+                            st.success(f"✅ PDF {pdf_form_scelta} con scelta creato!")
+
+                key_pdf=f"pdf_scelta_{pdf_form_scelta}"
+                if key_pdf in st.session_state:
+                    st.download_button(f"📥 Scarica PDF {pdf_form_scelta} con SCELTA", st.session_state[key_pdf], file_name=f"{pdf_form_scelta}_scelta_{date.today()}.pdf", mime="application/pdf", use_container_width=True, key=f"dl_pdf_scelta_final_{pdf_form_scelta}")
+        else:
+            st.markdown("**Tutti i Form con Scelta - Seleziona quali form includere nel PDF unico**")
+            c1,c2=st.columns(2)
+            with c1:
+                inc_vol_pdf=st.checkbox("Volontari in PDF unico",value=True,key="inc_vol_pdf")
+                inc_post_pdf=st.checkbox("Postazioni in PDF unico",value=True,key="inc_post_pdf")
+                inc_emer_pdf=st.checkbox("Emergenze in PDF unico",value=True,key="inc_emer_pdf")
+            with c2:
+                inc_radio_pdf=st.checkbox("DB Radio in PDF unico",value=False,key="inc_radio_pdf")
+                inc_eventi_pdf=st.checkbox("Eventi in PDF unico",value=False,key="inc_eventi_pdf")
+                inc_check_pdf=st.checkbox("Check-in in PDF unico",value=False,key="inc_check_pdf")
+
+            if st.button("🖨️ Crea PDF Unico con SCELTA FORM", use_container_width=True, type="primary", key="btn_pdf_unico_scelta"):
+                try:
+                    from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
+                    from reportlab.lib.styles import getSampleStyleSheet
+                    from reportlab.lib import colors
+                    from reportlab.lib.pagesizes import A4
+                    buffer = BytesIO()
+                    doc = SimpleDocTemplate(buffer, pagesize=A4, leftMargin=30, rightMargin=30, topMargin=30, bottomMargin=30)
+                    styles = getSampleStyleSheet()
+                    elements = []
+                    elements.append(Paragraph("ANA VARESE - PDF Unico con Scelta Form", styles['Heading1']))
+                    elements.append(Spacer(1, 12))
+                    elements.append(Paragraph(f"Data: {datetime.now().strftime('%d/%m/%Y %H:%M')} - Form scelti da te", styles['Normal']))
+                    elements.append(Spacer(1, 20))
+                    for nome_form, lista_dati, inc_flag in [("Volontari", st.session_state.dati, inc_vol_pdf), ("Postazioni", st.session_state.postazioni, inc_post_pdf), ("Emergenze", st.session_state.emergenze_lista, inc_emer_pdf), ("DB Radio", st.session_state.radio_db, inc_radio_pdf), ("Eventi", st.session_state.eventi_lista, inc_eventi_pdf), ("Check-in", st.session_state.checkin_lista, inc_check_pdf)]:
+                        if inc_flag and lista_dati:
+                            elements.append(Paragraph(f"{nome_form} - {len(lista_dati)} record scelti", styles['Heading2']))
+                            df_temp = pd.DataFrame(lista_dati)
+                            for col in list(df_temp.columns):
+                                if 'PNG' in col or 'CustomPNG' in col:
+                                    df_temp = df_temp.drop(columns=[col])
+                            if len(df_temp.columns) > 4:
+                                df_temp = df_temp.iloc[:, :4]
+                            df_temp = df_temp.head(10)
+                            data = [list(df_temp.columns)] + df_temp.values.tolist()
+                            table = Table(data)
+                            table.setStyle(TableStyle([('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#2e7d32')),('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),('FONTSIZE', (0, 0), (-1, -1), 6),('GRID', (0, 0), (-1, -1), 1, colors.black)]))
+                            elements.append(table)
+                            elements.append(Spacer(1, 20))
+                    doc.build(elements)
+                    buffer.seek(0)
+                    st.session_state.pdf_unico_scelta=buffer.getvalue()
+                    st.success("✅ PDF unico con scelta form creato!")
+                except Exception as e:
+                    st.error(f"Errore PDF unico: {e}")
+
+            if "pdf_unico_scelta" in st.session_state:
+                st.download_button("📥 Scarica PDF Unico con SCELTA FORM", st.session_state.pdf_unico_scelta, file_name=f"pdf_unico_scelta_{date.today()}.pdf", mime="application/pdf", use_container_width=True, key="dl_pdf_unico_scelta")
+
+    with tab5:
+        st.markdown("#### 📥 Import Dati - Tutti i Form")
+        import_type=st.selectbox("Tipo Import *",["Volontari","Postazioni Mappa","Emergenze con Loghi","DB Radio","Distribuzione Radio","Eventi","Check-in"],key="import_type")
+        modo_import=st.selectbox("Modalità *",["Aggiungi ai dati esistenti","Sovrascrivi tutti i dati"],key="modo_import")
+        file_type=st.selectbox("Formato *",["Excel (.xlsx)","JSON (.json)"],key="file_type")
         uploaded_file=st.file_uploader(f"Carica file {import_type} - {file_type}",type=["xlsx","json"],key="import_file")
         if uploaded_file:
-            st.info(f"File: {uploaded_file.name} - {uploaded_file.size} bytes")
             if st.button(f"📥 IMPORTA {import_type} - {modo_import}",use_container_width=True,type="primary",key="import_btn"):
                 try:
                     if file_type=="Excel (.xlsx)":
@@ -1002,7 +1022,7 @@ elif scelta=="Backup":
                     else:
                         data_import=json.load(uploaded_file)
                         if isinstance(data_import, dict):
-                            key_map={"Volontari":"volontari","Postazioni Mappa":"postazioni","Emergenze con Loghi":"emergenze","DB Radio":"radio_db","Distribuzione Radio":"dist_radio","Eventi":"eventi","Check-in":"checkin","Mem Nomi":"mem_nomi"}
+                            key_map={"Volontari":"volontari","Postazioni Mappa":"postazioni","Emergenze con Loghi":"emergenze","DB Radio":"radio_db","Distribuzione Radio":"dist_radio","Eventi":"eventi","Check-in":"checkin"}
                             k=key_map.get(import_type,"volontari")
                             if k in data_import:
                                 data_import=data_import[k]
@@ -1051,5 +1071,3 @@ elif scelta=="Backup":
                     st.success(f"✅ Import {import_type} riuscito! {len(data_import)} record")
                     st.rerun()
                 except Exception as e:
-                    st.error(f"❌ Errore import: {e}")
-    torna("bottom_back")
