@@ -55,14 +55,35 @@ def footer():
     if b:
         img="<img src='data:image/png;base64,"+b+"'>"
     else:
-        img="<div style='width:45px;height:45px;background:green;border-radius:50%;'></div>"
+        img="<div style='width:45px;height:45px;background:#2e7d32;border-radius:50%;'></div>"
     st.markdown("<div class='foot'>"+img+"<span>by Ezio F. vers. 1.0 2026</span></div>",unsafe_allow_html=True)
 
 FD="dati.json"
 FU="utenti.json"
+FP="post.json"
+FE="eventi.json"
+FR="radio.json"
+FC="check.json"
+FB="brog.json"
+FO="consegna.json"
+FM="emerg.json"
 
 if "dati" not in st.session_state:
     st.session_state.dati=[]
+if "post" not in st.session_state:
+    st.session_state.post=[]
+if "eventi" not in st.session_state:
+    st.session_state.eventi=[]
+if "radio" not in st.session_state:
+    st.session_state.radio=[]
+if "check" not in st.session_state:
+    st.session_state.check=[]
+if "brog" not in st.session_state:
+    st.session_state.brog=[]
+if "consegna" not in st.session_state:
+    st.session_state.consegna=[]
+if "emerg" not in st.session_state:
+    st.session_state.emerg=[]
 if "utenti" not in st.session_state:
     st.session_state.utenti=[]
 if "menu" not in st.session_state:
@@ -72,6 +93,13 @@ if "auth" not in st.session_state:
 
 st.session_state.dati=load_json(FD,[])
 st.session_state.utenti=load_json(FU,[])
+st.session_state.post=load_json(FP,[])
+st.session_state.eventi=load_json(FE,[])
+st.session_state.radio=load_json(FR,[])
+st.session_state.check=load_json(FC,[])
+st.session_state.brog=load_json(FB,[])
+st.session_state.consegna=load_json(FO,[])
+st.session_state.emerg=load_json(FM,[])
 
 if not st.session_state.utenti:
     st.session_state.utenti=[
@@ -83,10 +111,10 @@ if not st.session_state.utenti:
 def header():
     b=get_b64("logo.png")
     if b:
-        h="<div style='text-align:center;background:#a5d6a7;padding:15px;border-radius:15px;border:3px solid #2e7d32;'><img src='data:image/png;base64,"+b+"' style='width:80px;border-radius:50%;'><h2 style='color:#0e7a3d;'>VOLONTARIATO Varese</h2></div>"
+        h="<div style='text-align:center;background:#a5d6a7;padding:15px;border-radius:15px;border:3px solid #2e7d32;'><img src='data:image/png;base64,"+b+"' style='width:80px;border-radius:50%;'><h2 style='color:#0e7a3d;'>VOLONTARIATO<br>Sezione di Varese</h2></div>"
         st.markdown(h,unsafe_allow_html=True)
     else:
-        st.markdown("<h2 style='text-align:center;color:green;'>VOLONTARIATO Varese</h2>",unsafe_allow_html=True)
+        st.markdown("<h2 style='text-align:center;color:#0e7a3d;'>VOLONTARIATO Varese</h2>",unsafe_allow_html=True)
 
 def torna():
     if st.button("TORNA A DASHBOARD",use_container_width=True):
@@ -122,7 +150,7 @@ st.divider()
 with st.sidebar:
     if os.path.exists("logo.png"):
         st.image("logo.png",width=80)
-    opts=["Dashboard","Volontari","Mappa","Eventi","Radio","Check","Brogliaccio","Consegna","Emergenze","Backup"]
+    opts=["Dashboard","Volontari","Mappa Postazioni","Eventi","DB Radio","Check-In","Brogliaccio","Consegna Radio","Emergenze","Backup"]
     sel=st.radio("Vai a",opts,index=0)
     if sel!=st.session_state.menu:
         st.session_state.menu=sel
@@ -134,20 +162,42 @@ with st.sidebar:
 scelta=st.session_state.menu
 
 if scelta=="Dashboard":
-    st.markdown("## DASHBOARD")
+    st.markdown("## DASHBOARD - MENU RAPIDO")
     st.success("Benvenuto")
-    if st.button("VOLONTARI",use_container_width=True,key="d1"):
-        st.session_state.menu="Volontari"
-        st.rerun()
-    if st.button("MAPPA",use_container_width=True,key="d2"):
-        st.session_state.menu="Mappa"
-        st.rerun()
-    if st.button("EVENTI",use_container_width=True,key="d3"):
-        st.session_state.menu="Eventi"
-        st.rerun()
-    if st.button("RADIO",use_container_width=True,key="d4"):
-        st.session_state.menu="Radio"
-        st.rerun()
+    c1,c2,c3,c4=st.columns(4)
+    with c1:
+        if st.button("VOLONTARI",use_container_width=True,key="d1"):
+            st.session_state.menu="Volontari"
+            st.rerun()
+    with c2:
+        if st.button("MAPPA POSTAZIONI",use_container_width=True,key="d2"):
+            st.session_state.menu="Mappa Postazioni"
+            st.rerun()
+    with c3:
+        if st.button("EVENTI",use_container_width=True,key="d3"):
+            st.session_state.menu="Eventi"
+            st.rerun()
+    with c4:
+        if st.button("DB RADIO",use_container_width=True,key="d4"):
+            st.session_state.menu="DB Radio"
+            st.rerun()
+    c1,c2,c3,c4=st.columns(4)
+    with c1:
+        if st.button("CHECK-IN",use_container_width=True,key="d5"):
+            st.session_state.menu="Check-In"
+            st.rerun()
+    with c2:
+        if st.button("BROGLIACCIO",use_container_width=True,key="d6"):
+            st.session_state.menu="Brogliaccio"
+            st.rerun()
+    with c3:
+        if st.button("CONSEGNA RADIO",use_container_width=True,key="d7"):
+            st.session_state.menu="Consegna Radio"
+            st.rerun()
+    with c4:
+        if st.button("EMERGENZE",use_container_width=True,key="d8"):
+            st.session_state.menu="Emergenze"
+            st.rerun()
     if st.button("BACKUP",use_container_width=True,key="d9"):
         st.session_state.menu="Backup"
         st.rerun()
@@ -156,70 +206,83 @@ if scelta=="Dashboard":
 elif scelta=="Volontari":
     torna()
     st.markdown("## VOLONTARI - 5 SOTTOMASCHERE")
-    t1,t2,t3,t4,t5=st.tabs(["1 ANAGRAFICA","2 RESIDENZA","3 TESSERA","4 ABILIT","5 NOTE"])
+    t1,t2,t3,t4,t5=st.tabs(["1 ANAGRAFICA","2 RESIDENZA","3 TESSERA","4 ABILITAZIONI","5 NOTE"])
     with t1:
         st.markdown('<div class="sub">',unsafe_allow_html=True)
         with st.form("f1"):
             a1=st.text_input("Nome *",key="a1")
             a2=st.text_input("Cognome *",key="a2")
-            a3=st.text_input("CF",key="a3")
+            a3=st.text_input("Codice Fiscale",key="a3")
             a4=st.date_input("Data Nascita",value=date(1980,1,1),key="a4")
-            if st.form_submit_button("SALVA 1"):
+            a5=st.text_input("Luogo Nascita",key="a5")
+            if st.form_submit_button("SALVA ANAGRAFICA"):
                 st.session_state.s1_nome=a1
                 st.session_state.s1_cogn=a2
                 st.session_state.s1_cf=a3
                 st.session_state.s1_dn=str(a4)
-                st.success("Salvato 1")
+                st.session_state.s1_ln=a5
+                st.success("Salvato Anagrafica")
         st.markdown('</div>',unsafe_allow_html=True)
     with t2:
         st.markdown('<div class="sub">',unsafe_allow_html=True)
         with st.form("f2"):
-            b1=st.text_input("Via *",key="b1")
-            b2=st.text_input("Comune *",value="Varese",key="b2")
-            b3=st.text_input("Cell *",key="b3")
-            b4=st.text_input("Email",key="b4")
-            if st.form_submit_button("SALVA 2"):
+            b1=st.text_input("Via e Numero *",key="b1")
+            b2=st.text_input("Comune Residenza *",value="Varese",key="b2")
+            b3=st.text_input("CAP",value="21100",key="b3")
+            b4=st.text_input("Cellulare *",key="b4")
+            b5=st.text_input("Email",key="b5")
+            if st.form_submit_button("SALVA RESIDENZA"):
                 st.session_state.s2_via=b1
                 st.session_state.s2_com=b2
-                st.session_state.s2_cell=b3
-                st.session_state.s2_email=b4
-                st.success("Salvato 2")
+                st.session_state.s2_cap=b3
+                st.session_state.s2_cell=b4
+                st.session_state.s2_email=b5
+                st.success("Salvato Residenza")
         st.markdown('</div>',unsafe_allow_html=True)
     with t3:
         st.markdown('<div class="sub">',unsafe_allow_html=True)
         with st.form("f3"):
             c1x=st.text_input("Tessera ANA",key="c1")
             c2x=st.text_input("Sezione",value="Varese",key="c2")
-            c3x=st.text_input("Ruolo",value="Volontario",key="c3")
-            c4x=st.text_input("Associazione",value="ANA Varese",key="c4")
-            if st.form_submit_button("SALVA 3"):
+            c3x=st.text_input("Gruppo",key="c3")
+            c4x=st.text_input("Ruolo PC",value="Volontario",key="c4")
+            c5x=st.text_input("Associazione",value="ANA Varese",key="c5")
+            if st.form_submit_button("SALVA TESSERA"):
                 st.session_state.s3_tess=c1x
-                st.session_state.s3_ruolo=c3x
-                st.session_state.s3_ass=c4x
-                st.success("Salvato 3")
+                st.session_state.s3_sez=c2x
+                st.session_state.s3_gruppo=c3x
+                st.session_state.s3_ruolo=c4x
+                st.session_state.s3_ass=c5x
+                st.success("Salvato Tessera")
         st.markdown('</div>',unsafe_allow_html=True)
     with t4:
         st.markdown('<div class="sub">',unsafe_allow_html=True)
         with st.form("f4"):
-            d1=st.text_input("Patenti",value="B",key="d1x")
-            d2=st.text_input("Corso Base",value="Si",key="d2x")
-            if st.form_submit_button("SALVA 4"):
+            d1=st.text_input("Patenti",value="B",key="d1")
+            d2=st.text_input("Corso Base PC",value="Si",key="d2")
+            d3=st.text_input("Corso Radio",value="Base",key="d3")
+            d4=st.text_input("Altre Abilitazioni",key="d4")
+            if st.form_submit_button("SALVA ABILITAZIONI"):
                 st.session_state.s4_pat=d1
                 st.session_state.s4_base=d2
-                st.success("Salvato 4")
+                st.session_state.s4_radio=d3
+                st.session_state.s4_altro=d4
+                st.success("Salvato Abilitazioni")
         st.markdown('</div>',unsafe_allow_html=True)
     with t5:
         st.markdown('<div class="sub">',unsafe_allow_html=True)
         with st.form("f5"):
             e1=st.text_input("Disponibilita",value="Sab-Dom",key="e1")
-            e2=st.text_area("Note",key="e2")
-            btn=st.form_submit_button("SALVA COMPLETO",use_container_width=True)
+            e2=st.text_input("Fascia Oraria",value="H24",key="e2")
+            e3=st.text_area("Note Aggiuntive",key="e3")
+            btn=st.form_submit_button("SALVA VOLONTARIO COMPLETO",use_container_width=True)
             if btn:
                 nome=""
                 cogn=""
                 cell=""
                 com=""
                 ruolo=""
+                ass=""
                 if "s1_nome" in st.session_state:
                     nome=st.session_state.s1_nome
                 if "s1_cogn" in st.session_state:
@@ -230,88 +293,68 @@ elif scelta=="Volontari":
                     com=st.session_state.s2_com
                 if "s3_ruolo" in st.session_state:
                     ruolo=st.session_state.s3_ruolo
+                if "s3_ass" in st.session_state:
+                    ass=st.session_state.s3_ass
                 if nome and cell:
                     nuovo={}
                     nuovo["Nome"]=nome+" "+cogn
-                    nuovo["Cell"]=cell
+                    nuovo["Cellulare"]=cell
                     nuovo["Comune"]=com
                     nuovo["Ruolo"]=ruolo
-                    nuovo["Note"]=e2
+                    nuovo["Associazione"]=ass
+                    nuovo["Note"]=e3
                     st.session_state.dati.append(nuovo)
                     save_json(FD,st.session_state.dati)
-                    st.success("Salvato completo")
+                    st.success("Volontario salvato completo")
                     st.rerun()
                 else:
-                    st.error("Compila Nome e Cell")
+                    st.error("Compila Nome e Cellulare")
         st.markdown('</div>',unsafe_allow_html=True)
     if st.session_state.dati:
+        st.divider()
         st.dataframe(pd.DataFrame(st.session_state.dati),use_container_width=True)
-
-elif scelta=="Mappa":
-    torna()
-    st.markdown("## MAPPA POSTAZIONI")
-    with st.form("form_post"):
-        p1=st.text_input("Nome Postazione *")
-        p2=st.text_input("Comune",value="Varese")
-        p3=st.text_input("Via")
-        ok=st.form_submit_button("SALVA",use_container_width=True)
-        if ok and p1:
-            nuovo={}
-            nuovo["Post"]=p1
-            nuovo["Comune"]=p2
-            nuovo["Via"]=p3
-            st.session_state.dati.append(nuovo)
-            save_json(FD,st.session_state.dati)
-            st.success("Salvata")
-            st.rerun()
-
-elif scelta=="Eventi":
-    torna()
-    st.markdown("## EVENTI")
-    with st.form("form_ev"):
-        e1=st.text_input("Nome Evento *")
-        e2=st.date_input("Data",value=date.today())
-        e3=st.text_input("Luogo *")
-        ok=st.form_submit_button("SALVA",use_container_width=True)
-        if ok and e1:
-            nuovo={}
-            nuovo["Evento"]=e1
-            nuovo["Data"]=str(e2)
-            nuovo["Luogo"]=e3
-            st.session_state.dati.append(nuovo)
-            save_json(FD,st.session_state.dati)
-            st.success("Salvato")
-            st.rerun()
-
-elif scelta=="Radio":
-    torna()
-    st.markdown("## DB RADIO")
-    with st.form("form_ra"):
-        r1=st.text_input("ID Radio *")
-        r2=st.text_input("Modello *")
-        ok=st.form_submit_button("SALVA",use_container_width=True)
-        if ok and r1:
-            nuovo={}
-            nuovo["ID"]=r1
-            nuovo["Mod"]=r2
-            st.session_state.dati.append(nuovo)
-            save_json(FD,st.session_state.dati)
-            st.success("Salvata")
-            st.rerun()
-
-elif scelta=="Backup":
-    torna()
-    st.markdown("## BACKUP")
-    if st.button("CREA BACKUP",use_container_width=True):
         out=BytesIO()
-        with pd.ExcelWriter(out,engine="openpyxl") as writer:
-            pd.DataFrame(st.session_state.dati).to_excel(writer,sheet_name="Vol",index=False)
-        st.session_state["bk"]=out.getvalue()
-        st.success("Backup creato")
-    if "bk" in st.session_state:
-        st.download_button("SCARICA BACKUP",st.session_state["bk"],file_name="BACKUP.xlsx",mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",use_container_width=True)
+        pd.DataFrame(st.session_state.dati).to_excel(out,index=False,engine="openpyxl")
+        st.download_button("SCARICA EXCEL VOLONTARI",out.getvalue(),file_name="VOLONTARI.xlsx",mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",use_container_width=True)
 
-else:
+elif scelta=="Mappa Postazioni":
     torna()
-    st.markdown("## "+scelta)
-    st.info("Form pronto")
+    st.markdown("## MAPPA POSTAZIONI - FORM COMPLETO COME PRIMA")
+    st.info("Form che avevamo fatto alle 12:00 - ripristinato")
+    with st.form("form_mappa"):
+        st.markdown("### DATI POSTAZIONE")
+        col1,col2=st.columns(2)
+        with col1:
+            m1=st.text_input("Nome Postazione *",key="m1")
+            m2=st.text_input("Comune *",value="Varese",key="m2")
+            m3=st.text_input("Via / Localita *",key="m3")
+            m4=st.text_input("CAP",value="21100",key="m4")
+        with col2:
+            m5=st.text_input("Latitudine",value="45.8205",key="m5")
+            m6=st.text_input("Longitudine",value="8.8250",key="m6")
+            m7=st.text_input("Tipo Postazione",value="Presidio",key="m7")
+            m8=st.text_input("Responsabile",key="m8")
+        m9=st.text_area("Note Postazione",key="m9")
+        m10=st.text_input("Attrezzature Presenti",key="m10")
+        ok=st.form_submit_button("SALVA POSTAZIONE",use_container_width=True)
+        if ok and m1:
+            nuovo={}
+            nuovo["Postazione"]=m1
+            nuovo["Comune"]=m2
+            nuovo["Via"]=m3
+            nuovo["Lat"]=m5
+            nuovo["Lon"]=m6
+            nuovo["Tipo"]=m7
+            nuovo["Resp"]=m8
+            nuovo["Note"]=m9
+            st.session_state.post.append(nuovo)
+            save_json(FP,st.session_state.post)
+            st.success("Postazione salvata")
+            st.rerun()
+    if st.session_state.post:
+        st.divider()
+        st.markdown("### ELENCO POSTAZIONI")
+        st.dataframe(pd.DataFrame(st.session_state.post),use_container_width=True)
+        out=BytesIO()
+        pd.DataFrame(st.session_state.post).to_excel(out,index=False,engine="openpyxl")
+        st.download_button("SCARICA EXCEL MAPPA",out.getvalue(),file_name="MAPPA_POSTAZIONI.xlsx",mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",use_container_width=True)
