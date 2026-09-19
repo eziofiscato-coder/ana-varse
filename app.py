@@ -170,7 +170,7 @@ scelta=st.session_state.menu
 
 if scelta=="Dashboard":
     st.markdown("## DASHBOARD")
-    st.success("Verde OK")
+    st.success("Mappe dentro form OK")
     if st.button("VOLONTARI"):
         st.session_state.menu="Volontari"
         st.rerun()
@@ -191,10 +191,9 @@ elif scelta=="Volontari":
     t1,t2,t3,t4,t5=st.tabs(["1","2","3","4","5"])
     with t1:
         with st.form("f1"):
-            a1=st.text_input("Nome *",key="a1")
-            a2=st.text_input("Cognome *",key="a2")
-            a3=st.text_input("CF",key="a3")
-            a4=st.date_input("Nascita",value=date(1980,1,1),key="a4")
+            a1=st.text_input("Nome *")
+            a2=st.text_input("Cognome *")
+            a4=st.date_input("Nascita",value=date(1980,1,1))
             if st.form_submit_button("SALVA"):
                 st.session_state.s1_nome=a1
                 st.session_state.s1_cogn=a2
@@ -202,9 +201,9 @@ elif scelta=="Volontari":
                 st.success("OK 1")
     with t2:
         with st.form("f2"):
-            b1=st.text_input("Via *",key="b1")
-            b2=st.text_input("Comune *",value="Varese",key="b2")
-            b3=st.text_input("Cell *",key="b3")
+            b1=st.text_input("Via *")
+            b2=st.text_input("Comune *",value="Varese")
+            b3=st.text_input("Cell *")
             if st.form_submit_button("SALVA"):
                 st.session_state.s2_via=b1
                 st.session_state.s2_com=b2
@@ -212,22 +211,22 @@ elif scelta=="Volontari":
                 st.success("OK 2")
     with t3:
         with st.form("f3"):
-            c1x=st.text_input("Tessera",key="c1")
-            c2x=st.text_input("Ruolo",value="Volontario",key="c3")
+            c1x=st.text_input("Tessera")
+            c2x=st.text_input("Ruolo",value="Volontario")
             if st.form_submit_button("SALVA"):
                 st.session_state.s3_tess=c1x
                 st.session_state.s3_ruolo=c2x
                 st.success("OK 3")
     with t4:
         with st.form("f4"):
-            d1=st.text_input("Patenti",value="B",key="d1")
-            d2=st.text_input("Base",value="Si",key="d2")
+            d1=st.text_input("Patenti",value="B")
+            d2=st.text_input("Base",value="Si")
             if st.form_submit_button("SALVA"):
                 st.session_state.s4_pat=d1
                 st.success("OK 4")
     with t5:
         with st.form("f5"):
-            e2=st.text_area("Note",key="e2")
+            e2=st.text_area("Note")
             btn=st.form_submit_button("SALVA")
             if btn:
                 nome=st.session_state.get("s1_nome","")
@@ -246,39 +245,53 @@ elif scelta=="Volontari":
 
 elif scelta=="Mappa":
     torna()
-    st.markdown("## MAPPA - ANTEPRIMA + LOGO")
-    st.markdown("### 1 - MAPPA INSERIMENTO")
+    st.markdown("## MAPPA POSTAZIONI - MAPPE DENTRO FORM")
+
+    # 1 - MAPPA EMBEDDATA PER INSERIRE - DENTRO FORM COME STAMATTINA
+    st.markdown("### 1 - MAPPA PER INSERIRE POSTAZIONE")
+    st.info("Anteprima mappa embeddata nel form")
+
+    # Anteprima mappa fuori dal form - si vede sempre dentro form
     col1,col2=st.columns([2,1])
     with col1:
+        st.markdown("**Anteprima mappa inserimento**")
         lat_in=st.number_input("Lat",value=float(st.session_state.lat_tmp),format="%.6f")
         lon_in=st.number_input("Lon",value=float(st.session_state.lon_tmp),format="%.6f")
         st.session_state.lat_tmp=lat_in
         st.session_state.lon_tmp=lon_in
         df_tmp=pd.DataFrame(dict(lat=[lat_in],lon=[lon_in]))
         st.map(df_tmp,zoom=14)
+        st.caption("Mappa embeddata - sposta Lat/Lon")
+
     with col2:
+        st.markdown("**Dati rapidi**")
         cerca=st.text_input("Cerca",value="Varese")
-        tipo=st.selectbox("Tipo",["OSM","Google","Waze"])
-    st.markdown("### 2 - DATI + LOGO")
+        st.write("Sposta Lat/Lon")
+        st.write("Vedi mappa dentro form")
+        st.write("Poi salva sotto")
+
+    # 2 - FORM DATI + LOGO - CON MAPPA DENTRO
+    st.markdown("### 2 - INSERIMENTO MANUALE + LOGO")
     with st.form("form_mappa"):
-        col1,col2=st.columns(2)
-        with col1:
-            m1=st.text_input("Nome *",key="m1")
-            m2=st.text_input("Comune *",value="Varese",key="m2")
-            m3=st.text_input("Via *",key="m3")
-            m7=st.text_input("Tipo",value="Presidio",key="m7")
-        with col2:
-            m5=st.text_input("Lat",value=str(st.session_state.lat_tmp),key="m5")
-            m6=st.text_input("Lon",value=str(st.session_state.lon_tmp),key="m6")
-            m8=st.text_input("Resp",key="m8")
-        m9=st.text_area("Note",key="m9")
-        icona=st.file_uploader("Logo",type=["png","jpg","jpeg"])
+        c1,c2=st.columns(2)
+        with c1:
+            m1=st.text_input("Nome Postazione *")
+            m2=st.text_input("Comune *",value="Varese")
+            m3=st.text_input("Via *")
+            m7=st.text_input("Tipo",value="Presidio")
+        with c2:
+            m5=st.text_input("Lat",value=str(st.session_state.lat_tmp))
+            m6=st.text_input("Lon",value=str(st.session_state.lon_tmp))
+            m8=st.text_input("Resp")
+        m9=st.text_area("Note")
+        icona=st.file_uploader("Logo Postazione",type=["png","jpg","jpeg"])
         nome_icona=""
         b64_icona=""
         if icona:
             nome_icona=icona.name
             b64_icona=base64.b64encode(icona.read()).decode()
             st.image(BytesIO(base64.b64decode(b64_icona)),width=120)
+            st.success("Logo OK")
         ok=st.form_submit_button("SALVA CON LOGO")
         if ok and m1:
             r=dict(Postazione=m1,Comune=m2,Via=m3,Lat=m5,Lon=m6,Tipo=m7,Icona=nome_icona)
@@ -287,11 +300,16 @@ elif scelta=="Mappa":
                 st.session_state.icone=b64_icona
                 save_json(FI,st.session_state.icone)
             save_json(FP,st.session_state.post)
-            st.success("OK")
+            st.success("Salvata")
             st.rerun()
+
+    # 3 - ANTEPRIMA MAPPE CON LOGHI DENTRO FORM - NON LINK
     if st.session_state.post:
         st.divider()
-        st.markdown("## 3 - ANTEPRIMA CON LOGHI")
+        st.markdown("### 3 - ANTEPRIMA MAPPE CON LOGHI - DENTRO FORM")
+
+        # Mappa embeddata con tutte le postazioni
+        st.markdown("**Mappa embeddata con tutte le postazioni**")
         try:
             lat_list=[]
             lon_list=[]
@@ -303,10 +321,15 @@ elif scelta=="Mappa":
             if lat_list:
                 df_map=pd.DataFrame(dict(lat=lat_list,lon=lon_list))
                 st.map(df_map,zoom=11)
+                st.caption("Mappa embeddata - tutte le postazioni con logo")
         except:
             pass
+
+        st.markdown("**Elenco postazioni con logo sulla mappa**")
         df=pd.DataFrame(st.session_state.post)
         st.dataframe(df)
+
+        # Mostra ogni postazione con mappa embeddata singola + logo
         for p in st.session_state.post:
             lat=p.get("Lat","45.8205")
             lon=p.get("Lon","8.8250")
@@ -318,19 +341,27 @@ elif scelta=="Mappa":
                 if nome in st.session_state.icone:
                     try:
                         b64=st.session_state.icone[nome]
-                        st.image(BytesIO(base64.b64decode(b64)),width=80)
+                        st.image(BytesIO(base64.b64decode(b64)),width=100)
+                        st.write("Logo: "+icona_nome)
                     except:
-                        st.markdown(icona_nome)
+                        st.write(icona_nome)
                 else:
-                    st.markdown(icona_nome)
+                    st.write(icona_nome if icona_nome else "Nessun logo")
+                st.write("**"+nome+"**")
+                st.write("Lat "+lat)
+                st.write("Lon "+lon)
             with c2:
-                st.markdown("**"+nome+"**")
-                osm="https://www.openstreetmap.org/?mlat="+lat+"&mlon="+lon
-                st.link_button("OSM",osm)
-                gmap="https://www.google.com/maps?q="+lat+","+lon
-                st.link_button("Google",gmap)
-                waze="https://waze.com/ul?ll="+lat+","+lon
-                st.link_button("Waze",waze)
+                st.markdown("**Mappa embeddata - "+nome+"**")
+                try:
+                    df_single=pd.DataFrame(dict(lat=[float(lat)],lon=[float(lon)]))
+                    st.map(df_single,zoom=15)
+                except:
+                    st.write("Mappa non disponibile")
+    else:
+        st.info("Nessuna postazione - inserisci manualmente sopra")
+        st.markdown("**Mappa default Varese - dentro form**")
+        df_default=pd.DataFrame(dict(lat=[45.8205],lon=[8.8250]))
+        st.map(df_default,zoom=11)
 
 elif scelta=="Check":
     torna()
@@ -453,11 +484,7 @@ elif scelta=="Emergenze":
 
 elif scelta=="Backup":
     torna()
-    st.markdown("## BACKUP - IMPORT EXPORT PER FORM")
-
-    # BACKUP COMPLETO CON IMPORT EXPORT PER OGNI FORM - COME STAMATTINA
-    st.markdown("### 1 - BACKUP COMPLETO")
-
+    st.markdown("## BACKUP - IMPORT EXPORT")
     if st.button("CREA BACKUP COMPLETO"):
         out=BytesIO()
         with pd.ExcelWriter(out,engine="openpyxl") as writer:
@@ -471,21 +498,13 @@ elif scelta=="Backup":
                 pd.DataFrame(st.session_state.brog).to_excel(writer,sheet_name="Brogliaccio",index=False)
             if st.session_state.consegna:
                 pd.DataFrame(st.session_state.consegna).to_excel(writer,sheet_name="Consegna",index=False)
-            if st.session_state.eventi:
-                pd.DataFrame(st.session_state.eventi).to_excel(writer,sheet_name="Eventi",index=False)
-            if st.session_state.radio:
-                pd.DataFrame(st.session_state.radio).to_excel(writer,sheet_name="Radio",index=False)
-            if st.session_state.emerg:
-                pd.DataFrame(st.session_state.emerg).to_excel(writer,sheet_name="Emergenze",index=False)
         st.session_state["bk"]=out.getvalue()
-        st.success("Backup completo OK")
-
+        st.success("OK")
     if "bk" in st.session_state:
-        st.download_button("SCARICA BACKUP COMPLETO",st.session_state["bk"],file_name="BACKUP_COMPLETO.xlsx",mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+        st.download_button("SCARICA BACKUP",st.session_state["bk"],file_name="BACKUP.xlsx",mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
 
     st.divider()
-    st.markdown("### 2 - EXPORT PER FORM")
-
+    st.markdown("### EXPORT PER FORM")
     c1,c2=st.columns(2)
     with c1:
         if st.session_state.dati:
@@ -496,123 +515,30 @@ elif scelta=="Backup":
             out=BytesIO()
             pd.DataFrame(st.session_state.post).to_excel(out,index=False,engine="openpyxl")
             st.download_button("Export Mappa",out.getvalue(),file_name="mappa.xlsx",mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+    with c2:
         if st.session_state.check:
             out=BytesIO()
             pd.DataFrame(st.session_state.check).to_excel(out,index=False,engine="openpyxl")
-            st.download_button("Export CheckIn",out.getvalue(),file_name="checkin.xlsx",mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
-        if st.session_state.brog:
-            out=BytesIO()
-            pd.DataFrame(st.session_state.brog).to_excel(out,index=False,engine="openpyxl")
-            st.download_button("Export Brogliaccio",out.getvalue(),file_name="brogliaccio.xlsx",mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
-
-    with c2:
-        if st.session_state.consegna:
-            out=BytesIO()
-            pd.DataFrame(st.session_state.consegna).to_excel(out,index=False,engine="openpyxl")
-            st.download_button("Export Consegna",out.getvalue(),file_name="consegna.xlsx",mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
-        if st.session_state.eventi:
-            out=BytesIO()
-            pd.DataFrame(st.session_state.eventi).to_excel(out,index=False,engine="openpyxl")
-            st.download_button("Export Eventi",out.getvalue(),file_name="eventi.xlsx",mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
-        if st.session_state.radio:
-            out=BytesIO()
-            pd.DataFrame(st.session_state.radio).to_excel(out,index=False,engine="openpyxl")
-            st.download_button("Export Radio",out.getvalue(),file_name="radio.xlsx",mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
-        if st.session_state.emerg:
-            out=BytesIO()
-            pd.DataFrame(st.session_state.emerg).to_excel(out,index=False,engine="openpyxl")
-            st.download_button("Export Emergenze",out.getvalue(),file_name="emergenze.xlsx",mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+            st.download_button("Export Check",out.getvalue(),file_name="check.xlsx",mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
 
     st.divider()
-    st.markdown("### 3 - IMPORT PER FORM")
+    st.markdown("### IMPORT PER FORM")
+    up1=st.file_uploader("Import Volontari",type=["xlsx"],key="up_vol")
+    if up1:
+        try:
+            df=pd.read_excel(up1)
+            st.session_state.dati=df.to_dict(orient="records")
+            save_json(FD,st.session_state.dati)
+            st.success("Import OK")
+        except:
+            st.error("Errore")
 
-    c1,c2=st.columns(2)
-    with c1:
-        st.markdown("**Import Volontari**")
-        up1=st.file_uploader("Import Volontari XLSX",type=["xlsx"],key="up_vol")
-        if up1:
-            try:
-                df=pd.read_excel(up1)
-                st.session_state.dati=df.to_dict(orient="records")
-                save_json(FD,st.session_state.dati)
-                st.success("Import Volontari OK")
-            except:
-                st.error("Errore import")
-
-        st.markdown("**Import Mappa**")
-        up2=st.file_uploader("Import Mappa XLSX",type=["xlsx"],key="up_mappa")
-        if up2:
-            try:
-                df=pd.read_excel(up2)
-                st.session_state.post=df.to_dict(orient="records")
-                save_json(FP,st.session_state.post)
-                st.success("Import Mappa OK")
-            except:
-                st.error("Errore import")
-
-        st.markdown("**Import CheckIn**")
-        up3=st.file_uploader("Import CheckIn XLSX",type=["xlsx"],key="up_check")
-        if up3:
-            try:
-                df=pd.read_excel(up3)
-                st.session_state.check=df.to_dict(orient="records")
-                save_json(FC,st.session_state.check)
-                st.success("Import CheckIn OK")
-            except:
-                st.error("Errore import")
-
-        st.markdown("**Import Brogliaccio**")
-        up4=st.file_uploader("Import Brogliaccio XLSX",type=["xlsx"],key="up_brog")
-        if up4:
-            try:
-                df=pd.read_excel(up4)
-                st.session_state.brog=df.to_dict(orient="records")
-                save_json(FB,st.session_state.brog)
-                st.success("Import Brogliaccio OK")
-            except:
-                st.error("Errore import")
-
-    with c2:
-        st.markdown("**Import Consegna**")
-        up5=st.file_uploader("Import Consegna XLSX",type=["xlsx"],key="up_cons")
-        if up5:
-            try:
-                df=pd.read_excel(up5)
-                st.session_state.consegna=df.to_dict(orient="records")
-                save_json(FO,st.session_state.consegna)
-                st.success("Import Consegna OK")
-            except:
-                st.error("Errore import")
-
-        st.markdown("**Import Eventi**")
-        up6=st.file_uploader("Import Eventi XLSX",type=["xlsx"],key="up_ev")
-        if up6:
-            try:
-                df=pd.read_excel(up6)
-                st.session_state.eventi=df.to_dict(orient="records")
-                save_json(FE,st.session_state.eventi)
-                st.success("Import Eventi OK")
-            except:
-                st.error("Errore import")
-
-        st.markdown("**Import Radio**")
-        up7=st.file_uploader("Import Radio XLSX",type=["xlsx"],key="up_radio")
-        if up7:
-            try:
-                df=pd.read_excel(up7)
-                st.session_state.radio=df.to_dict(orient="records")
-                save_json(FR,st.session_state.radio)
-                st.success("Import Radio OK")
-            except:
-                st.error("Errore import")
-
-        st.markdown("**Import Emergenze**")
-        up8=st.file_uploader("Import Emergenze XLSX",type=["xlsx"],key="up_emerg")
-        if up8:
-            try:
-                df=pd.read_excel(up8)
-                st.session_state.emerg=df.to_dict(orient="records")
-                save_json(FM,st.session_state.emerg)
-                st.success("Import Emergenze OK")
-            except:
-                st.error("Errore import")
+    up2=st.file_uploader("Import Mappa",type=["xlsx"],key="up_mappa")
+    if up2:
+        try:
+            df=pd.read_excel(up2)
+            st.session_state.post=df.to_dict(orient="records")
+            save_json(FP,st.session_state.post)
+            st.success("Import OK")
+        except:
+            st.error("Errore")
