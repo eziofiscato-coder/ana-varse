@@ -76,21 +76,21 @@ def reverse_geocode(lat, lon):
         if r.status_code==200:
             data=r.json()
             addr=data.get("address",{})
-            road=addr.get("road","") or addr.get("pedestrian","") or addr.get("footway","") or ""
+            road=addr.get("road","") or addr.get("pedestrian","") or ""
             house=addr.get("house_number","")
             via=f"{road} {house}".strip()
             comune=addr.get("city","") or addr.get("town","") or addr.get("village","") or ""
-            return via, comune, data.get("display_name","")
+            return via, comune
     except:
         pass
-    return "", "", ""
+    return "", ""
 
 FILE_DATI="dati_volontari.json"
 FILE_POST="postazioni.json"
 FILE_ICONE="libreria_icone_condivisa.json"
 COMUNI=["Varese","Busto Arsizio","Gallarate","Saronno","Venegono Superiore","Venegono Inferiore","Castiglione Olona","Lozza","Tradate","Malnate","Luino","Altro"]
 
-for k,v in [("dati",[]),("postazioni",[]),("icone_lib",[]),("menu_scelta","Dashboard"),("map_lat",45.8205),("map_lon",8.8250),("map_via",""),("map_comune","Varese"),("map_tipo","StreetMap"),("map_logo","Default"),("post_sel",None),("map_zoom_anteprima",14),("authenticated",False)]:
+for k,v in [("dati",[]),("postazioni",[]),("icone_lib",[]),("menu_scelta","Dashboard"),("map_lat",45.8205),("map_lon",8.8250),("map_via",""),("map_comune","Varese"),("map_logo","Default"),("post_sel",None),("map_zoom",14),("authenticated",False)]:
     if k not in st.session_state:
         st.session_state[k]=v
 
@@ -147,14 +147,14 @@ scelta=st.session_state.menu_scelta
 MIME="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
 
 if scelta=="Dashboard":
-    st.markdown("## 🏠 DASHBOARD - MENU COMPLETO")
+    st.markdown("## 🏠 DASHBOARD")
     c1,c2,c3=st.columns(3)
     with c1:
         if st.button("👥 VOLONTARI",key="dash_vol",use_container_width=True):
             st.session_state.menu_scelta="Volontari"
             st.rerun()
     with c2:
-        if st.button("📍 MAPPA POSTAZIONI\nAnteprima tutte + 15x15",key="dash_mappa",use_container_width=True):
+        if st.button("📍 MAPPA POSTAZIONI",key="dash_mappa",use_container_width=True):
             st.session_state.menu_scelta="Mappa Postazioni"
             st.rerun()
     with c3:
@@ -164,7 +164,7 @@ if scelta=="Dashboard":
 
 elif scelta=="Volontari":
     torna_dashboard()
-    st.markdown("## 👥 VOLONTARI - SOLO SALVA")
+    st.markdown("## 👥 VOLONTARI")
     with st.form("form_vol"):
         c1,c2=st.columns(2)
         with c1:
@@ -186,10 +186,9 @@ elif scelta=="Volontari":
 
 elif scelta=="Mappa Postazioni":
     torna_dashboard()
-    st.markdown("## 📍 MAPPA POSTAZIONI - ICONE 15x15 + VIA ASSOCIATA + ANTEPRIMA TUTTE + INGRANDISCE")
-    st.caption("Fix: Icona 15x15 | Maschera campo Via associa via selezionata | Anteprima tutte postazioni | Clic elenco ingrandisce mappa anteprima su postazione")
+    st.markdown("## 📍 MAPPA POSTAZIONI - ANTEPRIMA TUTTE + VIA IN MASCHERA")
 
-    st.markdown("### 🎨 Libreria loghi - 15x15 come puntatori")
+    st.markdown("### 🎨 Libreria loghi 15x15")
     uploaded=st.file_uploader("📤 CARICA LOGO PNG", type=["png","jpg","jpeg"], key="up_logo")
     if uploaded:
         b64=img_to_b64(uploaded)
@@ -210,10 +209,6 @@ elif scelta=="Mappa Postazioni":
                 if ic.get("b64"):
                     st.image(f"data:image/png;base64,{ic['b64']}",width=40)
                     st.write(f"**{ic['nome']}**")
-                    st.caption("15x15")
-                    if st.button(f"👁️ VEDI",key=f"vedi_lib_{i}_{ic['nome']}",use_container_width=True):
-                        st.session_state.map_logo=ic['nome']
-                        st.rerun()
                     if st.button(f"✅ SEL",key=f"sel_lib_{i}_{ic['nome']}",use_container_width=True,type="primary"):
                         st.session_state.map_logo=ic['nome']
                         st.rerun()
@@ -222,7 +217,7 @@ elif scelta=="Mappa Postazioni":
 
     c1,c2=st.columns([2,1])
     with c1:
-        st.markdown("### 🗺️ MAPPA SELEZIONE - Clicca e associa Via in maschera")
+        st.markdown("### 🗺️ MAPPA SELEZIONE - Clicca per associare Via in maschera")
         try:
             import folium
             from streamlit_folium import st_folium
@@ -231,10 +226,9 @@ elif scelta=="Mappa Postazioni":
                 try:
                     lat_f=float(p.get('Latitudine'))
                     lon_f=float(p.get('Longitudine'))
-                    nome_post=p.get('Postazione','')
                     logo_nome=p.get('Icona','')
                     b64=trova_b64_logo(logo_nome, st.session_state.icone_lib)
-                    popup_text=logo_nome + " - " + nome_post
+                    popup_text=logo_nome + " - " + p.get('Postazione','')
                     if b64:
                         tmp_path=salva_icona_temp(b64, f"{logo_nome}_{idx_p}")
                         if tmp_path:
@@ -253,7 +247,7 @@ elif scelta=="Mappa Postazioni":
                 lon_c=map_data["last_clicked"]["lng"]
                 st.session_state.map_lat=lat_c
                 st.session_state.map_lon=lon_c
-                via_auto, comune_auto, display=reverse_geocode(lat_c, lon_c)
+                via_auto, comune_auto=reverse_geocode(lat_c, lon_c)
                 if via_auto:
                     st.session_state.map_via=via_auto
                 else:
@@ -261,13 +255,13 @@ elif scelta=="Mappa Postazioni":
                 if comune_auto:
                     st.session_state.map_comune=comune_auto
                 st.session_state.post_sel=None
-                st.session_state.map_zoom_anteprima=14
-                st.toast(f"Via associata: {via_auto}")
+                st.session_state.map_zoom=14
+                st.toast(f"Via associata in maschera: {st.session_state.map_via}")
                 st.rerun()
         except Exception as e:
             st.error(f"Errore: {e}")
 
-        st.markdown("### 🔍 ANTEPRIMA - VEDI TUTTE LE POSTAZIONI SALVATE + INGRANDISCE SU SELEZIONATA")
+        st.markdown("### 🔍 ANTEPRIMA - VEDI TUTTE LE POSTAZIONI SALVATE")
         tipo_mappa=st.selectbox("Tipo mappa anteprima", ["StreetMap","OpenTopoMap (OTM)","Google Maps Stradale","Google Satellite","Waze Style"], index=0, key="sel_tipo_anteprima")
 
         try:
@@ -275,15 +269,12 @@ elif scelta=="Mappa Postazioni":
             from streamlit_folium import st_folium
             lat_center=st.session_state.map_lat
             lon_center=st.session_state.map_lon
-            zoom_anteprima=st.session_state.map_zoom_anteprima
-            # SE CLICCHI SU ELENCO POSTAZIONI, MAPPA ANTEPRIMA SI INGRANDISCE E MOSTRA POSTAZIONE
+            zoom_anteprima=st.session_state.map_zoom
             if st.session_state.post_sel:
                 lat_center=float(st.session_state.post_sel.get('Latitudine',lat_center))
                 lon_center=float(st.session_state.post_sel.get('Longitudine',lon_center))
                 zoom_anteprima=17
-                st.info(f"🔍 Ingrandita su: {st.session_state.post_sel.get('Postazione','')} - {st.session_state.post_sel.get('Via','')} - Zoom {zoom_anteprima}")
-            else:
-                st.info(f"Anteprima con TUTTE le {len(st.session_state.postazioni)} postazioni salvate - Loghi 15x15")
+                st.info(f"🔍 Zoom su: {st.session_state.post_sel.get('Postazione','')} - {st.session_state.post_sel.get('Via','')}")
 
             if tipo_mappa=="OpenTopoMap (OTM)":
                 m2=folium.Map(location=[lat_center, lon_center], zoom_start=zoom_anteprima, tiles="OpenTopoMap")
@@ -296,7 +287,6 @@ elif scelta=="Mappa Postazioni":
             else:
                 m2=folium.Map(location=[lat_center, lon_center], zoom_start=zoom_anteprima)
 
-            # ANTEPRIMA SI DEVONO VEDERE TUTTE LE POSTAZIONI - SEMPRE
             for idx_p, p in enumerate(st.session_state.postazioni):
                 try:
                     lat_f=float(p.get('Latitudine'))
@@ -328,24 +318,23 @@ elif scelta=="Mappa Postazioni":
                     pass
 
             st_folium(m2,width=1000,height=650,key="mappa_anteprima_tutte")
-            st.success(f"ANTEPRIMA {tipo_mappa} - Tutte {len(st.session_state.postazioni)} postazioni visibili 15x15 - Se clicchi POSTAZIONE si ingrandisce a zoom 17")
+            st.success(f"ANTEPRIMA {tipo_mappa} - Tutte {len(st.session_state.postazioni)} postazioni salvate visibili 15x15 - Nel form")
         except Exception as e:
             st.error(f"Errore anteprima: {e}")
 
     with c2:
-        st.markdown("### 📋 Maschera - Via associata + Campo Selezionata")
+        st.markdown("### 📋 Maschera - Via associata dalla selezione postazione")
         st.info(f"Lat {st.session_state.map_lat:.6f} Lon {st.session_state.map_lon:.6f}")
         if st.session_state.map_via:
-            st.success(f"Via associata: {st.session_state.map_via}")
+            st.success(f"Via in maschera: {st.session_state.map_via}")
         if st.session_state.post_sel:
             p_sel=st.session_state.post_sel
             st.success(f"Selezionata: {p_sel.get('Postazione','')}\nVia: {p_sel.get('Via','')}\nComune: {p_sel.get('Comune','')}")
 
-        st.write(f"Logo: {st.session_state.map_logo} - 15x15")
+        st.write(f"Logo: {st.session_state.map_logo} 15x15")
         b64_sel=trova_b64_logo(st.session_state.map_logo, st.session_state.icone_lib)
         if b64_sel:
             st.image(f"data:image/png;base64,{b64_sel}",width=30)
-            st.caption("15x15 puntatore")
 
         opzioni_logo=["Default"] + [ic['nome'] for ic in st.session_state.icone_lib]
         idx_default=0
@@ -360,7 +349,7 @@ elif scelta=="Mappa Postazioni":
             val_nome=""
             if st.session_state.post_sel:
                 val_nome=st.session_state.post_sel.get('Postazione','')
-            nome_post=st.text_input("Nome Postazione * - Campo Selezionata",value=val_nome,key="inp_nome")
+            nome_post=st.text_input("Nome Postazione * - Selezionata",value=val_nome,key="inp_nome")
 
             val_comune=st.session_state.map_comune
             if st.session_state.post_sel:
@@ -370,29 +359,28 @@ elif scelta=="Mappa Postazioni":
                 idx_comune=COMUNI.index(val_comune)
             comune_post=st.selectbox("Comune * - Selezionata",COMUNI,index=idx_comune,key="inp_comune")
 
-            # MASCHERA CAMPO VIA NON ASSOCIA VIA SELEZIONATA - FIX
             val_via=st.session_state.map_via
             if st.session_state.post_sel:
                 val_via=st.session_state.post_sel.get('Via','')
-            via_post=st.text_input("Via * - Associa via selezionata",value=val_via,key="inp_via",help="Quando clicchi su mappa o selezioni postazione, associa via qui")
+            via_post=st.text_input("Via * - Inserita da selezione postazione",value=val_via,key="inp_via",help="Quando selezioni postazione da tabella, qui appare la Via selezionata")
 
             lat_post=st.text_input("Latitudine *",value=str(st.session_state.map_lat),key="inp_lat")
             lon_post=st.text_input("Longitudine *",value=str(st.session_state.map_lon),key="inp_lon")
 
-            salva_post=st.form_submit_button("📍 SALVA CON VIA ASSOCIATA E LOGO 15x15",use_container_width=True,type="primary")
+            salva_post=st.form_submit_button("📍 SALVA CON VIA SELEZIONATA E LOGO 15x15",use_container_width=True,type="primary")
             if salva_post:
                 if nome_post and lat_post and lon_post:
                     new={"Postazione":nome_post,"Comune":comune_post,"Via":via_post,"Latitudine":lat_post,"Longitudine":lon_post,"Icona":st.session_state.map_logo}
                     st.session_state.postazioni.append(new)
                     st.session_state.post_sel=new
-                    st.session_state.map_zoom_anteprima=17
+                    st.session_state.map_zoom=17
                     save_json(FILE_POST,st.session_state.postazioni)
                     st.session_state.map_via=""
-                    st.success(f"Salvata {nome_post} - Via {via_post} associata - Logo 15x15 - Anteprima ingrandita!")
+                    st.success(f"Salvata {nome_post} - Via {via_post} - Visibile in anteprima tutte!")
                     st.rerun()
 
     st.divider()
-    st.markdown("### 📋 TABELLA POSTAZIONI - Clicca POSTAZIONI e mappa anteprima si ingrandisce")
+    st.markdown("### 📋 TABELLA POSTAZIONI - Clicca postazione con zoom + Via in maschera")
     if st.session_state.postazioni:
         st.dataframe(pd.DataFrame(st.session_state.postazioni),use_container_width=True)
         for idx, p in enumerate(st.session_state.postazioni):
@@ -402,24 +390,20 @@ elif scelta=="Mappa Postazioni":
                 b64=trova_b64_logo(logo_nome, st.session_state.icone_lib)
                 if b64:
                     st.image(f"data:image/png;base64,{b64}",width=15)
-                else:
-                    st.write(logo_nome)
             with c1:
                 st.write(f"**{p.get('Postazione','')}**")
-                st.caption(f"Logo 15x15: {logo_nome}")
             with c2:
-                st.write(f"{p.get('Via','')}")
-                st.caption(f"{p.get('Comune','')}")
+                st.write(f"{p.get('Via','')} - {p.get('Comune','')}")
             with c3:
-                if st.button(f"📍 POSTAZIONI",key=f"vedi_post_{idx}_{p.get('Postazione','')}",use_container_width=True):
+                if st.button(f"📍 POSTAZIONE",key=f"vedi_post_{idx}_{p.get('Postazione','')}",use_container_width=True):
                     st.session_state.post_sel=p
                     st.session_state.map_lat=float(p.get('Latitudine',45.8205))
                     st.session_state.map_lon=float(p.get('Longitudine',8.8250))
                     st.session_state.map_via=p.get('Via','')
                     st.session_state.map_comune=p.get('Comune','Varese')
                     st.session_state.map_logo=p.get('Icona','Default')
-                    st.session_state.map_zoom_anteprima=17
-                    st.toast(f"POSTAZIONI: {p.get('Postazione','')} - Mappa anteprima ingrandita zoom 17")
+                    st.session_state.map_zoom=17
+                    st.toast(f"Via {p.get('Via','')} inserita in maschera campo Via")
                     st.rerun()
         out=BytesIO()
         pd.DataFrame(st.session_state.postazioni).to_excel(out,index=False,engine="openpyxl")
