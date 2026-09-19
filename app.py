@@ -25,12 +25,14 @@ def load_json(f, default):
     except:
         pass
     return default
+
 def save_json(f,d):
     try:
         with open(f,"w",encoding="utf-8") as fh:
             json.dump(d,fh,ensure_ascii=False,indent=2)
     except:
         pass
+
 def get_b64(p):
     try:
         if os.path.exists(p):
@@ -39,25 +41,13 @@ def get_b64(p):
     except:
         pass
     return ""
+
 def img_to_b64(file):
     try:
         return base64.b64encode(file.getvalue()).decode()
     except:
         return ""
-def trova_b64_logo(nome, libreria):
-    for ic in libreria:
-        if ic.get("nome")==nome and ic.get("b64"):
-            return ic.get("b64")
-    return None
-def salva_icona_temp(b64, nome):
-    try:
-        data=base64.b64decode(b64)
-        tmp=os.path.join(tempfile.gettempdir(), f"icon_{nome}.png")
-        with open(tmp,"wb") as f:
-            f.write(data)
-        return tmp
-    except:
-        return None
+
 def reverse_geocode(lat, lon):
     try:
         url=f"https://nominatim.openstreetmap.org/reverse?format=json&lat={lat}&lon={lon}&zoom=18&addressdetails=1"
@@ -65,16 +55,17 @@ def reverse_geocode(lat, lon):
         if r.status_code==200:
             data=r.json()
             addr=data.get("address",{})
-            road=addr.get("road","") or addr.get("pedestrian","") or ""
+            road=addr.get("road","") or ""
             house=addr.get("house_number","")
             via=f"{road} {house}".strip()
             if not via:
                 via=data.get("display_name","").split(",")[0]
-            comune=addr.get("city","") or addr.get("town","") or addr.get("village","") or ""
+            comune=addr.get("city","") or addr.get("town","") or ""
             return via, comune
     except:
         pass
     return "", ""
+
 def hash_pwd(pwd):
     return hashlib.sha256(pwd.encode()).hexdigest()
 
@@ -159,7 +150,7 @@ with st.sidebar:
     st.markdown(f"Ciao {st.session_state.username} | {st.session_state.ruolo}")
     st.markdown("### MENU COMPLETO FORM")
     if st.session_state.ruolo=="Amministratore":
-        opzioni=["Dashboard","Volontari","Mappa Postazioni","Eventi","DB Radio","Check-In","Brogliaccio","Consegna Radio","Emergenze","Gestione Loghi","Gestione Utenti","Backup"]
+        opzioni=["Dashboard","Volontari","Mappa Postazioni","Eventi","DB Radio","Check-In","Brogliaccio","Consegna Radio","Emergenze","Backup"]
     else:
         opzioni=["Dashboard","Volontari","Mappa Postazioni","Eventi","DB Radio","Check-In","Brogliaccio","Consegna Radio","Emergenze","Backup"]
     sel=st.radio("Vai a",opzioni,index=0)
@@ -184,48 +175,192 @@ if scelta=="Dashboard":
     with c1:
         st.success(f"Benvenuto {st.session_state.username} | Ruolo: {st.session_state.ruolo}")
     with c2:
-        if st.button("LOGOUT",use_container_width=True,type="primary"):
+        if st.button("LOGOUT",use_container_width=True,type="primary",key="logout_dash"):
             st.session_state.authenticated=False
             st.rerun()
     st.divider()
     st.markdown("### MENU RAPIDO - TASTI")
-
-    # RIGA 1
     r1c1, r1c2, r1c3, r1c4 = st.columns(4)
     with r1c1:
         if st.button("VOLONTARI", use_container_width=True, key="rap_vol"):
-            st.session_state.menu_scelta="Volontari"; st.rerun()
+            st.session_state.menu_scelta = "Volontari"
+            st.rerun()
     with r1c2:
         if st.button("MAPPA POSTAZIONI", use_container_width=True, key="rap_mappa"):
-            st.session_state.menu_scelta="Mappa Postazioni"; st.rerun()
+            st.session_state.menu_scelta = "Mappa Postazioni"
+            st.rerun()
     with r1c3:
         if st.button("EVENTI", use_container_width=True, key="rap_eventi"):
-            st.session_state.menu_scelta="Eventi"; st.rerun()
+            st.session_state.menu_scelta = "Eventi"
+            st.rerun()
     with r1c4:
         if st.button("DB RADIO", use_container_width=True, key="rap_radio"):
-            st.session_state.menu_scelta="DB Radio"; st.rerun()
-
-    # RIGA 2
+            st.session_state.menu_scelta = "DB Radio"
+            st.rerun()
     r2c1, r2c2, r2c3, r2c4 = st.columns(4)
     with r2c1:
         if st.button("CHECK-IN", use_container_width=True, key="rap_check"):
-            st.session_state.menu_scelta="Check-In"; st.rerun()
+            st.session_state.menu_scelta = "Check-In"
+            st.rerun()
     with r2c2:
         if st.button("BROGLIACCIO", use_container_width=True, key="rap_brog"):
-            st.session_state.menu_scelta="Brogliaccio"; st.rerun()
+            st.session_state.menu_scelta = "Brogliaccio"
+            st.rerun()
     with r2c3:
         if st.button("CONSEGNA RADIO", use_container_width=True, key="rap_consegna"):
-            st.session_state.menu_scelta="Consegna Radio"; st.rerun()
+            st.session_state.menu_scelta = "Consegna Radio"
+            st.rerun()
     with r2c4:
         if st.button("EMERGENZE", use_container_width=True, key="rap_emerg"):
-            st.session_state.menu_scelta="Emergenze"; st.rerun()
-
-    # RIGA 3
+            st.session_state.menu_scelta = "Emergenze"
+            st.rerun()
     r3c1, r3c2, r3c3, r3c4 = st.columns(4)
     with r3c1:
         if st.button("BACKUP", use_container_width=True, key="rap_backup"):
-            st.session_state.menu_scelta="Backup"; st.rerun()
-    with r3c2:
-        if st.session_state.ruolo=="Amministratore":
-            if st.button("GESTIONE LOGHI", use_container_width=True, key="rap_loghi"):
-                st.session_state.menu_scelta="
+            st.session_state.menu_scelta = "Backup"
+            st.rerun()
+
+elif scelta=="Volontari":
+    torna_dashboard()
+    st.markdown("## FORM VOLONTARI")
+    with st.form("form_vol"):
+        c1,c2=st.columns(2)
+        with c1:
+            nome=st.text_input("Nome *"); cognome=st.text_input("Cognome *"); cell=st.text_input("Cellulare *")
+        with c2:
+            assoc=st.text_input("Associazione *",value="ANA Varese"); comune=st.selectbox("Comune",COMUNI,index=0); ruolo=st.selectbox("Ruolo *",["Volontario","Caposquadra","Coordinatore"])
+        if st.form_submit_button("SALVA VOLONTARIO",use_container_width=True,type="primary"):
+            if nome and cognome and cell and assoc:
+                st.session_state.dati.append({"Nome":f"{nome} {cognome}","Associazione":assoc,"Cellulare":cell,"Comune":comune,"Ruolo":ruolo})
+                save_json(FILE_DATI,st.session_state.dati); st.success(f"Salvato {nome} {cognome}"); st.rerun()
+    if st.session_state.dati:
+        st.dataframe(pd.DataFrame(st.session_state.dati),use_container_width=True)
+
+elif scelta=="Mappa Postazioni":
+    torna_dashboard()
+    st.markdown("## FORM MAPPA POSTAZIONI")
+    c1,c2=st.columns([2,1])
+    with c1:
+        try:
+            import folium
+            from streamlit_folium import st_folium
+            m=folium.Map(location=[st.session_state.map_lat, st.session_state.map_lon], zoom_start=15)
+            for p in st.session_state.postazioni:
+                try:
+                    lat_f=float(p.get("Latitudine")); lon_f=float(p.get("Longitudine"))
+                    folium.Marker([lat_f, lon_f], popup=p.get("Postazione",""), icon=folium.Icon(color="green")).add_to(m)
+                except:
+                    pass
+            map_data=st_folium(m,width=700,height=400,key="mappa_sel")
+            if map_data and map_data.get("last_clicked"):
+                lat_c=map_data["last_clicked"]["lat"]
+                lon_c=map_data["last_clicked"]["lng"]
+                st.session_state.map_lat=lat_c
+                st.session_state.map_lon=lon_c
+                via_auto, comune_auto=reverse_geocode(lat_c, lon_c)
+                st.session_state.map_via=via_auto or f"{lat_c:.6f},{lon_c:.6f}"
+                if comune_auto:
+                    st.session_state.map_comune=comune_auto
+                st.rerun()
+        except Exception as e:
+            st.error(f"Errore mappa selezione: {e}")
+        try:
+            import folium
+            from streamlit_folium import st_folium
+            lat_center=45.8205; lon_center=8.8250
+            if st.session_state.postazioni:
+                lats=[]; lons=[]
+                for p in st.session_state.postazioni:
+                    try:
+                        lats.append(float(p.get("Latitudine"))); lons.append(float(p.get("Longitudine")))
+                    except:
+                        pass
+                if lats and lons:
+                    lat_center=sum(lats)/len(lats); lon_center=sum(lons)/len(lons)
+            m2=folium.Map(location=[lat_center, lon_center], zoom_start=13)
+            for p in st.session_state.postazioni:
+                try:
+                    lat_f=float(p.get("Latitudine")); lon_f=float(p.get("Longitudine"))
+                    folium.Marker([lat_f, lon_f], popup=p.get("Postazione",""), icon=folium.Icon(color="red")).add_to(m2)
+                except:
+                    pass
+            st_folium(m2,width=1000,height=650,key="mappa_anteprima")
+        except Exception as e:
+            st.error(f"Errore anteprima: {e}")
+    with c2:
+        st.info(f"Lat {st.session_state.map_lat:.6f} Lon {st.session_state.map_lon:.6f}")
+        if st.session_state.map_via: st.success(f"Via: {st.session_state.map_via}")
+        with st.form("form_post"):
+            nome_post=st.text_input("Nome Postazione *",value=""); comune_post=st.selectbox("Comune *",COMUNI,index=COMUNI.index(st.session_state.map_comune) if st.session_state.map_comune in COMUNI else 0)
+            via_post=st.text_input("Via",value=st.session_state.map_via); lat_post=st.text_input("Latitudine *",value=str(st.session_state.map_lat)); lon_post=st.text_input("Longitudine *",value=str(st.session_state.map_lon))
+            if st.form_submit_button("SALVA POSTAZIONE",use_container_width=True,type="primary"):
+                if nome_post and lat_post and lon_post:
+                    new={"Postazione":nome_post,"Comune":comune_post,"Via":via_post,"Latitudine":lat_post,"Longitudine":lon_post,"Icona":st.session_state.map_logo}
+                    st.session_state.postazioni.append(new); save_json(FILE_POST,st.session_state.postazioni); st.success(f"Salvata {nome_post}"); st.rerun()
+    if st.session_state.postazioni:
+        st.dataframe(pd.DataFrame(st.session_state.postazioni),use_container_width=True)
+
+elif scelta=="Eventi":
+    torna_dashboard(); st.markdown("## FORM EVENTI")
+    with st.form("form_eventi"):
+        nome_evento=st.text_input("Nome Evento *"); data_evento=st.date_input("Data Evento *",value=date.today()); luogo=st.text_input("Luogo *"); descrizione=st.text_area("Descrizione")
+        if st.form_submit_button("SALVA EVENTO",use_container_width=True,type="primary"):
+            if nome_evento and luogo:
+                st.session_state.eventi.append({"Evento":nome_evento,"Data":str(data_evento),"Luogo":luogo,"Descrizione":descrizione}); save_json(FILE_EVENTI,st.session_state.eventi); st.success(f"Evento {nome_evento} salvato"); st.rerun()
+    if st.session_state.eventi: st.dataframe(pd.DataFrame(st.session_state.eventi),use_container_width=True)
+
+elif scelta=="DB Radio":
+    torna_dashboard(); st.markdown("## FORM DB RADIO")
+    with st.form("form_radio"):
+        id_radio=st.text_input("ID Radio *"); modello=st.text_input("Modello *"); frequenza=st.text_input("Frequenza"); stato=st.selectbox("Stato",["Disponibile","In uso","In riparazione"])
+        if st.form_submit_button("SALVA RADIO",use_container_width=True,type="primary"):
+            if id_radio and modello:
+                st.session_state.radio.append({"ID":id_radio,"Modello":modello,"Frequenza":frequenza,"Stato":stato}); save_json(FILE_RADIO,st.session_state.radio); st.success(f"Radio {id_radio} salvata"); st.rerun()
+    if st.session_state.radio: st.dataframe(pd.DataFrame(st.session_state.radio),use_container_width=True)
+
+elif scelta=="Emergenze":
+    torna_dashboard(); st.markdown("## FORM EMERGENZE")
+    with st.form("form_emergenze"):
+        c1,c2=st.columns(2)
+        with c1:
+            tipo_emergenza=st.selectbox("Tipo Emergenza *",["Alluvione","Incendio Boschivo","Terremoto","Frana","Neve/Ghiaccio","Ricerca Disperso","Supporto Sanitario","Altro"])
+            livello=st.selectbox("Livello *",["Verde - Preallerta","Giallo - Attenzione","Arancione - Preallarme","Rosso - Allarme"])
+            data_emerg=st.date_input("Data Emergenza *",value=date.today()); ora_emerg=st.time_input("Ora Segnalazione *",value=datetime.now().time())
+        with c2:
+            comune_emerg=st.selectbox("Comune *",COMUNI,index=0); via_emerg=st.text_input("Via/Localita *"); coordinatore=st.text_input("Coordinatore *"); squadre=st.number_input("N. Squadre",min_value=1,max_value=50,value=1)
+        descrizione_emerg=st.text_area("Descrizione Emergenza *"); azioni=st.text_area("Azioni Intraprese")
+        if st.form_submit_button("SALVA EMERGENZA",use_container_width=True,type="primary"):
+            if via_emerg and descrizione_emerg and coordinatore:
+                st.session_state.emergenze.append({"Tipo":tipo_emergenza,"Livello":livello,"Data":str(data_emerg),"Ora":str(ora_emerg),"Comune":comune_emerg,"Via":via_emerg,"Coordinatore":coordinatore,"Squadre":squadre,"Descrizione":descrizione_emerg,"Azioni":azioni})
+                save_json(FILE_EMERGENZE,st.session_state.emergenze); st.success(f"Emergenza {tipo_emergenza} salvata!"); st.rerun()
+            else:
+                st.error("Compila i campi *")
+    if st.session_state.emergenze:
+        st.dataframe(pd.DataFrame(st.session_state.emergenze),use_container_width=True)
+
+elif scelta=="Check-In":
+    torna_dashboard(); st.markdown("## FORM CHECK-IN")
+    with st.form("form_checkin"):
+        volontario=st.selectbox("Volontario",[d.get("Nome","") for d in st.session_state.dati] if st.session_state.dati else ["Nessun volontario"])
+        postazione=st.selectbox("Postazione",[p.get("Postazione","") for p in st.session_state.postazioni] if st.session_state.postazioni else ["Nessuna postazione"])
+        ora_arrivo=st.time_input("Ora Arrivo",value=datetime.now().time()); note=st.text_input("Note")
+        if st.form_submit_button("SALVA CHECK-IN",use_container_width=True,type="primary"):
+            st.session_state.checkin.append({"Volontario":volontario,"Postazione":postazione,"Ora":str(ora_arrivo),"Note":note,"Data":str(date.today())}); save_json(FILE_CHECKIN,st.session_state.checkin); st.success("Check-In salvato"); st.rerun()
+    if st.session_state.checkin: st.dataframe(pd.DataFrame(st.session_state.checkin),use_container_width=True)
+
+elif scelta=="Brogliaccio":
+    torna_dashboard(); st.markdown("## FORM BROGLIACCIO")
+    with st.form("form_brogliaccio"):
+        ora=st.time_input("Ora",value=datetime.now().time()); mittente=st.text_input("Mittente *"); destinatario=st.text_input("Destinatario *"); messaggio=st.text_area("Messaggio *"); priorita=st.selectbox("Priorita",["Normale","Urgente","Emergenza"])
+        if st.form_submit_button("SALVA BROGLIACCIO",use_container_width=True,type="primary"):
+            if mittente and destinatario and messaggio:
+                st.session_state.brogliaccio.append({"Ora":str(ora),"Data":str(date.today()),"Mittente":mittente,"Destinatario":destinatario,"Messaggio":messaggio,"Priorita":priorita}); save_json(FILE_BROGLIACCIO,st.session_state.brogliaccio); st.success("Messaggio salvato"); st.rerun()
+    if st.session_state.brogliaccio: st.dataframe(pd.DataFrame(st.session_state.brogliaccio),use_container_width=True)
+
+elif scelta=="Consegna Radio":
+    torna_dashboard(); st.markdown("## FORM CONSEGNA RADIO")
+    with st.form("form_consegna"):
+        radio_id=st.selectbox("ID Radio",[r.get("ID","") for r in st.session_state.radio] if st.session_state.radio else ["Nessuna radio"])
+        volontario=st.selectbox("Consegnata a",[d.get("Nome","") for d in st.session_state.dati] if st.session_state.dati else ["Nessun volontario"])
+        data_consegna=st.date_input("Data Consegna",value=date.today()); ora_consegna=st.time_input("Ora Consegna",value=datetime.now().time()); stato_consegna=st.selectbox("Stato",["Consegnata","Restituita","Persa"])
+        if st.form_submit_button("SALVA CONSEGNA",use
