@@ -11,8 +11,8 @@ st.markdown("""
 .stApp{background:#e8f5e9!important;}
 .main.block-container{background:white!important;border-radius:18px;padding:20px!important;}
 [data-testid="stSidebar"]{background:#a5d6a7!important;border-right:4px solid #2e7d32!important;}
-.stForm{background:#c8e6c9!important;border:3px solid #2e7d32!important;border-radius:15px!important;padding:15px!important;}
-.stButton>button{background:#2e7d32!important;color:white!important;font-weight:bold!important;min-height:45px!important;border-radius:10px!important;}
+.stForm{background:#c8e6c9!important;border:3px solid #2e7d32!important;border-radius:15px!important;}
+.stButton>button{background:#2e7d32!important;color:white!important;font-weight:bold!important;min-height:45px!important;}
 div[data-testid="stFormSubmitButton"]>button{background:#d32f2f!important;}
 .icon-lib{border:3px solid #2e7d32;border-radius:12px;padding:10px;background:white;text-align:center;margin:5px;}
 .icon-selected{border:4px solid #ef6c00!important;background:#fff3e0!important;}
@@ -81,7 +81,7 @@ def reverse_geocode(lat, lon):
             via=f"{road} {house}".strip()
             if not via:
                 via=addr.get("road","") or data.get("display_name","").split(",")[0]
-            comune=addr.get("city","") or addr.get("town","") or addr.get("village","") or addr.get("municipality","") or ""
+            comune=addr.get("city","") or addr.get("town","") or addr.get("village","") or ""
             return via, comune
     except:
         pass
@@ -188,7 +188,7 @@ elif scelta=="Volontari":
 
 elif scelta=="Mappa Postazioni":
     torna_dashboard()
-    st.markdown("## 📍 MAPPA POSTAZIONI - FIX VIA ASSOCIATA + ANTEPRIMA TUTTE + NO PUNTATORE DEFAULT")
+    st.markdown("## 📍 MAPPA POSTAZIONI - NO CERCHIO ROSSO + ANTEPRIMA CON ICONE + VIA ASSOCIATA")
 
     st.markdown("### 🎨 Libreria loghi 15x15")
     uploaded=st.file_uploader("📤 CARICA LOGO PNG", type=["png","jpg","jpeg"], key="up_logo")
@@ -219,7 +219,7 @@ elif scelta=="Mappa Postazioni":
 
     c1,c2=st.columns([2,1])
     with c1:
-        st.markdown("### 🗺️ MAPPA SELEZIONE - Clicca e Via si associa in maschera")
+        st.markdown("### 🗺️ MAPPA SELEZIONE - Clicca e Via va in maschera")
         try:
             import folium
             from streamlit_folium import st_folium
@@ -230,7 +230,7 @@ elif scelta=="Mappa Postazioni":
                     lon_f=float(p.get('Longitudine'))
                     logo_nome=p.get('Icona','')
                     b64=trova_b64_logo(logo_nome, st.session_state.icone_lib)
-                    popup_text=logo_nome + " - " + p.get('Postazione','') + " - " + p.get('Via','')
+                    popup_text=f"{logo_nome} - {p.get('Postazione','')} - {p.get('Via','')}"
                     if b64:
                         tmp_path=salva_icona_temp(b64, f"{logo_nome}_{idx_p}")
                         if tmp_path:
@@ -242,7 +242,6 @@ elif scelta=="Mappa Postazioni":
                         folium.Marker([lat_f, lon_f], popup=popup_text).add_to(m)
                 except:
                     pass
-            # PUNTATORE DEFAULT TOLTO - Non c'e' piu' Marker rosso +
             map_data=st_folium(m,width=700,height=400,key="mappa_sel")
             if map_data and map_data.get("last_clicked"):
                 lat_c=map_data["last_clicked"]["lat"]
@@ -253,29 +252,44 @@ elif scelta=="Mappa Postazioni":
                 if via_auto:
                     st.session_state.map_via=via_auto
                 else:
-                    st.session_state.map_via=f"{lat_c:.6f}, {lon_c:.6f}"
+                    st.session_state.map_via=f"Via {lat_c:.6f},{lon_c:.6f}"
                 if comune_auto:
                     st.session_state.map_comune=comune_auto
                 st.session_state.post_sel=None
                 st.session_state.map_zoom=14
-                st.toast(f"Via associata: {via_auto}")
+                st.toast(f"Via: {via_auto} associata")
                 st.rerun()
         except Exception as e:
             st.error(f"Errore: {e}")
 
-        st.markdown("### 🔍 ANTEPRIMA - VEDI TUTTE LE POSTAZIONI SALVATE - NO PUNTATORE DEFAULT")
+        st.markdown("### 🔍 ANTEPRIMA - VEDI TUTTE LE POSTAZIONI CON ICONE ABBINATE - NO CERCHIO ROSSO")
         tipo_mappa=st.selectbox("Tipo mappa anteprima", ["StreetMap","OpenTopoMap (OTM)","Google Maps Stradale","Google Satellite","Waze Style"], index=0, key="sel_tipo_anteprima")
 
         try:
             import folium
             from streamlit_folium import st_folium
-            lat_center=st.session_state.map_lat
-            lon_center=st.session_state.map_lon
-            zoom_anteprima=st.session_state.map_zoom
+            lat_center=45.8205
+            lon_center=8.8250
+            zoom_anteprima=13
+            if st.session_state.postazioni:
+                lats=[]
+                lons=[]
+                for p in st.session_state.postazioni:
+                    try:
+                        lats.append(float(p.get('Latitudine')))
+                        lons.append(float(p.get('Longitudine')))
+                    except:
+                        pass
+                if lats and lons:
+                    lat_center=sum(lats)/len(lats)
+                    lon_center=sum(lons)/len(lons)
             if st.session_state.post_sel:
-                lat_center=float(st.session_state.post_sel.get('Latitudine',lat_center))
-                lon_center=float(st.session_state.post_sel.get('Longitudine',lon_center))
-                zoom_anteprima=17
+                try:
+                    lat_center=float(st.session_state.post_sel.get('Latitudine',lat_center))
+                    lon_center=float(st.session_state.post_sel.get('Longitudine',lon_center))
+                    zoom_anteprima=17
+                except:
+                    pass
 
             if tipo_mappa=="OpenTopoMap (OTM)":
                 m2=folium.Map(location=[lat_center, lon_center], zoom_start=zoom_anteprima, tiles="OpenTopoMap")
@@ -288,7 +302,6 @@ elif scelta=="Mappa Postazioni":
             else:
                 m2=folium.Map(location=[lat_center, lon_center], zoom_start=zoom_anteprima)
 
-            # ANTEPRIMA DEVE VEDERE TUTTE LE POSTAZIONI SALVATE - SEMPRE
             for idx_p, p in enumerate(st.session_state.postazioni):
                 try:
                     lat_f=float(p.get('Latitudine'))
@@ -304,32 +317,27 @@ elif scelta=="Mappa Postazioni":
                             icon=folium.CustomIcon(tmp_path, icon_size=(15,15))
                             folium.Marker([lat_f, lon_f], popup=popup_text, icon=icon).add_to(m2)
                         else:
-                            folium.Marker([lat_f, lon_f], popup=popup_text).add_to(m2)
+                            folium.Marker([lat_f, lon_f], popup=popup_text, icon=folium.Icon(color="green")).add_to(m2)
                     else:
-                        folium.Marker([lat_f, lon_f], popup=popup_text).add_to(m2)
-                except:
-                    pass
-
-            # PUNTATORE DEFAULT TOLTO ANCHE QUI - Solo postazioni salvate
-            if st.session_state.post_sel:
-                try:
-                    lat_s=float(st.session_state.post_sel.get('Latitudine'))
-                    lon_s=float(st.session_state.post_sel.get('Longitudine'))
-                    folium.CircleMarker([lat_s, lon_s], radius=30, color="red", fill=False, weight=3).add_to(m2)
-                except:
-                    pass
+                        folium.Marker([lat_f, lon_f], popup=popup_text, icon=folium.Icon(color="green", icon="info-sign")).add_to(m2)
+                except Exception as e:
+                    st.write(f"Errore postazione {idx_p}: {e}")
 
             st_folium(m2,width=1000,height=650,key="mappa_anteprima_tutte")
-            st.success(f"ANTEPRIMA {tipo_mappa} - Tutte {len(st.session_state.postazioni)} postazioni salvate 15x15 - NO puntatore default")
+            if st.session_state.postazioni:
+                st.success(f"✅ ANTEPRIMA {tipo_mappa} - VEDI TUTTE {len(st.session_state.postazioni)} POSTAZIONI ABBINATE ALLE ICONE 15x15 - NO CERCHIO ROSSO")
+                st.dataframe(pd.DataFrame(st.session_state.postazioni)[["Postazione","Via","Comune","Icona","Latitudine","Longitudine"]],use_container_width=True)
+            else:
+                st.warning("Nessuna postazione salvata - Salva una postazione per vederla in anteprima con icona")
         except Exception as e:
             st.error(f"Errore anteprima: {e}")
 
     with c2:
-        st.markdown("### 📋 Maschera - Via associata come sopra")
+        st.markdown("### 📋 Maschera - Via associata dalla selezione")
         st.info(f"Lat {st.session_state.map_lat:.6f} Lon {st.session_state.map_lon:.6f}")
-        # QUI SOPRA ALLA MASCHERA VEDEVI LA VIA - ORA LA ASSOCIA NEL CAMPO VIA
         if st.session_state.map_via:
-            st.success(f"✅ Via rilevata sopra: {st.session_state.map_via} - Ora associata nel campo Via sotto!")
+            st.success(f"✅ Via rilevata: {st.session_state.map_via}")
+            st.caption("Ora nel campo Via sotto - FIX")
         else:
             st.warning("Clicca su mappa per rilevare via")
         if st.session_state.post_sel:
@@ -364,16 +372,15 @@ elif scelta=="Mappa Postazioni":
                 idx_comune=COMUNI.index(val_comune)
             comune_post=st.selectbox("Comune *",COMUNI,index=idx_comune,key="inp_comune")
 
-            # CAMPO VIA - ORA ASSOCIA IL NOME DELLA VIA COME VEDI SOPRA ALLA MASCHERA - FIX
             val_via=st.session_state.map_via
             if st.session_state.post_sel:
                 val_via=st.session_state.post_sel.get('Via','')
-            via_post=st.text_input("Via * - Associa nome via come sopra",value=val_via,key="inp_via",help="Quando selezioni postazione nella mappa, il nome della via che vedi sopra ora viene associato qui nel campo Via")
+            via_post=st.text_input("Via * - Via selezionata associata",value=val_via,key="inp_via",help="Quando selezioni su mappa, la via che vedi sopra si associa qui. Quando selezioni da tabella, la via della postazione si associa qui.")
 
             lat_post=st.text_input("Latitudine *",value=str(st.session_state.map_lat),key="inp_lat")
             lon_post=st.text_input("Longitudine *",value=str(st.session_state.map_lon),key="inp_lon")
 
-            salva_post=st.form_submit_button("📍 SALVA CON VIA ASSOCIATA E LOGO 15x15",use_container_width=True,type="primary")
+            salva_post=st.form_submit_button("📍 SALVA CON VIA ASSOCIATA",use_container_width=True,type="primary")
             if salva_post:
                 if nome_post and lat_post and lon_post:
                     new={"Postazione":nome_post,"Comune":comune_post,"Via":via_post,"Latitudine":lat_post,"Longitudine":lon_post,"Icona":st.session_state.map_logo}
@@ -381,11 +388,12 @@ elif scelta=="Mappa Postazioni":
                     st.session_state.post_sel=new
                     st.session_state.map_zoom=17
                     save_json(FILE_POST,st.session_state.postazioni)
-                    st.success(f"Salvata {nome_post} - Via {via_post} associata!")
+                    st.session_state.map_via=""
+                    st.success(f"Salvata {nome_post} - Via {via_post} - Ora visibile in anteprima con icona!")
                     st.rerun()
 
     st.divider()
-    st.markdown("### 📋 TABELLA POSTAZIONI - Clicca e Via va in maschera")
+    st.markdown("### 📋 TABELLA POSTAZIONI")
     if st.session_state.postazioni:
         st.dataframe(pd.DataFrame(st.session_state.postazioni),use_container_width=True)
         for idx, p in enumerate(st.session_state.postazioni):
@@ -400,7 +408,7 @@ elif scelta=="Mappa Postazioni":
             with c2:
                 st.write(f"{p.get('Via','')} - {p.get('Comune','')}")
             with c3:
-                if st.button(f"📍 POSTAZIONE",key=f"vedi_post_{idx}_{p.get('Postazione','')}",use_container_width=True):
+                if st.button(f"📍 VEDI",key=f"vedi_post_{idx}_{p.get('Postazione','')}",use_container_width=True):
                     st.session_state.post_sel=p
                     st.session_state.map_lat=float(p.get('Latitudine',45.8205))
                     st.session_state.map_lon=float(p.get('Longitudine',8.8250))
@@ -408,7 +416,6 @@ elif scelta=="Mappa Postazioni":
                     st.session_state.map_comune=p.get('Comune','Varese')
                     st.session_state.map_logo=p.get('Icona','Default')
                     st.session_state.map_zoom=17
-                    st.toast(f"Via {p.get('Via','')} associata in maschera")
                     st.rerun()
         out=BytesIO()
         pd.DataFrame(st.session_state.postazioni).to_excel(out,index=False,engine="openpyxl")
