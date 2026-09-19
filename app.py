@@ -158,7 +158,7 @@ st.divider()
 with st.sidebar:
     if os.path.exists("logo.png"):
         st.image("logo.png",width=80)
-    opts=["Dashboard","Volontari","Mappa Postazioni","Eventi","DB Radio","Check-In","Brogliaccio","Consegna Radio","Emergenze","Backup"]
+    opts=["Dashboard","Volontari","Mappa","Eventi","Radio","Check","Brogliaccio","Consegna","Emergenze","Backup"]
     sel=st.radio("Vai a",opts,index=0)
     if sel!=st.session_state.menu:
         st.session_state.menu=sel
@@ -171,74 +171,5 @@ scelta=st.session_state.menu
 
 if scelta=="Dashboard":
     st.markdown("## DASHBOARD")
-    st.success("Mappe ripristinate")
-    c1,c2=st.columns(2)
-    with c1:
-        if st.button("VOLONTARI",use_container_width=True,key="d1"):
-            st.session_state.menu="Volontari"
-            st.rerun()
-        if st.button("MAPPA",use_container_width=True,key="d2"):
-            st.session_state.menu="Mappa Postazioni"
-            st.rerun()
-    with c2:
-        if st.button("CHECK-IN",use_container_width=True,key="d5"):
-            st.session_state.menu="Check-In"
-            st.rerun()
-        if st.button("BACKUP",use_container_width=True,key="d9"):
-            st.session_state.menu="Backup"
-            st.rerun()
-    footer()
-
-elif scelta=="Volontari":
-    torna()
-    st.markdown("## VOLONTARI - 5 MASCHERE")
-    t1,t2,t3,t4,t5=st.tabs(["ANAGRAFICA","RESIDENZA","TESSERA","ABILIT","NOTE"])
-    with t1:
-        with st.form("f1"):
-            a1=st.text_input("Nome *",key="a1")
-            a2=st.text_input("Cognome *",key="a2")
-            a3=st.text_input("CF",key="a3")
-            a4=st.date_input("Nascita",value=date(1980,1,1),key="a4")
-            if st.form_submit_button("SALVA"):
-                st.session_state.s1_nome=a1
-                st.session_state.s1_cogn=a2
-                st.session_state.s1_dn=str(a4)
-                st.success("OK 1")
-    with t2:
-        with st.form("f2"):
-            b1=st.text_input("Via *",key="b1")
-            b2=st.text_input("Comune *",value="Varese",key="b2")
-            b3=st.text_input("Cell *",key="b3")
-            if st.form_submit_button("SALVA"):
-                st.session_state.s2_via=b1
-                st.session_state.s2_com=b2
-                st.session_state.s2_cell=b3
-                st.success("OK 2")
-    with t3:
-        with st.form("f3"):
-            c1x=st.text_input("Tessera",key="c1")
-            c2x=st.text_input("Ruolo",value="Volontario",key="c3")
-            if st.form_submit_button("SALVA"):
-                st.session_state.s3_tess=c1x
-                st.session_state.s3_ruolo=c2x
-                st.success("OK 3")
-    with t4:
-        with st.form("f4"):
-            d1=st.text_input("Patenti",value="B",key="d1")
-            d2=st.text_input("Base",value="Si",key="d2")
-            if st.form_submit_button("SALVA"):
-                st.session_state.s4_pat=d1
-                st.success("OK 4")
-    with t5:
-        with st.form("f5"):
-            e2=st.text_area("Note",key="e2")
-            btn=st.form_submit_button("SALVA COMPLETO",use_container_width=True)
-            if btn:
-                nome=st.session_state.get("s1_nome","")
-                cogn=st.session_state.get("s1_cogn","")
-                cell=st.session_state.get("s2_cell","")
-                com=st.session_state.get("s2_com","")
-                ruolo=st.session_state.get("s3_ruolo","")
-                if nome and cell:
-                    nuovo={}
-                    nuovo["Nome
+    st.success("Verde OK")
+    if st.button("VOLONTARI",use_container_width=True
