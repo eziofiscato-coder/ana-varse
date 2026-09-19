@@ -12,8 +12,7 @@ st.markdown("""
 .main.block-container{background:white!important;border-radius:18px;padding:20px!important;}
 [data-testid="stSidebar"]{background:#a5d6a7!important;border-right:4px solid #2e7d32!important;}
 .stForm{background:#c8e6c9!important;border:3px solid #2e7d32!important;border-radius:15px!important;}
-.stButton>button{background:#2e7d32!important;color:white!important;font-weight:bold!important;min-height:45px!important;border-radius:10px!important;}
-.dashboard-card{border:3px solid #2e7d32;border-radius:15px;padding:15px;background:#e8f5e9;text-align:center;margin:10px;min-height:180px;}
+.stButton>button{background:#2e7d32!important;color:white!important;font-weight:bold!important;min-height:50px!important;border-radius:10px!important;font-size:16px!important;}
 .backup-box{border:3px solid #2e7d32;border-radius:15px;padding:20px;background:#c8e6c9;margin:15px 0px;}
 </style>
 """, unsafe_allow_html=True)
@@ -122,7 +121,7 @@ def header_loghi():
         st.markdown("<h2 style='text-align:center;color:#0e7a3d;'>VOLONTARIATO Sezione di Varese</h2>", unsafe_allow_html=True)
 
 def torna_dashboard():
-    if st.button("TORNA A DASHBOARD MENU COMPLETO",use_container_width=True):
+    if st.button("TORNA A DASHBOARD",use_container_width=True):
         st.session_state.menu_scelta="Dashboard"
         st.rerun()
 
@@ -178,130 +177,55 @@ with st.sidebar:
 scelta=st.session_state.menu_scelta
 MIME="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
 
+# DASHBOARD SOLO TASTI MENU RAPIDO - SENZA QUADRATI VERDI
 if scelta=="Dashboard":
-    st.markdown("## DASHBOARD - ELENCO MENU COMPLETO")
+    st.markdown("## DASHBOARD")
     c1,c2=st.columns([3,1])
     with c1:
         st.success(f"Benvenuto {st.session_state.username} | Ruolo: {st.session_state.ruolo}")
     with c2:
-        if st.button("LOGOUT DALLA DASHBOARD",use_container_width=True,type="primary"):
+        if st.button("LOGOUT",use_container_width=True,type="primary"):
             st.session_state.authenticated=False
             st.rerun()
     st.divider()
-    c1,c2,c3=st.columns(3)
-    with c1:
-        st.markdown('<div class="dashboard-card">',unsafe_allow_html=True)
-        st.markdown("### FORM 1: VOLONTARI"); st.metric("Totale",len(st.session_state.dati))
-        if st.button("APRI VOLONTARI",key="dash_vol",use_container_width=True,type="primary"):
+    st.markdown("### MENU RAPIDO - TASTI")
+
+    # RIGA 1
+    r1c1, r1c2, r1c3, r1c4 = st.columns(4)
+    with r1c1:
+        if st.button("VOLONTARI", use_container_width=True, key="rap_vol"):
             st.session_state.menu_scelta="Volontari"; st.rerun()
-        st.markdown('</div>',unsafe_allow_html=True)
-    with c2:
-        st.markdown('<div class="dashboard-card">',unsafe_allow_html=True)
-        st.markdown("### FORM 2: MAPPA POSTAZIONI"); st.write("Tabella + Anteprima TUTTE 15x15 + Via")
-        st.metric("Totale",len(st.session_state.postazioni))
-        if st.button("APRI MAPPA",key="dash_mappa",use_container_width=True,type="primary"):
+    with r1c2:
+        if st.button("MAPPA POSTAZIONI", use_container_width=True, key="rap_mappa"):
             st.session_state.menu_scelta="Mappa Postazioni"; st.rerun()
-        st.markdown('</div>',unsafe_allow_html=True)
-    with c3:
-        st.markdown('<div class="dashboard-card">',unsafe_allow_html=True)
-        st.markdown("### FORM 3: EVENTI"); st.metric("Totale",len(st.session_state.eventi))
-        if st.button("APRI EVENTI",key="dash_eventi",use_container_width=True,type="primary"):
+    with r1c3:
+        if st.button("EVENTI", use_container_width=True, key="rap_eventi"):
             st.session_state.menu_scelta="Eventi"; st.rerun()
-        st.markdown('</div>',unsafe_allow_html=True)
-    c4,c5,c6=st.columns(3)
-    with c4:
-        st.markdown('<div class="dashboard-card">',unsafe_allow_html=True)
-        st.markdown("### FORM 4: DB RADIO"); st.metric("Totale",len(st.session_state.radio))
-        if st.button("APRI DB RADIO",key="dash_radio",use_container_width=True,type="primary"):
+    with r1c4:
+        if st.button("DB RADIO", use_container_width=True, key="rap_radio"):
             st.session_state.menu_scelta="DB Radio"; st.rerun()
-        st.markdown('</div>',unsafe_allow_html=True)
-    with c5:
-        st.markdown('<div class="dashboard-card">',unsafe_allow_html=True)
-        st.markdown("### FORM 5: EMERGENZE"); st.metric("Totale",len(st.session_state.emergenze))
-        if st.button("APRI EMERGENZE",key="dash_emerg",use_container_width=True,type="primary"):
-            st.session_state.menu_scelta="Emergenze"; st.rerun()
-        st.markdown('</div>',unsafe_allow_html=True)
-    with c6:
-        st.markdown('<div class="dashboard-card">',unsafe_allow_html=True)
-        st.markdown("### FORM 6: CHECK-IN"); st.metric("Totale",len(st.session_state.checkin))
-        if st.button("APRI CHECK-IN",key="dash_check",use_container_width=True,type="primary"):
+
+    # RIGA 2
+    r2c1, r2c2, r2c3, r2c4 = st.columns(4)
+    with r2c1:
+        if st.button("CHECK-IN", use_container_width=True, key="rap_check"):
             st.session_state.menu_scelta="Check-In"; st.rerun()
-        st.markdown('</div>',unsafe_allow_html=True)
-    c7,c8,c9=st.columns(3)
-    with c7:
-        st.markdown('<div class="dashboard-card">',unsafe_allow_html=True)
-        st.markdown("### FORM 7: BROGLIACCIO"); st.metric("Totale",len(st.session_state.brogliaccio))
-        if st.button("APRI BROGLIACCIO",key="dash_brog",use_container_width=True,type="primary"):
+    with r2c2:
+        if st.button("BROGLIACCIO", use_container_width=True, key="rap_brog"):
             st.session_state.menu_scelta="Brogliaccio"; st.rerun()
-        st.markdown('</div>',unsafe_allow_html=True)
-    with c8:
-        st.markdown('<div class="dashboard-card">',unsafe_allow_html=True)
-        st.markdown("### FORM 8: CONSEGNA RADIO"); st.metric("Totale",len(st.session_state.consegna))
-        if st.button("APRI CONSEGNA",key="dash_consegna",use_container_width=True,type="primary"):
+    with r2c3:
+        if st.button("CONSEGNA RADIO", use_container_width=True, key="rap_consegna"):
             st.session_state.menu_scelta="Consegna Radio"; st.rerun()
-        st.markdown('</div>',unsafe_allow_html=True)
-    with c9:
-        st.markdown('<div class="dashboard-card">',unsafe_allow_html=True)
-        st.markdown("### FORM 9: BACKUP")
-        if st.button("APRI BACKUP",key="dash_backup",use_container_width=True,type="primary"):
+    with r2c4:
+        if st.button("EMERGENZE", use_container_width=True, key="rap_emerg"):
+            st.session_state.menu_scelta="Emergenze"; st.rerun()
+
+    # RIGA 3
+    r3c1, r3c2, r3c3, r3c4 = st.columns(4)
+    with r3c1:
+        if st.button("BACKUP", use_container_width=True, key="rap_backup"):
             st.session_state.menu_scelta="Backup"; st.rerun()
-        st.markdown('</div>',unsafe_allow_html=True)
-
-elif scelta=="Volontari":
-    torna_dashboard()
-    st.markdown("## FORM VOLONTARI")
-    with st.form("form_vol"):
-        c1,c2=st.columns(2)
-        with c1:
-            nome=st.text_input("Nome *"); cognome=st.text_input("Cognome *"); cell=st.text_input("Cellulare *")
-        with c2:
-            assoc=st.text_input("Associazione *",value="ANA Varese"); comune=st.selectbox("Comune",COMUNI,index=0); ruolo=st.selectbox("Ruolo *",["Volontario","Caposquadra","Coordinatore"])
-        if st.form_submit_button("SALVA VOLONTARIO",use_container_width=True,type="primary"):
-            if nome and cognome and cell and assoc:
-                st.session_state.dati.append({"Nome":f"{nome} {cognome}","Associazione":assoc,"Cellulare":cell,"Comune":comune,"Ruolo":ruolo})
-                save_json(FILE_DATI,st.session_state.dati); st.success(f"Salvato {nome} {cognome}"); st.rerun()
-    if st.session_state.dati:
-        st.dataframe(pd.DataFrame(st.session_state.dati),use_container_width=True)
-
-elif scelta=="Mappa Postazioni":
-    torna_dashboard()
-    st.markdown("## FORM MAPPA POSTAZIONI - CON TABELLA NEL FORM")
-    uploaded=st.file_uploader("CARICA LOGO PNG", type=["png","jpg","jpeg"], key="up_logo")
-    if uploaded:
-        b64=img_to_b64(uploaded); nome_icona=st.text_input("Nome logo", value=uploaded.name.split(".")[0])
-        if st.button("SALVA LOGO 15x15",use_container_width=True,type="primary"):
-            st.session_state.icone_lib.append({"nome":nome_icona,"b64":b64}); save_json(FILE_ICONE,st.session_state.icone_lib); st.success(f"Logo {nome_icona} salvato!"); st.rerun()
-    if st.session_state.icone_lib:
-        cols=st.columns(6)
-        for i, ic in enumerate(st.session_state.icone_lib):
-            with cols[i%6]:
-                if ic.get("b64"):
-                    st.image(f"data:image/png;base64,{ic['b64']}",width=40); st.write(f"{ic['nome']}")
-                    if st.button("SEL",key=f"sel_{i}_{ic['nome']}",use_container_width=True,type="primary"):
-                        st.session_state.map_logo=ic['nome']; st.rerun()
-    st.divider()
-    c1,c2=st.columns([2,1])
-    with c1:
-        try:
-            import folium
-            from streamlit_folium import st_folium
-            m=folium.Map(location=[st.session_state.map_lat, st.session_state.map_lon], zoom_start=15)
-            for idx_p, p in enumerate(st.session_state.postazioni):
-                try:
-                    lat_f=float(p.get('Latitudine')); lon_f=float(p.get('Longitudine')); logo_nome=p.get('Icona',''); b64=trova_b64_logo(logo_nome, st.session_state.icone_lib)
-                    if b64:
-                        tmp_path=salva_icona_temp(b64, f"sel_{logo_nome}_{idx_p}")
-                        if tmp_path:
-                            icon=folium.CustomIcon(tmp_path, icon_size=(15,15))
-                            folium.Marker([lat_f, lon_f], popup=f"{p.get('Postazione','')}", icon=icon).add_to(m)
-                    else:
-                        folium.Marker([lat_f, lon_f], icon=folium.Icon(color="green")).add_to(m)
-                except:
-                    pass
-            map_data=st_folium(m,width=700,height=400,key="mappa_sel")
-            if map_data and map_data.get("last_clicked"):
-                lat_c=map_data["last_clicked"]["lat"]; lon_c=map_data["last_clicked"]["lng"]
-                st.session_state.map_lat=lat_c; st.session_state.map_lon=lon_c
-                via_auto, comune_auto=reverse_geocode(lat_c, lon_c)
-                st.session_state.map_via=via_auto or f"{lat_c:.6f},{lon_c:.6f}"
-                if comune_auto: st.session_state.map_comune=comune_auto
+    with r3c2:
+        if st.session_state.ruolo=="Amministratore":
+            if st.button("GESTIONE LOGHI", use_container_width=True, key="rap_loghi"):
+                st.session_state.menu_scelta="
