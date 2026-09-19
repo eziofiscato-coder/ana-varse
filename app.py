@@ -237,4 +237,52 @@ if scelta=="Dashboard":
         st.markdown('</div>',unsafe_allow_html=True)
     with c5:
         st.markdown('<div class="dashboard-card">',unsafe_allow_html=True)
-        st.markdown("### FORM 5
+        st.markdown("### FORM 5: EMERGENZE"); st.metric("Totale",len(st.session_state.emergenze))
+        if st.button("APRI EMERGENZE",key="dash_emerg",use_container_width=True,type="primary"):
+            st.session_state.menu_scelta="Emergenze"; st.rerun()
+        st.markdown('</div>',unsafe_allow_html=True)
+    with c6:
+        st.markdown('<div class="dashboard-card">',unsafe_allow_html=True)
+        st.markdown("### FORM 6: CHECK-IN"); st.metric("Totale",len(st.session_state.checkin))
+        if st.button("APRI CHECK-IN",key="dash_check",use_container_width=True,type="primary"):
+            st.session_state.menu_scelta="Check-In"; st.rerun()
+        st.markdown('</div>',unsafe_allow_html=True)
+    c7,c8,c9=st.columns(3)
+    with c7:
+        st.markdown('<div class="dashboard-card">',unsafe_allow_html=True)
+        st.markdown("### FORM 7: BROGLIACCIO"); st.metric("Totale",len(st.session_state.brogliaccio))
+        if st.button("APRI BROGLIACCIO",key="dash_brog",use_container_width=True,type="primary"):
+            st.session_state.menu_scelta="Brogliaccio"; st.rerun()
+        st.markdown('</div>',unsafe_allow_html=True)
+    with c8:
+        st.markdown('<div class="dashboard-card">',unsafe_allow_html=True)
+        st.markdown("### FORM 8: CONSEGNA RADIO"); st.metric("Totale",len(st.session_state.consegna))
+        if st.button("APRI CONSEGNA",key="dash_consegna",use_container_width=True,type="primary"):
+            st.session_state.menu_scelta="Consegna Radio"; st.rerun()
+        st.markdown('</div>',unsafe_allow_html=True)
+    with c9:
+        st.markdown('<div class="dashboard-card">',unsafe_allow_html=True)
+        st.markdown("### FORM 9: BACKUP")
+        if st.button("APRI BACKUP",key="dash_backup",use_container_width=True,type="primary"):
+            st.session_state.menu_scelta="Backup"; st.rerun()
+        st.markdown('</div>',unsafe_allow_html=True)
+
+elif scelta=="Volontari":
+    torna_dashboard()
+    st.markdown("## FORM VOLONTARI")
+    with st.form("form_vol"):
+        c1,c2=st.columns(2)
+        with c1:
+            nome=st.text_input("Nome *"); cognome=st.text_input("Cognome *"); cell=st.text_input("Cellulare *")
+        with c2:
+            assoc=st.text_input("Associazione *",value="ANA Varese"); comune=st.selectbox("Comune",COMUNI,index=0); ruolo=st.selectbox("Ruolo *",["Volontario","Caposquadra","Coordinatore"])
+        if st.form_submit_button("SALVA VOLONTARIO",use_container_width=True,type="primary"):
+            if nome and cognome and cell and assoc:
+                st.session_state.dati.append({"Nome":f"{nome} {cognome}","Associazione":assoc,"Cellulare":cell,"Comune":comune,"Ruolo":ruolo})
+                save_json(FILE_DATI,st.session_state.dati); st.success(f"Salvato {nome} {cognome}"); st.rerun()
+    if st.session_state.dati:
+        st.dataframe(pd.DataFrame(st.session_state.dati),use_container_width=True)
+
+elif scelta=="Mappa Postazioni":
+    torna_dashboard()
+    st.markdown
