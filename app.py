@@ -14,6 +14,7 @@ st.markdown("""
 .stForm{background:#c8e6c9!important;border:3px solid #2e7d32!important;border-radius:15px!important;}
 .stButton>button{background:#2e7d32!important;color:white!important;font-weight:bold!important;min-height:45px!important;border-radius:10px!important;}
 .dashboard-card{border:3px solid #2e7d32;border-radius:15px;padding:15px;background:#e8f5e9;text-align:center;margin:10px;min-height:180px;}
+.backup-box{border:3px solid #2e7d32;border-radius:15px;padding:20px;background:#c8e6c9;margin:15px 0px;}
 </style>
 """, unsafe_allow_html=True)
 
@@ -187,27 +188,6 @@ if scelta=="Dashboard":
             st.session_state.authenticated=False
             st.rerun()
     st.divider()
-    st.markdown("### MENU RAPIDO")
-    mr1,mr2,mr3,mr4,mr5,mr6=st.columns(6)
-    with mr1:
-        if st.button("Volontari",use_container_width=True):
-            st.session_state.menu_scelta="Volontari"; st.rerun()
-    with mr2:
-        if st.button("Mappa",use_container_width=True):
-            st.session_state.menu_scelta="Mappa Postazioni"; st.rerun()
-    with mr3:
-        if st.button("Eventi",use_container_width=True):
-            st.session_state.menu_scelta="Eventi"; st.rerun()
-    with mr4:
-        if st.button("DB Radio",use_container_width=True):
-            st.session_state.menu_scelta="DB Radio"; st.rerun()
-    with mr5:
-        if st.button("Emergenze",use_container_width=True):
-            st.session_state.menu_scelta="Emergenze"; st.rerun()
-    with mr6:
-        if st.button("Check-In",use_container_width=True):
-            st.session_state.menu_scelta="Check-In"; st.rerun()
-    st.divider()
     c1,c2,c3=st.columns(3)
     with c1:
         st.markdown('<div class="dashboard-card">',unsafe_allow_html=True)
@@ -285,4 +265,43 @@ elif scelta=="Volontari":
 
 elif scelta=="Mappa Postazioni":
     torna_dashboard()
-    st.markdown
+    st.markdown("## FORM MAPPA POSTAZIONI - CON TABELLA NEL FORM")
+    uploaded=st.file_uploader("CARICA LOGO PNG", type=["png","jpg","jpeg"], key="up_logo")
+    if uploaded:
+        b64=img_to_b64(uploaded); nome_icona=st.text_input("Nome logo", value=uploaded.name.split(".")[0])
+        if st.button("SALVA LOGO 15x15",use_container_width=True,type="primary"):
+            st.session_state.icone_lib.append({"nome":nome_icona,"b64":b64}); save_json(FILE_ICONE,st.session_state.icone_lib); st.success(f"Logo {nome_icona} salvato!"); st.rerun()
+    if st.session_state.icone_lib:
+        cols=st.columns(6)
+        for i, ic in enumerate(st.session_state.icone_lib):
+            with cols[i%6]:
+                if ic.get("b64"):
+                    st.image(f"data:image/png;base64,{ic['b64']}",width=40); st.write(f"{ic['nome']}")
+                    if st.button("SEL",key=f"sel_{i}_{ic['nome']}",use_container_width=True,type="primary"):
+                        st.session_state.map_logo=ic['nome']; st.rerun()
+    st.divider()
+    c1,c2=st.columns([2,1])
+    with c1:
+        try:
+            import folium
+            from streamlit_folium import st_folium
+            m=folium.Map(location=[st.session_state.map_lat, st.session_state.map_lon], zoom_start=15)
+            for idx_p, p in enumerate(st.session_state.postazioni):
+                try:
+                    lat_f=float(p.get('Latitudine')); lon_f=float(p.get('Longitudine')); logo_nome=p.get('Icona',''); b64=trova_b64_logo(logo_nome, st.session_state.icone_lib)
+                    if b64:
+                        tmp_path=salva_icona_temp(b64, f"sel_{logo_nome}_{idx_p}")
+                        if tmp_path:
+                            icon=folium.CustomIcon(tmp_path, icon_size=(15,15))
+                            folium.Marker([lat_f, lon_f], popup=f"{p.get('Postazione','')}", icon=icon).add_to(m)
+                    else:
+                        folium.Marker([lat_f, lon_f], icon=folium.Icon(color="green")).add_to(m)
+                except:
+                    pass
+            map_data=st_folium(m,width=700,height=400,key="mappa_sel")
+            if map_data and map_data.get("last_clicked"):
+                lat_c=map_data["last_clicked"]["lat"]; lon_c=map_data["last_clicked"]["lng"]
+                st.session_state.map_lat=lat_c; st.session_state.map_lon=lon_c
+                via_auto, comune_auto=reverse_geocode(lat_c, lon_c)
+                st.session_state.map_via=via_auto or f"{lat_c:.6f},{lon_c:.6f}"
+                if comune_auto: st.session_state.map_comune=comune_auto
