@@ -15,8 +15,9 @@ st.markdown("""
 .block-container{
  background:white!important;
  border-radius:18px;
- padding:20px!important;
- padding-bottom:95px!important;
+ padding:15px!important;
+ padding-top:10px!important;
+ padding-bottom:80px!important;
 }
 [data-testid="stSidebar"]{
  background:#a5d6a7!important;
@@ -26,13 +27,19 @@ st.markdown("""
  background:#c8e6c9!important;
  border:3px solid #2e7d32!important;
  border-radius:15px!important;
+ margin-top:10px!important;
+}
+label{
+ margin-top:8px!important;
+ padding-top:5px!important;
 }
 .stButton>button{
  background:#2e7d32!important;
  color:white!important;
  font-weight:bold!important;
- min-height:50px!important;
+ min-height:45px!important;
  border-radius:10px!important;
+ margin-top:10px!important;
 }
 .foot{
  position:fixed;
@@ -148,11 +155,11 @@ if not st.session_state.utenti:
 def header():
  b=get_b64("logo.png")
  if b:
-  h="<div style='text-align:center;background:#a5d6a7;padding:15px;border-radius:15px;border:3px solid #2e7d32;'><img src='data:image/png;base64,"+b+"' style='width:80px;border-radius:50%;'><h2 style='color:#0e7a3d;'>VOLONTARIATO Varese</h2></div>"
+  h="<div style='text-align:center;background:#a5d6a7;padding:10px;border-radius:15px;border:3px solid #2e7d32;'><img src='data:image/png;base64,"+b+"' style='width:60px;border-radius:50%;'><h3 style='color:#0e7a3d;margin:5px;'>VOLONTARIATO Varese</h3></div>"
   st.markdown(h,unsafe_allow_html=True)
  else:
   st.markdown(
-   "<h2 style='text-align:center;color:green;'>VOLONTARIATO Varese</h2>",
+   "<h3 style='text-align:center;color:green;'>VOLONTARIATO Varese</h3>",
    unsafe_allow_html=True
   )
 
@@ -185,7 +192,6 @@ if not st.session_state.auth:
  st.stop()
 
 header()
-st.divider()
 
 with st.sidebar:
  if os.path.exists("logo.png"):
@@ -214,8 +220,8 @@ scelta=st.session_state.menu
 
 # DASHBOARD CON TUTTI I TASTI
 if scelta=="Dashboard":
- st.markdown("## DASHBOARD")
- st.success("Verde OK - Tutti i tasti")
+ st.markdown("### DASHBOARD")
+ st.success("Tutto OK")
 
  c1,c2,c3=st.columns(3)
  with c1:
@@ -261,12 +267,10 @@ if scelta=="Dashboard":
 
  footer()
 
-# VOLONTARI CON DESCRIZIONE NON NUMERI
+# VOLONTARI CON DESCRIZIONE
 elif scelta=="Volontari":
  torna()
- st.markdown("## VOLONTARI")
-
- # DESCRIZIONE NON NUMERI
+ st.markdown("### VOLONTARI")
  t1,t2,t3,t4,t5=st.tabs([
   "Anagrafica",
   "Residenza",
@@ -278,64 +282,52 @@ elif scelta=="Volontari":
  with t1:
   with st.form("f1"):
    st.markdown("**Anagrafica**")
-   a1=st.text_input("Nome *",key="a1")
-   a2=st.text_input("Cognome *",key="a2")
-   a3=st.text_input("CF",key="a3")
-   a4=st.date_input("Nascita",value=date(1980,1,1),key="a4")
-   a5=st.text_input("Luogo nascita",key="a5")
+   a1=st.text_input("Nome *")
+   a2=st.text_input("Cognome *")
+   a3=st.text_input("CF")
+   a4=st.date_input("Nascita",value=date(1980,1,1))
    if st.form_submit_button("SALVA ANAGRAFICA"):
     st.session_state.s1_nome=a1
     st.session_state.s1_cogn=a2
-    st.session_state.s1_cf=a3
     st.session_state.s1_dn=str(a4)
-    st.session_state.s1_luogo=a5
     st.success("OK Anagrafica")
 
  with t2:
   with st.form("f2"):
-   st.markdown("**Residenza e Contatti**")
-   b1=st.text_input("Via *",key="b1")
-   b2=st.text_input("Comune *",value="Varese",key="b2")
-   b3=st.text_input("Prov",value="VA",key="b2b")
-   b4=st.text_input("Cell *",key="b3")
-   b5=st.text_input("Email",key="b4")
+   st.markdown("**Residenza**")
+   b1=st.text_input("Via *")
+   b2=st.text_input("Comune *",value="Varese")
+   b3=st.text_input("Cell *")
    if st.form_submit_button("SALVA RESIDENZA"):
     st.session_state.s2_via=b1
     st.session_state.s2_com=b2
-    st.session_state.s2_cell=b4
-    st.session_state.s2_mail=b5
+    st.session_state.s2_cell=b3
     st.success("OK Residenza")
 
  with t3:
   with st.form("f3"):
    st.markdown("**Tesseramento**")
-   c1x=st.text_input("N. Tessera",key="c1")
-   c2x=st.date_input("Scadenza",value=date(2026,12,31),key="c2")
-   c3x=st.text_input("Ruolo",value="Volontario",key="c3")
-   c4x=st.text_input("Sezione",value="Varese",key="c4")
+   c1x=st.text_input("Tessera")
+   c2x=st.text_input("Ruolo",value="Volontario")
    if st.form_submit_button("SALVA TESSERAMENTO"):
     st.session_state.s3_tess=c1x
-    st.session_state.s3_ruolo=c3x
+    st.session_state.s3_ruolo=c2x
     st.success("OK Tesseramento")
 
  with t4:
   with st.form("f4"):
-   st.markdown("**Abilita e Patenti**")
-   d1=st.text_input("Patenti",value="B",key="d1")
-   d2=st.text_input("Corso base",value="Si",key="d2")
-   d3=st.text_input("Specializ",key="d3")
-   d4=st.text_input("Altro",key="d4")
+   st.markdown("**Abilita**")
+   d1=st.text_input("Patenti",value="B")
+   d2=st.text_input("Corso base",value="Si")
    if st.form_submit_button("SALVA ABILITA"):
     st.session_state.s4_pat=d1
-    st.session_state.s4_base=d2
     st.success("OK Abilita")
 
  with t5:
   with st.form("f5"):
-   st.markdown("**Note e Salvataggio Finale**")
-   e1=st.text_input("Note brevi",key="e1")
-   e2=st.text_area("Note estese",key="e2")
-   btn=st.form_submit_button("SALVA VOLONTARIO COMPLETO")
+   st.markdown("**Note e Salvataggio**")
+   e2=st.text_area("Note")
+   btn=st.form_submit_button("SALVA VOLONTARIO")
    if btn:
     nome=st.session_state.get("s1_nome","")
     cogn=st.session_state.get("s1_cogn","")
@@ -351,33 +343,31 @@ elif scelta=="Volontari":
      nuovo["Note"]=e2
      st.session_state.dati.append(nuovo)
      save_json(FD,st.session_state.dati)
-     st.success("Volontario salvato")
+     st.success("Salvato")
      st.rerun()
-    else:
-     st.error("Manca nome o cell")
 
  if st.session_state.dati:
   st.dataframe(pd.DataFrame(st.session_state.dati))
 
-# MAPPA CON ANTEPRIMA E SELEZIONE MAPPA
+# MAPPA CON ANTEPRIMA PER INSERIMENTO E VISIONE
 elif scelta=="Mappa":
  torna()
- st.markdown("## MAPPA POSTAZIONI")
+ st.markdown("### MAPPA POSTAZIONI")
 
- st.markdown("### SELEZIONE TIPO MAPPA")
+ # SELEZIONE MAPPA
  tipo_mappa=st.selectbox(
   "Scegli mappa",
-  ["OSM Standard","Satellite","Terreno","Tutte postazioni"],
+  ["OSM Standard","Satellite","Terreno","Tutte"],
   key="tipo_mappa"
  )
- st.info("Tipo selezionato: "+tipo_mappa)
 
- # ANTEPRIMA MAPPA PER INSERIMENTO MANUALE
- st.markdown("### 1 - ANTEPRIMA MAPPA PER INSERIMENTO MANUALE")
+ # 1 - ANTEPRIMA MAPPA PER INSERIRE MANUALMENTE
+ st.markdown("#### 1 - ANTEPRIMA MAPPA PER INSERIRE")
+ st.info("Mappa per inserire posizione manuale")
 
  col_a,col_b=st.columns([2,1])
  with col_a:
-  st.markdown("**Anteprima mappa**")
+  st.markdown("**Anteprima mappa inserimento**")
   lat_man=st.number_input(
    "Lat",
    value=float(st.session_state.lat_tmp),
@@ -394,39 +384,40 @@ elif scelta=="Mappa":
   st.session_state.lon_tmp=lon_man
   df_ante=pd.DataFrame({"lat":[lat_man],"lon":[lon_man]})
   st.map(df_ante,zoom=14)
-  st.caption("Anteprima - dentro form - manuale")
+  st.caption("Anteprima posizione - vedi mappa")
 
  with col_b:
   st.markdown("**Istruzioni**")
   st.write("1 - Scrivi Lat/Lon")
-  st.write("2 - Vedi mappa")
+  st.write("2 - Vedi mappa qui")
   st.write("3 - Salva sotto")
-  cerca=st.text_input("Cerca",value="Varese",key="cerca_map")
+  cerca=st.text_input("Cerca",value="Varese")
   if st.button("CENTRA VARESE"):
    st.session_state.lat_tmp=45.8205
    st.session_state.lon_tmp=8.8250
    st.rerun()
-  st.markdown("**Tipo mappa**")
-  st.write(tipo_mappa)
+  st.write("Tipo: "+tipo_mappa)
 
  st.divider()
- st.markdown("### 2 - INSERIMENTO MANUALE POSTAZIONE")
+
+ # 2 - INSERIMENTO MANUALE CON MAPPA DENTRO FORM
+ st.markdown("#### 2 - INSERIMENTO MANUALE")
 
  with st.form("form_mappa"):
   c1,c2=st.columns(2)
   with c1:
-   m1=st.text_input("Nome *",key="m1")
-   m2=st.text_input("Comune *",value="Varese",key="m2")
-   m3=st.text_input("Via *",key="m3")
-   m7=st.text_input("Tipo",value="Presidio",key="m7")
+   m1=st.text_input("Nome postazione *")
+   m2=st.text_input("Comune *",value="Varese")
+   m3=st.text_input("Via *")
+   m7=st.text_input("Tipo",value="Presidio")
   with c2:
-   m5=st.text_input("Lat",value=str(st.session_state.lat_tmp),key="m5")
-   m6=st.text_input("Lon",value=str(st.session_state.lon_tmp),key="m6")
-   m8=st.text_input("Resp",key="m8")
-   m9=st.text_area("Note",key="m9")
+   m5=st.text_input("Lat",value=str(st.session_state.lat_tmp))
+   m6=st.text_input("Lon",value=str(st.session_state.lon_tmp))
+   m8=st.text_input("Resp")
+   m9=st.text_area("Note")
 
   st.markdown("**Icona**")
-  icona=st.file_uploader("Icona PNG/JPG",type=["png","jpg","jpeg"],key="icona_map")
+  icona=st.file_uploader("Icona",type=["png","jpg","jpeg"])
   nome_icona=""
   if icona:
    nome_icona=icona.name
@@ -439,7 +430,7 @@ elif scelta=="Mappa":
    df_form=pd.DataFrame({"lat":[lat_f],"lon":[lon_f]})
    st.map(df_form)
   except:
-   st.info("Inserisci Lat Lon validi")
+   st.info("Inserisci Lat Lon")
 
   ok=st.form_submit_button("SALVA POSTAZIONE")
   if ok and m1:
@@ -458,7 +449,10 @@ elif scelta=="Mappa":
    st.rerun()
 
  st.divider()
- st.markdown("### 3 - MAPPA CON TUTTE LE POSTAZIONI")
+
+ # 3 - MAPPA CHE VISIONA POSTAZIONI
+ st.markdown("#### 3 - MAPPA CHE VISIONA POSTAZIONI")
+ st.info("Mappa che visionava le postazioni come stamattina")
 
  if st.session_state.post:
   try:
@@ -472,39 +466,23 @@ elif scelta=="Mappa":
   except:
    pass
   st.dataframe(pd.DataFrame(st.session_state.post))
-  # Link mappe come stamattina
-  for p in st.session_state.post:
-   lat=p.get("Lat","45.8205")
-   lon=p.get("Lon","8.8250")
-   nome=p.get("Postazione","Post")
-   st.write("**"+nome+"**")
-   c1,c2,c3=st.columns(3)
-   with c1:
-    osm="https://www.openstreetmap.org/?mlat="+lat+"&mlon="+lon
-    st.link_button("OSM",osm)
-   with c2:
-    gmap="https://www.google.com/maps?q="+lat+","+lon
-    st.link_button("Google",gmap)
-   with c3:
-    waze="https://waze.com/ul?ll="+lat+","+lon
-    st.link_button("Waze",waze)
  else:
   df_def=pd.DataFrame({"lat":[45.8205],"lon":[8.8250]})
   st.map(df_def)
-  st.info("Mappa Varese - inserisci postazioni")
+  st.info("Mappa Varese - inserisci postazioni sopra")
 
 elif scelta=="Check":
  torna()
- st.markdown("## CHECK-IN")
+ st.markdown("### CHECK-IN")
  with st.form("form_check"):
   nomi=[d.get("Nome","") for d in st.session_state.dati]
   if not nomi:
    nomi=["Nessun volontario"]
-  ch1=st.selectbox("Vol",nomi,key="ch1")
-  ch2=st.text_input("Post",key="ch2")
-  ch3=st.time_input("Ora",value=datetime.now().time(),key="ch3")
-  ch4=st.date_input("Data",value=date.today(),key="ch4")
-  ch7=st.text_area("Note",key="ch7")
+  ch1=st.selectbox("Vol",nomi)
+  ch2=st.text_input("Post")
+  ch3=st.time_input("Ora",value=datetime.now().time())
+  ch4=st.date_input("Data",value=date.today())
+  ch7=st.text_area("Note")
   ok=st.form_submit_button("SALVA")
   if ok:
    nuovo={}
@@ -522,13 +500,13 @@ elif scelta=="Check":
 
 elif scelta=="Brogliaccio":
  torna()
- st.markdown("## BROGLIACCIO")
+ st.markdown("### BROGLIACCIO")
  with st.form("form_brog"):
-  b1=st.text_input("Mitt *",key="br1")
-  b2=st.text_input("Dest *",key="br2")
-  b7=st.text_area("Mess *",key="br7")
-  b4=st.time_input("Ora",value=datetime.now().time(),key="br4")
-  b5=st.date_input("Data",value=date.today(),key="br5")
+  b1=st.text_input("Mitt *")
+  b2=st.text_input("Dest *")
+  b7=st.text_area("Mess *")
+  b4=st.time_input("Ora",value=datetime.now().time())
+  b5=st.date_input("Data",value=date.today())
   ok=st.form_submit_button("SALVA")
   if ok and b1 and b7:
    nuovo={}
@@ -546,18 +524,18 @@ elif scelta=="Brogliaccio":
 
 elif scelta=="Consegna":
  torna()
- st.markdown("## CONSEGNA RADIO")
+ st.markdown("### CONSEGNA RADIO")
  with st.form("form_consegna"):
   ids=[r.get("ID","") for r in st.session_state.radio]
   if not ids:
    ids=["RADIO-01"]
-  co1=st.selectbox("ID Radio",ids,key="co1")
+  co1=st.selectbox("ID Radio",ids)
   nomi=[d.get("Nome","") for d in st.session_state.dati]
   if not nomi:
    nomi=["Nessun volontario"]
-  co2=st.selectbox("A",nomi,key="co2")
-  co3=st.date_input("Data",value=date.today(),key="co3")
-  co4=st.time_input("Ora",value=datetime.now().time(),key="co4")
+  co2=st.selectbox("A",nomi)
+  co3=st.date_input("Data",value=date.today())
+  co4=st.time_input("Ora",value=datetime.now().time())
   ok=st.form_submit_button("SALVA")
   if ok:
    nuovo={}
@@ -574,7 +552,7 @@ elif scelta=="Consegna":
 
 elif scelta=="Eventi":
  torna()
- st.markdown("## EVENTI")
+ st.markdown("### EVENTI")
  with st.form("form_ev"):
   e1=st.text_input("Nome *")
   e2=st.date_input("Data",value=date.today())
@@ -596,7 +574,7 @@ elif scelta=="Eventi":
 
 elif scelta=="Radio":
  torna()
- st.markdown("## RADIO")
+ st.markdown("### RADIO")
  with st.form("form_ra"):
   r1=st.text_input("ID *")
   r2=st.text_input("Modello *")
@@ -616,7 +594,7 @@ elif scelta=="Radio":
 
 elif scelta=="Emergenze":
  torna()
- st.markdown("## EMERGENZE")
+ st.markdown("### EMERGENZE")
  with st.form("form_em"):
   em1=st.text_input("Tipo",value="Alluvione")
   em2=st.text_input("Comune",value="Varese")
@@ -640,9 +618,7 @@ elif scelta=="Emergenze":
 
 elif scelta=="Backup":
  torna()
- st.markdown("## BACKUP - SCEGLI DATI")
-
- st.markdown("### EXPORT")
+ st.markdown("### BACKUP - SCEGLI DATI")
  c1,c2=st.columns(2)
  with c1:
   exp_vol=st.checkbox("Volontari",value=True)
