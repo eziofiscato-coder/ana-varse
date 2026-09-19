@@ -1,61 +1,95 @@
-﻿import streamlit as st
+import streamlit as st
 import pandas as pd
 from datetime import date, datetime
 from io import BytesIO
 import os, json, base64, hashlib
 
-st.set_page_config(page_title="ANA Varese", layout="wide")
+st.set_page_config(
+ page_title="ANA Varese",
+ layout="wide"
+)
 
 st.markdown("""
 <style>
 .stApp{background:#e8f5e9!important;}
-.block-container{background:white!important;border-radius:18px;padding:20px!important;padding-bottom:95px!important;}
-[data-testid="stSidebar"]{background:#a5d6a7!important;border-right:4px solid #2e7d32!important;}
-.stForm{background:#c8e6c9!important;border:3px solid #2e7d32!important;border-radius:15px!important;}
-.stButton>button{background:#2e7d32!important;color:white!important;font-weight:bold!important;min-height:50px!important;border-radius:10px!important;}
-.foot{position:fixed;bottom:5px;left:10px;background:white;border:2px solid #2e7d32;border-radius:12px;padding:5px 12px;display:flex;align-items:center;gap:8px;z-index:9999;}
-.foot img{width:45px;height:45px;border-radius:50%;border:2px solid #2e7d32;}
-.foot span{font-size:13px;font-weight:bold;color:#2e7d32;}
+.block-container{
+ background:white!important;
+ border-radius:18px;
+ padding:20px!important;
+ padding-bottom:95px!important;
+}
+[data-testid="stSidebar"]{
+ background:#a5d6a7!important;
+ border-right:4px solid #2e7d32!important;
+}
+.stForm{
+ background:#c8e6c9!important;
+ border:3px solid #2e7d32!important;
+ border-radius:15px!important;
+}
+.stButton>button{
+ background:#2e7d32!important;
+ color:white!important;
+ font-weight:bold!important;
+ min-height:50px!important;
+ border-radius:10px!important;
+}
+.foot{
+ position:fixed;
+ bottom:5px;
+ left:10px;
+ background:white;
+ border:2px solid #2e7d32;
+ border-radius:12px;
+ padding:5px 12px;
+ display:flex;
+ align-items:center;
+ gap:8px;
+ z-index:9999;
+}
 </style>
 """, unsafe_allow_html=True)
 
 def load_json(f,d):
-    try:
-        if os.path.exists(f):
-            with open(f,"r",encoding="utf-8") as fh:
-                return json.load(fh)
-    except:
-        pass
-    return d
+ try:
+  if os.path.exists(f):
+   with open(f,"r",encoding="utf-8") as fh:
+    return json.load(fh)
+ except:
+  pass
+ return d
 
 def save_json(f,d):
-    try:
-        with open(f,"w",encoding="utf-8") as fh:
-            json.dump(d,fh,indent=2)
-    except:
-        pass
+ try:
+  with open(f,"w",encoding="utf-8") as fh:
+   json.dump(d,fh,indent=2)
+ except:
+  pass
 
 def get_b64(p):
-    try:
-        if os.path.exists(p):
-            with open(p,"rb") as f:
-                return base64.b64encode(f.read()).decode()
-    except:
-        pass
-    return ""
+ try:
+  if os.path.exists(p):
+   with open(p,"rb") as f:
+    return base64.b64encode(f.read()).decode()
+ except:
+  pass
+ return ""
 
 def hash_pwd(p):
-    return hashlib.sha256(p.encode()).hexdigest()
+ return hashlib.sha256(p.encode()).hexdigest()
 
 def footer():
-    b=get_b64("ezio.png")
-    if not b:
-        b=get_b64("logo.png")
-    if b:
-        img="<img src='data:image/png;base64,"+b+"'>"
-    else:
-        img="<div style='width:45px;height:45px;background:#2e7d32;border-radius:50%;'></div>"
-    st.markdown("<div class='foot'>"+img+"<span>by Ezio F. 2026</span></div>",unsafe_allow_html=True)
+ b=get_b64("ezio.png")
+ if not b:
+  b=get_b64("logo.png")
+ if b:
+  img="<img src='data:image/png;base64,"+b+"'>"
+ else:
+  img="<div style='width:45px;height:45px;background:#2e7d32;border-radius:50%;'></div>"
+ st.markdown(
+  "<div class='foot'>"+img+"<span>by Ezio F. 2026</span></div>",
+  unsafe_allow_html=True
+ )
 
 FD="dati.json"
 FU="utenti.json"
@@ -66,36 +100,29 @@ FC="check.json"
 FB="brog.json"
 FO="consegna.json"
 FM="emerg.json"
-FI="icone.json"
 
 if "dati" not in st.session_state:
-    st.session_state.dati=[]
+ st.session_state.dati=[]
 if "post" not in st.session_state:
-    st.session_state.post=[]
+ st.session_state.post=[]
 if "eventi" not in st.session_state:
-    st.session_state.eventi=[]
+ st.session_state.eventi=[]
 if "radio" not in st.session_state:
-    st.session_state.radio=[]
+ st.session_state.radio=[]
 if "check" not in st.session_state:
-    st.session_state.check=[]
+ st.session_state.check=[]
 if "brog" not in st.session_state:
-    st.session_state.brog=[]
+ st.session_state.brog=[]
 if "consegna" not in st.session_state:
-    st.session_state.consegna=[]
+ st.session_state.consegna=[]
 if "emerg" not in st.session_state:
-    st.session_state.emerg=[]
-if "icone" not in st.session_state:
-    st.session_state.icone={}
+ st.session_state.emerg=[]
 if "utenti" not in st.session_state:
-    st.session_state.utenti=[]
+ st.session_state.utenti=[]
 if "menu" not in st.session_state:
-    st.session_state.menu="Dashboard"
+ st.session_state.menu="Dashboard"
 if "auth" not in st.session_state:
-    st.session_state.auth=False
-if "lat_tmp" not in st.session_state:
-    st.session_state.lat_tmp=45.8205
-if "lon_tmp" not in st.session_state:
-    st.session_state.lon_tmp=8.8250
+ st.session_state.auth=False
 
 st.session_state.dati=load_json(FD,[])
 st.session_state.utenti=load_json(FU,[])
@@ -106,439 +133,486 @@ st.session_state.check=load_json(FC,[])
 st.session_state.brog=load_json(FB,[])
 st.session_state.consegna=load_json(FO,[])
 st.session_state.emerg=load_json(FM,[])
-st.session_state.icone=load_json(FI,{})
 
 if not st.session_state.utenti:
-    st.session_state.utenti=[
-        {"username":"admin","password":hash_pwd("ana2024")},
-        {"username":"utente","password":hash_pwd("utente2024")}
-    ]
-    save_json(FU,st.session_state.utenti)
+ st.session_state.utenti=[
+  {"username":"admin","password":hash_pwd("ana2024")},
+  {"username":"utente","password":hash_pwd("utente2024")}
+ ]
+ save_json(FU,st.session_state.utenti)
 
 def header():
-    b=get_b64("logo.png")
-    if b:
-        h="<div style='text-align:center;background:#a5d6a7;padding:15px;border-radius:15px;border:3px solid #2e7d32;'><img src='data:image/png;base64,"+b+"' style='width:80px;border-radius:50%;'><h2 style='color:#0e7a3d;'>VOLONTARIATO Varese</h2></div>"
-        st.markdown(h,unsafe_allow_html=True)
-    else:
-        st.markdown("<h2 style='text-align:center;color:green;'>VOLONTARIATO Varese</h2>",unsafe_allow_html=True)
+ b=get_b64("logo.png")
+ if b:
+  h="<div style='text-align:center;background:#a5d6a7;padding:15px;border-radius:15px;border:3px solid #2e7d32;'><img src='data:image/png;base64,"+b+"' style='width:80px;border-radius:50%;'><h2 style='color:#0e7a3d;'>VOLONTARIATO Varese</h2></div>"
+  st.markdown(h,unsafe_allow_html=True)
+ else:
+  st.markdown(
+   "<h2 style='text-align:center;color:green;'>VOLONTARIATO Varese</h2>",
+   unsafe_allow_html=True
+  )
 
 def torna():
-    if st.button("TORNA"):
-        st.session_state.menu="Dashboard"
-        st.rerun()
+ if st.button("TORNA"):
+  st.session_state.menu="Dashboard"
+  st.rerun()
 
 if not st.session_state.auth:
-    header()
-    st.markdown("## LOGIN")
-    c1,c2,c3=st.columns([1,2,1])
-    with c2:
-        with st.form("login"):
-            u=st.text_input("Username",value="admin")
-            p=st.text_input("Password",type="password",value="ana2024")
-            ok=st.form_submit_button("ACCEDI")
-            if ok:
-                ph=hash_pwd(p)
-                trov=None
-                for ut in st.session_state.utenti:
-                    if ut["username"]==u and ut["password"]==ph:
-                        trov=ut
-                if trov:
-                    st.session_state.auth=True
-                    st.rerun()
-                else:
-                    st.error("Errati")
-    footer()
-    st.stop()
+ header()
+ st.markdown("## LOGIN")
+ c1,c2,c3=st.columns([1,2,1])
+ with c2:
+  with st.form("login"):
+   u=st.text_input("Username",value="admin")
+   p=st.text_input("Password",type="password",value="ana2024")
+   ok=st.form_submit_button("ACCEDI")
+   if ok:
+    ph=hash_pwd(p)
+    trov=None
+    for ut in st.session_state.utenti:
+     if ut["username"]==u and ut["password"]==ph:
+      trov=ut
+    if trov:
+     st.session_state.auth=True
+     st.rerun()
+    else:
+     st.error("Errati")
+ footer()
+ st.stop()
 
 header()
 st.divider()
 
 with st.sidebar:
-    if os.path.exists("logo.png"):
-        st.image("logo.png",width=80)
-    opts=["Dashboard","Volontari","Mappa","Eventi","Radio","Check","Brogliaccio","Consegna","Emergenze","Backup"]
-    sel=st.radio("Vai a",opts,index=0)
-    if sel!=st.session_state.menu:
-        st.session_state.menu=sel
-        st.rerun()
-    if st.button("LOGOUT"):
-        st.session_state.auth=False
-        st.rerun()
+ if os.path.exists("logo.png"):
+  st.image("logo.png",width=80)
+ opts=[
+  "Dashboard",
+  "Volontari",
+  "Mappa",
+  "Eventi",
+  "Radio",
+  "Check",
+  "Brogliaccio",
+  "Consegna",
+  "Emergenze",
+  "Backup"
+ ]
+ sel=st.radio("Vai a",opts,index=0)
+ if sel!=st.session_state.menu:
+  st.session_state.menu=sel
+  st.rerun()
+ if st.button("LOGOUT"):
+  st.session_state.auth=False
+  st.rerun()
 
 scelta=st.session_state.menu
 
 if scelta=="Dashboard":
-    st.markdown("## DASHBOARD")
-    st.success("Mappe dentro form OK")
-    if st.button("VOLONTARI"):
-        st.session_state.menu="Volontari"
-        st.rerun()
-    if st.button("MAPPA"):
-        st.session_state.menu="Mappa"
-        st.rerun()
-    if st.button("CHECK"):
-        st.session_state.menu="Check"
-        st.rerun()
-    if st.button("BACKUP"):
-        st.session_state.menu="Backup"
-        st.rerun()
-    footer()
+ st.markdown("## DASHBOARD")
+ st.success("Verde OK")
+ if st.button("VOLONTARI"):
+  st.session_state.menu="Volontari"
+  st.rerun()
+ if st.button("MAPPA"):
+  st.session_state.menu="Mappa"
+  st.rerun()
+ if st.button("BACKUP"):
+  st.session_state.menu="Backup"
+  st.rerun()
+ footer()
 
 elif scelta=="Volontari":
-    torna()
-    st.markdown("## VOLONTARI - 5 MASCHERE")
-    t1,t2,t3,t4,t5=st.tabs(["1","2","3","4","5"])
-    with t1:
-        with st.form("f1"):
-            a1=st.text_input("Nome *")
-            a2=st.text_input("Cognome *")
-            a4=st.date_input("Nascita",value=date(1980,1,1))
-            if st.form_submit_button("SALVA"):
-                st.session_state.s1_nome=a1
-                st.session_state.s1_cogn=a2
-                st.session_state.s1_dn=str(a4)
-                st.success("OK 1")
-    with t2:
-        with st.form("f2"):
-            b1=st.text_input("Via *")
-            b2=st.text_input("Comune *",value="Varese")
-            b3=st.text_input("Cell *")
-            if st.form_submit_button("SALVA"):
-                st.session_state.s2_via=b1
-                st.session_state.s2_com=b2
-                st.session_state.s2_cell=b3
-                st.success("OK 2")
-    with t3:
-        with st.form("f3"):
-            c1x=st.text_input("Tessera")
-            c2x=st.text_input("Ruolo",value="Volontario")
-            if st.form_submit_button("SALVA"):
-                st.session_state.s3_tess=c1x
-                st.session_state.s3_ruolo=c2x
-                st.success("OK 3")
-    with t4:
-        with st.form("f4"):
-            d1=st.text_input("Patenti",value="B")
-            d2=st.text_input("Base",value="Si")
-            if st.form_submit_button("SALVA"):
-                st.session_state.s4_pat=d1
-                st.success("OK 4")
-    with t5:
-        with st.form("f5"):
-            e2=st.text_area("Note")
-            btn=st.form_submit_button("SALVA")
-            if btn:
-                nome=st.session_state.get("s1_nome","")
-                cogn=st.session_state.get("s1_cogn","")
-                cell=st.session_state.get("s2_cell","")
-                com=st.session_state.get("s2_com","")
-                ruolo=st.session_state.get("s3_ruolo","")
-                if nome and cell:
-                    r=dict(Nome=nome+" "+cogn,Cell=cell,Comune=com,Ruolo=ruolo,Note=e2)
-                    st.session_state.dati.append(r)
-                    save_json(FD,st.session_state.dati)
-                    st.success("OK")
-                    st.rerun()
-    if st.session_state.dati:
-        st.dataframe(pd.DataFrame(st.session_state.dati))
+ torna()
+ st.markdown("## VOLONTARI")
+ t1,t2,t3,t4,t5=st.tabs(["1","2","3","4","5"])
+ with t1:
+  with st.form("f1"):
+   a1=st.text_input("Nome *",key="a1")
+   a2=st.text_input("Cognome *",key="a2")
+   a3=st.text_input("CF",key="a3")
+   a4=st.date_input("Nascita",value=date(1980,1,1),key="a4")
+   if st.form_submit_button("SALVA"):
+    st.session_state.s1_nome=a1
+    st.session_state.s1_cogn=a2
+    st.session_state.s1_dn=str(a4)
+    st.success("OK 1")
+ with t2:
+  with st.form("f2"):
+   b1=st.text_input("Via *",key="b1")
+   b2=st.text_input("Comune *",value="Varese",key="b2")
+   b3=st.text_input("Cell *",key="b3")
+   if st.form_submit_button("SALVA"):
+    st.session_state.s2_via=b1
+    st.session_state.s2_com=b2
+    st.session_state.s2_cell=b3
+    st.success("OK 2")
+ with t3:
+  with st.form("f3"):
+   c1x=st.text_input("Tessera",key="c1")
+   c2x=st.text_input("Ruolo",value="Volontario",key="c3")
+   if st.form_submit_button("SALVA"):
+    st.session_state.s3_tess=c1x
+    st.session_state.s3_ruolo=c2x
+    st.success("OK 3")
+ with t4:
+  with st.form("f4"):
+   d1=st.text_input("Patenti",value="B",key="d1")
+   d2=st.text_input("Base",value="Si",key="d2")
+   if st.form_submit_button("SALVA"):
+    st.session_state.s4_pat=d1
+    st.success("OK 4")
+ with t5:
+  with st.form("f5"):
+   e2=st.text_area("Note",key="e2")
+   btn=st.form_submit_button("SALVA COMPLETO")
+   if btn:
+    nome=st.session_state.get("s1_nome","")
+    cogn=st.session_state.get("s1_cogn","")
+    cell=st.session_state.get("s2_cell","")
+    com=st.session_state.get("s2_com","")
+    ruolo=st.session_state.get("s3_ruolo","")
+    if nome and cell:
+     nuovo={}
+     nuovo["Nome"]=nome+" "+cogn
+     nuovo["Cell"]=cell
+     nuovo["Comune"]=com
+     nuovo["Ruolo"]=ruolo
+     nuovo["Note"]=e2
+     st.session_state.dati.append(nuovo)
+     save_json(FD,st.session_state.dati)
+     st.success("OK")
+     st.rerun()
+ if st.session_state.dati:
+  st.dataframe(pd.DataFrame(st.session_state.dati))
 
+# MAPPA CON MAPPA NEL FORM
 elif scelta=="Mappa":
-    torna()
-    st.markdown("## MAPPA POSTAZIONI - MAPPE DENTRO FORM")
+ torna()
+ st.markdown("## MAPPA POSTAZIONI")
 
-    # 1 - MAPPA EMBEDDATA PER INSERIRE - DENTRO FORM COME STAMATTINA
-    st.markdown("### 1 - MAPPA PER INSERIRE POSTAZIONE")
-    st.info("Anteprima mappa embeddata nel form")
+ # ANTEPRIMA MAPPA SEMPRE VISIBILE
+ st.markdown("### ANTEPRIMA MAPPA")
 
-    # Anteprima mappa fuori dal form - si vede sempre dentro form
-    col1,col2=st.columns([2,1])
-    with col1:
-        st.markdown("**Anteprima mappa inserimento**")
-        lat_in=st.number_input("Lat",value=float(st.session_state.lat_tmp),format="%.6f")
-        lon_in=st.number_input("Lon",value=float(st.session_state.lon_tmp),format="%.6f")
-        st.session_state.lat_tmp=lat_in
-        st.session_state.lon_tmp=lon_in
-        df_tmp=pd.DataFrame(dict(lat=[lat_in],lon=[lon_in]))
-        st.map(df_tmp,zoom=14)
-        st.caption("Mappa embeddata - sposta Lat/Lon")
+ if st.session_state.post:
+  try:
+   df_all=pd.DataFrame(st.session_state.post)
+   df_all["lat"]=pd.to_numeric(df_all["Lat"],errors="coerce")
+   df_all["lon"]=pd.to_numeric(df_all["Lon"],errors="coerce")
+   df_all=df_all.dropna(subset=["lat","lon"])
+   if not df_all.empty:
+    st.map(df_all[["lat","lon"]])
+   else:
+    st.info("Nessuna coord valida")
+  except Exception as e:
+   st.warning(str(e))
+ else:
+  df_def=pd.DataFrame({"lat":[45.8205],"lon":[8.8250]})
+  st.map(df_def)
+  st.info("Mappa Varese")
 
-    with col2:
-        st.markdown("**Dati rapidi**")
-        cerca=st.text_input("Cerca",value="Varese")
-        st.write("Sposta Lat/Lon")
-        st.write("Vedi mappa dentro form")
-        st.write("Poi salva sotto")
+ st.divider()
 
-    # 2 - FORM DATI + LOGO - CON MAPPA DENTRO
-    st.markdown("### 2 - INSERIMENTO MANUALE + LOGO")
-    with st.form("form_mappa"):
-        c1,c2=st.columns(2)
-        with c1:
-            m1=st.text_input("Nome Postazione *")
-            m2=st.text_input("Comune *",value="Varese")
-            m3=st.text_input("Via *")
-            m7=st.text_input("Tipo",value="Presidio")
-        with c2:
-            m5=st.text_input("Lat",value=str(st.session_state.lat_tmp))
-            m6=st.text_input("Lon",value=str(st.session_state.lon_tmp))
-            m8=st.text_input("Resp")
-        m9=st.text_area("Note")
-        icona=st.file_uploader("Logo Postazione",type=["png","jpg","jpeg"])
-        nome_icona=""
-        b64_icona=""
-        if icona:
-            nome_icona=icona.name
-            b64_icona=base64.b64encode(icona.read()).decode()
-            st.image(BytesIO(base64.b64decode(b64_icona)),width=120)
-            st.success("Logo OK")
-        ok=st.form_submit_button("SALVA CON LOGO")
-        if ok and m1:
-            r=dict(Postazione=m1,Comune=m2,Via=m3,Lat=m5,Lon=m6,Tipo=m7,Icona=nome_icona)
-            st.session_state.post.append(r)
-            if b64_icona:
-                st.session_state.icone=b64_icona
-                save_json(FI,st.session_state.icone)
-            save_json(FP,st.session_state.post)
-            st.success("Salvata")
-            st.rerun()
+ # FORM CON MAPPA DENTRO
+ st.markdown("### INSERIMENTO - CON MAPPA NEL FORM")
 
-    # 3 - ANTEPRIMA MAPPE CON LOGHI DENTRO FORM - NON LINK
-    if st.session_state.post:
-        st.divider()
-        st.markdown("### 3 - ANTEPRIMA MAPPE CON LOGHI - DENTRO FORM")
+ with st.form("form_mappa"):
+  st.markdown("**Dati postazione**")
+  m1=st.text_input("Nome *",key="m1")
+  m2=st.text_input("Comune *",value="Varese",key="m2")
+  m3=st.text_input("Via *",key="m3")
+  m5=st.text_input("Lat",value="45.8205",key="m5")
+  m6=st.text_input("Lon",value="8.8250",key="m6")
+  m7=st.text_input("Tipo",value="Presidio",key="m7")
+  m9=st.text_area("Note",key="m9")
 
-        # Mappa embeddata con tutte le postazioni
-        st.markdown("**Mappa embeddata con tutte le postazioni**")
-        try:
-            lat_list=[]
-            lon_list=[]
-            for p in st.session_state.post:
-                lat=float(p.get("Lat","45.8205"))
-                lon=float(p.get("Lon","8.8250"))
-                lat_list.append(lat)
-                lon_list.append(lon)
-            if lat_list:
-                df_map=pd.DataFrame(dict(lat=lat_list,lon=lon_list))
-                st.map(df_map,zoom=11)
-                st.caption("Mappa embeddata - tutte le postazioni con logo")
-        except:
-            pass
+  st.markdown("**Icona**")
+  icona=st.file_uploader("Icona PNG/JPG",type=["png","jpg","jpeg"])
+  nome_icona=""
+  if icona:
+   nome_icona=icona.name
+   st.image(icona,width=100)
 
-        st.markdown("**Elenco postazioni con logo sulla mappa**")
-        df=pd.DataFrame(st.session_state.post)
-        st.dataframe(df)
+  # ANTEPRIMA DENTRO FORM
+  st.markdown("**Anteprima posizione**")
+  try:
+   lat_f=float(m5)
+   lon_f=float(m6)
+   df_prev=pd.DataFrame({"lat":[lat_f],"lon":[lon_f]})
+   st.map(df_prev)
+  except:
+   st.info("Inserisci Lat Lon")
 
-        # Mostra ogni postazione con mappa embeddata singola + logo
-        for p in st.session_state.post:
-            lat=p.get("Lat","45.8205")
-            lon=p.get("Lon","8.8250")
-            nome=p.get("Postazione","Post")
-            icona_nome=p.get("Icona","")
-            st.markdown("---")
-            c1,c2=st.columns([1,2])
-            with c1:
-                if nome in st.session_state.icone:
-                    try:
-                        b64=st.session_state.icone[nome]
-                        st.image(BytesIO(base64.b64decode(b64)),width=100)
-                        st.write("Logo: "+icona_nome)
-                    except:
-                        st.write(icona_nome)
-                else:
-                    st.write(icona_nome if icona_nome else "Nessun logo")
-                st.write("**"+nome+"**")
-                st.write("Lat "+lat)
-                st.write("Lon "+lon)
-            with c2:
-                st.markdown("**Mappa embeddata - "+nome+"**")
-                try:
-                    df_single=pd.DataFrame(dict(lat=[float(lat)],lon=[float(lon)]))
-                    st.map(df_single,zoom=15)
-                except:
-                    st.write("Mappa non disponibile")
-    else:
-        st.info("Nessuna postazione - inserisci manualmente sopra")
-        st.markdown("**Mappa default Varese - dentro form**")
-        df_default=pd.DataFrame(dict(lat=[45.8205],lon=[8.8250]))
-        st.map(df_default,zoom=11)
+  cerca=st.text_input("Cerca",value="Varese")
 
+  ok=st.form_submit_button("SALVA POSTAZIONE")
+  if ok and m1:
+   nuovo={}
+   nuovo["Postazione"]=m1
+   nuovo["Comune"]=m2
+   nuovo["Via"]=m3
+   nuovo["Lat"]=m5
+   nuovo["Lon"]=m6
+   nuovo["Tipo"]=m7
+   nuovo["Icona"]=nome_icona
+   nuovo["Note"]=m9
+   st.session_state.post.append(nuovo)
+   save_json(FP,st.session_state.post)
+   st.success("Salvata")
+   st.rerun()
+
+ if st.session_state.post:
+  st.dataframe(pd.DataFrame(st.session_state.post))
+
+# BACKUP CON SCELTA
+elif scelta=="Backup":
+ torna()
+ st.markdown("## BACKUP - SCEGLI DATI")
+
+ # EXPORT CON SCELTA
+ st.markdown("### EXPORT - SCEGLI COSA ESPORTARE")
+ c1,c2=st.columns(2)
+ with c1:
+  exp_vol=st.checkbox("Volontari",value=True)
+  exp_mappa=st.checkbox("Mappa",value=True)
+  exp_check=st.checkbox("Check-In",value=True)
+  exp_brog=st.checkbox("Brogliaccio",value=True)
+ with c2:
+  exp_cons=st.checkbox("Consegna",value=True)
+  exp_eventi=st.checkbox("Eventi",value=True)
+  exp_radio=st.checkbox("Radio",value=True)
+  exp_emerg=st.checkbox("Emergenze",value=True)
+
+ if st.button("CREA BACKUP SELEZIONATO"):
+  out=BytesIO()
+  with pd.ExcelWriter(out,engine="openpyxl") as writer:
+   if exp_vol and st.session_state.dati:
+    pd.DataFrame(st.session_state.dati).to_excel(writer,sheet_name="Vol",index=False)
+   if exp_mappa and st.session_state.post:
+    pd.DataFrame(st.session_state.post).to_excel(writer,sheet_name="Mappa",index=False)
+   if exp_check and st.session_state.check:
+    pd.DataFrame(st.session_state.check).to_excel(writer,sheet_name="Check",index=False)
+   if exp_brog and st.session_state.brog:
+    pd.DataFrame(st.session_state.brog).to_excel(writer,sheet_name="Brog",index=False)
+   if exp_cons and st.session_state.consegna:
+    pd.DataFrame(st.session_state.consegna).to_excel(writer,sheet_name="Consegna",index=False)
+   if exp_eventi and st.session_state.eventi:
+    pd.DataFrame(st.session_state.eventi).to_excel(writer,sheet_name="Eventi",index=False)
+   if exp_radio and st.session_state.radio:
+    pd.DataFrame(st.session_state.radio).to_excel(writer,sheet_name="Radio",index=False)
+   if exp_emerg and st.session_state.emerg:
+    pd.DataFrame(st.session_state.emerg).to_excel(writer,sheet_name="Emergenze",index=False)
+  st.session_state["bk"]=out.getvalue()
+  st.success("Backup creato")
+
+ if "bk" in st.session_state:
+  st.download_button(
+   "SCARICA BACKUP",
+   st.session_state["bk"],
+   file_name="BACKUP_SELEZIONATO.xlsx",
+   mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+  )
+
+ st.divider()
+ st.markdown("### IMPORT - SCEGLI COSA IMPORTARE")
+ uploaded=st.file_uploader("Carica Excel",type=["xlsx"])
+ if uploaded:
+  try:
+   xls=pd.ExcelFile(uploaded)
+   sheets=xls.sheet_names
+   st.write("Fogli trovati:")
+   st.write(sheets)
+   c1,c2=st.columns(2)
+   with c1:
+    imp_vol=st.checkbox("Importa Volontari",value=True)
+    imp_mappa=st.checkbox("Importa Mappa",value=True)
+    imp_check=st.checkbox("Importa Check",value=True)
+    imp_brog=st.checkbox("Importa Brog",value=True)
+   with c2:
+    imp_cons=st.checkbox("Importa Consegna",value=True)
+    imp_eventi=st.checkbox("Importa Eventi",value=True)
+    imp_radio=st.checkbox("Importa Radio",value=True)
+    imp_emerg=st.checkbox("Importa Emergenze",value=True)
+   if st.button("IMPORTA SELEZIONATI"):
+    if imp_vol and "Vol" in sheets:
+     df=pd.read_excel(xls,"Vol")
+     st.session_state.dati=df.to_dict(orient="records")
+     save_json(FD,st.session_state.dati)
+    if imp_mappa and "Mappa" in sheets:
+     df=pd.read_excel(xls,"Mappa")
+     st.session_state.post=df.to_dict(orient="records")
+     save_json(FP,st.session_state.post)
+    if imp_check and "Check" in sheets:
+     df=pd.read_excel(xls,"Check")
+     st.session_state.check=df.to_dict(orient="records")
+     save_json(FC,st.session_state.check)
+    if imp_brog and "Brog" in sheets:
+     df=pd.read_excel(xls,"Brog")
+     st.session_state.brog=df.to_dict(orient="records")
+     save_json(FB,st.session_state.brog)
+    if imp_cons and "Consegna" in sheets:
+     df=pd.read_excel(xls,"Consegna")
+     st.session_state.consegna=df.to_dict(orient="records")
+     save_json(FO,st.session_state.consegna)
+    if imp_eventi and "Eventi" in sheets:
+     df=pd.read_excel(xls,"Eventi")
+     st.session_state.eventi=df.to_dict(orient="records")
+     save_json(FE,st.session_state.eventi)
+    if imp_radio and "Radio" in sheets:
+     df=pd.read_excel(xls,"Radio")
+     st.session_state.radio=df.to_dict(orient="records")
+     save_json(FR,st.session_state.radio)
+    if imp_emerg and "Emergenze" in sheets:
+     df=pd.read_excel(xls,"Emergenze")
+     st.session_state.emerg=df.to_dict(orient="records")
+     save_json(FM,st.session_state.emerg)
+    st.success("Import OK")
+    st.rerun()
+  except Exception as e:
+   st.error("Errore: "+str(e))
+
+# ALTRI FORM SEMPLICI
 elif scelta=="Check":
-    torna()
-    st.markdown("## CHECK-IN")
-    with st.form("form_check"):
-        nomi=[d.get("Nome","") for d in st.session_state.dati]
-        if not nomi:
-            nomi=["Nessun volontario"]
-        ch1=st.selectbox("Vol",nomi)
-        ch2=st.text_input("Post")
-        ch3=st.time_input("Ora",value=datetime.now().time())
-        ch4=st.date_input("Data",value=date.today())
-        ch7=st.text_area("Note")
-        ok=st.form_submit_button("SALVA")
-        if ok:
-            r=dict(Vol=ch1,Post=ch2,Ora=str(ch3),Data=str(ch4),Note=ch7)
-            st.session_state.check.append(r)
-            save_json(FC,st.session_state.check)
-            st.success("OK")
-            st.rerun()
-    if st.session_state.check:
-        st.dataframe(pd.DataFrame(st.session_state.check))
+ torna()
+ st.markdown("## CHECK-IN")
+ with st.form("form_check"):
+  nomi=[d.get("Nome","") for d in st.session_state.dati]
+  if not nomi:
+   nomi=["Nessun volontario"]
+  ch1=st.selectbox("Vol",nomi)
+  ch2=st.text_input("Post")
+  ch3=st.time_input("Ora",value=datetime.now().time())
+  ch4=st.date_input("Data",value=date.today())
+  ch7=st.text_area("Note")
+  ok=st.form_submit_button("SALVA")
+  if ok:
+   nuovo={}
+   nuovo["Vol"]=ch1
+   nuovo["Post"]=ch2
+   nuovo["Ora"]=str(ch3)
+   nuovo["Data"]=str(ch4)
+   nuovo["Note"]=ch7
+   st.session_state.check.append(nuovo)
+   save_json(FC,st.session_state.check)
+   st.success("OK")
+   st.rerun()
+ if st.session_state.check:
+  st.dataframe(pd.DataFrame(st.session_state.check))
 
 elif scelta=="Brogliaccio":
-    torna()
-    st.markdown("## BROGLIACCIO")
-    with st.form("form_brog"):
-        b1=st.text_input("Mitt *")
-        b2=st.text_input("Dest *")
-        b7=st.text_area("Mess *")
-        b4=st.time_input("Ora",value=datetime.now().time())
-        b5=st.date_input("Data",value=date.today())
-        ok=st.form_submit_button("SALVA")
-        if ok and b1 and b7:
-            r=dict(Mitt=b1,Dest=b2,Ora=str(b4),Data=str(b5),Mess=b7)
-            st.session_state.brog.append(r)
-            save_json(FB,st.session_state.brog)
-            st.success("OK")
-            st.rerun()
-    if st.session_state.brog:
-        st.dataframe(pd.DataFrame(st.session_state.brog))
+ torna()
+ st.markdown("## BROGLIACCIO")
+ with st.form("form_brog"):
+  b1=st.text_input("Mitt *")
+  b2=st.text_input("Dest *")
+  b7=st.text_area("Mess *")
+  b4=st.time_input("Ora",value=datetime.now().time())
+  b5=st.date_input("Data",value=date.today())
+  ok=st.form_submit_button("SALVA")
+  if ok and b1 and b7:
+   nuovo={}
+   nuovo["Mitt"]=b1
+   nuovo["Dest"]=b2
+   nuovo["Ora"]=str(b4)
+   nuovo["Data"]=str(b5)
+   nuovo["Mess"]=b7
+   st.session_state.brog.append(nuovo)
+   save_json(FB,st.session_state.brog)
+   st.success("OK")
+   st.rerun()
+ if st.session_state.brog:
+  st.dataframe(pd.DataFrame(st.session_state.brog))
 
 elif scelta=="Consegna":
-    torna()
-    st.markdown("## CONSEGNA RADIO")
-    with st.form("form_consegna"):
-        ids=[r.get("ID","") for r in st.session_state.radio]
-        if not ids:
-            ids=["RADIO-01"]
-        co1=st.selectbox("ID Radio",ids)
-        nomi=[d.get("Nome","") for d in st.session_state.dati]
-        if not nomi:
-            nomi=["Nessun volontario"]
-        co2=st.selectbox("A",nomi)
-        co3=st.date_input("Data",value=date.today())
-        co4=st.time_input("Ora",value=datetime.now().time())
-        ok=st.form_submit_button("SALVA")
-        if ok:
-            r=dict(Radio=co1,Vol=co2,Data=str(co3),Ora=str(co4))
-            st.session_state.consegna.append(r)
-            save_json(FO,st.session_state.consegna)
-            st.success("OK")
-            st.rerun()
-    if st.session_state.consegna:
-        st.dataframe(pd.DataFrame(st.session_state.consegna))
+ torna()
+ st.markdown("## CONSEGNA RADIO")
+ with st.form("form_consegna"):
+  ids=[r.get("ID","") for r in st.session_state.radio]
+  if not ids:
+   ids=["RADIO-01"]
+  co1=st.selectbox("ID Radio",ids)
+  nomi=[d.get("Nome","") for d in st.session_state.dati]
+  if not nomi:
+   nomi=["Nessun volontario"]
+  co2=st.selectbox("A",nomi)
+  co3=st.date_input("Data",value=date.today())
+  co4=st.time_input("Ora",value=datetime.now().time())
+  ok=st.form_submit_button("SALVA")
+  if ok:
+   nuovo={}
+   nuovo["Radio"]=co1
+   nuovo["Vol"]=co2
+   nuovo["Data"]=str(co3)
+   nuovo["Ora"]=str(co4)
+   st.session_state.consegna.append(nuovo)
+   save_json(FO,st.session_state.consegna)
+   st.success("OK")
+   st.rerun()
+ if st.session_state.consegna:
+  st.dataframe(pd.DataFrame(st.session_state.consegna))
 
 elif scelta=="Eventi":
-    torna()
-    st.markdown("## EVENTI")
-    with st.form("form_ev"):
-        e1=st.text_input("Nome *")
-        e2=st.date_input("Data",value=date.today())
-        e3=st.text_input("Luogo *")
-        e4=st.text_area("Desc")
-        ok=st.form_submit_button("SALVA")
-        if ok and e1:
-            r=dict(Evento=e1,Data=str(e2),Luogo=e3,Desc=e4)
-            st.session_state.eventi.append(r)
-            save_json(FE,st.session_state.eventi)
-            st.success("OK")
-            st.rerun()
-    if st.session_state.eventi:
-        st.dataframe(pd.DataFrame(st.session_state.eventi))
+ torna()
+ st.markdown("## EVENTI")
+ with st.form("form_ev"):
+  e1=st.text_input("Nome *")
+  e2=st.date_input("Data",value=date.today())
+  e3=st.text_input("Luogo *")
+  e4=st.text_area("Desc")
+  ok=st.form_submit_button("SALVA")
+  if ok and e1:
+   nuovo={}
+   nuovo["Evento"]=e1
+   nuovo["Data"]=str(e2)
+   nuovo["Luogo"]=e3
+   nuovo["Desc"]=e4
+   st.session_state.eventi.append(nuovo)
+   save_json(FE,st.session_state.eventi)
+   st.success("OK")
+   st.rerun()
+ if st.session_state.eventi:
+  st.dataframe(pd.DataFrame(st.session_state.eventi))
 
 elif scelta=="Radio":
-    torna()
-    st.markdown("## RADIO")
-    with st.form("form_ra"):
-        r1=st.text_input("ID *")
-        r2=st.text_input("Modello *")
-        r3=st.text_input("Freq",value="446.00625")
-        ok=st.form_submit_button("SALVA")
-        if ok and r1:
-            r=dict(ID=r1,Mod=r2,Freq=r3)
-            st.session_state.radio.append(r)
-            save_json(FR,st.session_state.radio)
-            st.success("OK")
-            st.rerun()
-    if st.session_state.radio:
-        st.dataframe(pd.DataFrame(st.session_state.radio))
+ torna()
+ st.markdown("## RADIO")
+ with st.form("form_ra"):
+  r1=st.text_input("ID *")
+  r2=st.text_input("Modello *")
+  r3=st.text_input("Freq",value="446.00625")
+  ok=st.form_submit_button("SALVA")
+  if ok and r1:
+   nuovo={}
+   nuovo["ID"]=r1
+   nuovo["Mod"]=r2
+   nuovo["Freq"]=r3
+   st.session_state.radio.append(nuovo)
+   save_json(FR,st.session_state.radio)
+   st.success("OK")
+   st.rerun()
+ if st.session_state.radio:
+  st.dataframe(pd.DataFrame(st.session_state.radio))
 
 elif scelta=="Emergenze":
-    torna()
-    st.markdown("## EMERGENZE")
-    with st.form("form_em"):
-        em1=st.text_input("Tipo",value="Alluvione")
-        em2=st.text_input("Comune",value="Varese")
-        em3=st.text_input("Via *")
-        em4=st.text_input("Coord *")
-        em5=st.text_area("Desc *")
-        ok=st.form_submit_button("SALVA")
-        if ok and em3:
-            r=dict(Tipo=em1,Comune=em2,Via=em3,Coord=em4,Desc=em5)
-            st.session_state.emerg.append(r)
-            save_json(FM,st.session_state.emerg)
-            st.success("OK")
-            st.rerun()
-    if st.session_state.emerg:
-        st.dataframe(pd.DataFrame(st.session_state.emerg))
-
-elif scelta=="Backup":
-    torna()
-    st.markdown("## BACKUP - IMPORT EXPORT")
-    if st.button("CREA BACKUP COMPLETO"):
-        out=BytesIO()
-        with pd.ExcelWriter(out,engine="openpyxl") as writer:
-            if st.session_state.dati:
-                pd.DataFrame(st.session_state.dati).to_excel(writer,sheet_name="Volontari",index=False)
-            if st.session_state.post:
-                pd.DataFrame(st.session_state.post).to_excel(writer,sheet_name="Mappa",index=False)
-            if st.session_state.check:
-                pd.DataFrame(st.session_state.check).to_excel(writer,sheet_name="CheckIn",index=False)
-            if st.session_state.brog:
-                pd.DataFrame(st.session_state.brog).to_excel(writer,sheet_name="Brogliaccio",index=False)
-            if st.session_state.consegna:
-                pd.DataFrame(st.session_state.consegna).to_excel(writer,sheet_name="Consegna",index=False)
-        st.session_state["bk"]=out.getvalue()
-        st.success("OK")
-    if "bk" in st.session_state:
-        st.download_button("SCARICA BACKUP",st.session_state["bk"],file_name="BACKUP.xlsx",mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
-
-    st.divider()
-    st.markdown("### EXPORT PER FORM")
-    c1,c2=st.columns(2)
-    with c1:
-        if st.session_state.dati:
-            out=BytesIO()
-            pd.DataFrame(st.session_state.dati).to_excel(out,index=False,engine="openpyxl")
-            st.download_button("Export Volontari",out.getvalue(),file_name="volontari.xlsx",mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
-        if st.session_state.post:
-            out=BytesIO()
-            pd.DataFrame(st.session_state.post).to_excel(out,index=False,engine="openpyxl")
-            st.download_button("Export Mappa",out.getvalue(),file_name="mappa.xlsx",mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
-    with c2:
-        if st.session_state.check:
-            out=BytesIO()
-            pd.DataFrame(st.session_state.check).to_excel(out,index=False,engine="openpyxl")
-            st.download_button("Export Check",out.getvalue(),file_name="check.xlsx",mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
-
-    st.divider()
-    st.markdown("### IMPORT PER FORM")
-    up1=st.file_uploader("Import Volontari",type=["xlsx"],key="up_vol")
-    if up1:
-        try:
-            df=pd.read_excel(up1)
-            st.session_state.dati=df.to_dict(orient="records")
-            save_json(FD,st.session_state.dati)
-            st.success("Import OK")
-        except:
-            st.error("Errore")
-
-    up2=st.file_uploader("Import Mappa",type=["xlsx"],key="up_mappa")
-    if up2:
-        try:
-            df=pd.read_excel(up2)
-            st.session_state.post=df.to_dict(orient="records")
-            save_json(FP,st.session_state.post)
-            st.success("Import OK")
-        except:
-            st.error("Errore")
+ torna()
+ st.markdown("## EMERGENZE")
+ with st.form("form_em"):
+  em1=st.text_input("Tipo",value="Alluvione")
+  em2=st.text_input("Comune",value="Varese")
+  em3=st.text_input("Via *")
+  em4=st.text_input("Coord *")
+  em5=st.text_area("Desc *")
+  ok=st.form_submit_button("SALVA")
+  if ok and em3:
+   nuovo={}
+   nuovo["Tipo"]=em1
+   nuovo["Comune"]=em2
+   nuovo["Via"]=em3
+   nuovo["Coord"]=em4
+   nuovo["Desc"]=em5
+   st.session_state.emerg.append(nuovo)
+   save_json(FM,st.session_state.emerg)
+   st.success("OK")
+   st.rerun()
+ if st.session_state.emerg:
+  st.dataframe(pd.DataFrame(st.session_state.emerg))
