@@ -1,4 +1,4 @@
-import streamlit as st
+﻿import streamlit as st
 import pandas as pd
 from datetime import date, datetime
 from io import BytesIO
@@ -14,7 +14,6 @@ st.markdown("""
 .stForm{background:#c8e6c9!important;border:3px solid #2e7d32!important;border-radius:15px!important;}
 .stButton>button{background:#2e7d32!important;color:white!important;font-weight:bold!important;min-height:50px!important;border-radius:10px!important;font-size:16px!important;}
 .submask{border:2px solid #2e7d32;border-radius:12px;padding:15px;background:#f1f8e9;margin:10px 0px;}
-.backup-box{border:3px solid #2e7d32;border-radius:15px;padding:20px;background:#c8e6c9;margin:15px 0px;}
 .footer-ezio{
     position: fixed;
     bottom: 5px;
@@ -80,25 +79,14 @@ def footer_ezio():
 
 FILE_DATI="dati_volontari.json"
 FILE_UTENTI="utenti.json"
-FILE_POST="postazioni.json"
-FILE_EVENTI="eventi.json"
-FILE_RADIO="db_radio.json"
-FILE_CHECKIN="checkin.json"
-FILE_BROGLIACCIO="brogliaccio.json"
-FILE_CONSEGNA="consegna_radio.json"
-FILE_EMERGENZE="emergenze.json"
 COMUNI=["Varese","Busto Arsizio","Gallarate","Saronno","Venegono Superiore","Venegono Inferiore","Castiglione Olona","Lozza","Tradate","Malnate","Luino","Altro"]
 
-for k,v in [("dati",[]),("postazioni",[]),("utenti",[]),("eventi",[]),("radio",[]),("checkin",[]),("brogliaccio",[]),("consegna",[]),("emergenze",[]),("menu_scelta","Dashboard"),("authenticated",False),("ruolo",""),("username","")]:
+for k,v in [("dati",[]),("utenti",[]),("menu_scelta","Dashboard"),("authenticated",False),("ruolo",""),("username","")]:
     if k not in st.session_state:
         st.session_state[k]=v
 
 if not st.session_state.dati: st.session_state.dati=load_json(FILE_DATI,[])
 if not st.session_state.utenti: st.session_state.utenti=load_json(FILE_UTENTI,[])
-if not st.session_state.postazioni: st.session_state.postazioni=load_json(FILE_POST,[])
-if not st.session_state.eventi: st.session_state.eventi=load_json(FILE_EVENTI,[])
-if not st.session_state.radio: st.session_state.radio=load_json(FILE_RADIO,[])
-if not st.session_state.emergenze: st.session_state.emergenze=load_json(FILE_EMERGENZE,[])
 
 if not st.session_state.utenti:
     st.session_state.utenti=[
@@ -119,6 +107,7 @@ def torna_dashboard():
         st.session_state.menu_scelta="Dashboard"
         st.rerun()
 
+# PAGINA LOGIN - CON FOTO IN BASSO A SX
 if not st.session_state.authenticated:
     header_loghi()
     st.markdown("## LOGIN")
@@ -218,7 +207,7 @@ if scelta=="Dashboard":
 
 elif scelta=="Volontari":
     torna_dashboard()
-    st.markdown("## FORM VOLONTARI - 5 SOTTOMASCHERE - DATI IN MEMORIA")
+    st.markdown("## FORM VOLONTARI - 5 SOTTOMASCHERE")
     tab1, tab2, tab3, tab4, tab5 = st.tabs(["1: ANAGRAFICA","2: RESIDENZA E CONTATTI","3: TESSERAMENTO ANA","4: ABILITAZIONI E CORSI","5: DISPONIBILITA E NOTE"])
 
     with tab1:
@@ -269,98 +258,4 @@ elif scelta=="Volontari":
                 sezione=st.text_input("Sezione ANA",value="Varese",key="vol_sezione")
                 gruppo=st.text_input("Gruppo",key="vol_gruppo")
                 anno_iscrizione=st.number_input("Anno Iscrizione ANA",min_value=1950,max_value=2030,value=2020,key="vol_annoisc")
-            with c2:
-                ruolo_ana=st.selectbox("Ruolo ANA",["Alpino","Amico degli Alpini","Aggregato","Volontario PC"],key="vol_ruoloana")
-                ruolo_pc=st.selectbox("Ruolo Protezione Civile *",["Volontario","Caposquadra","Coordinatore","Autista","Radio","Logistica","Segreteria","Sanitario","Altro"],key="vol_ruolopc")
-                associazione=st.text_input("Associazione *",value="ANA Varese",key="vol_assoc")
-                scadenza_visita=st.date_input("Scadenza Visita Medica",value=date.today(),key="vol_scadvisita")
-            st.session_state["tmp_tesseramento"]={"tessera":tessera_ana,"sezione":sezione,"gruppo":gruppo,"anno":anno_iscrizione,"ruolo_ana":ruolo_ana,"ruolo_pc":ruolo_pc,"associazione":associazione,"scadenza_visita":str(scadenza_visita)}
-            st.form_submit_button("SALVA TESSERAMENTO TEMP")
-        st.markdown('</div>', unsafe_allow_html=True)
-
-    with tab4:
-        st.markdown('<div class="submask">', unsafe_allow_html=True)
-        st.markdown("### SOTTOMASCHERA 4 - ABILITAZIONI E CORSI")
-        with st.form("form_abilitazioni"):
-            c1,c2=st.columns(2)
-            with c1:
-                patente=st.multiselect("Patenti",["A","B","C","D","E","BE","CE","CQC","Nautica"],key="vol_patente")
-                corso_base_pc=st.selectbox("Corso Base PC",["Si - Conseguito","No","In corso"],key="vol_corsobase")
-                corso_antincendio=st.selectbox("Antincendio Boschivo",["Nessuno","AIB Base","AIB Caposquadra","AIB Coordinatore"],key="vol_aib")
-                corso_primo_soccorso=st.selectbox("Primo Soccorso",["Nessuno","Base","BLSD","PSTI"],key="vol_ps")
-            with c2:
-                corso_radio=st.selectbox("Corso Radio",["Nessuno","Base","Avanzato"],key="vol_corsoradio")
-                corso_motosega=st.selectbox("Motosega",["Nessuno","Base","Avanzato"],key="vol_motosega")
-                corso_cinofilo=st.selectbox("Unita Cinofila",["No","Si"],key="vol_cinofilo")
-                altre_abilitazioni=st.text_area("Altre Abilitazioni",key="vol_altreabil")
-            st.session_state["tmp_abilitazioni"]={"patente":",".join(patente),"corso_base_pc":corso_base_pc,"aib":corso_antincendio,"primo_soccorso":corso_primo_soccorso,"corso_radio":corso_radio,"motosega":corso_motosega,"cinofilo":corso_cinofilo,"altre":altre_abilitazioni}
-            st.form_submit_button("SALVA ABILITAZIONI TEMP")
-        st.markdown('</div>', unsafe_allow_html=True)
-
-    with tab5:
-        st.markdown('<div class="submask">', unsafe_allow_html=True)
-        st.markdown("### SOTTOMASCHERA 5 - DISPONIBILITA E NOTE")
-        with st.form("form_disponibilita"):
-            disp_settimana=st.multiselect("Disponibilita Settimana",["Lunedi","Martedi","Mercoledi","Giovedi","Venerdi","Sabato","Domenica"],key="vol_disp_sett")
-            disp_orario=st.selectbox("Fascia Oraria Preferita",["Mattina","Pomeriggio","Sera","Notte","H24"],key="vol_fascia")
-            disp_emergenza=st.selectbox("Disponibile per Emergenze",["Si - Sempre","Si - Solo locali","No"],key="vol_disp_emerg")
-            taglia_divisa=st.selectbox("Taglia Divisa",["S","M","L","XL","XXL","XXXL"],key="vol_taglia")
-            note=st.text_area("Note Aggiuntive",key="vol_note")
-            if st.form_submit_button("SALVA VOLONTARIO COMPLETO - UNISCE TUTTE LE SOTTOMASCHERE",use_container_width=True,type="primary"):
-                ana=st.session_state.get("tmp_anagrafica",{})
-                res=st.session_state.get("tmp_residenza",{})
-                tess=st.session_state.get("tmp_tesseramento",{})
-                abil=st.session_state.get("tmp_abilitazioni",{})
-                if ana.get("nome") and ana.get("cognome") and res.get("cell") and tess.get("associazione"):
-                    nuovo={
-                        "Nome":ana.get("nome")+" "+ana.get("cognome"),
-                        "CF":ana.get("cf"),
-                        "Data_Nascita":ana.get("data_nascita"),
-                        "Luogo_Nascita":ana.get("luogo_nascita"),
-                        "Sesso":ana.get("sesso"),
-                        "Gruppo_Sanguigno":ana.get("gruppo_sanguigno"),
-                        "Via":res.get("via"),
-                        "Comune":res.get("comune"),
-                        "CAP":res.get("cap"),
-                        "Cellulare":res.get("cell"),
-                        "Email":res.get("email"),
-                        "Tessera_ANA":tess.get("tessera"),
-                        "Ruolo":tess.get("ruolo_pc"),
-                        "Associazione":tess.get("associazione"),
-                        "Patenti":abil.get("patente"),
-                        "Disponibilita":",".join(disp_settimana),
-                        "Fascia_Oraria":disp_orario,
-                        "Note":note
-                    }
-                    st.session_state.dati.append(nuovo)
-                    save_json(FILE_DATI,st.session_state.dati)
-                    st.success("Volontario "+ana.get("nome")+" "+ana.get("cognome")+" salvato con tutte le 5 sottomaschere!")
-                    st.rerun()
-                else:
-                    st.error("Compila almeno Nome, Cognome, Cellulare, Associazione nelle sottomaschere 1-2-3")
-        st.markdown('</div>', unsafe_allow_html=True)
-
-    st.divider()
-    if st.session_state.dati:
-        df=pd.DataFrame(st.session_state.dati)
-        st.dataframe(df,use_container_width=True)
-        out=BytesIO()
-        df.to_excel(out,index=False,engine="openpyxl")
-        st.download_button("SCARICA EXCEL VOLONTARI COMPLETO", out.getvalue(), file_name="VOLONTARI_COMPLETO.xlsx", mime=MIME, use_container_width=True)
-
-elif scelta=="Backup":
-    torna_dashboard()
-    st.markdown("## BACKUP")
-    if st.button("CREA BACKUP GENERALE", use_container_width=True, type="primary"):
-        out=BytesIO()
-        with pd.ExcelWriter(out,engine="openpyxl") as writer:
-            pd.DataFrame(st.session_state.dati if st.session_state.dati else [{"Info":"Nessun volontario"}]).to_excel(writer,sheet_name="Volontari",index=False)
-        st.session_state["backup_generale"]=out.getvalue()
-        st.success("Backup creato")
-    if "backup_generale" in st.session_state:
-        st.download_button("SCARICA BACKUP GENERALE", st.session_state["backup_generale"], file_name="BACKUP_GENERALE.xlsx", mime=MIME, use_container_width=True)
-
-else:
-    torna_dashboard()
-    st.markdown("## "+scelta)
-    st.info("Form "+scelta+" - dati in memoria mantenuti")
+            with c
