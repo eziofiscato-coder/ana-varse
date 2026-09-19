@@ -4,25 +4,20 @@ from datetime import date
 from io import BytesIO
 import os, json, base64, hashlib
 
-st.set_page_config(
-    page_title="ANA Varese",
-    layout="wide"
-)
+st.set_page_config(page_title="ANA Varese", layout="wide")
 
+# COLORI ORIGINALI - NON LI CAMBIO PIU
 st.markdown("""
 <style>
 .stApp{background:#e8f5e9!important;}
-.main{background:white!important;}
-.footer{
- position:fixed;bottom:5px;left:10px;
- background:white;border:2px solid green;
- border-radius:12px;padding:5px 12px;
- display:flex;align-items:center;gap:8px;
- z-index:9999;
-}
-.footer img{width:45px;height:45px;border-radius:50%;}
-.footer span{font-size:13px;font-weight:bold;color:green;}
-.sub{border:2px solid green;border-radius:12px;padding:15px;background:#f1f8e9;margin:10px 0px;}
+.block-container{background:white!important;border-radius:18px;padding:20px!important;padding-bottom:95px!important;}
+[data-testid="stSidebar"]{background:#a5d6a7!important;border-right:4px solid #2e7d32!important;}
+.stForm{background:#c8e6c9!important;border:3px solid #2e7d32!important;border-radius:15px!important;}
+.stButton>button{background:#2e7d32!important;color:white!important;font-weight:bold!important;min-height:50px!important;border-radius:10px!important;}
+.sub{border:2px solid #2e7d32;border-radius:12px;padding:15px;background:#f1f8e9;margin:10px 0px;}
+.foot{position:fixed;bottom:5px;left:10px;background:white;border:2px solid #2e7d32;border-radius:12px;padding:5px 12px;display:flex;align-items:center;gap:8px;z-index:9999;}
+.foot img{width:45px;height:45px;border-radius:50%;border:2px solid #2e7d32;}
+.foot span{font-size:13px;font-weight:bold;color:#2e7d32;}
 </style>
 """, unsafe_allow_html=True)
 
@@ -55,21 +50,18 @@ def hash_pwd(p):
     return hashlib.sha256(p.encode()).hexdigest()
 
 def footer():
-    b64=get_b64("ezio.png")
-    if not b64:
-        b64=get_b64("logo.png")
-    if b64:
-        img="<img src='data:image/png;base64,"+b64+"'>"
+    b=get_b64("ezio.png")
+    if not b:
+        b=get_b64("logo.png")
+    if b:
+        img="<img src='data:image/png;base64,"+b+"'>"
     else:
-        img="<div style='width:45px;height:45px;background:green;border-radius:50%;color:white;display:flex;align-items:center;justify-content:center;'>EF</div>"
-    st.markdown(
-        "<div class='footer'>"+img+"<span>by Ezio F. vers. 1.0 2026</span></div>",
-        unsafe_allow_html=True
-    )
+        img="<div style='width:45px;height:45px;background:#2e7d32;border-radius:50%;'></div>"
+    st.markdown("<div class='foot'>"+img+"<span>by Ezio F. vers. 1.0 2026</span></div>",unsafe_allow_html=True)
 
-FILE_D="dati.json"
-FILE_U="utenti.json"
-COMUNI=["Varese","Busto","Gallarate","Saronno","Altro"]
+FD="dati.json"
+FU="utenti.json"
+COM=["Varese","Busto","Gallarate","Saronno","Altro"]
 
 if "dati" not in st.session_state:
     st.session_state.dati=[]
@@ -79,26 +71,24 @@ if "menu" not in st.session_state:
     st.session_state.menu="Dashboard"
 if "auth" not in st.session_state:
     st.session_state.auth=False
-if "ruolo" not in st.session_state:
-    st.session_state.ruolo=""
 
-st.session_state.dati=load_json(FILE_D,[])
-st.session_state.utenti=load_json(FILE_U,[])
+st.session_state.dati=load_json(FD,[])
+st.session_state.utenti=load_json(FU,[])
 
 if not st.session_state.utenti:
     st.session_state.utenti=[
         {"username":"admin","password":hash_pwd("ana2024"),"ruolo":"Admin"},
         {"username":"utente","password":hash_pwd("utente2024"),"ruolo":"Utente"}
     ]
-    save_json(FILE_U,st.session_state.utenti)
+    save_json(FU,st.session_state.utenti)
 
 def header():
-    b64=get_b64("logo.png")
-    if b64:
-        h="<div style='text-align:center;background:#a5d6a7;padding:15px;border-radius:15px;border:3px solid green;'><img src='data:image/png;base64,"+b64+"' style='width:80px;border-radius:50%;'><h2 style='color:green;'>VOLONTARIATO Varese</h2></div>"
+    b=get_b64("logo.png")
+    if b:
+        h="<div style='text-align:center;background:#a5d6a7;padding:15px;border-radius:15px;border:3px solid #2e7d32;'><img src='data:image/png;base64,"+b+"' style='width:80px;border-radius:50%;'><h2 style='color:#0e7a3d;'>VOLONTARIATO<br>Sezione di Varese</h2></div>"
         st.markdown(h,unsafe_allow_html=True)
     else:
-        st.markdown("<h2 style='text-align:center;color:green;'>VOLONTARIATO Varese</h2>",unsafe_allow_html=True)
+        st.markdown("<h2 style='text-align:center;color:#0e7a3d;'>VOLONTARIATO Varese</h2>",unsafe_allow_html=True)
 
 def torna():
     if st.button("TORNA A DASHBOARD",use_container_width=True):
@@ -122,7 +112,6 @@ if not st.session_state.auth:
                         trov=ut
                 if trov:
                     st.session_state.auth=True
-                    st.session_state.ruolo=trov["ruolo"]
                     st.rerun()
                 else:
                     st.error("Errati")
@@ -135,7 +124,7 @@ st.divider()
 with st.sidebar:
     if os.path.exists("logo.png"):
         st.image("logo.png",width=80)
-    sel=st.radio("Vai a",["Dashboard","Volontari","Backup"],index=0)
+    sel=st.radio("Vai a",["Dashboard","Volontari","Mappa Postazioni","Eventi","DB Radio","Check-In","Brogliaccio","Consegna Radio","Emergenze","Backup"],index=0)
     if sel!=st.session_state.menu:
         st.session_state.menu=sel
         st.rerun()
@@ -147,104 +136,91 @@ scelta=st.session_state.menu
 
 if scelta=="Dashboard":
     st.markdown("## DASHBOARD")
-    if st.button("VOLONTARI",use_container_width=True,key="b1"):
-        st.session_state.menu="Volontari"
-        st.rerun()
-    if st.button("BACKUP",use_container_width=True,key="b2"):
-        st.session_state.menu="Backup"
-        st.rerun()
-    if st.button("LOGOUT",use_container_width=True,key="b3"):
-        st.session_state.auth=False
-        st.rerun()
+    col1,col2=st.columns([3,1])
+    with col1:
+        st.success("Benvenuto")
+    with col2:
+        if st.button("LOGOUT",use_container_width=True,key="ld"):
+            st.session_state.auth=False
+            st.rerun()
+    c1,c2,c3,c4=st.columns(4)
+    with c1:
+        if st.button("VOLONTARI",use_container_width=True,key="v1"):
+            st.session_state.menu="Volontari"
+            st.rerun()
+    with c2:
+        if st.button("MAPPA",use_container_width=True,key="v2"):
+            st.session_state.menu="Mappa Postazioni"
+            st.rerun()
+    with c3:
+        if st.button("EVENTI",use_container_width=True,key="v3"):
+            st.session_state.menu="Eventi"
+            st.rerun()
+    with c4:
+        if st.button("RADIO",use_container_width=True,key="v4"):
+            st.session_state.menu="DB Radio"
+            st.rerun()
     footer()
 
 elif scelta=="Volontari":
     torna()
     st.markdown("## VOLONTARI - 5 SOTTOMASCHERE")
     t1,t2,t3,t4,t5=st.tabs(["1 ANAGRAFICA","2 RESIDENZA","3 TESSERA","4 ABILIT","5 NOTE"])
-
     with t1:
         st.markdown('<div class="sub">',unsafe_allow_html=True)
-        st.markdown("### 1 - ANAGRAFICA")
         with st.form("f1"):
-            c1,c2=st.columns(2)
-            with c1:
-                nome=st.text_input("Nome *",key="n1")
-                cogn=st.text_input("Cognome *",key="n2")
-                cf=st.text_input("CF",key="n3")
-            with c2:
-                dn=st.date_input("Data Nascita",value=date(1980,1,1),key="n4")
-                ln=st.text_input("Luogo",key="n5")
-                sx=st.selectbox("Sesso",["M","F"],key="n6")
-            st.session_state["a1"]={"nome":nome,"cogn":cogn,"cf":cf,"dn":str(dn)}
-            st.form_submit_button("SALVA TEMP 1")
+            n1=st.text_input("Nome *",key="a1")
+            n2=st.text_input("Cognome *",key="a2")
+            n3=st.text_input("CF",key="a3")
+            st.session_state["s1"]={"nome":n1,"cogn":n2,"cf":n3}
+            st.form_submit_button("SALVA 1")
         st.markdown('</div>',unsafe_allow_html=True)
-
     with t2:
         st.markdown('<div class="sub">',unsafe_allow_html=True)
-        st.markdown("### 2 - RESIDENZA")
         with st.form("f2"):
-            c1,c2=st.columns(2)
-            with c1:
-                via=st.text_input("Via *",key="r1")
-                com=st.selectbox("Comune *",COMUNI,key="r2")
-            with c2:
-                cell=st.text_input("Cell *",key="r3")
-                email=st.text_input("Email",key="r4")
-            st.session_state["a2"]={"via":via,"com":com,"cell":cell,"email":email}
-            st.form_submit_button("SALVA TEMP 2")
+            r1=st.text_input("Via *",key="b1")
+            r2=st.selectbox("Comune",COM,key="b2")
+            r3=st.text_input("Cell *",key="b3")
+            st.session_state["s2"]={"via":r1,"com":r2,"cell":r3}
+            st.form_submit_button("SALVA 2")
         st.markdown('</div>',unsafe_allow_html=True)
-
     with t3:
         st.markdown('<div class="sub">',unsafe_allow_html=True)
-        st.markdown("### 3 - TESSERA")
         with st.form("f3"):
-            c1,c2=st.columns(2)
-            with c1:
-                tess=st.text_input("Tessera",key="t1")
-                sez=st.text_input("Sezione",value="Varese",key="t2")
-            with c2:
-                ruolo=st.selectbox("Ruolo",["Volontario","Caposquadra"],key="t3")
-                ass=st.text_input("Associazione",value="ANA Varese",key="t4")
-            st.session_state["a3"]={"tess":tess,"ruolo":ruolo,"ass":ass}
-            st.form_submit_button("SALVA TEMP 3")
+            t1x=st.text_input("Tessera",key="c1")
+            t2x=st.selectbox("Ruolo",["Volontario","Caposquadra"],key="c2")
+            t3x=st.text_input("Associazione",value="ANA Varese",key="c3")
+            st.session_state["s3"]={"tess":t1x,"ruolo":t2x,"ass":t3x}
+            st.form_submit_button("SALVA 3")
         st.markdown('</div>',unsafe_allow_html=True)
-
     with t4:
         st.markdown('<div class="sub">',unsafe_allow_html=True)
-        st.markdown("### 4 - ABILITAZIONI")
         with st.form("f4"):
-            pat=st.multiselect("Patenti",["A","B","C"],key="ab1")
-            base=st.selectbox("Base PC",["Si","No"],key="ab2")
-            st.session_state["a4"]={"pat":",".join(pat),"base":base}
-            st.form_submit_button("SALVA TEMP 4")
+            p1=st.multiselect("Patenti",["A","B","C"],key="d1")
+            st.session_state["s4"]={"pat":",".join(p1)}
+            st.form_submit_button("SALVA 4")
         st.markdown('</div>',unsafe_allow_html=True)
-
     with t5:
         st.markdown('<div class="sub">',unsafe_allow_html=True)
-        st.markdown("### 5 - NOTE")
         with st.form("f5"):
-            note=st.text_area("Note",key="ab3")
-            btn=st.form_submit_button("SALVA COMPLETO",use_container_width=True)
+            nt=st.text_area("Note",key="e1")
+            btn=st.form_submit_button("SALVA COMPLETO")
             if btn:
-                a1=st.session_state.get("a1",{})
-                a2=st.session_state.get("a2",{})
-                a3=st.session_state.get("a3",{})
-                if a1.get("nome") and a1.get("cogn") and a2.get("cell"):
+                s1=st.session_state.get("s1",{})
+                s2=st.session_state.get("s2",{})
+                s3=st.session_state.get("s3",{})
+                if s1.get("nome") and s2.get("cell"):
                     nuovo={
-                        "Nome":a1.get("nome")+" "+a1.get("cogn"),
-                        "Cell":a2.get("cell"),
-                        "Comune":a2.get("com"),
-                        "Ruolo":a3.get("ruolo"),
-                        "Ass":a3.get("ass"),
-                        "Note":note
+                        "Nome":s1.get("nome")+" "+s1.get("cogn"),
+                        "Cell":s2.get("cell"),
+                        "Comune":s2.get("com"),
+                        "Ruolo":s3.get("ruolo")
                     }
                     st.session_state.dati.append(nuovo)
-                    save_json(FILE_D,st.session_state.dati)
+                    save_json(FD,st.session_state.dati)
                     st.success("Salvato")
                     st.rerun()
         st.markdown('</div>',unsafe_allow_html=True)
-
     if st.session_state.dati:
         st.dataframe(pd.DataFrame(st.session_state.dati),use_container_width=True)
 
