@@ -1,58 +1,41 @@
-import streamlit as st
+﻿import streamlit as st
 import pandas as pd
-from io import BytesIO
-import os, json, base64, hashlib
 from datetime import date, datetime
+from io import BytesIO
+import os, json, hashlib
 
 st.set_page_config(
  page_title="ANA Varese",
  layout="wide"
 )
 
-# HEADER BASSO + ETICHETTE BASSE
+# NO BASE64 - HEADER BASSO - NO GLITCH
 st.markdown("""
 <style>
-.stApp{background:#e8f5e9!important;}
+header{height:30px!important;}
 .block-container{
- background:white!important;
- border-radius:12px;
- padding:10px!important;
- padding-top:5px!important;
+ padding-top:10px!important;
+ padding-bottom:60px!important;
 }
-header{
- height:40px!important;
-}
-h2,h3{
+h3{
  margin:2px!important;
  padding:2px!important;
+ font-size:18px!important;
 }
 label{
- font-size:14px!important;
- margin-top:2px!important;
+ font-size:13px!important;
+ margin:2px!important;
 }
 .stForm{
- background:#c8e6c9!important;
+ background:#e8f5e9!important;
  border:2px solid #2e7d32!important;
- border-radius:10px!important;
- padding:10px!important;
+ border-radius:8px!important;
+ padding:8px!important;
 }
 .stButton>button{
  background:#2e7d32!important;
  color:white!important;
- min-height:40px!important;
-}
-.foot{
- position:fixed;
- bottom:5px;
- left:10px;
- background:white;
- border:2px solid #2e7d32;
- border-radius:10px;
- padding:4px 10px;
- display:flex;
- align-items:center;
- gap:6px;
- z-index:9999;
+ min-height:38px!important;
 }
 </style>
 """, unsafe_allow_html=True)
@@ -73,30 +56,8 @@ def save_json(f,d):
  except:
   pass
 
-def get_b64(p):
- try:
-  if os.path.exists(p):
-   with open(p,"rb") as f:
-    return base64.b64encode(f.read()).decode()
- except:
-  pass
- return ""
-
 def hash_pwd(p):
  return hashlib.sha256(p.encode()).hexdigest()
-
-def footer():
- b=get_b64("ezio.png")
- if not b:
-  b=get_b64("logo.png")
- if b:
-  img="<img src='data:image/png;base64,"+b+"'>"
- else:
-  img="<div style='width:35px;height:35px;background:#2e7d32;border-radius:50%;'></div>"
- st.markdown(
-  "<div class='foot'>"+img+"<span>by Ezio F. 2026</span></div>",
-  unsafe_allow_html=True
- )
 
 FD="dati.json"
 FU="utenti.json"
@@ -153,15 +114,11 @@ if not st.session_state.utenti:
  save_json(FU,st.session_state.utenti)
 
 def header():
- b=get_b64("logo.png")
- if b:
-  h="<div style='text-align:center;background:#a5d6a7;padding:6px;border-radius:10px;border:2px solid #2e7d32;'><img src='data:image/png;base64,"+b+"' style='width:50px;border-radius:50%;'><div style='color:#0e7a3d;font-weight:bold;font-size:18px;'>VOLONTARIATO Varese</div></div>"
-  st.markdown(h,unsafe_allow_html=True)
- else:
-  st.markdown(
-   "<div style='text-align:center;color:green;font-weight:bold;'>VOLONTARIATO Varese</div>",
-   unsafe_allow_html=True
-  )
+ # HEADER SENZA IMMAGINE - NO GLITCH
+ st.markdown(
+  "<div style='text-align:center;background:#a5d6a7;padding:4px;border-radius:8px;border:2px solid #2e7d32;'><b style='color:#0e7a3d;'>VOLONTARIATO Varese</b></div>",
+  unsafe_allow_html=True
+ )
 
 def torna():
  if st.button("TORNA"):
@@ -188,14 +145,11 @@ if not st.session_state.auth:
      st.rerun()
     else:
      st.error("Errati")
- footer()
  st.stop()
 
 header()
 
 with st.sidebar:
- if os.path.exists("logo.png"):
-  st.image("logo.png",width=70)
  opts=[
   "Dashboard",
   "Volontari",
@@ -220,7 +174,6 @@ scelta=st.session_state.menu
 
 if scelta=="Dashboard":
  st.markdown("#### DASHBOARD")
- st.success("Tutto OK")
 
  c1,c2,c3=st.columns(3)
  with c1:
@@ -264,8 +217,6 @@ if scelta=="Dashboard":
  with c4:
   st.metric("Eventi",len(st.session_state.eventi))
 
- footer()
-
 elif scelta=="Volontari":
  torna()
  st.markdown("#### VOLONTARI")
@@ -289,7 +240,7 @@ elif scelta=="Volontari":
     st.session_state.s1_nome=a1
     st.session_state.s1_cogn=a2
     st.session_state.s1_dn=str(a4)
-    st.success("OK Anagrafica")
+    st.success("OK")
 
  with t2:
   with st.form("f2"):
@@ -301,7 +252,7 @@ elif scelta=="Volontari":
     st.session_state.s2_via=b1
     st.session_state.s2_com=b2
     st.session_state.s2_cell=b3
-    st.success("OK Residenza")
+    st.success("OK")
 
  with t3:
   with st.form("f3"):
@@ -311,7 +262,7 @@ elif scelta=="Volontari":
    if st.form_submit_button("SALVA"):
     st.session_state.s3_tess=c1x
     st.session_state.s3_ruolo=c2x
-    st.success("OK Tesseramento")
+    st.success("OK")
 
  with t4:
   with st.form("f4"):
@@ -320,7 +271,7 @@ elif scelta=="Volontari":
    d2=st.text_input("Corso",value="Si")
    if st.form_submit_button("SALVA"):
     st.session_state.s4_pat=d1
-    st.success("OK Abilita")
+    st.success("OK")
 
  with t5:
   with st.form("f5"):
@@ -352,21 +303,19 @@ elif scelta=="Mappa":
  torna()
  st.markdown("#### MAPPA POSTAZIONI")
 
- # SELEZIONE MAPPA OSM GOOGLE WAZE
- st.markdown("**Seleziona mappa**")
- tipo_mappa=st.selectbox(
-  "Tipo mappa",
-  ["OpenStreetMap","Google Maps","Waze","Tutte le postazioni"],
+ # SELEZIONE MAPPA
+ tipo=st.radio(
+  "Seleziona mappa",
+  ["OpenStreetMap","Google Maps","Waze"],
+  horizontal=True,
   key="tipo_mappa"
  )
 
- # 1 - ANTEPRIMA PER INSERIRE MANUALMENTE
- st.markdown("##### 1 - ANTEPRIMA PER INSERIRE")
- st.info("Mappa per inserire posizione manuale - come stamattina")
+ # 1 - ANTEPRIMA PER INSERIRE
+ st.markdown("##### 1 - ANTEPRIMA PER INSERIRE MANUALMENTE")
 
  col_a,col_b=st.columns([2,1])
  with col_a:
-  st.markdown("**Anteprima mappa inserimento**")
   lat_man=st.number_input(
    "Lat",
    value=float(st.session_state.lat_tmp),
@@ -382,34 +331,28 @@ elif scelta=="Mappa":
   st.session_state.lat_tmp=lat_man
   st.session_state.lon_tmp=lon_man
 
-  # MAPPA ANTEPRIMA DENTRO FORM - NON BIANCA
-  if tipo_mappa=="OpenStreetMap":
+  # MAPPA ANTEPRIMA - FUNZIONA
+  if tipo=="OpenStreetMap":
    df_ante=pd.DataFrame({"lat":[lat_man],"lon":[lon_man]})
    st.map(df_ante,zoom=15)
-   st.caption("OSM - Anteprima inserimento")
-  elif tipo_mappa=="Google Maps":
-   g_url="https://www.google.com/maps?q="+str(lat_man)+","+str(lon_man)+"&z=15&output=embed"
-   st.components.v1.iframe(g_url,height=350)
-   st.caption("Google Maps - Anteprima")
-  elif tipo_mappa=="Waze":
-   w_url="https://embed.waze.com/iframe?zoom=15&lat="+str(lat_man)+"&lon="+str(lon_man)
-   st.components.v1.iframe(w_url,height=350)
-   st.caption("Waze - Anteprima")
+  elif tipo=="Google Maps":
+   url="https://www.google.com/maps?q="+str(lat_man)+","+str(lon_man)+"&z=15&output=embed"
+   st.components.v1.iframe(url,height=350)
   else:
-   df_ante=pd.DataFrame({"lat":[lat_man],"lon":[lon_man]})
-   st.map(df_ante,zoom=14)
+   url="https://embed.waze.com/iframe?zoom=15&lat="+str(lat_man)+"&lon="+str(lon_man)
+   st.components.v1.iframe(url,height=350)
+
+  st.caption(tipo+" - Anteprima inserimento")
 
  with col_b:
-  st.markdown("**Istruzioni**")
   st.write("1 - Scrivi Lat/Lon")
-  st.write("2 - Vedi mappa qui")
+  st.write("2 - Vedi mappa")
   st.write("3 - Salva sotto")
   cerca=st.text_input("Cerca",value="Varese")
   if st.button("CENTRA VARESE"):
    st.session_state.lat_tmp=45.8205
    st.session_state.lon_tmp=8.8250
    st.rerun()
-  st.write("Mappa: "+tipo_mappa)
 
  st.divider()
 
@@ -440,15 +383,8 @@ elif scelta=="Mappa":
   try:
    lat_f=float(m5)
    lon_f=float(m6)
-   if tipo_mappa=="OpenStreetMap":
-    df_form=pd.DataFrame({"lat":[lat_f],"lon":[lon_f]})
-    st.map(df_form)
-   elif tipo_mappa=="Google Maps":
-    g_url="https://www.google.com/maps?q="+str(lat_f)+","+str(lon_f)+"&z=15&output=embed"
-    st.components.v1.iframe(g_url,height=300)
-   else:
-    df_form=pd.DataFrame({"lat":[lat_f],"lon":[lon_f]})
-    st.map(df_form)
+   df_form=pd.DataFrame({"lat":[lat_f],"lon":[lon_f]})
+   st.map(df_form)
   except:
    st.info("Inserisci Lat Lon")
 
@@ -471,7 +407,7 @@ elif scelta=="Mappa":
  st.divider()
 
  # 3 - MAPPA CHE VISIONA POSTAZIONI
- st.markdown("##### 3 - MAPPA POSTAZIONI SALVATE")
+ st.markdown("##### 3 - VISIONA POSTAZIONI")
 
  if st.session_state.post:
   try:
@@ -480,28 +416,17 @@ elif scelta=="Mappa":
    df_all["lon"]=pd.to_numeric(df_all["Lon"],errors="coerce")
    df_all=df_all.dropna(subset=["lat","lon"])
    if not df_all.empty:
-    if tipo_mappa=="OpenStreetMap" or tipo_mappa=="Tutte le postazioni":
-     st.map(df_all[["lat","lon"]])
-     st.caption("OSM - Tutte le postazioni")
-    elif tipo_mappa=="Google Maps":
-     # prima postazione per Google
-     lat0=df_all.iloc[0]["lat"]
-     lon0=df_all.iloc[0]["lon"]
-     g_url="https://www.google.com/maps?q="+str(lat0)+","+str(lon0)+"&z=12&output=embed"
-     st.components.v1.iframe(g_url,height=400)
-     st.caption("Google Maps - Tutte")
-    else:
-     st.map(df_all[["lat","lon"]])
-  except Exception as e:
-   st.write(str(e))
-
+    st.map(df_all[["lat","lon"]])
+    st.caption("Tutte le postazioni")
+  except:
+   pass
   st.dataframe(pd.DataFrame(st.session_state.post))
 
   for p in st.session_state.post:
    lat=p.get("Lat","45.8205")
    lon=p.get("Lon","8.8250")
    nome=p.get("Postazione","Post")
-   st.write("**"+nome+"** - Lat "+lat+" Lon "+lon)
+   st.write("**"+nome+"**")
    c1,c2,c3=st.columns(3)
    with c1:
     osm="https://www.openstreetmap.org/?mlat="+lat+"&mlon="+lon
@@ -512,11 +437,56 @@ elif scelta=="Mappa":
    with c3:
     waze="https://waze.com/ul?ll="+lat+","+lon
     st.link_button("Waze",waze)
-
  else:
   df_def=pd.DataFrame({"lat":[45.8205],"lon":[8.8250]})
   st.map(df_def)
-  st.info("Mappa Varese - inserisci postazioni")
+  st.info("Mappa Varese")
+
+elif scelta=="Backup":
+ torna()
+ st.markdown("#### BACKUP")
+
+ c1,c2=st.columns(2)
+ with c1:
+  exp_vol=st.checkbox("Volontari",value=True)
+  exp_mappa=st.checkbox("Mappa",value=True)
+  exp_check=st.checkbox("Check",value=True)
+  exp_brog=st.checkbox("Brog",value=True)
+ with c2:
+  exp_cons=st.checkbox("Consegna",value=True)
+  exp_eventi=st.checkbox("Eventi",value=True)
+  exp_radio=st.checkbox("Radio",value=True)
+  exp_emerg=st.checkbox("Emergenze",value=True)
+
+ if st.button("CREA BACKUP"):
+  out=BytesIO()
+  with pd.ExcelWriter(out,engine="openpyxl") as writer:
+   if exp_vol and st.session_state.dati:
+    pd.DataFrame(st.session_state.dati).to_excel(writer,sheet_name="Vol",index=False)
+   if exp_mappa and st.session_state.post:
+    pd.DataFrame(st.session_state.post).to_excel(writer,sheet_name="Mappa",index=False)
+   if exp_check and st.session_state.check:
+    pd.DataFrame(st.session_state.check).to_excel(writer,sheet_name="Check",index=False)
+   if exp_brog and st.session_state.brog:
+    pd.DataFrame(st.session_state.brog).to_excel(writer,sheet_name="Brog",index=False)
+   if exp_cons and st.session_state.consegna:
+    pd.DataFrame(st.session_state.consegna).to_excel(writer,sheet_name="Consegna",index=False)
+   if exp_eventi and st.session_state.eventi:
+    pd.DataFrame(st.session_state.eventi).to_excel(writer,sheet_name="Eventi",index=False)
+   if exp_radio and st.session_state.radio:
+    pd.DataFrame(st.session_state.radio).to_excel(writer,sheet_name="Radio",index=False)
+   if exp_emerg and st.session_state.emerg:
+    pd.DataFrame(st.session_state.emerg).to_excel(writer,sheet_name="Emergenze",index=False)
+  st.session_state["bk"]=out.getvalue()
+  st.success("Backup OK")
+
+ if "bk" in st.session_state:
+  st.download_button(
+   "SCARICA",
+   st.session_state["bk"],
+   file_name="BACKUP.xlsx",
+   mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+  )
 
 elif scelta=="Check":
  torna()
@@ -571,7 +541,7 @@ elif scelta=="Brogliaccio":
 
 elif scelta=="Consegna":
  torna()
- st.markdown("#### CONSEGNA RADIO")
+ st.markdown("#### CONSEGNA")
  with st.form("form_consegna"):
   ids=[r.get("ID","") for r in st.session_state.radio]
   if not ids:
@@ -662,48 +632,3 @@ elif scelta=="Emergenze":
    st.rerun()
  if st.session_state.emerg:
   st.dataframe(pd.DataFrame(st.session_state.emerg))
-
-elif scelta=="Backup":
- torna()
- st.markdown("#### BACKUP - SCEGLI DATI")
- c1,c2=st.columns(2)
- with c1:
-  exp_vol=st.checkbox("Volontari",value=True)
-  exp_mappa=st.checkbox("Mappa",value=True)
-  exp_check=st.checkbox("Check",value=True)
-  exp_brog=st.checkbox("Brog",value=True)
- with c2:
-  exp_cons=st.checkbox("Consegna",value=True)
-  exp_eventi=st.checkbox("Eventi",value=True)
-  exp_radio=st.checkbox("Radio",value=True)
-  exp_emerg=st.checkbox("Emergenze",value=True)
-
- if st.button("CREA BACKUP"):
-  out=BytesIO()
-  with pd.ExcelWriter(out,engine="openpyxl") as writer:
-   if exp_vol and st.session_state.dati:
-    pd.DataFrame(st.session_state.dati).to_excel(writer,sheet_name="Vol",index=False)
-   if exp_mappa and st.session_state.post:
-    pd.DataFrame(st.session_state.post).to_excel(writer,sheet_name="Mappa",index=False)
-   if exp_check and st.session_state.check:
-    pd.DataFrame(st.session_state.check).to_excel(writer,sheet_name="Check",index=False)
-   if exp_brog and st.session_state.brog:
-    pd.DataFrame(st.session_state.brog).to_excel(writer,sheet_name="Brog",index=False)
-   if exp_cons and st.session_state.consegna:
-    pd.DataFrame(st.session_state.consegna).to_excel(writer,sheet_name="Consegna",index=False)
-   if exp_eventi and st.session_state.eventi:
-    pd.DataFrame(st.session_state.eventi).to_excel(writer,sheet_name="Eventi",index=False)
-   if exp_radio and st.session_state.radio:
-    pd.DataFrame(st.session_state.radio).to_excel(writer,sheet_name="Radio",index=False)
-   if exp_emerg and st.session_state.emerg:
-    pd.DataFrame(st.session_state.emerg).to_excel(writer,sheet_name="Emergenze",index=False)
-  st.session_state["bk"]=out.getvalue()
-  st.success("Backup OK")
-
- if "bk" in st.session_state:
-  st.download_button(
-   "SCARICA BACKUP",
-   st.session_state["bk"],
-   file_name="BACKUP.xlsx",
-   mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-  )
