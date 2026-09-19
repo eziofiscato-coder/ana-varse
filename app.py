@@ -69,10 +69,8 @@ FO="consegna.json"
 FM="emerg.json"
 COM=["Varese","Busto","Gallarate","Saronno","Altro"]
 
-for k in ["dati","post","eventi","radio","check","brog","consegna","emerg"]:
-    if k not in st.session_state:
-        st.session_state[k]=[]
-
+if "dati" not in st.session_state:
+    st.session_state.dati=[]
 if "utenti" not in st.session_state:
     st.session_state.utenti=[]
 if "menu" not in st.session_state:
@@ -82,13 +80,6 @@ if "auth" not in st.session_state:
 
 st.session_state.dati=load_json(FD,[])
 st.session_state.utenti=load_json(FU,[])
-st.session_state.post=load_json(FP,[])
-st.session_state.eventi=load_json(FE,[])
-st.session_state.radio=load_json(FR,[])
-st.session_state.check=load_json(FC,[])
-st.session_state.brog=load_json(FB,[])
-st.session_state.consegna=load_json(FO,[])
-st.session_state.emerg=load_json(FM,[])
 
 if not st.session_state.utenti:
     st.session_state.utenti=[
@@ -100,7 +91,7 @@ if not st.session_state.utenti:
 def header():
     b=get_b64("logo.png")
     if b:
-        h="<div style='text-align:center;background:#a5d6a7;padding:15px;border-radius:15px;border:3px solid #2e7d32;'><img src='data:image/png;base64,"+b+"' style='width:80px;border-radius:50%;'><h2 style='color:#0e7a3d;'>VOLONTARIATO<br>Sezione di Varese</h2></div>"
+        h="<div style='text-align:center;background:#a5d6a7;padding:15px;border-radius:15px;border:3px solid #2e7d32;'><img src='data:image/png;base64,"+b+"' style='width:80px;border-radius:50%;'><h2 style='color:#0e7a3d;'>VOLONTARIATO Varese</h2></div>"
         st.markdown(h,unsafe_allow_html=True)
     else:
         st.markdown("<h2 style='text-align:center;color:#0e7a3d;'>VOLONTARIATO Varese</h2>",unsafe_allow_html=True)
@@ -139,7 +130,7 @@ st.divider()
 with st.sidebar:
     if os.path.exists("logo.png"):
         st.image("logo.png",width=80)
-    opts=["Dashboard","Volontari","Mappa Postazioni","Eventi","DB Radio","Check-In","Brogliaccio","Consegna Radio","Emergenze","Backup"]
+    opts=["Dashboard","Volontari","Mappa","Eventi","Radio","Check-In","Brogliaccio","Consegna","Emergenze","Backup"]
     sel=st.radio("Vai a",opts,index=0)
     if sel!=st.session_state.menu:
         st.session_state.menu=sel
@@ -151,42 +142,20 @@ with st.sidebar:
 scelta=st.session_state.menu
 
 if scelta=="Dashboard":
-    st.markdown("## DASHBOARD - MENU RAPIDO")
+    st.markdown("## DASHBOARD")
     st.success("Benvenuto")
-    c1,c2,c3,c4=st.columns(4)
-    with c1:
-        if st.button("VOLONTARI",use_container_width=True,key="d1"):
-            st.session_state.menu="Volontari"
-            st.rerun()
-    with c2:
-        if st.button("MAPPA",use_container_width=True,key="d2"):
-            st.session_state.menu="Mappa Postazioni"
-            st.rerun()
-    with c3:
-        if st.button("EVENTI",use_container_width=True,key="d3"):
-            st.session_state.menu="Eventi"
-            st.rerun()
-    with c4:
-        if st.button("RADIO",use_container_width=True,key="d4"):
-            st.session_state.menu="DB Radio"
-            st.rerun()
-    c1,c2,c3,c4=st.columns(4)
-    with c1:
-        if st.button("CHECK-IN",use_container_width=True,key="d5"):
-            st.session_state.menu="Check-In"
-            st.rerun()
-    with c2:
-        if st.button("BROGLIACCIO",use_container_width=True,key="d6"):
-            st.session_state.menu="Brogliaccio"
-            st.rerun()
-    with c3:
-        if st.button("CONSEGNA",use_container_width=True,key="d7"):
-            st.session_state.menu="Consegna Radio"
-            st.rerun()
-    with c4:
-        if st.button("EMERGENZE",use_container_width=True,key="d8"):
-            st.session_state.menu="Emergenze"
-            st.rerun()
+    if st.button("VOLONTARI",use_container_width=True,key="d1"):
+        st.session_state.menu="Volontari"
+        st.rerun()
+    if st.button("MAPPA",use_container_width=True,key="d2"):
+        st.session_state.menu="Mappa"
+        st.rerun()
+    if st.button("EVENTI",use_container_width=True,key="d3"):
+        st.session_state.menu="Eventi"
+        st.rerun()
+    if st.button("RADIO",use_container_width=True,key="d4"):
+        st.session_state.menu="Radio"
+        st.rerun()
     if st.button("BACKUP",use_container_width=True,key="d9"):
         st.session_state.menu="Backup"
         st.rerun()
@@ -203,8 +172,12 @@ elif scelta=="Volontari":
             a2=st.text_input("Cognome *",key="a2")
             a3=st.text_input("CF",key="a3")
             a4=st.date_input("Data Nascita",value=date(1980,1,1),key="a4")
-            st.session_state["s1"]={"nome":a1,"cogn":a2,"cf":a3,"dn":str(a4)}
-            st.form_submit_button("SALVA 1")
+            if st.form_submit_button("SALVA 1"):
+                st.session_state.s1_nome=a1
+                st.session_state.s1_cogn=a2
+                st.session_state.s1_cf=a3
+                st.session_state.s1_dn=str(a4)
+                st.success("Salvato 1")
         st.markdown('</div>',unsafe_allow_html=True)
     with t2:
         st.markdown('<div class="sub">',unsafe_allow_html=True)
@@ -213,4 +186,16 @@ elif scelta=="Volontari":
             b2=st.selectbox("Comune",COM,key="b2")
             b3=st.text_input("Cell *",key="b3")
             b4=st.text_input("Email",key="b4")
-            st.session_state["s2"]={"via":b1,"com":b2,"cell":b3,"email
+            if st.form_submit_button("SALVA 2"):
+                st.session_state.s2_via=b1
+                st.session_state.s2_com=b2
+                st.session_state.s2_cell=b3
+                st.session_state.s2_email=b4
+                st.success("Salvato 2")
+        st.markdown('</div>',unsafe_allow_html=True)
+    with t3:
+        st.markdown('<div class="sub">',unsafe_allow_html=True)
+        with st.form("f3"):
+            c1x=st.text_input("Tessera ANA",key="c1")
+            c2x=st.text_input("Sezione",value="Varese",key="c2")
+            c3x=st.selectbox("Ruolo",["Volontario","Caposquad
