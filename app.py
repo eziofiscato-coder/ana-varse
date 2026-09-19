@@ -123,6 +123,10 @@ if "menu" not in st.session_state:
  st.session_state.menu="Dashboard"
 if "auth" not in st.session_state:
  st.session_state.auth=False
+if "lat_tmp" not in st.session_state:
+ st.session_state.lat_tmp=45.8205
+if "lon_tmp" not in st.session_state:
+ st.session_state.lon_tmp=8.8250
 
 st.session_state.dati=load_json(FD,[])
 st.session_state.utenti=load_json(FU,[])
@@ -208,23 +212,60 @@ with st.sidebar:
 
 scelta=st.session_state.menu
 
+# DASHBOARD CON TUTTI I TASTI MESSI BENE
 if scelta=="Dashboard":
  st.markdown("## DASHBOARD")
- st.success("Verde OK")
- if st.button("VOLONTARI"):
-  st.session_state.menu="Volontari"
-  st.rerun()
- if st.button("MAPPA"):
-  st.session_state.menu="Mappa"
-  st.rerun()
- if st.button("BACKUP"):
-  st.session_state.menu="Backup"
-  st.rerun()
+ st.success("Verde OK - Tutti i tasti")
+
+ c1,c2,c3=st.columns(3)
+ with c1:
+  if st.button("VOLONTARI"):
+   st.session_state.menu="Volontari"
+   st.rerun()
+  if st.button("EVENTI"):
+   st.session_state.menu="Eventi"
+   st.rerun()
+  if st.button("BROGLIACCIO"):
+   st.session_state.menu="Brogliaccio"
+   st.rerun()
+ with c2:
+  if st.button("MAPPA POSTAZIONI"):
+   st.session_state.menu="Mappa"
+   st.rerun()
+  if st.button("DB RADIO"):
+   st.session_state.menu="Radio"
+   st.rerun()
+  if st.button("CONSEGNA RADIO"):
+   st.session_state.menu="Consegna"
+   st.rerun()
+ with c3:
+  if st.button("CHECK-IN"):
+   st.session_state.menu="Check"
+   st.rerun()
+  if st.button("EMERGENZE"):
+   st.session_state.menu="Emergenze"
+   st.rerun()
+  if st.button("BACKUP IMPORT EXPORT"):
+   st.session_state.menu="Backup"
+   st.rerun()
+
+ st.divider()
+ st.markdown("### Riepilogo")
+ c1,c2,c3,c4=st.columns(4)
+ with c1:
+  st.metric("Volontari",len(st.session_state.dati))
+ with c2:
+  st.metric("Postazioni",len(st.session_state.post))
+ with c3:
+  st.metric("Check-In",len(st.session_state.check))
+ with c4:
+  st.metric("Eventi",len(st.session_state.eventi))
+
  footer()
 
 elif scelta=="Volontari":
  torna()
- st.markdown("## VOLONTARI")
+ st.markdown("## VOLONTARI - 5 MASCHERE")
  t1,t2,t3,t4,t5=st.tabs(["1","2","3","4","5"])
  with t1:
   with st.form("f1"):
@@ -286,64 +327,70 @@ elif scelta=="Volontari":
  if st.session_state.dati:
   st.dataframe(pd.DataFrame(st.session_state.dati))
 
-# MAPPA CON MAPPA NEL FORM
+# MAPPA CON ANTEPRIMA PER INSERIMENTO MANUALE
 elif scelta=="Mappa":
  torna()
  st.markdown("## MAPPA POSTAZIONI")
 
- # ANTEPRIMA MAPPA SEMPRE VISIBILE
- st.markdown("### ANTEPRIMA MAPPA")
+ # ANTEPRIMA MAPPA PER INSERIRE MANUALMENTE - DENTRO FORM
+ st.markdown("### 1 - ANTEPRIMA MAPPA PER INSERIMENTO MANUALE")
+ st.info("Inserisci manualmente e vedi anteprima mappa")
 
- if st.session_state.post:
-  try:
-   df_all=pd.DataFrame(st.session_state.post)
-   df_all["lat"]=pd.to_numeric(df_all["Lat"],errors="coerce")
-   df_all["lon"]=pd.to_numeric(df_all["Lon"],errors="coerce")
-   df_all=df_all.dropna(subset=["lat","lon"])
-   if not df_all.empty:
-    st.map(df_all[["lat","lon"]])
-   else:
-    st.info("Nessuna coord valida")
-  except Exception as e:
-   st.warning(str(e))
- else:
-  df_def=pd.DataFrame({"lat":[45.8205],"lon":[8.8250]})
-  st.map(df_def)
-  st.info("Mappa Varese")
+ col_a,col_b=st.columns([2,1])
+ with col_a:
+  st.markdown("**Anteprima mappa**")
+  lat_man=st.number_input("Latitudine",value=float(st.session_state.lat_tmp),format="%.6f",key="lat_man")
+  lon_man=st.number_input("Longitudine",value=float(st.session_state.lon_tmp),format="%.6f",key="lon_man")
+  st.session_state.lat_tmp=lat_man
+  st.session_state.lon_tmp=lon_man
+  df_ante=pd.DataFrame({"lat":[lat_man],"lon":[lon_man]})
+  st.map(df_ante,zoom=14)
+  st.caption("Anteprima posizione manuale - dentro form")
+
+ with col_b:
+  st.markdown("**Istruzioni**")
+  st.write("1 - Scrivi Lat/Lon")
+  st.write("2 - Vedi mappa qui")
+  st.write("3 - Salva sotto")
+  st.markdown("**Cerca**")
+  cerca=st.text_input("Indirizzo",value="Varese",key="cerca_map")
+  if st.button("CENTRA VARESE"):
+   st.session_state.lat_tmp=45.8205
+   st.session_state.lon_tmp=8.8250
+   st.rerun()
 
  st.divider()
-
- # FORM CON MAPPA DENTRO
- st.markdown("### INSERIMENTO - CON MAPPA NEL FORM")
+ st.markdown("### 2 - INSERIMENTO MANUALE POSTAZIONE")
 
  with st.form("form_mappa"):
-  st.markdown("**Dati postazione**")
-  m1=st.text_input("Nome *",key="m1")
-  m2=st.text_input("Comune *",value="Varese",key="m2")
-  m3=st.text_input("Via *",key="m3")
-  m5=st.text_input("Lat",value="45.8205",key="m5")
-  m6=st.text_input("Lon",value="8.8250",key="m6")
-  m7=st.text_input("Tipo",value="Presidio",key="m7")
-  m9=st.text_area("Note",key="m9")
+  c1,c2=st.columns(2)
+  with c1:
+   m1=st.text_input("Nome postazione *",key="m1")
+   m2=st.text_input("Comune *",value="Varese",key="m2")
+   m3=st.text_input("Via *",key="m3")
+   m7=st.text_input("Tipo",value="Presidio",key="m7")
+  with c2:
+   m5=st.text_input("Lat",value=str(st.session_state.lat_tmp),key="m5")
+   m6=st.text_input("Lon",value=str(st.session_state.lon_tmp),key="m6")
+   m8=st.text_input("Resp",key="m8")
+   m9=st.text_area("Note",key="m9")
 
   st.markdown("**Icona**")
-  icona=st.file_uploader("Icona PNG/JPG",type=["png","jpg","jpeg"])
+  icona=st.file_uploader("Icona PNG/JPG",type=["png","jpg","jpeg"],key="icona_map")
   nome_icona=""
   if icona:
    nome_icona=icona.name
    st.image(icona,width=100)
 
   # ANTEPRIMA DENTRO FORM
-  st.markdown("**Anteprima posizione**")
+  st.markdown("**Anteprima dentro form**")
   try:
    lat_f=float(m5)
    lon_f=float(m6)
-   df_prev=pd.DataFrame({"lat":[lat_f],"lon":[lon_f]})
-   st.map(df_prev)
+   df_form=pd.DataFrame({"lat":[lat_f],"lon":[lon_f]})
+   st.map(df_form)
   except:
-   st.info("Inserisci Lat Lon")
-
-  cerca=st.text_input("Cerca",value="Varese")
+   st.info("Inserisci Lat Lon validi")
 
   ok=st.form_submit_button("SALVA POSTAZIONE")
   if ok and m1:
@@ -361,27 +408,43 @@ elif scelta=="Mappa":
    st.success("Salvata")
    st.rerun()
 
+ st.divider()
+ st.markdown("### 3 - ANTEPRIMA TUTTE LE POSTAZIONI")
+
  if st.session_state.post:
+  try:
+   df_all=pd.DataFrame(st.session_state.post)
+   df_all["lat"]=pd.to_numeric(df_all["Lat"],errors="coerce")
+   df_all["lon"]=pd.to_numeric(df_all["Lon"],errors="coerce")
+   df_all=df_all.dropna(subset=["lat","lon"])
+   if not df_all.empty:
+    st.map(df_all[["lat","lon"]])
+    st.caption("Tutte le postazioni - mappa dentro form")
+  except:
+   pass
   st.dataframe(pd.DataFrame(st.session_state.post))
+ else:
+  df_def=pd.DataFrame({"lat":[45.8205],"lon":[8.8250]})
+  st.map(df_def)
+  st.info("Mappa Varese - inserisci postazioni manualmente sopra")
 
 # BACKUP CON SCELTA
 elif scelta=="Backup":
  torna()
  st.markdown("## BACKUP - SCEGLI DATI")
 
- # EXPORT CON SCELTA
  st.markdown("### EXPORT - SCEGLI COSA ESPORTARE")
  c1,c2=st.columns(2)
  with c1:
-  exp_vol=st.checkbox("Volontari",value=True)
-  exp_mappa=st.checkbox("Mappa",value=True)
-  exp_check=st.checkbox("Check-In",value=True)
-  exp_brog=st.checkbox("Brogliaccio",value=True)
+  exp_vol=st.checkbox("Volontari",value=True,key="exp_vol")
+  exp_mappa=st.checkbox("Mappa",value=True,key="exp_map")
+  exp_check=st.checkbox("Check-In",value=True,key="exp_check")
+  exp_brog=st.checkbox("Brogliaccio",value=True,key="exp_brog")
  with c2:
-  exp_cons=st.checkbox("Consegna",value=True)
-  exp_eventi=st.checkbox("Eventi",value=True)
-  exp_radio=st.checkbox("Radio",value=True)
-  exp_emerg=st.checkbox("Emergenze",value=True)
+  exp_cons=st.checkbox("Consegna",value=True,key="exp_cons")
+  exp_eventi=st.checkbox("Eventi",value=True,key="exp_ev")
+  exp_radio=st.checkbox("Radio",value=True,key="exp_radio")
+  exp_emerg=st.checkbox("Emergenze",value=True,key="exp_em")
 
  if st.button("CREA BACKUP SELEZIONATO"):
   out=BytesIO()
@@ -409,13 +472,13 @@ elif scelta=="Backup":
   st.download_button(
    "SCARICA BACKUP",
    st.session_state["bk"],
-   file_name="BACKUP_SELEZIONATO.xlsx",
+   file_name="BACKUP.xlsx",
    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
   )
 
  st.divider()
  st.markdown("### IMPORT - SCEGLI COSA IMPORTARE")
- uploaded=st.file_uploader("Carica Excel",type=["xlsx"])
+ uploaded=st.file_uploader("Carica Excel",type=["xlsx"],key="up_bk")
  if uploaded:
   try:
    xls=pd.ExcelFile(uploaded)
@@ -424,15 +487,15 @@ elif scelta=="Backup":
    st.write(sheets)
    c1,c2=st.columns(2)
    with c1:
-    imp_vol=st.checkbox("Importa Volontari",value=True)
-    imp_mappa=st.checkbox("Importa Mappa",value=True)
-    imp_check=st.checkbox("Importa Check",value=True)
-    imp_brog=st.checkbox("Importa Brog",value=True)
+    imp_vol=st.checkbox("Importa Volontari",value=True,key="imp_vol")
+    imp_mappa=st.checkbox("Importa Mappa",value=True,key="imp_map")
+    imp_check=st.checkbox("Importa Check",value=True,key="imp_check")
+    imp_brog=st.checkbox("Importa Brog",value=True,key="imp_brog")
    with c2:
-    imp_cons=st.checkbox("Importa Consegna",value=True)
-    imp_eventi=st.checkbox("Importa Eventi",value=True)
-    imp_radio=st.checkbox("Importa Radio",value=True)
-    imp_emerg=st.checkbox("Importa Emergenze",value=True)
+    imp_cons=st.checkbox("Importa Consegna",value=True,key="imp_cons")
+    imp_eventi=st.checkbox("Importa Eventi",value=True,key="imp_ev")
+    imp_radio=st.checkbox("Importa Radio",value=True,key="imp_radio")
+    imp_emerg=st.checkbox("Importa Emergenze",value=True,key="imp_em")
    if st.button("IMPORTA SELEZIONATI"):
     if imp_vol and "Vol" in sheets:
      df=pd.read_excel(xls,"Vol")
@@ -471,7 +534,7 @@ elif scelta=="Backup":
   except Exception as e:
    st.error("Errore: "+str(e))
 
-# ALTRI FORM SEMPLICI
+# ALTRI FORM
 elif scelta=="Check":
  torna()
  st.markdown("## CHECK-IN")
@@ -479,11 +542,11 @@ elif scelta=="Check":
   nomi=[d.get("Nome","") for d in st.session_state.dati]
   if not nomi:
    nomi=["Nessun volontario"]
-  ch1=st.selectbox("Vol",nomi)
-  ch2=st.text_input("Post")
-  ch3=st.time_input("Ora",value=datetime.now().time())
-  ch4=st.date_input("Data",value=date.today())
-  ch7=st.text_area("Note")
+  ch1=st.selectbox("Vol",nomi,key="ch1")
+  ch2=st.text_input("Post",key="ch2")
+  ch3=st.time_input("Ora",value=datetime.now().time(),key="ch3")
+  ch4=st.date_input("Data",value=date.today(),key="ch4")
+  ch7=st.text_area("Note",key="ch7")
   ok=st.form_submit_button("SALVA")
   if ok:
    nuovo={}
@@ -503,11 +566,11 @@ elif scelta=="Brogliaccio":
  torna()
  st.markdown("## BROGLIACCIO")
  with st.form("form_brog"):
-  b1=st.text_input("Mitt *")
-  b2=st.text_input("Dest *")
-  b7=st.text_area("Mess *")
-  b4=st.time_input("Ora",value=datetime.now().time())
-  b5=st.date_input("Data",value=date.today())
+  b1=st.text_input("Mitt *",key="br1")
+  b2=st.text_input("Dest *",key="br2")
+  b7=st.text_area("Mess *",key="br7")
+  b4=st.time_input("Ora",value=datetime.now().time(),key="br4")
+  b5=st.date_input("Data",value=date.today(),key="br5")
   ok=st.form_submit_button("SALVA")
   if ok and b1 and b7:
    nuovo={}
@@ -530,13 +593,13 @@ elif scelta=="Consegna":
   ids=[r.get("ID","") for r in st.session_state.radio]
   if not ids:
    ids=["RADIO-01"]
-  co1=st.selectbox("ID Radio",ids)
+  co1=st.selectbox("ID Radio",ids,key="co1")
   nomi=[d.get("Nome","") for d in st.session_state.dati]
   if not nomi:
    nomi=["Nessun volontario"]
-  co2=st.selectbox("A",nomi)
-  co3=st.date_input("Data",value=date.today())
-  co4=st.time_input("Ora",value=datetime.now().time())
+  co2=st.selectbox("A",nomi,key="co2")
+  co3=st.date_input("Data",value=date.today(),key="co3")
+  co4=st.time_input("Ora",value=datetime.now().time(),key="co4")
   ok=st.form_submit_button("SALVA")
   if ok:
    nuovo={}
