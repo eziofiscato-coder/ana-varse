@@ -180,12 +180,6 @@ if scelta=="Dashboard":
     if st.button("CHECK"):
         st.session_state.menu="Check"
         st.rerun()
-    if st.button("BROGLIACCIO"):
-        st.session_state.menu="Brogliaccio"
-        st.rerun()
-    if st.button("CONSEGNA"):
-        st.session_state.menu="Consegna"
-        st.rerun()
     if st.button("BACKUP"):
         st.session_state.menu="Backup"
         st.rerun()
@@ -193,7 +187,7 @@ if scelta=="Dashboard":
 
 elif scelta=="Volontari":
     torna()
-    st.markdown("## VOLONTARI")
+    st.markdown("## VOLONTARI - 5 MASCHERE")
     t1,t2,t3,t4,t5=st.tabs(["1","2","3","4","5"])
     with t1:
         with st.form("f1"):
@@ -253,7 +247,6 @@ elif scelta=="Volontari":
 elif scelta=="Mappa":
     torna()
     st.markdown("## MAPPA - ANTEPRIMA + LOGO")
-
     st.markdown("### 1 - MAPPA INSERIMENTO")
     col1,col2=st.columns([2,1])
     with col1:
@@ -266,7 +259,6 @@ elif scelta=="Mappa":
     with col2:
         cerca=st.text_input("Cerca",value="Varese")
         tipo=st.selectbox("Tipo",["OSM","Google","Waze"])
-
     st.markdown("### 2 - DATI + LOGO")
     with st.form("form_mappa"):
         col1,col2=st.columns(2)
@@ -297,7 +289,6 @@ elif scelta=="Mappa":
             save_json(FP,st.session_state.post)
             st.success("OK")
             st.rerun()
-
     if st.session_state.post:
         st.divider()
         st.markdown("## 3 - ANTEPRIMA CON LOGHI")
@@ -441,17 +432,187 @@ elif scelta=="Radio":
     if st.session_state.radio:
         st.dataframe(pd.DataFrame(st.session_state.radio))
 
+elif scelta=="Emergenze":
+    torna()
+    st.markdown("## EMERGENZE")
+    with st.form("form_em"):
+        em1=st.text_input("Tipo",value="Alluvione")
+        em2=st.text_input("Comune",value="Varese")
+        em3=st.text_input("Via *")
+        em4=st.text_input("Coord *")
+        em5=st.text_area("Desc *")
+        ok=st.form_submit_button("SALVA")
+        if ok and em3:
+            r=dict(Tipo=em1,Comune=em2,Via=em3,Coord=em4,Desc=em5)
+            st.session_state.emerg.append(r)
+            save_json(FM,st.session_state.emerg)
+            st.success("OK")
+            st.rerun()
+    if st.session_state.emerg:
+        st.dataframe(pd.DataFrame(st.session_state.emerg))
+
 elif scelta=="Backup":
     torna()
-    st.markdown("## BACKUP")
-    if st.button("CREA BACKUP"):
+    st.markdown("## BACKUP - IMPORT EXPORT PER FORM")
+
+    # BACKUP COMPLETO CON IMPORT EXPORT PER OGNI FORM - COME STAMATTINA
+    st.markdown("### 1 - BACKUP COMPLETO")
+
+    if st.button("CREA BACKUP COMPLETO"):
         out=BytesIO()
         with pd.ExcelWriter(out,engine="openpyxl") as writer:
             if st.session_state.dati:
-                pd.DataFrame(st.session_state.dati).to_excel(writer,sheet_name="Vol",index=False)
+                pd.DataFrame(st.session_state.dati).to_excel(writer,sheet_name="Volontari",index=False)
             if st.session_state.post:
                 pd.DataFrame(st.session_state.post).to_excel(writer,sheet_name="Mappa",index=False)
+            if st.session_state.check:
+                pd.DataFrame(st.session_state.check).to_excel(writer,sheet_name="CheckIn",index=False)
+            if st.session_state.brog:
+                pd.DataFrame(st.session_state.brog).to_excel(writer,sheet_name="Brogliaccio",index=False)
+            if st.session_state.consegna:
+                pd.DataFrame(st.session_state.consegna).to_excel(writer,sheet_name="Consegna",index=False)
+            if st.session_state.eventi:
+                pd.DataFrame(st.session_state.eventi).to_excel(writer,sheet_name="Eventi",index=False)
+            if st.session_state.radio:
+                pd.DataFrame(st.session_state.radio).to_excel(writer,sheet_name="Radio",index=False)
+            if st.session_state.emerg:
+                pd.DataFrame(st.session_state.emerg).to_excel(writer,sheet_name="Emergenze",index=False)
         st.session_state["bk"]=out.getvalue()
-        st.success("OK")
+        st.success("Backup completo OK")
+
     if "bk" in st.session_state:
-        st.download_button("SCARICA",st.session_state["bk"],file_name="BACKUP.xlsx",mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+        st.download_button("SCARICA BACKUP COMPLETO",st.session_state["bk"],file_name="BACKUP_COMPLETO.xlsx",mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+
+    st.divider()
+    st.markdown("### 2 - EXPORT PER FORM")
+
+    c1,c2=st.columns(2)
+    with c1:
+        if st.session_state.dati:
+            out=BytesIO()
+            pd.DataFrame(st.session_state.dati).to_excel(out,index=False,engine="openpyxl")
+            st.download_button("Export Volontari",out.getvalue(),file_name="volontari.xlsx",mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+        if st.session_state.post:
+            out=BytesIO()
+            pd.DataFrame(st.session_state.post).to_excel(out,index=False,engine="openpyxl")
+            st.download_button("Export Mappa",out.getvalue(),file_name="mappa.xlsx",mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+        if st.session_state.check:
+            out=BytesIO()
+            pd.DataFrame(st.session_state.check).to_excel(out,index=False,engine="openpyxl")
+            st.download_button("Export CheckIn",out.getvalue(),file_name="checkin.xlsx",mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+        if st.session_state.brog:
+            out=BytesIO()
+            pd.DataFrame(st.session_state.brog).to_excel(out,index=False,engine="openpyxl")
+            st.download_button("Export Brogliaccio",out.getvalue(),file_name="brogliaccio.xlsx",mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+
+    with c2:
+        if st.session_state.consegna:
+            out=BytesIO()
+            pd.DataFrame(st.session_state.consegna).to_excel(out,index=False,engine="openpyxl")
+            st.download_button("Export Consegna",out.getvalue(),file_name="consegna.xlsx",mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+        if st.session_state.eventi:
+            out=BytesIO()
+            pd.DataFrame(st.session_state.eventi).to_excel(out,index=False,engine="openpyxl")
+            st.download_button("Export Eventi",out.getvalue(),file_name="eventi.xlsx",mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+        if st.session_state.radio:
+            out=BytesIO()
+            pd.DataFrame(st.session_state.radio).to_excel(out,index=False,engine="openpyxl")
+            st.download_button("Export Radio",out.getvalue(),file_name="radio.xlsx",mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+        if st.session_state.emerg:
+            out=BytesIO()
+            pd.DataFrame(st.session_state.emerg).to_excel(out,index=False,engine="openpyxl")
+            st.download_button("Export Emergenze",out.getvalue(),file_name="emergenze.xlsx",mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+
+    st.divider()
+    st.markdown("### 3 - IMPORT PER FORM")
+
+    c1,c2=st.columns(2)
+    with c1:
+        st.markdown("**Import Volontari**")
+        up1=st.file_uploader("Import Volontari XLSX",type=["xlsx"],key="up_vol")
+        if up1:
+            try:
+                df=pd.read_excel(up1)
+                st.session_state.dati=df.to_dict(orient="records")
+                save_json(FD,st.session_state.dati)
+                st.success("Import Volontari OK")
+            except:
+                st.error("Errore import")
+
+        st.markdown("**Import Mappa**")
+        up2=st.file_uploader("Import Mappa XLSX",type=["xlsx"],key="up_mappa")
+        if up2:
+            try:
+                df=pd.read_excel(up2)
+                st.session_state.post=df.to_dict(orient="records")
+                save_json(FP,st.session_state.post)
+                st.success("Import Mappa OK")
+            except:
+                st.error("Errore import")
+
+        st.markdown("**Import CheckIn**")
+        up3=st.file_uploader("Import CheckIn XLSX",type=["xlsx"],key="up_check")
+        if up3:
+            try:
+                df=pd.read_excel(up3)
+                st.session_state.check=df.to_dict(orient="records")
+                save_json(FC,st.session_state.check)
+                st.success("Import CheckIn OK")
+            except:
+                st.error("Errore import")
+
+        st.markdown("**Import Brogliaccio**")
+        up4=st.file_uploader("Import Brogliaccio XLSX",type=["xlsx"],key="up_brog")
+        if up4:
+            try:
+                df=pd.read_excel(up4)
+                st.session_state.brog=df.to_dict(orient="records")
+                save_json(FB,st.session_state.brog)
+                st.success("Import Brogliaccio OK")
+            except:
+                st.error("Errore import")
+
+    with c2:
+        st.markdown("**Import Consegna**")
+        up5=st.file_uploader("Import Consegna XLSX",type=["xlsx"],key="up_cons")
+        if up5:
+            try:
+                df=pd.read_excel(up5)
+                st.session_state.consegna=df.to_dict(orient="records")
+                save_json(FO,st.session_state.consegna)
+                st.success("Import Consegna OK")
+            except:
+                st.error("Errore import")
+
+        st.markdown("**Import Eventi**")
+        up6=st.file_uploader("Import Eventi XLSX",type=["xlsx"],key="up_ev")
+        if up6:
+            try:
+                df=pd.read_excel(up6)
+                st.session_state.eventi=df.to_dict(orient="records")
+                save_json(FE,st.session_state.eventi)
+                st.success("Import Eventi OK")
+            except:
+                st.error("Errore import")
+
+        st.markdown("**Import Radio**")
+        up7=st.file_uploader("Import Radio XLSX",type=["xlsx"],key="up_radio")
+        if up7:
+            try:
+                df=pd.read_excel(up7)
+                st.session_state.radio=df.to_dict(orient="records")
+                save_json(FR,st.session_state.radio)
+                st.success("Import Radio OK")
+            except:
+                st.error("Errore import")
+
+        st.markdown("**Import Emergenze**")
+        up8=st.file_uploader("Import Emergenze XLSX",type=["xlsx"],key="up_emerg")
+        if up8:
+            try:
+                df=pd.read_excel(up8)
+                st.session_state.emerg=df.to_dict(orient="records")
+                save_json(FM,st.session_state.emerg)
+                st.success("Import Emergenze OK")
+            except:
+                st.error("Errore import")
