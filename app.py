@@ -1,6 +1,6 @@
 ﻿import streamlit as st
 import pandas as pd
-from datetime import date
+from datetime import date, datetime
 from io import BytesIO
 import os, json, base64, tempfile, requests, hashlib
 
@@ -14,7 +14,7 @@ st.markdown("""
 .stForm{background:#c8e6c9!important;border:3px solid #2e7d32!important;border-radius:15px!important;padding:15px!important;}
 .stButton>button{background:#2e7d32!important;color:white!important;font-weight:bold!important;min-height:45px!important;border-radius:10px!important;}
 .icon-lib{border:3px solid #2e7d32;border-radius:12px;padding:10px;background:white;text-align:center;margin:5px;}
-.dashboard-card{border:3px solid #2e7d32;border-radius:15px;padding:15px;background:#e8f5e9;text-align:center;margin:10px;min-height:220px;}
+.dashboard-card{border:3px solid #2e7d32;border-radius:15px;padding:15px;background:#e8f5e9;text-align:center;margin:10px;min-height:200px;}
 </style>
 """, unsafe_allow_html=True)
 
@@ -92,10 +92,16 @@ FILE_DATI="dati_volontari.json"
 FILE_POST="postazioni.json"
 FILE_ICONE="libreria_icone_condivisa.json"
 FILE_UTENTI="utenti.json"
+FILE_EVENTI="eventi.json"
+FILE_RADIO="db_radio.json"
+FILE_CHECKIN="checkin.json"
+FILE_BROGLIACCIO="brogliaccio.json"
+FILE_CONSEGNA="consegna_radio.json"
+
 COMUNI=["Varese","Busto Arsizio","Gallarate","Saronno","Venegono Superiore","Venegono Inferiore","Castiglione Olona","Lozza","Tradate","Malnate","Luino","Altro"]
 RUOLI=["Amministratore","Utente"]
 
-for k,v in [("dati",[]),("postazioni",[]),("icone_lib",[]),("utenti",[]),("menu_scelta","Dashboard"),("map_lat",45.8205),("map_lon",8.8250),("map_via",""),("map_comune","Varese"),("map_logo","Default"),("post_sel",None),("authenticated",False),("ruolo",""),("username","")]:
+for k,v in [("dati",[]),("postazioni",[]),("icone_lib",[]),("utenti",[]),("eventi",[]),("radio",[]),("checkin",[]),("brogliaccio",[]),("consegna",[]),("menu_scelta","Dashboard"),("map_lat",45.8205),("map_lon",8.8250),("map_via",""),("map_comune","Varese"),("map_logo","Default"),("post_sel",None),("authenticated",False),("ruolo",""),("username","")]:
     if k not in st.session_state:
         st.session_state[k]=v
 
@@ -107,6 +113,16 @@ if not st.session_state.icone_lib:
     st.session_state.icone_lib=load_json(FILE_ICONE,[])
 if not st.session_state.utenti:
     st.session_state.utenti=load_json(FILE_UTENTI,[])
+if not st.session_state.eventi:
+    st.session_state.eventi=load_json(FILE_EVENTI,[])
+if not st.session_state.radio:
+    st.session_state.radio=load_json(FILE_RADIO,[])
+if not st.session_state.checkin:
+    st.session_state.checkin=load_json(FILE_CHECKIN,[])
+if not st.session_state.brogliaccio:
+    st.session_state.brogliaccio=load_json(FILE_BROGLIACCIO,[])
+if not st.session_state.consegna:
+    st.session_state.consegna=load_json(FILE_CONSEGNA,[])
 
 if not st.session_state.utenti:
     st.session_state.utenti=[
@@ -129,7 +145,7 @@ def torna_dashboard():
 
 if not st.session_state.authenticated:
     header_loghi()
-    st.markdown("## LOGIN - Locale e Cloud")
+    st.markdown("## LOGIN")
     st.info("Admin: admin / ana2024 | Utente: utente / utente2024")
     c1,c2,c3=st.columns([1,2,1])
     with c2:
@@ -162,9 +178,9 @@ with st.sidebar:
     st.markdown(f"Ruolo: **{st.session_state.ruolo}**")
     st.markdown("### MENU COMPLETO FORM")
     if st.session_state.ruolo=="Amministratore":
-        opzioni=["Dashboard","Volontari","Mappa Postazioni","Gestione Loghi","Gestione Utenti","Backup"]
+        opzioni=["Dashboard","Volontari","Mappa Postazioni","Eventi","DB Radio","Check-In","Brogliaccio","Consegna Radio","Gestione Loghi","Gestione Utenti","Backup"]
     else:
-        opzioni=["Dashboard","Volontari","Mappa Postazioni","Backup"]
+        opzioni=["Dashboard","Volontari","Mappa Postazioni","Eventi","DB Radio","Check-In","Brogliaccio","Consegna Radio","Backup"]
     sel=st.radio("Vai a",opzioni,index=0,key="radio_menu")
     if sel!=st.session_state.menu_scelta:
         st.session_state.menu_scelta=sel
@@ -172,7 +188,8 @@ with st.sidebar:
     st.divider()
     st.metric("Volontari",len(st.session_state.dati))
     st.metric("Postazioni",len(st.session_state.postazioni))
-    st.metric("Loghi",len(st.session_state.icone_lib))
+    st.metric("Eventi",len(st.session_state.eventi))
+    st.metric("Radio",len(st.session_state.radio))
     st.divider()
     if st.button("LOGOUT",use_container_width=True,key="logout_sidebar"):
         st.session_state.authenticated=False
@@ -183,6 +200,7 @@ with st.sidebar:
 scelta=st.session_state.menu_scelta
 MIME="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
 
+# DASHBOARD CON ELENCO MENU COMPLETO + TASTI RAPIDI + LOGOUT
 if scelta=="Dashboard":
     st.markdown("## DASHBOARD - ELENCO MENU COMPLETO DI TUTTI I FORM CREATI")
     c_logout1,c_logout2=st.columns([3,1])
@@ -195,7 +213,7 @@ if scelta=="Dashboard":
             st.session_state.username=""
             st.rerun()
     st.divider()
-    st.markdown("### MENU RAPIDO - Tasti rapidi per tutti i form")
+    st.markdown("### MENU RAPIDO - Tasti rapidi")
     mr1,mr2,mr3,mr4,mr5,mr6=st.columns(6)
     with mr1:
         if st.button("Volontari",key="rapido_vol",use_container_width=True):
@@ -206,29 +224,41 @@ if scelta=="Dashboard":
             st.session_state.menu_scelta="Mappa Postazioni"
             st.rerun()
     with mr3:
+        if st.button("Eventi",key="rapido_eventi",use_container_width=True):
+            st.session_state.menu_scelta="Eventi"
+            st.rerun()
+    with mr4:
+        if st.button("DB Radio",key="rapido_radio",use_container_width=True):
+            st.session_state.menu_scelta="DB Radio"
+            st.rerun()
+    with mr5:
+        if st.button("Check-In",key="rapido_check",use_container_width=True):
+            st.session_state.menu_scelta="Check-In"
+            st.rerun()
+    with mr6:
+        if st.button("Brogliaccio",key="rapido_brog",use_container_width=True):
+            st.session_state.menu_scelta="Brogliaccio"
+            st.rerun()
+    mr7,mr8,mr9=st.columns(3)
+    with mr7:
+        if st.button("Consegna Radio",key="rapido_consegna",use_container_width=True):
+            st.session_state.menu_scelta="Consegna Radio"
+            st.rerun()
+    with mr8:
         if st.button("Backup",key="rapido_backup",use_container_width=True):
             st.session_state.menu_scelta="Backup"
             st.rerun()
-    with mr4:
-        if st.button("Loghi",key="rapido_loghi",use_container_width=True):
-            if st.session_state.ruolo=="Amministratore":
-                st.session_state.menu_scelta="Gestione Loghi"
-                st.rerun()
-    with mr5:
-        if st.button("Utenti",key="rapido_utenti",use_container_width=True):
-            if st.session_state.ruolo=="Amministratore":
-                st.session_state.menu_scelta="Gestione Utenti"
-                st.rerun()
-    with mr6:
+    with mr9:
         if st.button("Home",key="rapido_home",use_container_width=True):
             st.session_state.menu_scelta="Dashboard"
             st.rerun()
+
     st.divider()
+    st.markdown("### ELENCO MENU COMPLETO DI TUTTI I FORM CREATI")
     c1,c2,c3=st.columns(3)
     with c1:
         st.markdown('<div class="dashboard-card">',unsafe_allow_html=True)
         st.markdown("### FORM 1: VOLONTARI")
-        st.write("Anagrafica, Contatti, Associazione, Ruolo, Comune, Elenco")
         st.metric("Totale",len(st.session_state.dati))
         if st.button("APRI VOLONTARI",key="dash_vol",use_container_width=True,type="primary"):
             st.session_state.menu_scelta="Volontari"
@@ -237,7 +267,7 @@ if scelta=="Dashboard":
     with c2:
         st.markdown('<div class="dashboard-card">',unsafe_allow_html=True)
         st.markdown("### FORM 2: MAPPA POSTAZIONI")
-        st.write("Libreria 15x15, Mappa selezione, Anteprima TUTTE, Maschera Via, Tabella")
+        st.write("Tabella nel form + Anteprima TUTTE 15x15 + Via associata")
         st.metric("Totale",len(st.session_state.postazioni))
         if st.button("APRI MAPPA",key="dash_mappa",use_container_width=True,type="primary"):
             st.session_state.menu_scelta="Mappa Postazioni"
@@ -245,26 +275,63 @@ if scelta=="Dashboard":
         st.markdown('</div>',unsafe_allow_html=True)
     with c3:
         st.markdown('<div class="dashboard-card">',unsafe_allow_html=True)
-        st.markdown("### FORM 3: BACKUP")
+        st.markdown("### FORM 3: EVENTI")
+        st.metric("Totale",len(st.session_state.eventi))
+        if st.button("APRI EVENTI",key="dash_eventi",use_container_width=True,type="primary"):
+            st.session_state.menu_scelta="Eventi"
+            st.rerun()
+        st.markdown('</div>',unsafe_allow_html=True)
+
+    c4,c5,c6=st.columns(3)
+    with c4:
+        st.markdown('<div class="dashboard-card">',unsafe_allow_html=True)
+        st.markdown("### FORM 4: DB RADIO")
+        st.metric("Totale",len(st.session_state.radio))
+        if st.button("APRI DB RADIO",key="dash_radio",use_container_width=True,type="primary"):
+            st.session_state.menu_scelta="DB Radio"
+            st.rerun()
+        st.markdown('</div>',unsafe_allow_html=True)
+    with c5:
+        st.markdown('<div class="dashboard-card">',unsafe_allow_html=True)
+        st.markdown("### FORM 5: CHECK-IN")
+        st.metric("Totale",len(st.session_state.checkin))
+        if st.button("APRI CHECK-IN",key="dash_check",use_container_width=True,type="primary"):
+            st.session_state.menu_scelta="Check-In"
+            st.rerun()
+        st.markdown('</div>',unsafe_allow_html=True)
+    with c6:
+        st.markdown('<div class="dashboard-card">',unsafe_allow_html=True)
+        st.markdown("### FORM 6: BROGLIACCIO")
+        st.metric("Totale",len(st.session_state.brogliaccio))
+        if st.button("APRI BROGLIACCIO",key="dash_brog",use_container_width=True,type="primary"):
+            st.session_state.menu_scelta="Brogliaccio"
+            st.rerun()
+        st.markdown('</div>',unsafe_allow_html=True)
+
+    c7,c8,c9=st.columns(3)
+    with c7:
+        st.markdown('<div class="dashboard-card">',unsafe_allow_html=True)
+        st.markdown("### FORM 7: CONSEGNA RADIO")
+        st.metric("Totale",len(st.session_state.consegna))
+        if st.button("APRI CONSEGNA",key="dash_consegna",use_container_width=True,type="primary"):
+            st.session_state.menu_scelta="Consegna Radio"
+            st.rerun()
+        st.markdown('</div>',unsafe_allow_html=True)
+    with c8:
+        st.markdown('<div class="dashboard-card">',unsafe_allow_html=True)
+        st.markdown("### FORM 8: BACKUP")
         if st.button("APRI BACKUP",key="dash_backup",use_container_width=True,type="primary"):
             st.session_state.menu_scelta="Backup"
             st.rerun()
         st.markdown('</div>',unsafe_allow_html=True)
     if st.session_state.ruolo=="Amministratore":
-        c4,c5=st.columns(2)
-        with c4:
+        with c9:
             st.markdown('<div class="dashboard-card">',unsafe_allow_html=True)
-            st.markdown("### FORM 4: GESTIONE LOGHI")
-            st.metric("Totale",len(st.session_state.icone_lib))
-            if st.button("APRI LOGHI",key="dash_loghi",use_container_width=True,type="primary"):
+            st.markdown("### FORM 9-10: LOGHI E UTENTI")
+            if st.button("APRI LOGHI",key="dash_loghi",use_container_width=True):
                 st.session_state.menu_scelta="Gestione Loghi"
                 st.rerun()
-            st.markdown('</div>',unsafe_allow_html=True)
-        with c5:
-            st.markdown('<div class="dashboard-card">',unsafe_allow_html=True)
-            st.markdown("### FORM 5: GESTIONE UTENTI")
-            st.metric("Totale",len(st.session_state.utenti))
-            if st.button("APRI UTENTI",key="dash_utenti",use_container_width=True,type="primary"):
+            if st.button("APRI UTENTI",key="dash_utenti",use_container_width=True):
                 st.session_state.menu_scelta="Gestione Utenti"
                 st.rerun()
             st.markdown('</div>',unsafe_allow_html=True)
@@ -290,14 +357,10 @@ elif scelta=="Volontari":
                 st.rerun()
     if st.session_state.dati:
         st.dataframe(pd.DataFrame(st.session_state.dati),use_container_width=True)
-        out=BytesIO()
-        pd.DataFrame(st.session_state.dati).to_excel(out,index=False,engine="openpyxl")
-        st.download_button("Excel",out.getvalue(),file_name=f"volontari_{date.today()}.xlsx",mime=MIME,use_container_width=True)
 
 elif scelta=="Mappa Postazioni":
     torna_dashboard()
     st.markdown("## FORM MAPPA POSTAZIONI - CON TABELLA NEL FORM")
-
     st.markdown("### Libreria loghi 15x15")
     uploaded=st.file_uploader("CARICA LOGO PNG", type=["png","jpg","jpeg"], key="up_logo")
     if uploaded:
@@ -312,16 +375,13 @@ elif scelta=="Mappa Postazioni":
         cols=st.columns(6)
         for i, ic in enumerate(st.session_state.icone_lib):
             with cols[i%6]:
-                st.markdown(f'<div class="icon-lib">',unsafe_allow_html=True)
                 if ic.get("b64"):
                     st.image(f"data:image/png;base64,{ic['b64']}",width=40)
                     st.write(f"**{ic['nome']}**")
                     if st.button("SEL",key=f"sel_{i}_{ic['nome']}",use_container_width=True,type="primary"):
                         st.session_state.map_logo=ic['nome']
                         st.rerun()
-                st.markdown('</div>',unsafe_allow_html=True)
     st.divider()
-
     c1,c2=st.columns([2,1])
     with c1:
         st.markdown("### MAPPA SELEZIONE")
@@ -335,16 +395,13 @@ elif scelta=="Mappa Postazioni":
                     lon_f=float(p.get('Longitudine'))
                     logo_nome=p.get('Icona','')
                     b64=trova_b64_logo(logo_nome, st.session_state.icone_lib)
-                    popup_text=f"{p.get('Postazione','')} - {p.get('Via','')}"
                     if b64:
                         tmp_path=salva_icona_temp(b64, f"sel_{logo_nome}_{idx_p}")
                         if tmp_path:
                             icon=folium.CustomIcon(tmp_path, icon_size=(15,15))
-                            folium.Marker([lat_f, lon_f], popup=popup_text, icon=icon).add_to(m)
-                        else:
-                            folium.Marker([lat_f, lon_f], popup=popup_text, icon=folium.Icon(color="green")).add_to(m)
+                            folium.Marker([lat_f, lon_f], popup=f"{p.get('Postazione','')}", icon=icon).add_to(m)
                     else:
-                        folium.Marker([lat_f, lon_f], popup=popup_text, icon=folium.Icon(color="green")).add_to(m)
+                        folium.Marker([lat_f, lon_f], icon=folium.Icon(color="green")).add_to(m)
                 except:
                     pass
             map_data=st_folium(m,width=700,height=400,key="mappa_sel")
@@ -357,13 +414,10 @@ elif scelta=="Mappa Postazioni":
                 st.session_state.map_via=via_auto or f"{lat_c:.6f},{lon_c:.6f}"
                 if comune_auto:
                     st.session_state.map_comune=comune_auto
-                st.session_state.post_sel=None
-                st.toast(f"Via: {st.session_state.map_via} associata")
                 st.rerun()
         except Exception as e:
             st.error(f"Errore: {e}")
-
-        st.markdown("### ANTEPRIMA - TUTTE LE POSTAZIONI CON ICONE 15x15")
+        st.markdown("### ANTEPRIMA TUTTE LE POSTAZIONI CON ICONE 15x15")
         tipo_mappa=st.selectbox("Tipo mappa", ["StreetMap","OpenTopoMap (OTM)","Google Maps Stradale","Google Satellite","Waze Style"], index=0)
         try:
             import folium
@@ -383,21 +437,12 @@ elif scelta=="Mappa Postazioni":
                 if lats and lons:
                     lat_center=sum(lats)/len(lats)
                     lon_center=sum(lons)/len(lons)
-            if st.session_state.post_sel:
-                try:
-                    lat_center=float(st.session_state.post_sel.get('Latitudine',lat_center))
-                    lon_center=float(st.session_state.post_sel.get('Longitudine',lon_center))
-                    zoom_anteprima=17
-                except:
-                    pass
             if tipo_mappa=="OpenTopoMap (OTM)":
                 m2=folium.Map(location=[lat_center, lon_center], zoom_start=zoom_anteprima, tiles="OpenTopoMap")
             elif tipo_mappa=="Google Maps Stradale":
                 m2=folium.Map(location=[lat_center, lon_center], zoom_start=zoom_anteprima, tiles="https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}", attr="Google")
             elif tipo_mappa=="Google Satellite":
                 m2=folium.Map(location=[lat_center, lon_center], zoom_start=zoom_anteprima, tiles="https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}", attr="Google")
-            elif tipo_mappa=="Waze Style":
-                m2=folium.Map(location=[lat_center, lon_center], zoom_start=zoom_anteprima, tiles="CartoDB positron")
             else:
                 m2=folium.Map(location=[lat_center, lon_center], zoom_start=zoom_anteprima)
             for idx_p, p in enumerate(st.session_state.postazioni):
@@ -406,38 +451,25 @@ elif scelta=="Mappa Postazioni":
                     lon_f=float(p.get('Longitudine'))
                     logo_nome=p.get('Icona','')
                     b64=trova_b64_logo(logo_nome, st.session_state.icone_lib)
-                    popup_text=f"{p.get('Postazione','')} - {p.get('Via','')} - {logo_nome}"
                     if b64:
                         tmp_path=salva_icona_temp(b64, f"ante_{logo_nome}_{idx_p}")
                         if tmp_path:
                             icon=folium.CustomIcon(tmp_path, icon_size=(15,15))
-                            folium.Marker([lat_f, lon_f], popup=popup_text, icon=icon).add_to(m2)
-                        else:
-                            folium.Marker([lat_f, lon_f], popup=popup_text, icon=folium.Icon(color="blue")).add_to(m2)
+                            folium.Marker([lat_f, lon_f], popup=f"{p.get('Postazione','')} - {p.get('Via','')}", icon=icon).add_to(m2)
                     else:
-                        folium.Marker([lat_f, lon_f], popup=popup_text, icon=folium.Icon(color="red")).add_to(m2)
+                        folium.Marker([lat_f, lon_f], popup=f"{p.get('Postazione','')}", icon=folium.Icon(color="red")).add_to(m2)
                 except:
                     pass
             st_folium(m2,width=1000,height=650,key="mappa_anteprima")
             if st.session_state.postazioni:
-                st.success(f"ANTEPRIMA - TUTTE LE {len(st.session_state.postazioni)} POSTAZIONI CON ICONE 15x15")
-            else:
-                st.warning("Nessuna postazione salvata")
+                st.success(f"ANTEPRIMA TUTTE LE {len(st.session_state.postazioni)} POSTAZIONI CON ICONE 15x15 - NO CERCHIO ROSSO")
         except Exception as e:
             st.error(f"Errore: {e}")
-
     with c2:
         st.markdown("### Maschera - Via associata")
         st.info(f"Lat {st.session_state.map_lat:.6f} Lon {st.session_state.map_lon:.6f}")
         if st.session_state.map_via:
             st.success(f"Via: {st.session_state.map_via}")
-        if st.session_state.post_sel:
-            p_sel=st.session_state.post_sel
-            st.success(f"Selezionata: {p_sel.get('Postazione','')} Via: {p_sel.get('Via','')}")
-        st.write(f"Logo: {st.session_state.map_logo} 15x15")
-        b64_sel=trova_b64_logo(st.session_state.map_logo, st.session_state.icone_lib)
-        if b64_sel:
-            st.image(f"data:image/png;base64,{b64_sel}",width=30)
         opzioni_logo=["Default"] + [ic['nome'] for ic in st.session_state.icone_lib]
         idx_default=opzioni_logo.index(st.session_state.map_logo) if st.session_state.map_logo in opzioni_logo else 0
         sel_logo=st.selectbox("Scegli logo 15x15", opzioni_logo, index=idx_default)
@@ -445,56 +477,128 @@ elif scelta=="Mappa Postazioni":
             st.session_state.map_logo=sel_logo
             st.rerun()
         with st.form("form_post"):
-            val_nome=st.session_state.post_sel.get('Postazione','') if st.session_state.post_sel else ""
-            nome_post=st.text_input("Nome Postazione *",value=val_nome)
-            val_comune=st.session_state.post_sel.get('Comune','Varese') if st.session_state.post_sel else st.session_state.map_comune
-            idx_comune=COMUNI.index(val_comune) if val_comune in COMUNI else 0
-            comune_post=st.selectbox("Comune *",COMUNI,index=idx_comune)
-            val_via=st.session_state.post_sel.get('Via','') if st.session_state.post_sel else st.session_state.map_via
-            via_post=st.text_input("Via *",value=val_via)
+            nome_post=st.text_input("Nome Postazione *",value="")
+            comune_post=st.selectbox("Comune *",COMUNI,index=COMUNI.index(st.session_state.map_comune) if st.session_state.map_comune in COMUNI else 0)
+            via_post=st.text_input("Via * - Via associata",value=st.session_state.map_via)
             lat_post=st.text_input("Latitudine *",value=str(st.session_state.map_lat))
             lon_post=st.text_input("Longitudine *",value=str(st.session_state.map_lon))
             if st.form_submit_button("SALVA POSTAZIONE",use_container_width=True,type="primary"):
                 if nome_post and lat_post and lon_post:
                     new={"Postazione":nome_post,"Comune":comune_post,"Via":via_post,"Latitudine":lat_post,"Longitudine":lon_post,"Icona":st.session_state.map_logo}
                     st.session_state.postazioni.append(new)
-                    st.session_state.post_sel=new
-                    st.session_state.map_via=via_post
                     save_json(FILE_POST,st.session_state.postazioni)
                     st.success(f"Salvata {nome_post}")
                     st.rerun()
-
     st.divider()
     st.markdown("### TABELLA DELLE POSTAZIONI NEL FORM MAPPA")
     if st.session_state.postazioni:
         df_post=pd.DataFrame(st.session_state.postazioni)
         st.dataframe(df_post,use_container_width=True)
-        for idx, p in enumerate(st.session_state.postazioni):
-            c_img,c1,c2,c3,c4=st.columns([1,2,2,2,1])
-            with c_img:
-                b64=trova_b64_logo(p.get('Icona',''), st.session_state.icone_lib)
-                if b64:
-                    st.image(f"data:image/png;base64,{b64}",width=15)
-            with c1:
-                st.write(f"**{p.get('Postazione','')}**")
-            with c2:
-                st.write(f"{p.get('Via','')}")
-            with c3:
-                st.write(f"{p.get('Comune','')}")
-            with c4:
-                if st.button("VEDI",key=f"vedi_{idx}_{p.get('Postazione','')}",use_container_width=True):
-                    st.session_state.post_sel=p
-                    st.session_state.map_lat=float(p.get('Latitudine',45.8205))
-                    st.session_state.map_lon=float(p.get('Longitudine',8.8250))
-                    st.session_state.map_via=p.get('Via','')
-                    st.session_state.map_comune=p.get('Comune','Varese')
-                    st.session_state.map_logo=p.get('Icona','Default')
-                    st.rerun()
         out=BytesIO()
         df_post.to_excel(out,index=False,engine="openpyxl")
         st.download_button("Excel Postazioni",out.getvalue(),file_name=f"postazioni_{date.today()}.xlsx",mime=MIME,use_container_width=True)
     else:
         st.info("Nessuna postazione salvata")
+
+elif scelta=="Eventi":
+    torna_dashboard()
+    st.markdown("## FORM EVENTI - RIPRISTINATO")
+    with st.form("form_eventi"):
+        nome_evento=st.text_input("Nome Evento *")
+        data_evento=st.date_input("Data Evento *",value=date.today())
+        luogo=st.text_input("Luogo *")
+        descrizione=st.text_area("Descrizione")
+        if st.form_submit_button("SALVA EVENTO",use_container_width=True,type="primary"):
+            if nome_evento and luogo:
+                st.session_state.eventi.append({"Evento":nome_evento,"Data":str(data_evento),"Luogo":luogo,"Descrizione":descrizione})
+                save_json(FILE_EVENTI,st.session_state.eventi)
+                st.success(f"Evento {nome_evento} salvato")
+                st.rerun()
+    if st.session_state.eventi:
+        st.dataframe(pd.DataFrame(st.session_state.eventi),use_container_width=True)
+        out=BytesIO()
+        pd.DataFrame(st.session_state.eventi).to_excel(out,index=False,engine="openpyxl")
+        st.download_button("Excel Eventi",out.getvalue(),file_name=f"eventi_{date.today()}.xlsx",mime=MIME,use_container_width=True)
+
+elif scelta=="DB Radio":
+    torna_dashboard()
+    st.markdown("## FORM DB RADIO - RIPRISTINATO")
+    with st.form("form_radio"):
+        id_radio=st.text_input("ID Radio *")
+        modello=st.text_input("Modello *")
+        frequenza=st.text_input("Frequenza")
+        stato=st.selectbox("Stato",["Disponibile","In uso","In riparazione","Smaltita"])
+        if st.form_submit_button("SALVA RADIO",use_container_width=True,type="primary"):
+            if id_radio and modello:
+                st.session_state.radio.append({"ID":id_radio,"Modello":modello,"Frequenza":frequenza,"Stato":stato})
+                save_json(FILE_RADIO,st.session_state.radio)
+                st.success(f"Radio {id_radio} salvata")
+                st.rerun()
+    if st.session_state.radio:
+        st.dataframe(pd.DataFrame(st.session_state.radio),use_container_width=True)
+        out=BytesIO()
+        pd.DataFrame(st.session_state.radio).to_excel(out,index=False,engine="openpyxl")
+        st.download_button("Excel Radio",out.getvalue(),file_name=f"db_radio_{date.today()}.xlsx",mime=MIME,use_container_width=True)
+
+elif scelta=="Check-In":
+    torna_dashboard()
+    st.markdown("## FORM CHECK-IN - RIPRISTINATO")
+    with st.form("form_checkin"):
+        volontario=st.selectbox("Volontario",[d.get("Nome","") for d in st.session_state.dati] if st.session_state.dati else ["Nessun volontario"])
+        postazione=st.selectbox("Postazione",[p.get("Postazione","") for p in st.session_state.postazioni] if st.session_state.postazioni else ["Nessuna postazione"])
+        ora_arrivo=st.time_input("Ora Arrivo",value=datetime.now().time())
+        note=st.text_input("Note")
+        if st.form_submit_button("SALVA CHECK-IN",use_container_width=True,type="primary"):
+            st.session_state.checkin.append({"Volontario":volontario,"Postazione":postazione,"Ora":str(ora_arrivo),"Note":note,"Data":str(date.today())})
+            save_json(FILE_CHECKIN,st.session_state.checkin)
+            st.success("Check-In salvato")
+            st.rerun()
+    if st.session_state.checkin:
+        st.dataframe(pd.DataFrame(st.session_state.checkin),use_container_width=True)
+        out=BytesIO()
+        pd.DataFrame(st.session_state.checkin).to_excel(out,index=False,engine="openpyxl")
+        st.download_button("Excel Check-In",out.getvalue(),file_name=f"checkin_{date.today()}.xlsx",mime=MIME,use_container_width=True)
+
+elif scelta=="Brogliaccio":
+    torna_dashboard()
+    st.markdown("## FORM BROGLIACCIO - RIPRISTINATO")
+    with st.form("form_brogliaccio"):
+        ora=st.time_input("Ora",value=datetime.now().time())
+        mittente=st.text_input("Mittente *")
+        destinatario=st.text_input("Destinatario *")
+        messaggio=st.text_area("Messaggio *")
+        priorita=st.selectbox("Priorita",["Normale","Urgente","Emergenza"])
+        if st.form_submit_button("SALVA BROGLIACCIO",use_container_width=True,type="primary"):
+            if mittente and destinatario and messaggio:
+                st.session_state.brogliaccio.append({"Ora":str(ora),"Data":str(date.today()),"Mittente":mittente,"Destinatario":destinatario,"Messaggio":messaggio,"Priorita":priorita})
+                save_json(FILE_BROGLIACCIO,st.session_state.brogliaccio)
+                st.success("Messaggio brogliaccio salvato")
+                st.rerun()
+    if st.session_state.brogliaccio:
+        st.dataframe(pd.DataFrame(st.session_state.brogliaccio),use_container_width=True)
+        out=BytesIO()
+        pd.DataFrame(st.session_state.brogliaccio).to_excel(out,index=False,engine="openpyxl")
+        st.download_button("Excel Brogliaccio",out.getvalue(),file_name=f"brogliaccio_{date.today()}.xlsx",mime=MIME,use_container_width=True)
+
+elif scelta=="Consegna Radio":
+    torna_dashboard()
+    st.markdown("## FORM CONSEGNA RADIO - RIPRISTINATO")
+    with st.form("form_consegna"):
+        radio_id=st.selectbox("ID Radio",[r.get("ID","") for r in st.session_state.radio] if st.session_state.radio else ["Nessuna radio"])
+        volontario=st.selectbox("Consegnata a",[d.get("Nome","") for d in st.session_state.dati] if st.session_state.dati else ["Nessun volontario"])
+        data_consegna=st.date_input("Data Consegna",value=date.today())
+        ora_consegna=st.time_input("Ora Consegna",value=datetime.now().time())
+        stato_consegna=st.selectbox("Stato",["Consegnata","Restituita","Persa"])
+        if st.form_submit_button("SALVA CONSEGNA",use_container_width=True,type="primary"):
+            st.session_state.consegna.append({"Radio":radio_id,"Volontario":volontario,"Data":str(data_consegna),"Ora":str(ora_consegna),"Stato":stato_consegna})
+            save_json(FILE_CONSEGNA,st.session_state.consegna)
+            st.success(f"Consegna radio {radio_id} salvata")
+            st.rerun()
+    if st.session_state.consegna:
+        st.dataframe(pd.DataFrame(st.session_state.consegna),use_container_width=True)
+        out=BytesIO()
+        pd.DataFrame(st.session_state.consegna).to_excel(out,index=False,engine="openpyxl")
+        st.download_button("Excel Consegna",out.getvalue(),file_name=f"consegna_radio_{date.today()}.xlsx",mime=MIME,use_container_width=True)
 
 elif scelta=="Gestione Loghi":
     if st.session_state.ruolo!="Amministratore":
@@ -502,6 +606,15 @@ elif scelta=="Gestione Loghi":
     else:
         torna_dashboard()
         st.markdown("## GESTIONE LOGHI")
+        uploaded=st.file_uploader("CARICA LOGO", type=["png","jpg","jpeg"])
+        if uploaded:
+            b64=img_to_b64(uploaded)
+            nome_icona=st.text_input("Nome logo", value=uploaded.name.split(".")[0])
+            if st.button("SALVA LOGO",use_container_width=True,type="primary"):
+                st.session_state.icone_lib.append({"nome":nome_icona,"b64":b64})
+                save_json(FILE_ICONE,st.session_state.icone_lib)
+                st.success(f"Logo {nome_icona} salvato!")
+                st.rerun()
 
 elif scelta=="Gestione Utenti":
     if st.session_state.ruolo!="Amministratore":
@@ -524,15 +637,25 @@ elif scelta=="Gestione Utenti":
 
 elif scelta=="Backup":
     torna_dashboard()
-    st.markdown("## BACKUP")
-    if st.button("CREA BACKUP",use_container_width=True,type="primary"):
+    st.markdown("## BACKUP COMPLETO - TUTTI I FORM")
+    if st.button("CREA BACKUP COMPLETO",use_container_width=True,type="primary"):
         out=BytesIO()
         with pd.ExcelWriter(out,engine="openpyxl") as writer:
             if st.session_state.dati:
                 pd.DataFrame(st.session_state.dati).to_excel(writer,sheet_name="Volontari",index=False)
             if st.session_state.postazioni:
                 pd.DataFrame(st.session_state.postazioni).to_excel(writer,sheet_name="Postazioni",index=False)
+            if st.session_state.eventi:
+                pd.DataFrame(st.session_state.eventi).to_excel(writer,sheet_name="Eventi",index=False)
+            if st.session_state.radio:
+                pd.DataFrame(st.session_state.radio).to_excel(writer,sheet_name="DB Radio",index=False)
+            if st.session_state.checkin:
+                pd.DataFrame(st.session_state.checkin).to_excel(writer,sheet_name="CheckIn",index=False)
+            if st.session_state.brogliaccio:
+                pd.DataFrame(st.session_state.brogliaccio).to_excel(writer,sheet_name="Brogliaccio",index=False)
+            if st.session_state.consegna:
+                pd.DataFrame(st.session_state.consegna).to_excel(writer,sheet_name="Consegna Radio",index=False)
         st.session_state["backup"]=out.getvalue()
-        st.success("Backup creato!")
+        st.success("Backup creato con tutti i form!")
     if "backup" in st.session_state:
-        st.download_button("SCARICA BACKUP",st.session_state["backup"],file_name=f"BACKUP_{date.today()}.xlsx",mime=MIME,use_container_width=True)
+        st.download_button("SCARICA BACKUP COMPLETO",st.session_state["backup"],file_name=f"BACKUP_COMPLETO_{date.today()}.xlsx",mime=MIME,use_container_width=True)
