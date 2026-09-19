@@ -3,5 +3,3 @@ pandas
 openpyxl
 folium
 streamlit-folium
-Pillow
-requests
