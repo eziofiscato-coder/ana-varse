@@ -6,11 +6,10 @@ import os, json, base64, tempfile, requests, hashlib
 
 st.set_page_config(page_title="ANA Varese", page_icon="🟢", layout="wide")
 
-# --- STILE ---
 st.markdown("""
 <style>
 .stApp{background:#e8f5e9!important;}
-.main.block-container{background:white!important;border-radius:18px;padding:20px!important;box-shadow:0 4px 15px rgba(0,0,0,0.1);}
+.main.block-container{background:white!important;border-radius:18px;padding:20px!important;}
 [data-testid="stSidebar"]{background:#a5d6a7!important;border-right:4px solid #2e7d32!important;}
 .stForm{background:#c8e6c9!important;border:3px solid #2e7d32!important;border-radius:15px!important;padding:15px!important;}
 .stButton>button{background:#2e7d32!important;color:white!important;font-weight:bold!important;min-height:45px!important;border-radius:10px!important;}
@@ -20,21 +19,18 @@ div[data-testid="stFormSubmitButton"]>button{background:#d32f2f!important;}
 </style>
 """, unsafe_allow_html=True)
 
-# --- FUNZIONI BASE ---
 def load_json(f, default):
     try:
         if os.path.exists(f):
             with open(f,"r",encoding="utf-8") as fh:
                 d=json.load(fh)
-                if isinstance(d,list) or isinstance(d,dict):
-                    return d
+                if isinstance(d,list) or isinstance(d,dict): return d
     except: pass
     return default
 
 def save_json(f,d):
     try:
-        with open(f,"w",encoding="utf-8") as fh:
-            json.dump(d,fh,ensure_ascii=False,indent=2)
+        with open(f,"w",encoding="utf-8") as fh: json.dump(d,fh,ensure_ascii=False,indent=2)
     except: pass
 
 def get_b64(p):
@@ -78,7 +74,6 @@ def reverse_geocode(lat, lon):
 
 def hash_pwd(pwd): return hashlib.sha256(pwd.encode()).hexdigest()
 
-# --- FILE ---
 FILE_DATI="dati_volontari.json"
 FILE_POST="postazioni.json"
 FILE_ICONE="libreria_icone_condivisa.json"
@@ -86,7 +81,6 @@ FILE_UTENTI="utenti.json"
 COMUNI=["Varese","Busto Arsizio","Gallarate","Saronno","Venegono Superiore","Venegono Inferiore","Castiglione Olona","Lozza","Tradate","Malnate","Luino","Altro"]
 RUOLI=["Amministratore","Utente"]
 
-# --- SESSION STATE ---
 for k,v in [("dati",[]),("postazioni",[]),("icone_lib",[]),("utenti",[]),("menu_scelta","Dashboard"),("map_lat",45.8205),("map_lon",8.8250),("map_via",""),("map_comune","Varese"),("map_logo","Default"),("post_sel",None),("map_zoom",13),("authenticated",False),("ruolo",""),("username","")]:
     if k not in st.session_state: st.session_state[k]=v
 
@@ -95,7 +89,6 @@ if not st.session_state.postazioni: st.session_state.postazioni=load_json(FILE_P
 if not st.session_state.icone_lib: st.session_state.icone_lib=load_json(FILE_ICONE,[])
 if not st.session_state.utenti: st.session_state.utenti=load_json(FILE_UTENTI,[])
 
-# Crea utenti default se non esistono
 if not st.session_state.utenti:
     st.session_state.utenti=[
         {"username":"admin","password":hash_pwd("ana2024"),"ruolo":"Amministratore","nome":"Amministratore ANA"},
@@ -111,15 +104,14 @@ def header_loghi():
         st.markdown("<h2 style='text-align:center;color:#0e7a3d;'>VOLONTARIATO Sezione di Varese</h2>", unsafe_allow_html=True)
 
 def torna_dashboard():
-    if st.button("🏠 TORNA A DASHBOARD MENU COMPLETO",use_container_width=True):
+    if st.button("🏠 TORNA A DASHBOARD",use_container_width=True,key="torna_home"):
         st.session_state.menu_scelta="Dashboard"
         st.rerun()
 
-# --- LOGIN CON RUOLI ---
 if not st.session_state.authenticated:
     header_loghi()
-    st.markdown("## 🔐 LOGIN - Uso locale - Amministratore e Utente")
-    st.info("**Amministratore:** admin / ana2024 (vede tutto, gestisce utenti) | **Utente:** utente / utente2024 (inserisce e visualizza)")
+    st.markdown("## 🔐 LOGIN - Locale e Cloud")
+    st.info("Admin: admin / ana2024 (tutto) | Utente: utente / utente2024 (inserisce e visualizza)")
     c1,c2,c3=st.columns([1,2,1])
     with c2:
         with st.form("login"):
@@ -142,7 +134,7 @@ if not st.session_state.authenticated:
     st.stop()
 
 header_loghi()
-st.markdown(f"**Utente:** {st.session_state.username} | **Ruolo:** {st.session_state.ruolo} | **Uso locale:** OK")
+st.markdown(f"**Utente:** {st.session_state.username} | **Ruolo:** {st.session_state.ruolo}")
 if st.button("🚪 Logout"):
     st.session_state.authenticated=False
     st.session_state.ruolo=""
@@ -150,17 +142,16 @@ if st.button("🚪 Logout"):
     st.rerun()
 st.divider()
 
-# --- SIDEBAR MENU COMPLETO ---
 with st.sidebar:
     if os.path.exists("logo.png"): st.image("logo.png",width=80)
     st.markdown(f"### Ciao {st.session_state.username}")
     st.markdown(f"Ruolo: **{st.session_state.ruolo}**")
-    st.markdown("### 📋 MENU COMPLETO")
+    st.markdown("### 📋 MENU COMPLETO FORM")
     if st.session_state.ruolo=="Amministratore":
         opzioni=["Dashboard","Volontari","Mappa Postazioni","Gestione Loghi","Gestione Utenti","Backup"]
     else:
         opzioni=["Dashboard","Volontari","Mappa Postazioni","Backup"]
-    sel=st.radio("Vai a",opzioni,index=0)
+    sel=st.radio("Vai a",opzioni,index=0,key="radio_menu")
     if sel!=st.session_state.menu_scelta:
         st.session_state.menu_scelta=sel
         st.rerun()
@@ -172,42 +163,47 @@ with st.sidebar:
 scelta=st.session_state.menu_scelta
 MIME="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
 
-# --- DASHBOARD MENU COMPLETO RIPRISTINATO ---
+# --- DASHBOARD CON MENU VISIBILE ---
 if scelta=="Dashboard":
-    st.markdown("## 🏠 DASHBOARD - MENU COMPLETO DI TUTTI I FORM - RIPRISTINATO")
-    st.success(f"Benvenuto {st.session_state.username} - Ruolo {st.session_state.ruolo} - Uso locale attivo")
+    st.markdown("## 🏠 DASHBOARD - MENU COMPLETO DI TUTTI I FORM")
+    st.success(f"Benvenuto {st.session_state.username} - Ruolo: {st.session_state.ruolo} - Uso locale e Cloud OK")
+
     c1,c2,c3=st.columns(3)
     with c1:
         st.markdown('<div class="dashboard-card">',unsafe_allow_html=True)
         st.markdown("### 👥 VOLONTARI")
         st.write(f"{len(st.session_state.dati)} volontari")
-        st.write("6 Sottomaschere complete")
+        st.write("Form: Anagrafica, Associazione, Ruolo, Comune, Contatti")
         if st.button("👥 APRI VOLONTARI",key="dash_vol",use_container_width=True,type="primary"):
             st.session_state.menu_scelta="Volontari"
             st.rerun()
         st.markdown('</div>',unsafe_allow_html=True)
+
     with c2:
         st.markdown('<div class="dashboard-card">',unsafe_allow_html=True)
         st.markdown("### 📍 MAPPA POSTAZIONI")
         st.write(f"{len(st.session_state.postazioni)} postazioni")
-        st.write("Anteprima TUTTE + Via associata + 15x15")
+        st.write("Anteprima TUTTE + Via associata + 15x15 + Tabella")
         if st.button("📍 APRI MAPPA",key="dash_mappa",use_container_width=True,type="primary"):
             st.session_state.menu_scelta="Mappa Postazioni"
             st.rerun()
         st.markdown('</div>',unsafe_allow_html=True)
+
     with c3:
         st.markdown('<div class="dashboard-card">',unsafe_allow_html=True)
         st.markdown("### 💾 BACKUP")
+        st.write("Backup Excel completo")
         if st.button("💾 APRI BACKUP",key="dash_backup",use_container_width=True):
             st.session_state.menu_scelta="Backup"
             st.rerun()
         st.markdown('</div>',unsafe_allow_html=True)
+
     if st.session_state.ruolo=="Amministratore":
         c4,c5=st.columns(2)
         with c4:
             st.markdown('<div class="dashboard-card">',unsafe_allow_html=True)
             st.markdown("### 🎨 GESTIONE LOGHI")
-            st.write(f"{len(st.session_state.icone_lib)} loghi")
+            st.write(f"{len(st.session_state.icone_lib)} loghi 15x15")
             if st.button("🎨 APRI LOGHI",key="dash_loghi",use_container_width=True):
                 st.session_state.menu_scelta="Gestione Loghi"
                 st.rerun()
@@ -216,15 +212,19 @@ if scelta=="Dashboard":
             st.markdown('<div class="dashboard-card">',unsafe_allow_html=True)
             st.markdown("### 👤 GESTIONE UTENTI")
             st.write(f"{len(st.session_state.utenti)} utenti")
-            st.write("Solo amministratore")
+            st.write("Solo Amministratore")
             if st.button("👤 GESTISCI UTENTI",key="dash_utenti",use_container_width=True):
                 st.session_state.menu_scelta="Gestione Utenti"
                 st.rerun()
             st.markdown('</div>',unsafe_allow_html=True)
 
+    st.divider()
+    st.markdown("### 📊 RIEPILOGO PROGETTO")
+    st.info("Progetto usabile sia in locale (PC) che su Streamlit Cloud - Con utenti Admin e Utente che inserisce e visualizza")
+
 elif scelta=="Volontari":
     torna_dashboard()
-    st.markdown("## 👥 VOLONTARI - Inserimento e Visualizzazione")
+    st.markdown("## 👥 VOLONTARI")
     if st.session_state.ruolo=="Utente": st.info("Ruolo Utente: puoi inserire e visualizzare")
     with st.form("form_vol"):
         c1,c2=st.columns(2)
@@ -250,8 +250,7 @@ elif scelta=="Volontari":
 
 elif scelta=="Mappa Postazioni":
     torna_dashboard()
-    st.markdown("## 📍 MAPPA POSTAZIONI - TUTTE LE POSTAZIONI IN ANTEPRIMA + VIA ASSOCIATA")
-    st.caption("Fix: Anteprima tutte postazioni con icone 15x15 abbinate | Via associata in maschera | No cerchio rosso | No puntatore default | Tolta prima tabella")
+    st.markdown("## 📍 MAPPA POSTAZIONI - CON TABELLA POSTAZIONI NEL FORM MAPPA")
 
     st.markdown("### 🎨 Libreria loghi 15x15")
     uploaded=st.file_uploader("📤 CARICA LOGO PNG", type=["png","jpg","jpeg"], key="up_logo")
@@ -261,7 +260,7 @@ elif scelta=="Mappa Postazioni":
         if st.button("💾 SALVA LOGO 15x15",use_container_width=True,type="primary"):
             st.session_state.icone_lib.append({"nome":nome_icona,"b64":b64})
             save_json(FILE_ICONE,st.session_state.icone_lib)
-            st.success(f"Logo {nome_icona} salvato 15x15!")
+            st.success(f"Logo {nome_icona} salvato!")
             st.rerun()
     if st.session_state.icone_lib:
         cols=st.columns(6)
@@ -280,7 +279,7 @@ elif scelta=="Mappa Postazioni":
 
     c1,c2=st.columns([2,1])
     with c1:
-        st.markdown("### 🗺️ MAPPA SELEZIONE - Clicca per associare Via")
+        st.markdown("### 🗺️ MAPPA SELEZIONE - Clicca per associare Via in maschera")
         try:
             import folium
             from streamlit_folium import st_folium
@@ -308,11 +307,11 @@ elif scelta=="Mappa Postazioni":
                 st.session_state.map_via=via_auto or f"{lat_c:.6f},{lon_c:.6f}"
                 if comune_auto: st.session_state.map_comune=comune_auto
                 st.session_state.post_sel=None
-                st.toast(f"Via rilevata: {st.session_state.map_via} - Ora associata in maschera campo Via")
+                st.toast(f"Via: {st.session_state.map_via} associata in maschera")
                 st.rerun()
         except Exception as e: st.error(f"Errore: {e}")
 
-        st.markdown("### 🔍 ANTEPRIMA - DEVI VEDERE TUTTE LE POSTAZIONI SULLA MAPPA ANTEPRIMA CON ICONE")
+        st.markdown("### 🔍 ANTEPRIMA - TUTTE LE POSTAZIONI CON ICONE 15x15")
         tipo_mappa=st.selectbox("Tipo mappa", ["StreetMap","OpenTopoMap (OTM)","Google Maps Stradale","Google Satellite","Waze Style"], index=0)
         try:
             import folium
@@ -326,166 +325,3 @@ elif scelta=="Mappa Postazioni":
             if st.session_state.post_sel:
                 try:
                     lat_center=float(st.session_state.post_sel.get('Latitudine',lat_center))
-                    lon_center=float(st.session_state.post_sel.get('Longitudine',lon_center))
-                    zoom_anteprima=17
-                except: pass
-            if tipo_mappa=="OpenTopoMap (OTM)": m2=folium.Map(location=[lat_center, lon_center], zoom_start=zoom_anteprima, tiles="OpenTopoMap")
-            elif tipo_mappa=="Google Maps Stradale": m2=folium.Map(location=[lat_center, lon_center], zoom_start=zoom_anteprima, tiles="https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}", attr="Google")
-            elif tipo_mappa=="Google Satellite": m2=folium.Map(location=[lat_center, lon_center], zoom_start=zoom_anteprima, tiles="https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}", attr="Google")
-            elif tipo_mappa=="Waze Style": m2=folium.Map(location=[lat_center, lon_center], zoom_start=zoom_anteprima, tiles="CartoDB positron")
-            else: m2=folium.Map(location=[lat_center, lon_center], zoom_start=zoom_anteprima)
-            for idx_p, p in enumerate(st.session_state.postazioni):
-                try:
-                    lat_f=float(p.get('Latitudine')); lon_f=float(p.get('Longitudine'))
-                    logo_nome=p.get('Icona',''); b64=trova_b64_logo(logo_nome, st.session_state.icone_lib)
-                    popup_text=f"{p.get('Postazione','')} - {p.get('Via','')} - {logo_nome}"
-                    if b64:
-                        tmp_path=salva_icona_temp(b64, f"ante_{logo_nome}_{idx_p}")
-                        if tmp_path:
-                            icon=folium.CustomIcon(tmp_path, icon_size=(15,15))
-                            folium.Marker([lat_f, lon_f], popup=popup_text, icon=icon).add_to(m2)
-                        else:
-                            folium.Marker([lat_f, lon_f], popup=popup_text, icon=folium.Icon(color="blue")).add_to(m2)
-                    else:
-                        folium.Marker([lat_f, lon_f], popup=popup_text, icon=folium.Icon(color="red")).add_to(m2)
-                except: pass
-            st_folium(m2,width=1000,height=650,key="mappa_anteprima_tutte")
-            if st.session_state.postazioni:
-                st.success(f"✅ ANTEPRIMA {tipo_mappa} - VEDI TUTTE LE {len(st.session_state.postazioni)} POSTAZIONI CON ICONE 15x15 ABBINATE - NO CERCHIO ROSSO")
-            else:
-                st.warning("Nessuna postazione salvata")
-        except Exception as e: st.error(f"Errore anteprima: {e}")
-
-    with c2:
-        st.markdown("### 📋 Maschera - Via associata")
-        st.info(f"Lat {st.session_state.map_lat:.6f} Lon {st.session_state.map_lon:.6f}")
-        if st.session_state.map_via: st.success(f"✅ Via rilevata: {st.session_state.map_via}")
-        if st.session_state.post_sel:
-            p_sel=st.session_state.post_sel
-            st.success(f"Selezionata: {p_sel.get('Postazione','')}\nVia: {p_sel.get('Via','')}")
-        st.write(f"Logo: {st.session_state.map_logo} 15x15")
-        b64_sel=trova_b64_logo(st.session_state.map_logo, st.session_state.icone_lib)
-        if b64_sel: st.image(f"data:image/png;base64,{b64_sel}",width=30)
-        opzioni_logo=["Default"] + [ic['nome'] for ic in st.session_state.icone_lib]
-        idx_default=opzioni_logo.index(st.session_state.map_logo) if st.session_state.map_logo in opzioni_logo else 0
-        sel_logo=st.selectbox("Scegli logo 15x15", opzioni_logo, index=idx_default)
-        if sel_logo!=st.session_state.map_logo:
-            st.session_state.map_logo=sel_logo
-            st.rerun()
-        with st.form("form_post"):
-            val_nome=st.session_state.post_sel.get('Postazione','') if st.session_state.post_sel else ""
-            nome_post=st.text_input("Nome Postazione *",value=val_nome)
-            val_comune=st.session_state.post_sel.get('Comune','Varese') if st.session_state.post_sel else st.session_state.map_comune
-            idx_comune=COMUNI.index(val_comune) if val_comune in COMUNI else 0
-            comune_post=st.selectbox("Comune *",COMUNI,index=idx_comune)
-            val_via=st.session_state.post_sel.get('Via','') if st.session_state.post_sel else st.session_state.map_via
-            via_post=st.text_input("Via * - Via selezionata associata",value=val_via,help="Quando selezioni postazione nella mappa, la via che vedi sopra si associa qui")
-            lat_post=st.text_input("Latitudine *",value=str(st.session_state.map_lat))
-            lon_post=st.text_input("Longitudine *",value=str(st.session_state.map_lon))
-            if st.form_submit_button("📍 SALVA",use_container_width=True,type="primary"):
-                if nome_post and lat_post and lon_post:
-                    new={"Postazione":nome_post,"Comune":comune_post,"Via":via_post,"Latitudine":lat_post,"Longitudine":lon_post,"Icona":st.session_state.map_logo}
-                    st.session_state.postazioni.append(new)
-                    st.session_state.post_sel=new
-                    st.session_state.map_via=via_post
-                    save_json(FILE_POST,st.session_state.postazioni)
-                    st.success(f"Salvata {nome_post} - Via {via_post} associata!")
-                    st.rerun()
-
-    st.divider()
-    st.markdown("### 📋 ELENCO POSTAZIONI - Clicca per associare Via in maschera")
-    if st.session_state.postazioni:
-        for idx, p in enumerate(st.session_state.postazioni):
-            c_img,c1,c2,c3=st.columns([1,2,2,2])
-            with c_img:
-                b64=trova_b64_logo(p.get('Icona',''), st.session_state.icone_lib)
-                if b64: st.image(f"data:image/png;base64,{b64}",width=15)
-            with c1: st.write(f"**{p.get('Postazione','')}**")
-            with c2: st.write(f"{p.get('Via','')} - {p.get('Comune','')}")
-            with c3:
-                if st.button(f"📍 VEDI",key=f"vedi_{idx}_{p.get('Postazione','')}",use_container_width=True):
-                    st.session_state.post_sel=p
-                    st.session_state.map_lat=float(p.get('Latitudine',45.8205))
-                    st.session_state.map_lon=float(p.get('Longitudine',8.8250))
-                    st.session_state.map_via=p.get('Via','')
-                    st.session_state.map_comune=p.get('Comune','Varese')
-                    st.session_state.map_logo=p.get('Icona','Default')
-                    st.session_state.map_zoom=17
-                    st.toast(f"Via {p.get('Via','')} associata in maschera campo Via")
-                    st.rerun()
-        out=BytesIO()
-        pd.DataFrame(st.session_state.postazioni).to_excel(out,index=False,engine="openpyxl")
-        st.download_button("📥 Excel",out.getvalue(),file_name=f"postazioni_{date.today()}.xlsx",mime=MIME,use_container_width=True)
-
-elif scelta=="Gestione Loghi":
-    if st.session_state.ruolo!="Amministratore":
-        st.error("Solo amministratore")
-    else:
-        torna_dashboard()
-        st.markdown("## 🎨 GESTIONE LOGHI")
-        uploaded=st.file_uploader("📤 CARICA LOGO", type=["png","jpg","jpeg"], key="up_logo2")
-        if uploaded:
-            b64=img_to_b64(uploaded)
-            nome_icona=st.text_input("Nome logo", value=uploaded.name.split(".")[0])
-            if st.button("💾 SALVA LOGO",use_container_width=True,type="primary"):
-                st.session_state.icone_lib.append({"nome":nome_icona,"b64":b64})
-                save_json(FILE_ICONE,st.session_state.icone_lib)
-                st.success(f"Logo {nome_icona} salvato!")
-                st.rerun()
-        if st.session_state.icone_lib:
-            cols=st.columns(4)
-            for i, ic in enumerate(st.session_state.icone_lib):
-                with cols[i%4]:
-                    st.markdown(f'<div class="icon-lib">',unsafe_allow_html=True)
-                    if ic.get("b64"): st.image(f"data:image/png;base64,{ic['b64']}",width=60)
-                    st.write(f"**{ic['nome']}**")
-                    st.markdown('</div>',unsafe_allow_html=True)
-
-elif scelta=="Gestione Utenti":
-    if st.session_state.ruolo!="Amministratore":
-        st.error("Solo amministratore può gestire utenti")
-        st.stop()
-    torna_dashboard()
-    st.markdown("## 👤 GESTIONE UTENTI - Solo Amministratore - Uso locale")
-    st.markdown("### Utenti esistenti")
-    st.dataframe(pd.DataFrame([{"Username":u["username"],"Ruolo":u["ruolo"],"Nome":u["nome"]} for u in st.session_state.utenti]),use_container_width=True)
-    st.divider()
-    st.markdown("### ➕ Crea nuovo utente")
-    with st.form("form_utente"):
-        new_user=st.text_input("Username *")
-        new_pwd=st.text_input("Password *",type="password")
-        new_ruolo=st.selectbox("Ruolo *",RUOLI)
-        new_nome=st.text_input("Nome completo")
-        if st.form_submit_button("✅ CREA UTENTE",use_container_width=True,type="primary"):
-            if new_user and new_pwd:
-                if any(u["username"]==new_user for u in st.session_state.utenti):
-                    st.error("Username già esistente")
-                else:
-                    st.session_state.utenti.append({"username":new_user,"password":hash_pwd(new_pwd),"ruolo":new_ruolo,"nome":new_nome})
-                    save_json(FILE_UTENTI,st.session_state.utenti)
-                    st.success(f"Utente {new_user} creato con ruolo {new_ruolo}")
-                    st.rerun()
-    st.divider()
-    st.markdown("### 🗑️ Elimina utente")
-    utenti_list=[u["username"] for u in st.session_state.utenti if u["username"]!=st.session_state.username]
-    if utenti_list:
-        sel_del=st.selectbox("Seleziona utente da eliminare",utenti_list)
-        if st.button("🗑️ ELIMINA UTENTE",use_container_width=True):
-            st.session_state.utenti=[u for u in st.session_state.utenti if u["username"]!=sel_del]
-            save_json(FILE_UTENTI,st.session_state.utenti)
-            st.success(f"Utente {sel_del} eliminato")
-            st.rerun()
-
-elif scelta=="Backup":
-    torna_dashboard()
-    st.markdown("## 💾 BACKUP")
-    if st.button("📦 CREA BACKUP COMPLETO",use_container_width=True,type="primary"):
-        out=BytesIO()
-        with pd.ExcelWriter(out,engine="openpyxl") as writer:
-            if st.session_state.dati: pd.DataFrame(st.session_state.dati).to_excel(writer,sheet_name="Volontari",index=False)
-            if st.session_state.postazioni: pd.DataFrame(st.session_state.postazioni).to_excel(writer,sheet_name="Postazioni",index=False)
-            pd.DataFrame(st.session_state.utenti).to_excel(writer,sheet_name="Utenti",index=False)
-        st.session_state["backup"]=out.getvalue()
-        st.success("Backup creato!")
-    if "backup" in st.session_state:
-        st.download_button("📥 SCARICA BACKUP",st.session_state["backup"],file_name=f"BACKUP_{date.today()}.xlsx",mime=MIME,use_container_width=True)
