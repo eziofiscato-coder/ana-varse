@@ -1,9 +1,8 @@
-import streamlit as st
+﻿import streamlit as st
 import pandas as pd
 from io import BytesIO
 import os, json, hashlib, requests
 from datetime import datetime, date
-
 try:
     import folium
     from streamlit_folium import st_folium
@@ -15,9 +14,7 @@ try:
     HAS_PIL=True
 except:
     HAS_PIL=False
-
 st.set_page_config(page_title="ANA Varese",layout="wide")
-
 def load(f,d):
     try:
         if os.path.exists(f):
@@ -97,12 +94,10 @@ def crea_tesserino(vol,foto_path,template_path):
         buf=BytesIO(); tess.save(buf,format='PNG'); buf.seek(0); return buf.getvalue()
     except Exception as e:
         st.error(f"Errore: {e}"); return None
-
 FD='dati.json'; FU='utenti.json'; FP='post.json'; FI='icone.json'; FT='tip.json'; FO='odv.json'; FE='emerg.json'; FC='check.json'; FR='radio.json'; FR2='cons.json'; FPOP='popup.json'
 for k,v in [('dati',[]),('post',[]),('icone',[]),('tip',[]),('odv',[]),('emerg',[]),('check',[]),('radio',[]),('cons',[]),('menu','Dashboard'),('auth',False),('lat',45.8205),('lon',8.8250),('com',''),('via',''),('sel',-1),('zoom',16),('clat',None),('clon',None),('exp1',False),('popup_shown',False),('popup_cfg',{'titolo':'ANA VARESE - VOLONTARIATO','sottotitolo':'Ciao Ragazzi, Buon Lavoro!','mostra':True})]:
     if k not in st.session_state:
         st.session_state[k]=v
-
 st.session_state.dati=load(FD,[]); st.session_state.post=load(FP,[]); st.session_state.icone=load(FI,[]); st.session_state.tip=load(FT,[]); st.session_state.odv=load(FO,[]); st.session_state.emerg=load(FE,[]); st.session_state.check=load(FC,[]); st.session_state.radio=load(FR,[]); st.session_state.cons=load(FR2,[]); st.session_state.popup_cfg=load(FPOP,{'titolo':'ANA VARESE - VOLONTARIATO','sottotitolo':'Ciao Ragazzi, Buon Lavoro!','mostra':True})
 uts=load(FU,[])
 if not uts:
@@ -113,7 +108,6 @@ if not st.session_state.odv:
     st.session_state.odv=['ANA Varese','Protezione Civile Varese','Croce Rossa','Alpini','AIB','Altro']; save(FO,st.session_state.odv)
 if not st.session_state.icone:
     st.session_state.icone=[{'nome':'Presidio','col':'blue','file':''}]; save(FI,st.session_state.icone)
-
 def header():
     c1,c2=st.columns([1,5])
     with c1:
@@ -123,15 +117,13 @@ def header():
             st.write("ANA")
     with c2:
         st.markdown("<div style='background:#a5d6a7;padding:15px;border-radius:8px;border:2px solid #0e7a3d;text-align:center;'><b style='color:#000;font-size:26px;'>VOLONTARIATO<br>Sezione di Varese</b></div>",unsafe_allow_html=True)
-
 def torna():
     if st.button('TORNA ALLA DASHBOARD'):
         st.session_state.menu='Dashboard'; st.rerun()
-
 if st.session_state.exp1:
     if st.button('TORNA AL FORM',use_container_width=True,type='primary'):
         st.session_state.exp1=False; st.rerun()
-    st.markdown('## MAPPA SCHERMO INTERO - CLICCA PER VIA COMUNE LAT LON')
+    st.markdown('## MAPPA SCHERMO INTERO')
     if HAS:
         m=folium.Map(location=[st.session_state.lat,st.session_state.lon],zoom_start=st.session_state.zoom,tiles='OpenStreetMap')
         for p in st.session_state.post:
@@ -149,8 +141,6 @@ if st.session_state.exp1:
             com,via=gaddr(st.session_state.lat,st.session_state.lon)
             st.session_state.com=com; st.session_state.via=via; st.rerun()
     st.stop()
-
-# PRIMA PAGINA - SOLO TUA IMMAGINE FUMETTO - MAI LOGO PC
 if st.session_state.popup_cfg.get('mostra',True) and not st.session_state.popup_shown:
     st.markdown(f"<h1 style='text-align:center;color:#0e7a3d;'>{st.session_state.popup_cfg.get('titolo','ANA VARESE - VOLONTARIATO')}</h1>",unsafe_allow_html=True)
     st.markdown(f"<h3 style='text-align:center;color:#0e7a3d;'>{st.session_state.popup_cfg.get('sottotitolo','Ciao Ragazzi, Buon Lavoro!')}</h3>",unsafe_allow_html=True)
@@ -168,15 +158,11 @@ if st.session_state.popup_cfg.get('mostra',True) and not st.session_state.popup_
                 except:
                     pass
         if not img_found:
-            st.error("MANCA LA TUA IMMAGINE FUMETTO!")
-            st.warning("Carica copertina.jpg - TUA immagine con fumetto, NON logo PC!")
-        st.divider()
-        st.markdown(f"<div style='background:#e8f5e9;padding:15px;border-radius:10px;border:2px solid #0e7a3d;text-align:center;'><b>ANA Varese - Protezione Civile</b><br><b style='color:#0e7a3d;'>Ciao Ragazzi, Buon Lavoro!</b><br><br>Vol: {len(st.session_state.dati)} Post: {len(st.session_state.post)}</div>",unsafe_allow_html=True)
+            st.error("MANCA LA TUA IMMAGINE FUMETTO! Carica copertina.jpg")
         st.divider()
         if st.button("ENTRA NEL SISTEMA",type="primary",use_container_width=True):
             st.session_state.popup_shown=True; st.rerun()
     st.stop()
-
 if not st.session_state.auth:
     header()
     c1,c2,c3=st.columns([1,2,1])
@@ -200,7 +186,6 @@ if not st.session_state.auth:
         if st.button('TORNA ALLA PAGINA INIZIALE'):
             st.session_state.popup_shown=False; st.rerun()
     st.stop()
-
 header()
 with st.sidebar:
     opts=['Dashboard','Volontari','Mappa','Libreria Icone','Emergenza','Check In','DB Radio','Consegna Radio','Tesserino Regionale','Backup','Impostazioni Popup']
@@ -211,9 +196,7 @@ with st.sidebar:
         st.session_state.popup_shown=False; st.rerun()
     if st.button('LOGOUT',use_container_width=True):
         st.session_state.auth=False; st.session_state.popup_shown=False; st.rerun()
-
 scelta=st.session_state.menu
-
 if scelta=='Dashboard':
     st.markdown('### DASHBOARD - TUTTI I FORM')
     c1,c2,c3=st.columns(3)
@@ -232,30 +215,25 @@ if scelta=='Dashboard':
     with c3:
         st.metric('Volontari',len(st.session_state.dati)); st.metric('Postazioni',len(st.session_state.post))
     st.divider()
-    st.markdown("**PRIMA PAGINA - TUA IMMAGINE FUMETTO (NO LOGO PC):**")
     for img_name in ['copertina.jpg','copertina_fumetto.jpg']:
         if os.path.exists(img_name):
-            st.image(img_name,width=350,caption=f"{img_name} - TUA IMMAGINE FUMETTO - OK - NO LOGO PC")
-            st.success("PRIMA PAGINA OK - TUA IMMAGINE FUMETTO TROVATA!")
+            st.image(img_name,width=350,caption=f"{img_name} - TUA IMMAGINE FUMETTO - OK")
             break
     else:
         st.error("MANCA copertina.jpg - Carica TUA immagine fumetto!")
-
 elif scelta=='Volontari':
     torna()
-    st.markdown('### VOLONTARI CON FOTO E CF E TESSERINO IDENTICO')
-    t1,t2=st.tabs(['Anagrafica Foto CF ODV','Elenco e Tesserino'])
+    st.markdown('### VOLONTARI CON FOTO E CF')
+    t1,t2=st.tabs(['Anagrafica','Elenco e Tesserino'])
     with t1:
         with st.form('vol1'):
             c1,c2=st.columns(2)
             with c1:
-                a1=st.text_input('Nome *'); a2=st.text_input('Cognome *'); a_cf=st.text_input('CF * per barcode')
-                a_foto=st.file_uploader('Foto',type=['jpg','png','jpeg'],key='f1')
+                a1=st.text_input('Nome *'); a2=st.text_input('Cognome *'); a_cf=st.text_input('CF *'); a_foto=st.file_uploader('Foto',type=['jpg','png','jpeg'],key='f1')
             with c2:
-                a_odv=st.selectbox('ODV',['A.N.A. Sezione di Varese','Protezione Civile Varese','ANA Varese','Croce Rossa','Alpini','Altro'])
-                a_tess=st.text_input('Tessera')
+                a_odv=st.selectbox('ODV',['A.N.A. Sezione di Varese','Protezione Civile Varese','ANA Varese','Croce Rossa','Alpini','Altro']); a_tess=st.text_input('Tessera')
                 if a_foto: st.image(a_foto,width=120)
-            if st.form_submit_button('SALVA VOLONTARIO'):
+            if st.form_submit_button('SALVA'):
                 if a1 and a2:
                     nc=f"{a1} {a2}"; fp=''
                     if a_foto:
@@ -271,21 +249,11 @@ elif scelta=='Volontari':
     with t2:
         if st.session_state.dati:
             st.dataframe(pd.DataFrame(st.session_state.dati),use_container_width=True)
-            vol_list=[d.get('Nome','') for d in st.session_state.dati]
-            sel=st.selectbox('Seleziona per Tesserino',vol_list,key='tess1')
-            vol_data={}
-            for d in st.session_state.dati:
-                if d.get('Nome','')==sel: vol_data=d; break
-            tess=crea_tesserino(vol_data,vol_data.get('FotoFile',''),"Tesserino-Ezio.JPG" if os.path.exists("Tesserino-Ezio.JPG") else None)
-            if tess:
-                st.image(tess,use_container_width=True)
-                st.download_button('SCARICA TESSERINO',tess,file_name=f"Tesserino_{sel}.png",mime='image/png',type='primary')
-
 elif scelta=='Mappa':
     torna()
-    st.markdown('### MAPPA - VIA COMUNE LAT LON + ESPANDI + GOOGLE MAPS WAZE + TASTI VAI')
+    st.markdown('### MAPPA - VIA COMUNE LAT LON + ESPANDI + GOOGLE MAPS WAZE')
     c1,c2=st.columns([3,1])
-    with c1: st.info("Clicca sulla mappa per via comune lat lon automatici")
+    with c1: st.info("Clicca sulla mappa per via comune lat lon")
     with c2:
         if st.button('ESPANDI SCHERMO INTERO',use_container_width=True):
             st.session_state.exp1=True; st.rerun()
@@ -323,16 +291,6 @@ elif scelta=='Mappa':
                 nuovo={'Postazione':m1,'Comune':m2,'Via':m3,'Lat':m5,'Lon':m6,'Responsabile':m8,'ODV':m9}
                 st.session_state.post.append(nuovo); save(FP,st.session_state.post); st.success(f"Salvata {m1}"); st.rerun()
     st.divider()
-    st.markdown("#### MAPPA SOTTO CON TUTTE LE POSTAZIONI + GOOGLE MAPS + WAZE + TASTI VAI PUNTO GIUSTO")
-    if HAS and st.session_state.post:
-        m2=folium.Map(location=[45.8205,8.8250],zoom_start=11,tiles='OpenStreetMap')
-        for p in st.session_state.post:
-            try:
-                la=float(p.get('Lat','0')); lo=float(p.get('Lon','0'))
-                folium.Marker([la,lo],popup=f"{p.get('Postazione','')}").add_to(m2)
-            except:
-                pass
-        st_folium(m2,height=400,width=800,key='m2')
     if st.session_state.post:
         for idx,p in enumerate(st.session_state.post):
             c1,c2,c3=st.columns([2,2,4])
@@ -344,7 +302,7 @@ elif scelta=='Mappa':
             with c3:
                 col1,col2=st.columns(2)
                 with col1:
-                    if st.button('VAI MAPPA PUNTO GIUSTO',key=f'vai{idx}',use_container_width=True):
+                    if st.button('VAI MAPPA',key=f'vai{idx}',use_container_width=True):
                         st.session_state.lat=float(p.get('Lat','0')); st.session_state.lon=float(p.get('Lon','0'))
                         st.session_state.clat=float(p.get('Lat','0')); st.session_state.clon=float(p.get('Lon','0'))
                         st.session_state.com=p.get('Comune',''); st.session_state.via=p.get('Via','')
@@ -353,86 +311,57 @@ elif scelta=='Mappa':
                     if st.button('Elimina',key=f'del{idx}',use_container_width=True):
                         st.session_state.post.pop(idx); save(FP,st.session_state.post); st.rerun()
             st.divider()
-
 elif scelta=='Backup':
     torna()
     st.markdown('### BACKUP - IMPORT ED EXPORT TUTTI I FORM')
-    tab1,tab2,tab3=st.tabs(['EXPORT SINGOLI FORM','IMPORT TUTTI I FORM','BACKUP COMPLETO'])
+    tab1,tab2,tab3=st.tabs(['EXPORT','IMPORT','BACKUP COMPLETO'])
     with tab1:
-        c1,c2,c3=st.columns(3)
-        with c1:
-            if st.session_state.dati: st.download_button('EXPORT VOLONTARI',export_excel(pd.DataFrame(st.session_state.dati)),file_name='Volontari.xlsx',key='exp_vol',use_container_width=True)
-            if st.session_state.icone: st.download_button('EXPORT ICONE',export_excel(pd.DataFrame(st.session_state.icone)),file_name='Icone.xlsx',key='exp_icone',use_container_width=True)
-        with c2:
-            if st.session_state.post: st.download_button('EXPORT MAPPA VIA COMUNE LAT LON',export_excel(pd.DataFrame(st.session_state.post)),file_name='Mappa.xlsx',key='exp_mappa',use_container_width=True)
-            if st.session_state.emerg: st.download_button('EXPORT EMERGENZE',export_excel(pd.DataFrame(st.session_state.emerg)),file_name='Emergenze.xlsx',key='exp_emerg',use_container_width=True)
-        with c3:
-            if st.session_state.check: st.download_button('EXPORT CHECK IN',export_excel(pd.DataFrame(st.session_state.check)),file_name='CheckIn.xlsx',key='exp_check',use_container_width=True)
-            if st.session_state.radio: st.download_button('EXPORT RADIO',export_excel(pd.DataFrame(st.session_state.radio)),file_name='Radio.xlsx',key='exp_radio',use_container_width=True)
-            if st.session_state.cons: st.download_button('EXPORT CONSEGNA RADIO',export_excel(pd.DataFrame(st.session_state.cons)),file_name='ConsegnaRadio.xlsx',key='exp_cons',use_container_width=True)
+        if st.session_state.dati: st.download_button('EXPORT VOLONTARI',export_excel(pd.DataFrame(st.session_state.dati)),file_name='Volontari.xlsx',key='exp_vol',use_container_width=True)
+        if st.session_state.post: st.download_button('EXPORT MAPPA',export_excel(pd.DataFrame(st.session_state.post)),file_name='Mappa.xlsx',key='exp_mappa',use_container_width=True)
+        if st.session_state.radio: st.download_button('EXPORT RADIO',export_excel(pd.DataFrame(st.session_state.radio)),file_name='Radio.xlsx',key='exp_radio',use_container_width=True)
     with tab2:
-        c1,c2,c3=st.columns(3)
-        with c1:
-            up_vol=st.file_uploader('Import Volontari',type=['xlsx'],key='up_vol')
-            if up_vol:
-                df_up=pd.read_excel(up_vol)
-                if st.button('IMPORTA VOLONTARI',key='imp_vol',use_container_width=True):
-                    for _,row in df_up.iterrows(): st.session_state.dati.append(row.to_dict())
-                    save(FD,st.session_state.dati); st.success(f"Importati {len(df_up)}"); st.rerun()
-        with c2:
-            up_mappa=st.file_uploader('Import Mappa',type=['xlsx'],key='up_mappa')
-            if up_mappa:
-                df_up=pd.read_excel(up_mappa)
-                if st.button('IMPORTA MAPPA',key='imp_mappa',use_container_width=True):
-                    for _,row in df_up.iterrows(): st.session_state.post.append(row.to_dict())
-                    save(FP,st.session_state.post); st.success(f"Importate {len(df_up)}"); st.rerun()
-        with c3:
-            up_radio=st.file_uploader('Import Radio',type=['xlsx'],key='up_radio')
-            if up_radio:
-                df_up=pd.read_excel(up_radio)
-                if st.button('IMPORTA RADIO',key='imp_radio',use_container_width=True):
-                    for _,row in df_up.iterrows(): st.session_state.radio.append(row.to_dict())
-                    save(FR,st.session_state.radio); st.success(f"Importate {len(df_up)}"); st.rerun()
+        up_vol=st.file_uploader('Import Volontari',type=['xlsx'],key='up_vol')
+        if up_vol:
+            df_up=pd.read_excel(up_vol)
+            if st.button('IMPORTA VOLONTARI',key='imp_vol',use_container_width=True):
+                for _,row in df_up.iterrows(): st.session_state.dati.append(row.to_dict())
+                save(FD,st.session_state.dati); st.success(f"Importati {len(df_up)}"); st.rerun()
+        up_mappa=st.file_uploader('Import Mappa',type=['xlsx'],key='up_mappa')
+        if up_mappa:
+            df_up=pd.read_excel(up_mappa)
+            if st.button('IMPORTA MAPPA',key='imp_mappa',use_container_width=True):
+                for _,row in df_up.iterrows(): st.session_state.post.append(row.to_dict())
+                save(FP,st.session_state.post); st.success(f"Importate {len(df_up)}"); st.rerun()
     with tab3:
-        if st.button('CREA BACKUP COMPLETO TUTTI I FORM',type='primary',use_container_width=True):
+        if st.button('CREA BACKUP COMPLETO',type='primary',use_container_width=True):
             out=BytesIO()
             with pd.ExcelWriter(out,engine='openpyxl') as writer:
                 if st.session_state.dati: pd.DataFrame(st.session_state.dati).to_excel(writer,sheet_name='Volontari',index=False)
                 if st.session_state.post: pd.DataFrame(st.session_state.post).to_excel(writer,sheet_name='Mappa',index=False)
-                if st.session_state.emerg: pd.DataFrame(st.session_state.emerg).to_excel(writer,sheet_name='Emergenze',index=False)
-                if st.session_state.check: pd.DataFrame(st.session_state.check).to_excel(writer,sheet_name='CheckIn',index=False)
                 if st.session_state.radio: pd.DataFrame(st.session_state.radio).to_excel(writer,sheet_name='DBRadio',index=False)
-                if st.session_state.cons: pd.DataFrame(st.session_state.cons).to_excel(writer,sheet_name='ConsegnaRadio',index=False)
             st.session_state['bk_all']=out.getvalue()
             st.success('Backup creato!')
         if 'bk_all' in st.session_state:
-            st.download_button('SCARICA BACKUP COMPLETO TUTTI I FORM',st.session_state['bk_all'],file_name='BACKUP_COMPLETO.xlsx',use_container_width=True,type='primary')
-
+            st.download_button('SCARICA BACKUP COMPLETO',st.session_state['bk_all'],file_name='BACKUP_COMPLETO.xlsx',use_container_width=True,type='primary')
 elif scelta=='Impostazioni Popup':
     torna()
     st.markdown('### IMPOSTAZIONI POPUP - TUA IMMAGINE FUMETTO - NO LOGO PC')
-    st.error("PRIMA PAGINA DEVE AVERE SOLO TUA IMMAGINE CON FUMETTO - NO LOGO PC!")
     up=st.file_uploader('Carica TUA IMMAGINE CON FUMETTO per prima pagina',type=['jpg','png','jpeg'],key='up_fumetto')
     if up:
-        st.image(up,use_container_width=True,caption="Anteprima TUA IMMAGINE FUMETTO - PER PRIMA PAGINA")
-        if st.button('SALVA COME copertina.jpg - TUA IMMAGINE FUMETTO',type='primary',use_container_width=True):
+        st.image(up,use_container_width=True,caption="Anteprima TUA IMMAGINE FUMETTO")
+        if st.button('SALVA COME copertina.jpg',type='primary',use_container_width=True):
             open('copertina.jpg','wb').write(up.getbuffer())
-            st.success('SALVATA! Ora prima pagina mostra SOLO TUA IMMAGINE CON FUMETTO - NO LOGO PC!')
+            st.success('SALVATA! Ora prima pagina mostra SOLO TUA IMMAGINE - NO LOGO PC!')
             st.balloons()
     st.divider()
-    st.markdown("**CONTROLLO FILE PRIMA PAGINA:**")
     for img_name in ['copertina.jpg','copertina_fumetto.jpg','fumetto.jpg']:
         if os.path.exists(img_name):
-            st.success(f"{img_name} PRESENTE - TUA IMMAGINE FUMETTO OK")
+            st.success(f"{img_name} PRESENTE")
             st.image(img_name,width=400)
         else:
             st.error(f"{img_name} MANCANTE")
-    for img_name in ['Tesserino-Ezio.JPG','logo.png']:
-        if os.path.exists(img_name):
-            st.image(img_name,width=200,caption=img_name)
-    if st.button('MOSTRA ANTEPRIMA POPUP CON TUA IMMAGINE FUMETTO',type='primary',use_container_width=True):
+    if st.button('MOSTRA ANTEPRIMA POPUP',type='primary',use_container_width=True):
         st.session_state.popup_shown=False; st.rerun()
-
 else:
     torna()
     st.markdown(f"### {scelta} - Funzioni in Dashboard")
