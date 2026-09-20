@@ -24,9 +24,10 @@ st.markdown("""
 .stApp{background:#e8f5e9!important}
 .stForm{background:#f1f8e9!important;
  border:2px solid #81c784!important;
- border-radius:12px!important; padding:6px!important}
+ border-radius:12px!important}
 .stButton>button{
- background:#d32f2f!important; color:white!important;
+ background:#d32f2f!important;
+ color:white!important;
  font-weight:bold!important}
 </style>
 """, unsafe_allow_html=True)
@@ -192,7 +193,7 @@ def hdr():
             "border-radius:8px;text-align:center;'>"
             "<b style='color:white;'>"
             "A.N.A. NUCLEO VOLONTARI<br>"
-            "SEZIONE VARESE</b></div>",
+            "VARESE</b></div>",
             unsafe_allow_html=True
         )
 
@@ -212,7 +213,7 @@ if not st.session_state.popup:
                 st.image('copertina.jpg',width=250)
             except:
                 pass
-        if st.button("ENTRA",type="primary",use_container_width=True):
+        if st.button("ENTRA"):
             st.session_state.popup=True
             st.rerun()
     st.stop()
@@ -225,7 +226,7 @@ if not st.session_state.auth:
         with st.form('login'):
             u=st.text_input('User',value='admin')
             p=st.text_input('Pwd',type='password',value='ana2024')
-            ok=st.form_submit_button('OK',type="primary")
+            ok=st.form_submit_button('OK')
             if ok:
                 ph=hpwd(p)
                 for ut in uts:
@@ -260,10 +261,154 @@ if sc=='Dash':
     st.markdown("## Dash")
     a,b=st.columns(2)
     with a:
-        if st.button('VOL',use_container_width=True):
+        if st.button('VOL'):
             st.session_state.menu='Vol'
             st.rerun()
-        if st.button('MAPPA',use_container_width=True):
+        if st.button('MAPPA'):
             st.session_state.menu='Mappa'
             st.rerun()
-        if st.button('BACKUP',use_container
+        if st.button('BACKUP'):
+            st.session_state.menu='Backup'
+            st.rerun()
+    with b:
+        if st.button('ICONE'):
+            st.session_state.menu='Icone'
+            st.rerun()
+        if st.button('EVENTI'):
+            st.session_state.menu='Eventi'
+            st.rerun()
+        if st.button('TESS'):
+            st.session_state.menu='Tess'
+            st.rerun()
+    st.divider()
+    c1,c2,c3,c4,c5=st.columns(5)
+    with c1:
+        st.metric('Vol',len(st.session_state.dati))
+    with c2:
+        st.metric('Post',len(st.session_state.post))
+    with c3:
+        st.metric('Icone',len(st.session_state.icone))
+    with c4:
+        st.metric('Interv',len(st.session_state.interv))
+    with c5:
+        st.metric('Eventi',len(st.session_state.eventi))
+
+elif sc=='Vol':
+    to_dash()
+    st.markdown("## Volontari")
+    if st.session_state.edit_idx >=0:
+        if st.session_state.edit_idx < len(st.session_state.dati):
+            vol=st.session_state.dati[st.session_state.edit_idx]
+            st.success(f"Edit: {vol.get('Nome','')}")
+            with st.form("edit_vol"):
+                c1,c2=st.columns(2)
+                with c1:
+                    e_nome=st.text_input("Nome",value=vol.get('Nome',''))
+                    e_cf=st.text_input("CF",value=vol.get('CF',''))
+                    e_ind=st.text_input("Via",value=vol.get('Indirizzo',''))
+                    e_com=st.text_input("Comune",value=vol.get('Comune',''))
+                    e_tel=st.text_input("Tel",value=vol.get('Telefono',''))
+                with c2:
+                    e_odv=st.text_input("ODV",value=vol.get('ODV',''))
+                    e_tess=st.text_input("Tess",value=vol.get('Tessera',''))
+                    e_ruolo=st.selectbox("Ruolo",["Vol","Capo","Coord","Autista","Radio","Altro"])
+                    e_mail=st.text_input("Email",value=vol.get('Email',''))
+                b1,b2,b3=st.columns(3)
+                with b1:
+                    bs=st.form_submit_button("SALVA")
+                with b2:
+                    ba=st.form_submit_button("ANNULLA")
+                with b3:
+                    bd=st.form_submit_button("ELIMINA")
+                if bs:
+                    vol['Nome']=e_nome
+                    vol['CF']=e_cf
+                    vol['Indirizzo']=e_ind
+                    vol['Comune']=e_com
+                    vol['ODV']=e_odv
+                    vol['Tessera']=e_tess
+                    vol['Ruolo']=e_ruolo
+                    vol['Telefono']=e_tel
+                    vol['Email']=e_mail
+                    st.session_state.dati[st.session_state.edit_idx]=vol
+                    save_json(FD,st.session_state.dati)
+                    st.session_state.edit_idx=-1
+                    st.rerun()
+                if bd:
+                    st.session_state.dati.pop(st.session_state.edit_idx)
+                    save_json(FD,st.session_state.dati)
+                    st.session_state.edit_idx=-1
+                    st.rerun()
+                if ba:
+                    st.session_state.edit_idx=-1
+                    st.rerun()
+            st.divider()
+    with st.expander("NUOVO"):
+        with st.form("anag",clear_on_submit=True):
+            c1,c2=st.columns(2)
+            with c1:
+                a_nome=st.text_input("Nome *")
+                a_cogn=st.text_input("Cognome *")
+                a_cf=st.text_input("CF *")
+            with c2:
+                a_ind=st.text_input("Via")
+                a_odv=st.selectbox("ODV",["ANA Varese","PC Varese","CRI","Altro"])
+                a_tess=st.text_input("Tess")
+            a_ruolo=st.selectbox("Ruolo",["Vol","Capo","Coord","Autista","Radio","Altro"])
+            b1=st.form_submit_button("SALVA")
+            if b1:
+                if a_nome and a_cogn:
+                    nc=f"{a_nome} {a_cogn}"
+                    nuovo={'Nome':nc,'CF':a_cf,'Indirizzo':a_ind,'ODV':a_odv,'Tessera':a_tess,'Ruolo':a_ruolo,'FotoFile':''}
+                    st.session_state.dati.append(nuovo)
+                    save_json(FD,st.session_state.dati)
+                    st.success(f"OK {nc}")
+                    st.rerun()
+    if st.session_state.dati:
+        df=pd.DataFrame(st.session_state.dati)
+        st.markdown("### Lista - Click riga")
+        ev=st.dataframe(df,hide_index=False,on_select="rerun",selection_mode="single-row",key='tab_vol')
+        if ev and ev.selection and ev.selection.rows:
+            st.session_state.edit_idx=ev.selection.rows[0]
+            st.rerun()
+
+elif sc=='Mappa':
+    to_dash()
+    st.markdown("## Mappa")
+    st.markdown("### Mappa sopra - Maschera sotto")
+    if HAS_MAP:
+        try:
+            mm=folium.Map(location=[st.session_state.sel_lat,st.session_state.sel_lon],zoom_start=12)
+            for p in st.session_state.post:
+                try:
+                    lat=p.get('Lat',45.8205)
+                    lon=p.get('Lon',8.8250)
+                    tp=p.get('Tipo','')
+                    col='green'
+                    if tp=='COC':
+                        col='red'
+                    elif tp=='Campo base':
+                        col='blue'
+                    folium.Marker([lat,lon],popup=f"{p.get('Nome','')}",icon=folium.Icon(color=col)).add_to(mm)
+                except:
+                    pass
+            mp=st_folium(mm,width=1100,height=350)
+            if mp and mp.get('last_clicked'):
+                st.session_state.sel_lat=mp['last_clicked']['lat']
+                st.session_state.sel_lon=mp['last_clicked']['lng']
+                st.success(f"Pos: {st.session_state.sel_lat:.5f}")
+        except Exception as e:
+            st.error(f"Err: {e}")
+    st.divider()
+    st.markdown("### Maschera sotto")
+    if st.session_state.edit_map >=0 and st.session_state.edit_map < len(st.session_state.post):
+        p=st.session_state.post[st.session_state.edit_map]
+        st.success(f"Edit: {p.get('Nome','')}")
+        with st.form("edit_map"):
+            c1,c2,c3=st.columns(3)
+            with c1:
+                e_nome=st.text_input("Nome",value=p.get('Nome',''))
+                e_com=st.text_input("Comune",value=p.get('Comune',''))
+                e_via=st.text_input("Via",value=p.get('Via',''))
+            with c2:
+                e_lat=st.number_input("Lat",value
