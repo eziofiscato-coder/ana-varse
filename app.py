@@ -31,32 +31,27 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-def load(f,d):
+def load_json(fname, default):
     try:
-        if os.path.exists(f):
-            ff=open(f,'r',encoding='utf-8')
-            data=json.load(ff)
-            ff.close()
+        if os.path.exists(fname):
+            f=open(fname,'r',encoding='utf-8')
+            data=json.load(f)
+            f.close()
             return data
     except Exception:
         pass
-    return d
+    return default
 
-def save(f,d):
+def save_json(fname, data):
     try:
-        ff=open(f,'w',encoding='utf-8')
-        json.dump(d,ff,indent=2)
-        ff.close()
+        f=open(fname,'w',encoding='utf-8')
+        json.dump(data,f,indent=2)
+        f.close()
     except Exception:
         pass
 
-def hp(p):
-    return hashlib.sha256(p.encode()).hexdigest()
-
-def fmt_date(d):
-    if isinstance(d,date):
-        return d.strftime("%d/%m/%Y")
-    return str(d)
+def hpwd(pwd):
+    return hashlib.sha256(pwd.encode()).hexdigest()
 
 def export_excel(df):
     out=BytesIO()
@@ -65,7 +60,7 @@ def export_excel(df):
     writer.close()
     return out.getvalue()
 
-def crea_barcode(cf):
+def make_barcode(cf):
     try:
         import barcode
         from barcode.writer import ImageWriter
@@ -78,7 +73,7 @@ def crea_barcode(cf):
     except Exception:
         return None
 
-def crea_tess(vol,foto_path,tmpl):
+def make_tessera(vol, foto_path, tmpl):
     try:
         if not HAS_PIL:
             return None
@@ -97,11 +92,11 @@ def crea_tess(vol,foto_path,tmpl):
             draw=ImageDraw.Draw(tess)
             draw.rectangle([0,0,W,H],outline="#0e7a3d",width=8)
         try:
-            fn=ImageFont.truetype("arialbd.ttf",22)
-            fo=ImageFont.truetype("arial.ttf",16)
+            font_big=ImageFont.truetype("arialbd.ttf",22)
+            font_small=ImageFont.truetype("arial.ttf",16)
         except Exception:
-            fn=ImageFont.load_default()
-            fo=ImageFont.load_default()
+            font_big=ImageFont.load_default()
+            font_small=ImageFont.load_default()
         fx=int(W*0.02)
         fy=int(H*0.18)
         fw=int(W*0.26)
@@ -116,12 +111,11 @@ def crea_tess(vol,foto_path,tmpl):
         nx=int(W*0.34)
         ny=int(H*0.32)
         draw.rectangle([nx,ny,nx+int(W*0.5),ny+25],fill='white')
-        txt=vol.get('Nome','').upper()
-        draw.text((nx,ny),txt,fill='black',font=fn)
+        draw.text((nx,ny),vol.get('Nome','').upper(),fill='black',font=font_big)
         odv=vol.get('ODV','A.N.A. NUCLEO VOLONTARI DI PROTEZIONE CIVILE SEZIONE DI VARESE')
         oy=ny+30
         draw.rectangle([nx,oy,nx+int(W*0.5),oy+20],fill='white')
-        draw.text((nx,oy),odv,fill='#0e7a3d',font=fo)
+        draw.text((nx,oy),odv,fill='#0e7a3d',font=font_small)
         bx=int(W*0.62)
         by=int(H*0.70)
         bw=int(W*0.34)
@@ -130,7 +124,7 @@ def crea_tess(vol,foto_path,tmpl):
         cf=vol.get('CF','')
         if not cf:
             cf=vol.get('Nome','').replace(' ','').upper()[:16]
-        bc=crea_barcode(cf)
+        bc=make_barcode(cf)
         if bc:
             try:
                 bi=Image.open(BytesIO(bc)).convert("RGB")
@@ -156,37 +150,36 @@ FR='radio.json'
 FR2='cons.json'
 FEV='eventi.json'
 
-keys=[
+init_vals=[
     ('dati',[]),('post',[]),('icone',[]),
     ('emerg',[]),('check',[]),('radio',[]),
     ('cons',[]),('eventi',[]),
-    ('interventi_lista',[]),
-    ('menu','Dashboard'),
+    ('interventi_lista',[]),('menu','Dashboard'),
     ('auth',False),('popup_shown',False),
     ('edit_idx',-1),('edit_map_idx',-1),
     ('sel_lat',45.8205),('sel_lon',8.8250)
 ]
 
-for k,v in keys:
-    if k not in st.session_state:
-        st.session_state[k]=v
+for key,val in init_vals:
+    if key not in st.session_state:
+        st.session_state[key]=val
 
-st.session_state.dati=load(FD,[])
-st.session_state.post=load(FP,[])
-st.session_state.icone=load(FI,[])
-st.session_state.emerg=load(FE,[])
-st.session_state.check=load(FC,[])
-st.session_state.radio=load(FR,[])
-st.session_state.cons=load(FR2,[])
-st.session_state.eventi=load(FEV,[])
-st.session_state.interventi_lista=load(FE,[])
+st.session_state.dati=load_json(FD,[])
+st.session_state.post=load_json(FP,[])
+st.session_state.icone=load_json(FI,[])
+st.session_state.emerg=load_json(FE,[])
+st.session_state.check=load_json(FC,[])
+st.session_state.radio=load_json(FR,[])
+st.session_state.cons=load_json(FR2,[])
+st.session_state.eventi=load_json(FEV,[])
+st.session_state.interventi_lista=load_json(FE,[])
 
-uts=load(FU,[])
+uts=load_json(FU,[])
 if not uts:
-    uts=[{'username':'admin','password':hp('ana2024')}]
-    save(FU,uts)
+    uts=[{'username':'admin','password':hpwd('ana2024')}]
+    save_json(FU,uts)
 
-def header():
+def header_box():
     colA,colB=st.columns([1,5])
     with colA:
         try:
@@ -203,21 +196,17 @@ def header():
             unsafe_allow_html=True
         )
 
-def torna():
+def go_dashboard():
     if st.button('TORNA ALLA DASHBOARD'):
         st.session_state.menu='Dashboard'
         st.rerun()
 
 if not st.session_state.popup_shown:
-    header()
-    st.markdown(
-        "<h3 style='text-align:center;color:#0e7a3d;'>"
-        "Ciao Ragazzi, Buon Lavoro!</h3>",
-        unsafe_allow_html=True
-    )
+    header_box()
+    st.markdown("<h3 style='text-align:center;color:#0e7a3d;'>Ciao Ragazzi, Buon Lavoro!</h3>", unsafe_allow_html=True)
     st.divider()
-    col1,col2,col3=st.columns([1,1,1])
-    with col2:
+    c1,c2,c3=st.columns([1,1,1])
+    with c2:
         if os.path.exists('copertina.jpg'):
             try:
                 st.image('copertina.jpg',width=250)
@@ -229,16 +218,16 @@ if not st.session_state.popup_shown:
     st.stop()
 
 if not st.session_state.auth:
-    header()
-    col1,col2,col3=st.columns([1,2,1])
-    with col2:
+    header_box()
+    c1,c2,c3=st.columns([1,2,1])
+    with c2:
         st.markdown("### LOGIN")
         with st.form('login'):
             u=st.text_input('Username',value='admin')
             p=st.text_input('Password',type='password',value='ana2024')
             ok=st.form_submit_button('ACCEDI',type="primary")
             if ok:
-                ph=hp(p)
+                ph=hpwd(p)
                 for ut in uts:
                     if ut['username']==u and ut['password']==ph:
                         st.session_state.auth=True
@@ -248,17 +237,11 @@ if not st.session_state.auth:
                 st.error('Errati')
     st.stop()
 
-header()
+header_box()
 
 with st.sidebar:
     st.markdown('**MENU COMPLETO**')
-    opts=[
-        'Dashboard','Volontari','Mappa',
-        'Libreria Icone','Interventi Emergenza',
-        'Eventi','Check In',
-        'DB Radio','Consegna Radio',
-        'Backup','Tesserino','Logout'
-    ]
+    opts=['Dashboard','Volontari','Mappa','Libreria Icone','Interventi Emergenza','Eventi','Check In','DB Radio','Consegna Radio','Backup','Tesserino','Logout']
     sel=st.radio('Vai a',opts,index=0)
     if sel=='Logout':
         st.session_state.auth=False
@@ -269,7 +252,7 @@ with st.sidebar:
 scelta=st.session_state.menu
 
 if scelta=='Dashboard':
-    st.markdown("## Dashboard")
+    st.markdown("## Dashboard - A.N.A. NUCLEO VOLONTARI DI PROTEZIONE CIVILE SEZIONE DI VARESE")
     col1,col2=st.columns(2)
     with col1:
         if st.button('VOLONTARI',use_container_width=True):
@@ -288,92 +271,24 @@ if scelta=='Dashboard':
         if st.button('EVENTI',use_container_width=True):
             st.session_state.menu='Eventi'
             st.rerun()
-        if st.button('TESSERINO',use_container_width=True):
+        if st.button('TESSERINO NITIDO',use_container_width=True):
             st.session_state.menu='Tesserino'
-            st.rerun()
-    st.divider()
-    if st.session_state.dati:
-        df=pd.DataFrame(st.session_state.dati)
-        st.markdown("### CLICCA RIGA PER MODIFICARE")
-        ev=st.dataframe(
-            df,
-            use_container_width=True,
-            hide_index=False,
-            on_select="rerun",
-            selection_mode="single-row"
-        )
-        if ev and ev.selection and ev.selection.rows:
-            idx=ev.selection.rows[0]
-            st.session_state.edit_idx=idx
-            st.session_state.menu='Volontari'
             st.rerun()
 
 elif scelta=='Volontari':
-    torna()
-    st.markdown("## VOLONTARI - A.N.A. NUCLEO VOLONTARI DI PROTEZIONE CIVILE SEZIONE DI VARESE")
-    if st.session_state.edit_idx >=0:
-        if st.session_state.edit_idx < len(st.session_state.dati):
-            vol=st.session_state.dati[st.session_state.edit_idx]
-            st.success(f"MODIFICA: {vol.get('Nome','')}")
-            with st.form("form_edit_vol"):
-                c1,c2=st.columns(2)
-                with c1:
-                    e_nome=st.text_input("Nome",value=vol.get('Nome',''))
-                    e_cf=st.text_input("CF",value=vol.get('CF',''))
-                    e_ind=st.text_input("Indirizzo",value=vol.get('Indirizzo',''))
-                    e_comune=st.text_input("Comune",value=vol.get('Comune',''))
-                    e_tel=st.text_input("Telefono",value=vol.get('Telefono',''))
-                with c2:
-                    e_odv=st.text_input("ODV",value=vol.get('ODV',''))
-                    e_tess=st.text_input("Tessera",value=vol.get('Tessera',''))
-                    e_ruolo=st.selectbox("Ruolo",["Volontario","Caposquadra","Coordinatore","Autista","Radio","Altro"])
-                    e_email=st.text_input("Email",value=vol.get('Email',''))
-                b1,b2,b3=st.columns(3)
-                with b1:
-                    btn_save=st.form_submit_button("SALVA AGGIORNAMENTI",type="primary",use_container_width=True)
-                with b2:
-                    btn_ann=st.form_submit_button("ANNULLA",use_container_width=True)
-                with b3:
-                    btn_del=st.form_submit_button("ELIMINA",use_container_width=True)
-                if btn_save:
-                    vol['Nome']=e_nome
-                    vol['CF']=e_cf
-                    vol['Indirizzo']=e_ind
-                    vol['Comune']=e_comune
-                    vol['ODV']=e_odv
-                    vol['Tessera']=e_tess
-                    vol['Ruolo']=e_ruolo
-                    vol['Telefono']=e_tel
-                    vol['Email']=e_email
-                    st.session_state.dati[st.session_state.edit_idx]=vol
-                    save(FD,st.session_state.dati)
-                    st.success("Salvati!")
-                    st.session_state.edit_idx=-1
-                    st.rerun()
-                if btn_del:
-                    st.session_state.dati.pop(st.session_state.edit_idx)
-                    save(FD,st.session_state.dati)
-                    st.session_state.edit_idx=-1
-                    st.rerun()
-                if btn_ann:
-                    st.session_state.edit_idx=-1
-                    st.rerun()
-            st.divider()
-    with st.expander("NUOVO VOLONTARIO"):
-        with st.form("form_anag",clear_on_submit=True):
+    go_dashboard()
+    st.markdown("## VOLONTARI")
+    if st.session_state.edit_idx >=0 and st.session_state.edit_idx < len(st.session_state.dati):
+        vol=st.session_state.dati[st.session_state.edit_idx]
+        st.success(f"VOLONTARIO SELEZIONATO: {vol.get('Nome','')} - MODIFICA IN MASCHERA")
+        with st.form("form_edit_vol"):
             c1,c2=st.columns(2)
             with c1:
-                a_nome=st.text_input("Nome *")
-                a_cogn=st.text_input("Cognome *")
-                a_cf=st.text_input("CF *")
+                e_nome=st.text_input("Nome",value=vol.get('Nome',''))
+                e_cf=st.text_input("CF",value=vol.get('CF',''))
+                e_ind=st.text_input("Indirizzo",value=vol.get('Indirizzo',''))
+                e_comune=st.text_input("Comune",value=vol.get('Comune',''))
+                e_tel=st.text_input("Telefono",value=vol.get('Telefono',''))
             with c2:
-                a_ind=st.text_input("Indirizzo")
-                a_odv=st.selectbox("ODV",["A.N.A. NUCLEO VOLONTARI DI PROTEZIONE CIVILE SEZIONE DI VARESE","A.N.A. Sezione di Varese","PC Varese","CRI","Altro"])
-                a_tess=st.text_input("Tessera")
-            a_ruolo=st.selectbox("Ruolo",["Volontario","Caposquadra","Coordinatore","Autista","Radio","Altro"])
-            btn1=st.form_submit_button("SALVA NUOVO",use_container_width=True,type="primary")
-            if btn1:
-                if a_nome and a_cogn:
-                    nc=f"{a_nome} {a_cogn}"
-                    nuovo={'Nome':nc,'CF':a_cf,'Indirizzo':a_ind,'ODV':a_odv,'Tessera':a_tess,'Ruolo':a_ruolo,'FotoFile':''}
-                    st.session_state.dati.append(nuovo)
+                e_odv=st.text_input("ODV",value=vol.get('ODV',''))
+                e_tess=st.text_input("Tessera
