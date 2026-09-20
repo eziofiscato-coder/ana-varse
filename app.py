@@ -2,7 +2,6 @@
 import pandas as pd
 from io import BytesIO
 import os, json, hashlib
-from datetime import date
 
 try:
     import folium
@@ -158,7 +157,7 @@ init=[
     ('interv',[]),('menu','Dash'),
     ('auth',False),('popup',False),
     ('edit_idx',-1),('edit_map',-1),
-    ('sel_lat',45.8205),('sel_lon',8.8250)
+    ('sel_lat','45.8205'),('sel_lon','8.8250')
 ]
 
 for k,v in init:
@@ -192,7 +191,7 @@ def hdr():
             "<div style='background:#0e7a3d;padding:10px;"
             "border-radius:8px;text-align:center;'>"
             "<b style='color:white;'>"
-            "A.N.A. NUCLEO VOLONTARI<br>"
+            "A.N.A. VOLONTARI<br>"
             "VARESE</b></div>",
             unsafe_allow_html=True
         )
@@ -361,54 +360,4 @@ elif sc=='Vol':
                     nc=f"{a_nome} {a_cogn}"
                     nuovo={'Nome':nc,'CF':a_cf,'Indirizzo':a_ind,'ODV':a_odv,'Tessera':a_tess,'Ruolo':a_ruolo,'FotoFile':''}
                     st.session_state.dati.append(nuovo)
-                    save_json(FD,st.session_state.dati)
-                    st.success(f"OK {nc}")
-                    st.rerun()
-    if st.session_state.dati:
-        df=pd.DataFrame(st.session_state.dati)
-        st.markdown("### Lista - Click riga")
-        ev=st.dataframe(df,hide_index=False,on_select="rerun",selection_mode="single-row",key='tab_vol')
-        if ev and ev.selection and ev.selection.rows:
-            st.session_state.edit_idx=ev.selection.rows[0]
-            st.rerun()
-
-elif sc=='Mappa':
-    to_dash()
-    st.markdown("## Mappa")
-    st.markdown("### Mappa sopra - Maschera sotto")
-    if HAS_MAP:
-        try:
-            mm=folium.Map(location=[st.session_state.sel_lat,st.session_state.sel_lon],zoom_start=12)
-            for p in st.session_state.post:
-                try:
-                    lat=p.get('Lat',45.8205)
-                    lon=p.get('Lon',8.8250)
-                    tp=p.get('Tipo','')
-                    col='green'
-                    if tp=='COC':
-                        col='red'
-                    elif tp=='Campo base':
-                        col='blue'
-                    folium.Marker([lat,lon],popup=f"{p.get('Nome','')}",icon=folium.Icon(color=col)).add_to(mm)
-                except:
-                    pass
-            mp=st_folium(mm,width=1100,height=350)
-            if mp and mp.get('last_clicked'):
-                st.session_state.sel_lat=mp['last_clicked']['lat']
-                st.session_state.sel_lon=mp['last_clicked']['lng']
-                st.success(f"Pos: {st.session_state.sel_lat:.5f}")
-        except Exception as e:
-            st.error(f"Err: {e}")
-    st.divider()
-    st.markdown("### Maschera sotto")
-    if st.session_state.edit_map >=0 and st.session_state.edit_map < len(st.session_state.post):
-        p=st.session_state.post[st.session_state.edit_map]
-        st.success(f"Edit: {p.get('Nome','')}")
-        with st.form("edit_map"):
-            c1,c2,c3=st.columns(3)
-            with c1:
-                e_nome=st.text_input("Nome",value=p.get('Nome',''))
-                e_com=st.text_input("Comune",value=p.get('Comune',''))
-                e_via=st.text_input("Via",value=p.get('Via',''))
-            with c2:
-                e_lat=st.number_input("Lat",value
+                    save_json
