@@ -5,15 +5,19 @@ import os, json, hashlib
 from datetime import date
 
 try:
+    import folium
+    from streamlit_folium import st_folium
+    HAS_MAP=True
+except Exception:
+    HAS_MAP=False
+
+try:
     from PIL import Image, ImageDraw, ImageFont
     HAS_PIL=True
 except Exception:
     HAS_PIL=False
 
-st.set_page_config(
-    page_title="ANA Varese",
-    layout="wide"
-)
+st.set_page_config(page_title="ANA Varese", layout="wide")
 
 st.markdown("""
 <style>
@@ -153,7 +157,8 @@ for k,v in [
     ('dati',[]),('post',[]),('emerg',[]),
     ('check',[]),('radio',[]),('cons',[]),
     ('interventi_lista',[]),('menu','Dashboard'),
-    ('auth',False),('popup_shown',False)
+    ('auth',False),('popup_shown',False),
+    ('edit_idx',-1),('edit_map_idx',-1)
 ]:
     if k not in st.session_state:
         st.session_state[k]=v
@@ -194,28 +199,6 @@ def torna():
         st.session_state.menu='Dashboard'
         st.rerun()
 
-def mostra_dettaglio(vol):
-    st.markdown("### DETTAGLIO VOLONTARIO - CLICK RIGA")
-    c1,c2=st.columns([1,2])
-    with c1:
-        fp=vol.get('FotoFile','')
-        if fp and os.path.exists(fp):
-            st.image(fp,width=200)
-        st.write(f"Tessera: {vol.get('Tessera','')}")
-        st.write(f"Ruolo: {vol.get('Ruolo','')}")
-    with c2:
-        st.markdown(f"**Nome:** {vol.get('Nome','')}")
-        st.markdown(f"**CF:** {vol.get('CF','')}")
-        st.markdown(f"**ODV:** {vol.get('ODV','')}")
-        st.markdown(f"**Tel:** {vol.get('Telefono','')}")
-        st.markdown(f"**Email:** {vol.get('Email','')}")
-        st.markdown(f"**Indirizzo:** {vol.get('Indirizzo','')} {vol.get('Comune','')}")
-        tess=crea_tess(vol,vol.get('FotoFile',''),"Tesserino-Ezio.JPG" if os.path.exists("Tesserino-Ezio.JPG") else None)
-        if tess:
-            st.image(tess,use_container_width=True)
-            st.download_button('SCARICA TESSERINO NITIDO PICCOLO',tess,file_name=f"Tesserino_{vol.get('Nome','')}.png",mime='image/png',type='primary',use_container_width=True)
-            st.download_button('SCARICA QUELLO SOTTO',tess,file_name=f"Tesserino_{vol.get('Nome','')}_SOTTO.png",mime='image/png',use_container_width=True,key='sotto_det')
-
 # PRIMA PAGINA
 if not st.session_state.popup_shown:
     header()
@@ -231,7 +214,6 @@ if not st.session_state.popup_shown:
             if os.path.exists(img_name):
                 try:
                     st.image(img_name,width=250)
-                    st.success("IMG 250px + NUVOLA I'M READY")
                     break
                 except Exception:
                     pass
@@ -250,7 +232,6 @@ if not st.session_state.auth:
     c1,c2,c3=st.columns([1,2,1])
     with c2:
         st.markdown("### LOGIN")
-        st.info("admin / ana2024")
         with st.form('login'):
             u=st.text_input('Username',value='admin')
             p=st.text_input('Password',type='password',value='ana2024')
@@ -316,7 +297,7 @@ if scelta=='Dashboard':
         if st.button('CONSEGNA RADIO',use_container_width=True):
             st.session_state.menu='Consegna Radio'
             st.rerun()
-        if st.button('TESSERINO NITIDO PICCOLO',use_container_width=True):
+        if st.button('TESSERINO NITIDO',use_container_width=True):
             st.session_state.menu='Tesserino'
             st.rerun()
     st.divider()
@@ -326,32 +307,80 @@ if scelta=='Dashboard':
     with c3: st.metric('Interventi',len(st.session_state.interventi_lista))
     with c4: st.metric('Radio',len(st.session_state.radio))
     st.divider()
-    st.markdown("### ELENCO VOLONTARI - CLICCA RIGA PER VEDERE DATI")
     if st.session_state.dati:
         df=pd.DataFrame(st.session_state.dati)
+        st.markdown("### CLICCA RIGA PER MODIFICARE DATI SU MASCHERA")
         event=st.dataframe(df,use_container_width=True,hide_index=False,on_select="rerun",selection_mode="single-row")
         if event and event.selection and event.selection.rows:
             idx=event.selection.rows[0]
-            if idx < len(st.session_state.dati):
-                vol=st.session_state.dati[idx]
-                st.divider()
-                mostra_dettaglio(vol)
-    else:
-        st.warning("Nessun volontario")
+            st.session_state.edit_idx=idx
+            st.session_state.menu='Volontari'
+            st.rerun()
 
 elif scelta=='Volontari':
     torna()
     st.markdown("## VOLONTARI - A.N.A. NUCLEO VOLONTARI DI PROTEZIONE CIVILE SEZIONE DI VARESE")
-    st.markdown("### 6 SOTTOMASCHERE + CLICK RIGA")
-    t1,t2,t3,t4,t5,t6=st.tabs(["1.Anagrafica","2.Contatti","3.Foto","4.Formazione DPI","5.Disp","6.Elenco + Click"])
+    # SE CLICCATO RIGA - MOSTRA MASCHERA MODIFICA
+    if st.session_state.edit_idx >=0 and st.session_state.edit_idx < len(st.session_state.dati):
+        vol=st.session_state.dati[st.session_state.edit_idx]
+        st.success(f"Modifica dati per: {vol.get('Nome','')}")
+        st.markdown("### MASCHERA MODIFICA - DATI VOLONTARIO CLICCATO")
+        c1,c2=st.columns([1,2])
+        with c1:
+            fp=vol.get('FotoFile','')
+            if fp and os.path.exists(fp):
+                st.image(fp,width=200)
+        with c2:
+            with st.form("form_edit"):
+                e_nome=st.text_input("Nome",value=vol.get('Nome',''))
+                e_cf=st.text_input("CF",value=vol.get('CF',''))
+                e_ind=st.text_input("Indirizzo",value=vol.get('Indirizzo',''))
+                e_comune=st.text_input("Comune",value=vol.get('Comune',''))
+                e_odv=st.text_input("ODV",value=vol.get('ODV',''))
+                e_tess=st.text_input("Tessera",value=vol.get('Tessera',''))
+                e_ruolo=st.selectbox("Ruolo",["Volontario","Caposquadra","Coordinatore","Autista","Radio","Altro"],index=0)
+                e_tel=st.text_input("Telefono",value=vol.get('Telefono',''))
+                e_email=st.text_input("Email",value=vol.get('Email',''))
+                cA,cB=st.columns(2)
+                with cA:
+                    btn_save=st.form_submit_button("SALVA MODIFICHE",type="primary",use_container_width=True)
+                with cB:
+                    btn_del=st.form_submit_button("ELIMINA VOLONTARIO",use_container_width=True)
+                if btn_save:
+                    vol['Nome']=e_nome
+                    vol['CF']=e_cf
+                    vol['Indirizzo']=e_ind
+                    vol['Comune']=e_comune
+                    vol['ODV']=e_odv
+                    vol['Tessera']=e_tess
+                    vol['Ruolo']=e_ruolo
+                    vol['Telefono']=e_tel
+                    vol['Email']=e_email
+                    st.session_state.dati[st.session_state.edit_idx]=vol
+                    save(FD,st.session_state.dati)
+                    st.success("Dati modificati e salvati!")
+                    st.session_state.edit_idx=-1
+                    st.rerun()
+                if btn_del:
+                    st.session_state.dati.pop(st.session_state.edit_idx)
+                    save(FD,st.session_state.dati)
+                    st.session_state.edit_idx=-1
+                    st.success("Eliminato!")
+                    st.rerun()
+        if st.button("ANNULLA MODIFICA E TORNA ELENCO"):
+            st.session_state.edit_idx=-1
+            st.rerun()
+        st.divider()
+
+    t1,t2,t3,t4,t5,t6=st.tabs(["1.Anagrafica","2.Contatti","3.Foto","4.Formazione","5.Disp","6.Elenco + Click"])
     with t1:
+        st.markdown("### 1 - Anagrafica")
         with st.form("form_anag",clear_on_submit=True):
             c1,c2=st.columns(2)
             with c1:
                 a_nome=st.text_input("Nome *")
                 a_cogn=st.text_input("Cognome *")
-                a_cf=st.text_input("CF * per barcode")
-                a_nasc=st.date_input("Data nascita")
+                a_cf=st.text_input("CF *")
             with c2:
                 a_ind=st.text_input("Indirizzo")
                 a_comune=st.text_input("Comune")
@@ -362,15 +391,8 @@ elif scelta=='Volontari':
             if btn1:
                 if a_nome and a_cogn:
                     nc=f"{a_nome} {a_cogn}"
-                    nuovo={'Nome':nc,'CF':a_cf,'DataNascita':fmt_date(a_nasc),'Indirizzo':a_ind,'Comune':a_comune,'ODV':a_odv,'Tessera':a_tess,'Ruolo':a_ruolo,'FotoFile':''}
-                    found=False
-                    for i,d in enumerate(st.session_state.dati):
-                        if d.get('Nome','')==nc:
-                            nuovo['FotoFile']=d.get('FotoFile','')
-                            st.session_state.dati[i].update(nuovo)
-                            found=True
-                    if not found:
-                        st.session_state.dati.append(nuovo)
+                    nuovo={'Nome':nc,'CF':a_cf,'Indirizzo':a_ind,'Comune':a_comune,'ODV':a_odv,'Tessera':a_tess,'Ruolo':a_ruolo,'FotoFile':''}
+                    st.session_state.dati.append(nuovo)
                     save(FD,st.session_state.dati)
                     st.success(f"Salvata {nc}!")
                     st.rerun()
@@ -426,43 +448,71 @@ elif scelta=='Volontari':
                         except Exception:
                             pass
     with t6:
-        st.markdown("### 6 - ELENCO + CLICK RIGA PER VEDERE DATI")
+        st.markdown("### 6 - ELENCO - CLICCA RIGA PER MODIFICARE SU MASCHERA")
         if st.session_state.dati:
             df=pd.DataFrame(st.session_state.dati)
-            st.info("CLICCA SU UNA RIGA PER VEDERE TUTTI I DATI")
+            st.info("CLICCA SU UNA RIGA - SI APRE MASCHERA MODIFICABILE SOPRA")
             event=st.dataframe(df,use_container_width=True,hide_index=False,on_select="rerun",selection_mode="single-row",key='tab_vol')
             if event and event.selection and event.selection.rows:
                 idx=event.selection.rows[0]
-                if idx < len(st.session_state.dati):
-                    vol=st.session_state.dati[idx]
-                    st.divider()
-                    mostra_dettaglio(vol)
+                st.session_state.edit_idx=idx
+                st.rerun()
 
 elif scelta=='Mappa':
     torna()
     st.markdown("## MAPPA POSTAZIONI - A.N.A. NUCLEO VOLONTARI DI PROTEZIONE CIVILE SEZIONE DI VARESE")
-    with st.form("form_mappa",clear_on_submit=True):
-        c1,c2=st.columns(2)
-        with c1:
+    st.markdown("### FORM MAPPA RIPRISTINATO + MAPPA VISIBILE")
+    c1,c2=st.columns([1,1])
+    with c1:
+        with st.form("form_mappa",clear_on_submit=True):
             m_nome=st.text_input("Nome postazione *")
             m_comune=st.text_input("Comune *")
-        with c2:
             m_via=st.text_input("Via *")
-            m_tipo=st.selectbox("Tipo",["COC","Campo base","Magazzino","Altro"])
-        btn_m=st.form_submit_button("SALVA POSTAZIONE",use_container_width=True,type="primary")
-        if btn_m:
-            if m_nome and m_comune:
-                nuovo={'Nome':m_nome,'Comune':m_comune,'Via':m_via,'Tipo':m_tipo}
-                st.session_state.post.append(nuovo)
-                save(FP,st.session_state.post)
-                st.success("Salvata!")
-                st.rerun()
-    if st.session_state.post:
-        df=pd.DataFrame(st.session_state.post)
-        event=st.dataframe(df,use_container_width=True,on_select="rerun",selection_mode="single-row",key='tab_mappa')
-        if event and event.selection and event.selection.rows:
-            idx=event.selection.rows[0]
-            st.info(f"Dettaglio: {st.session_state.post[idx]}")
+            m_lat=st.number_input("Latitudine",value=45.8205,format="%.6f")
+            m_lon=st.number_input("Longitudine",value=8.8250,format="%.6f")
+            m_tipo=st.selectbox("Tipo",["COC","Campo base","Magazzino","Sede","Altro"])
+            btn_m=st.form_submit_button("SALVA POSTAZIONE",use_container_width=True,type="primary")
+            if btn_m:
+                if m_nome and m_comune:
+                    nuovo={'Nome':m_nome,'Comune':m_comune,'Via':m_via,'Lat':m_lat,'Lon':m_lon,'Tipo':m_tipo}
+                    st.session_state.post.append(nuovo)
+                    save(FP,st.session_state.post)
+                    st.success(f"Postazione {m_nome} salvata!")
+                    st.rerun()
+        if st.session_state.post:
+            df=pd.DataFrame(st.session_state.post)
+            st.markdown("### Elenco postazioni - Clicca riga per modificare")
+            event=st.dataframe(df,use_container_width=True,hide_index=False,on_select="rerun",selection_mode="single-row",key='tab_mappa')
+            if event and event.selection and event.selection.rows:
+                idx=event.selection.rows[0]
+                st.session_state.edit_map_idx=idx
+                st.info(f"Postazione selezionata: {st.session_state.post[idx].get('Nome','')}")
+    with c2:
+        st.markdown("### Mappa")
+        if HAS_MAP:
+            try:
+                m=folium.Map(location=[45.8205,8.8250],zoom_start=12)
+                for p in st.session_state.post:
+                    try:
+                        lat=p.get('Lat',45.8205)
+                        lon=p.get('Lon',8.8250)
+                        folium.Marker([lat,lon],popup=f"{p.get('Nome','')} - {p.get('Comune','')}").add_to(m)
+                    except Exception:
+                        pass
+                st_folium(m,width=400,height=400)
+            except Exception:
+                st.warning("Mappa non disponibile - installa folium")
+                st.map(pd.DataFrame([{'lat':p.get('Lat',45.8205),'lon':p.get('Lon',8.8250)} for p in st.session_state.post]) if st.session_state.post else [{'lat':45.8205,'lon':8.8250}])
+        else:
+            st.warning("Installa requirements.txt con folium")
+            if st.session_state.post:
+                try:
+                    df_map=pd.DataFrame([{'lat':p.get('Lat',45.8205),'lon':p.get('Lon',8.8250)} for p in st.session_state.post])
+                    st.map(df_map)
+                except Exception:
+                    pass
+            else:
+                st.map(pd.DataFrame([{'lat':45.8205,'lon':8.8250}]))
 
 elif scelta=='Interventi Emergenza':
     torna()
@@ -629,13 +679,24 @@ elif scelta=='Tesserino':
     vol_list=[d.get('Nome','') for d in st.session_state.dati]
     if vol_list:
         df=pd.DataFrame(st.session_state.dati)
-        st.markdown("**CLICCA RIGA PER GENERARE TESSERINO NITIDO**")
+        st.markdown("**CLICCA RIGA PER GENERARE TESSERINO**")
         event=st.dataframe(df,use_container_width=True,on_select="rerun",selection_mode="single-row",key='tab_tess')
         if event and event.selection and event.selection.rows:
             idx=event.selection.rows[0]
+            st.session_state.edit_idx=idx
             vol=st.session_state.dati[idx]
             st.divider()
-            mostra_dettaglio(vol)
+            c1,c2=st.columns([1,2])
+            with c1:
+                fp=vol.get('FotoFile','')
+                if fp and os.path.exists(fp):
+                    st.image(fp,width=200)
+            with c2:
+                tess=crea_tess(vol,vol.get('FotoFile',''),"Tesserino-Ezio.JPG" if os.path.exists("Tesserino-Ezio.JPG") else None)
+                if tess:
+                    st.image(tess,use_container_width=True)
+                    st.download_button('SCARICA TESSERINO NITIDO PICCOLO',tess,file_name=f"Tesserino_{vol.get('Nome','')}_NITIDO.png",mime='image/png',type='primary',use_container_width=True)
+                    st.download_button('SCARICA QUELLO SOTTO OK',tess,file_name=f"Tesserino_{vol.get('Nome','')}_SOTTO.png",mime='image/png',use_container_width=True,key='sotto2')
     else:
         st.warning("Nessun volontario")
 
