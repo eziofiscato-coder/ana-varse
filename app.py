@@ -11,6 +11,18 @@ try:
 except:
  HAS=False
 
+try:
+ from PIL import Image, ImageDraw, ImageFont
+ HAS_PIL=True
+except:
+ HAS_PIL=False
+
+try:
+ import qrcode
+ HAS_QR=True
+except:
+ HAS_QR=False
+
 st.set_page_config(page_title="ANA Varese", layout="wide")
 
 st.markdown("""
@@ -19,6 +31,7 @@ st.markdown("""
 .stForm{background:#e8f5e9!important;border:2px solid #0e7a3d!important;}
 .stForm label{color:#000!important;font-weight:bold!important;font-family:Times New Roman!important;}
 .stButton>button{background:#0e7a3d!important;color:white!important;font-weight:bold!important;}
+.badge-card{border:3px solid #0e7a3d;border-radius:15px;padding:10px;background:white;text-align:center;}
 </style>
 """, unsafe_allow_html=True)
 
@@ -110,7 +123,7 @@ def make_pdf_simple(title, df):
   pdf.write(f"trailer\n<< /Size {len(offsets)+1} /Root 1 0 R >>\nstartxref\n{xref_pos}\n%%EOF".encode())
   return pdf.getvalue()
  except Exception as e:
-  st.error(f"Errore PDF fallback: {e}")
+  st.error(f"Errore PDF: {e}")
   return None
 
 def make_pdf(title, df):
@@ -163,6 +176,100 @@ def export_excel(df):
   df.to_excel(writer,index=False)
  return out.getvalue()
 
+def crea_badge(vol_data, foto_path=None):
+ # Crea badge ANA Varese con foto volontario
+ try:
+  if not HAS_PIL:
+   return None
+  W,H=600,380
+  badge=Image.new('RGB',(W,H),'white')
+  draw=ImageDraw.Draw(badge)
+  # Bordo verde ANA
+  draw.rectangle([0,0,W-1,H-1], outline='#0e7a3d', width=8)
+  # Header verde
+  draw.rectangle([0,0,W,70], fill='#0e7a3d')
+  # Testo header
+  try:
+   font_b=ImageFont.truetype("arial.ttf",28)
+   font_m=ImageFont.truetype("arial.ttf",18)
+   font_s=ImageFont.truetype("arial.ttf",14)
+  except:
+   font_b=ImageFont.load_default()
+   font_m=ImageFont.load_default()
+   font_s=ImageFont.load_default()
+  draw.text((20,15), "ANA VARESE - VOLONTARIATO", fill='white', font=font_b)
+  draw.text((20,45), "Protezione Civile", fill='white', font=font_m)
+  # Logo ANA se esiste
+  try:
+   if os.path.exists("logo.png"):
+    logo=Image.open("logo.png").convert("RGBA")
+    logo=logo.resize((60,60))
+    badge.paste(logo, (W-70,5), logo if logo.mode=='RGBA' else None)
+  except:
+   pass
+  # Foto volontario
+  foto_x,foto_y=20,90
+  foto_w,foto_h=120,150
+  if foto_path and os.path.exists(foto_path):
+   try:
+    foto=Image.open(foto_path).convert("RGB")
+    foto=foto.resize((foto_w,foto_h))
+    badge.paste(foto, (foto_x,foto_y))
+    draw.rectangle([foto_x,foto_y,foto_x+foto_w,foto_y+foto_h], outline='#0e7a3d', width=3)
+   except:
+    draw.rectangle([foto_x,foto_y,foto_x+foto_w,foto_y+foto_h], fill='#e0e0e0', outline='#0e7a3d', width=2)
+    draw.text((foto_x+10,foto_y+60), "NO FOTO", fill='black', font=font_m)
+  else:
+   draw.rectangle([foto_x,foto_y,foto_x+foto_w,foto_y+foto_h], fill='#e0e0e0', outline='#0e7a3d', width=2)
+   draw.text((foto_x+10,foto_y+60), "NO FOTO", fill='black', font=font_m)
+  # Dati volontario
+  nome=vol_data.get('Nome','')
+  ruolo=vol_data.get('Ruolo','Volontario')
+  tessera=vol_data.get('Tessera','')
+  gruppo=vol_data.get('Gruppo','')
+  cell=vol_data.get('Cellulare','')
+  data_iscr=vol_data.get('DataIscrizione','')
+  x_text=160
+  y_text=100
+  draw.text((x_text,y_text), f"{nome}", fill='black', font=font_b)
+  y_text+=35
+  draw.text((x_text,y_text), f"Ruolo: {ruolo}", fill='#0e7a3d', font=font_m)
+  y_text+=25
+  if gruppo:
+   draw.text((x_text,y_text), f"Gruppo: {gruppo}", fill='black', font=font_s)
+   y_text+=20
+  if tessera:
+   draw.text((x_text,y_text), f"Tessera: {tessera}", fill='black', font=font_s)
+   y_text+=20
+  if data_iscr:
+   draw.text((x_text,y_text), f"Iscritto: {data_iscr}", fill='black', font=font_s)
+   y_text+=20
+  if cell:
+   draw.text((x_text,y_text), f"Cell: {cell}", fill='black', font=font_s)
+  # QR Code se disponibile
+  if HAS_QR:
+   try:
+    qr_data=f"ANA Varese - {nome} - {ruolo} - {tessera}"
+    qr=qrcode.QRCode(version=1, box_size=3, border=1)
+    qr.add_data(qr_data)
+    qr.make(fit=True)
+    qr_img=qr.make_image(fill_color="#0e7a3d", back_color="white").convert("RGB")
+    qr_img=qr_img.resize((80,80))
+    badge.paste(qr_img, (W-90, H-90))
+   except:
+    pass
+  # Footer
+  draw.rectangle([0,H-30,W,H], fill='#0e7a3d')
+  draw.text((20,H-25), f"Badge valido - {datetime.now().strftime('%d/%m/%Y')} - ANA Varese", fill='white', font=font_s)
+  # Salva in BytesIO
+  buf=BytesIO()
+  badge.save(buf, format='PNG')
+  buf.seek(0)
+  return buf.getvalue()
+ except Exception as e:
+  st.error(f"Errore creazione badge: {e}")
+  return None
+
 FD='dati.json'
 FU='utenti.json'
 FP='post.json'
@@ -187,7 +294,7 @@ for k,v in [
  ('prev',-1),('exp1',False),
  ('exp2',False),('exp3',False),
  ('popup_shown',False),
- ('popup_cfg',{'titolo':'ANA VARESE - VOLONTARIATO','sottotitolo':'Sezione di Varese - Protezione Civile','mostra':True})
+ ('popup_cfg',{'titolo':'ANA VARESE - VOLONTARIATO','sottotitolo':'Ciao Ragazzi, Buon Lavoro!','mostra':True})
 ]:
  if k not in st.session_state:
   st.session_state[k]=v
@@ -201,7 +308,7 @@ st.session_state.emerg=load(FE,[])
 st.session_state.check=load(FC,[])
 st.session_state.radio=load(FR,[])
 st.session_state.cons=load(FR2,[])
-st.session_state.popup_cfg=load(FPOP,{'titolo':'ANA VARESE - VOLONTARIATO','sottotitolo':'Sezione di Varese - Protezione Civile','mostra':True})
+st.session_state.popup_cfg=load(FPOP,{'titolo':'ANA VARESE - VOLONTARIATO','sottotitolo':'Ciao Ragazzi, Buon Lavoro!','mostra':True})
 uts=load(FU,[])
 
 if not uts:
@@ -232,21 +339,37 @@ def torna():
   st.session_state.menu='Dashboard'
   st.rerun()
 
+# POPUP PRIMA DEL LOGIN - SOLO TUA IMMAGINE FUMETTO, NO LOGO PC
 if st.session_state.popup_cfg.get('mostra',True) and not st.session_state.popup_shown:
  st.markdown(f"<h1 style='text-align:center;color:#0e7a3d;font-family:Times New Roman;'>{st.session_state.popup_cfg.get('titolo','ANA VARESE')}</h1>", unsafe_allow_html=True)
- st.markdown(f"<h3 style='text-align:center;color:#000;'>{st.session_state.popup_cfg.get('sottotitolo','Sezione di Varese')}</h3>", unsafe_allow_html=True)
+ st.markdown(f"<h3 style='text-align:center;color:#0e7a3d;'>{st.session_state.popup_cfg.get('sottotitolo','Ciao Ragazzi, Buon Lavoro!')}</h3>", unsafe_allow_html=True)
  st.divider()
  c1,c2,c3=st.columns([1,2,1])
  with c2:
-  for img_name in ['copertina.jpg','copertina.png','benvenuto.jpg','popup.jpg','logo.png']:
+  # CERCA SOLO TUA IMMAGINE CON FUMETTO, NON LOGO ANA
+  img_found=False
+  for img_name in [
+   'copertina.jpg',
+   'copertina_fumetto.jpg',
+   'mia_immagine_fumetto.jpg',
+   'copertina.png',
+   'benvenuto.jpg',
+   'popup.jpg'
+  ]:
    if os.path.exists(img_name):
     try:
      st.image(img_name,use_container_width=True)
+     st.success(f"La tua immagine con fumetto: {img_name}")
+     img_found=True
      break
     except:
      pass
+  if not img_found:
+   st.warning("Carica la tua immagine con fumetto 'ciao ragazzi, buon lavoro' come copertina.jpg!")
+   st.info("NON verrà mostrato il logo PC, solo la tua immagine con fumetto")
+   st.write("Scarica l'immagine che ti ho creato e caricala come copertina.jpg su GitHub")
   st.divider()
-  st.markdown("<div style='background:#e8f5e9;padding:15px;border-radius:10px;border:2px solid #0e7a3d;text-align:center;'><b>ANA Varese - Protezione Civile</b><br>Volontari: "+str(len(st.session_state.dati))+" - Postazioni: "+str(len(st.session_state.post))+"<br>"+datetime.now().strftime('%d/%m/%Y %H:%M')+"</div>", unsafe_allow_html=True)
+  st.markdown("<div style='background:#e8f5e9;padding:15px;border-radius:10px;border:2px solid #0e7a3d;text-align:center;'><b style='font-size:20px;'>ANA Varese - Protezione Civile</b><br><b style='color:#0e7a3d;font-size:18px;'>Ciao Ragazzi, Buon Lavoro!</b><br><br>Volontari: "+str(len(st.session_state.dati))+" - Postazioni: "+str(len(st.session_state.post))+"<br>Data: "+datetime.now().strftime('%d/%m/%Y %H:%M')+"</div>", unsafe_allow_html=True)
   st.divider()
   if st.button("ENTRA NEL SISTEMA", type="primary", use_container_width=True, key="entra_sistema"):
    st.session_state.popup_shown=True
@@ -257,10 +380,11 @@ if not st.session_state.auth:
  header()
  c1,c2,c3=st.columns([1,2,1])
  with c2:
-  for img_name in ['copertina.jpg','copertina.png']:
+  # Mostra tua immagine con fumetto anche nel login, non logo
+  for img_name in ['copertina.jpg','copertina_fumetto.jpg']:
    if os.path.exists(img_name):
     try:
-     st.image(img_name,width=200)
+     st.image(img_name,width=250)
      break
     except:
      pass
@@ -364,7 +488,7 @@ else:
  header()
  with st.sidebar:
   st.markdown('<b>MENU COMPLETO</b>', unsafe_allow_html=True)
-  opts=['Dashboard','Volontari','Mappa','Libreria Icone','Emergenza','Check In','DB Radio','Consegna Radio','Backup','Impostazioni Popup']
+  opts=['Dashboard','Volontari','Mappa','Libreria Icone','Emergenza','Check In','DB Radio','Consegna Radio','Badge Volontari','Backup','Impostazioni Popup']
   sel=st.radio('Vai a',opts,index=0)
   if sel!=st.session_state.menu:
    st.session_state.menu=sel
@@ -393,6 +517,9 @@ else:
    if st.button('EMERGENZA',use_container_width=True):
     st.session_state.menu='Emergenza'
     st.rerun()
+   if st.button('BADGE VOLONTARI',use_container_width=True):
+    st.session_state.menu='Badge Volontari'
+    st.rerun()
   with c2:
    if st.button('CHECK IN',use_container_width=True):
     st.session_state.menu='Check In'
@@ -418,10 +545,8 @@ else:
 
  elif scelta=='Volontari':
   torna()
-  st.markdown('<h3>VOLONTARI - CON FOTO + SOTTOMASCHERE + DATA GG/MM/AAAA</h3>', unsafe_allow_html=True)
-  # TABS CON FOTO
+  st.markdown('<h3>VOLONTARI - CON FOTO + SOTTOMASCHERE</h3>', unsafe_allow_html=True)
   tab1,tab2,tab3,tab4,tab5=st.tabs(['Anagrafica + Foto','Contatti','Ruolo e Iscrizione','Documenti','Elenco con Foto'])
-
   with tab1:
    with st.form('form_vol_anag'):
     c1,c2=st.columns(2)
@@ -431,9 +556,7 @@ else:
      a_cf=st.text_input('Codice Fiscale')
      a_nasc=st.date_input('Data Nascita (gg/mm/aaaa)',value=date(1990,1,1),format="DD/MM/YYYY")
      a_luogo=st.text_input('Luogo Nascita')
-     # FOTO VOLONTARIO - NUOVO CAMPO
      a_foto=st.file_uploader('Foto Volontario * (JPG/PNG)',type=['jpg','png','jpeg'],key='foto_vol')
-     st.caption('Carica foto tessera del volontario')
     with c2:
      a_ind=st.text_input('Indirizzo Residenza')
      a_com=st.text_input('Comune Residenza')
@@ -444,7 +567,6 @@ else:
     if st.form_submit_button('SALVA ANAGRAFICA + FOTO'):
      if a1 and a2:
       nc=a1+' '+a2
-      # Salva foto
       foto_path=''
       if a_foto is not None:
        os.makedirs('foto_volontari',exist_ok=True)
@@ -455,7 +577,6 @@ else:
       found=False
       for i,d in enumerate(st.session_state.dati):
        if d.get('Nome','')==nc:
-        # Mantieni vecchia foto se non caricata nuova
         if not foto_path:
          nuovo['FotoFile']=d.get('FotoFile','')
         st.session_state.dati[i].update(nuovo)
@@ -465,7 +586,6 @@ else:
       save(FD,st.session_state.dati)
       st.success(f"Salvato {nc} con foto!")
       st.rerun()
-
   with tab2:
    with st.form('form_vol_cont'):
     vol_list=[]
@@ -474,7 +594,6 @@ else:
     if not vol_list:
      vol_list=['Nessun volontario']
     sel_vol=st.selectbox('Seleziona Volontario',vol_list,key='sel_vol_cont')
-    # Mostra foto esistente
     for d in st.session_state.dati:
      if d.get('Nome','')==sel_vol:
       fp=d.get('FotoFile','')
@@ -494,7 +613,6 @@ else:
        save(FD,st.session_state.dati)
        st.success(f"Contatti salvati per {sel_vol}")
        st.rerun()
-
   with tab3:
    with st.form('form_vol_ruolo'):
     vol_list2=[]
@@ -524,7 +642,6 @@ else:
        save(FD,st.session_state.dati)
        st.success(f"Ruolo salvato per {sel_vol2}")
        st.rerun()
-
   with tab4:
    with st.form('form_vol_doc'):
     vol_list3=[]
@@ -542,7 +659,6 @@ else:
     d_scad_pat=st.date_input('Scadenza Patente (gg/mm/aaaa)',value=date.today(),format="DD/MM/YYYY")
     d_note=st.text_area('Note / Certificazioni')
     d_upload=st.file_uploader('Carica Documento',type=['pdf','png','jpg','jpeg'])
-    # Cambio foto
     d_foto_new=st.file_uploader('Cambia Foto Volontario',type=['jpg','png','jpeg'],key='foto_change')
     if st.form_submit_button('SALVA DOCUMENTI + FOTO'):
      fname=''
@@ -566,7 +682,6 @@ else:
        save(FD,st.session_state.dati)
        st.success(f"Documenti salvati per {sel_vol3}")
        st.rerun()
-
   with tab5:
    st.markdown('##### ELENCO VOLONTARI CON FOTO')
    if st.session_state.dati:
@@ -585,8 +700,7 @@ else:
       nome=d.get('Nome','')
       ruolo=d.get('Ruolo','')
       cell=d.get('Cellulare','')
-      data_n=d.get('DataNascita','')
-      st.write(f"**{nome}** - {ruolo} - Cell: {cell} - Nascita: {data_n}")
+      st.write(f"**{nome}** - {ruolo} - Cell: {cell}")
      with c3:
       if st.button('Elimina',key=f'del_vol_{idx}'):
        st.session_state.dati.pop(idx)
@@ -606,8 +720,6 @@ else:
        st.success('PDF creato!')
     if 'pdf_vol' in st.session_state:
      st.download_button('SCARICA PDF VOLONTARI',st.session_state['pdf_vol'],file_name='Volontari_ANA_Varese.pdf',mime='application/pdf',use_container_width=True)
-   else:
-    st.info('Nessun volontario - inserisci in Anagrafica + Foto')
 
  elif scelta=='Mappa':
   torna()
@@ -700,542 +812,4 @@ else:
    c1,c2=st.columns(2)
    with c1:
     m1=st.text_input('Nome postazione *')
-    m2=st.text_input('Comune *',value=st.session_state.com)
-    m3=st.text_input('Via *',value=st.session_state.via)
-    m4=st.selectbox('Tipologia *',st.session_state.tip)
-    m_data=st.date_input('Data Attivazione (gg/mm/aaaa)',value=date.today(),format="DD/MM/YYYY")
-   with c2:
-    m5=st.text_input('Latitudine *',value=str(st.session_state.lat))
-    m6=st.text_input('Longitudine *',value=str(st.session_state.lon))
-    m8=st.selectbox('Responsabile *',vol_nomi)
-    # Mostra foto responsabile
-    for d in st.session_state.dati:
-     if d.get('Nome','')==m8:
-      fp=d.get('FotoFile','')
-      if fp and os.path.exists(fp):
-       st.image(fp,width=60,caption=f"Foto {m8}")
-    m9=st.selectbox('ODV operante *',st.session_state.odv)
-    m9_new=st.text_input('Nuova ODV se non in lista')
-   if st.form_submit_button('SALVA POSTAZIONE'):
-    if m1:
-     odv_f=m9_new if m9_new else m9
-     if odv_f not in st.session_state.odv and odv_f:
-      st.session_state.odv.append(odv_f)
-      save(FO,st.session_state.odv)
-     ic=st.session_state.icone[sel_idx] if st.session_state.icone else {'col':'blue','file':'','nome':''}
-     nuovo={'Postazione':m1,'Comune':m2,'Via':m3,'Lat':m5,'Lon':m6,'Responsabile':m8,'ODV':odv_f,'Tipo':m4,'DataAttivazione':fmt_date(m_data),'Icona':ic.get('nome',''),'IconFile':ic.get('file',''),'Col':ic.get('col','blue')}
-     st.session_state.post.append(nuovo)
-     save(FP,st.session_state.post)
-     st.session_state.clat=None
-     st.session_state.clon=None
-     st.success(f"Salvata {m1} a {m2}")
-     st.rerun()
-  st.divider()
-  if st.session_state.post:
-   df_post=pd.DataFrame(st.session_state.post)
-   st.dataframe(df_post,use_container_width=True)
-   c1,c2=st.columns(2)
-   with c1:
-    st.download_button('SCARICA EXCEL MAPPA',export_excel(df_post),file_name='Mappa.xlsx')
-   with c2:
-    if st.button('CREA PDF MAPPA',key='pdf_mappa_btn'):
-     pdf=make_pdf("Mappa Postazioni ANA Varese",df_post)
-     if pdf:
-      st.session_state['pdf_mappa']=pdf
-      st.success('PDF mappa creato!')
-   if 'pdf_mappa' in st.session_state:
-    st.download_button('SCARICA PDF MAPPA',st.session_state['pdf_mappa'],file_name='Mappa.pdf',mime='application/pdf')
-
- elif scelta=='Libreria Icone':
-  torna()
-  st.markdown('#### LIBRERIA ICONE - UPLOAD PNG')
-  with st.form('form_icone'):
-   c1,c2=st.columns(2)
-   with c1:
-    n1=st.text_input('Nome icona *')
-    n3=st.selectbox('Colore',['blue','red','green','orange','black'])
-   with c2:
-    up_file=st.file_uploader('Carica PNG',type=['png','jpg','jpeg'],key='single_png')
-   if st.form_submit_button('SALVA ICONA'):
-    if n1:
-     fname=''
-     if up_file is not None:
-      os.makedirs('icone',exist_ok=True)
-      fname=f"icone/{n1}_{up_file.name}"
-      with open(fname,'wb') as f:
-       f.write(up_file.getbuffer())
-     nuovo={'nome':n1,'col':n3,'file':fname}
-     st.session_state.icone.append(nuovo)
-     save(FI,st.session_state.icone)
-     st.success('Salvata')
-     st.rerun()
-  st.divider()
-  if st.session_state.icone:
-   for idx,ic in enumerate(st.session_state.icone):
-    c1,c2,c3,c4=st.columns([2,1,2,1])
-    with c1:
-     st.write(f"{ic.get('nome','')}")
-    with c2:
-     f=ic.get('file','')
-     if f and os.path.exists(f):
-      try:
-       st.image(f,width=50)
-      except:
-       st.write('Img')
-    with c3:
-     st.write(ic.get('file',''))
-    with c4:
-     if st.button('Elimina',key=f'del_{idx}'):
-      st.session_state.icone.pop(idx)
-      save(FI,st.session_state.icone)
-      st.rerun()
-
- elif scelta=='Emergenza':
-  torna()
-  st.markdown('#### EMERGENZA - DATA GG/MM/AAAA')
-  with st.form('form_emerg'):
-   c1,c2=st.columns(2)
-   with c1:
-    e1=st.text_input('Nome emergenza *')
-    e2=st.text_input('Luogo *')
-    e3=st.selectbox('Tipo',['Alluvione','Terremoto','Incendio','Neve','Altro'])
-   with c2:
-    e_data=st.date_input('Data Emergenza (gg/mm/aaaa)',value=date.today(),format="DD/MM/YYYY")
-    e_data_fine=st.date_input('Data Fine Prevista (gg/mm/aaaa)',value=date.today(),format="DD/MM/YYYY")
-    e_desc=st.text_area('Descrizione')
-   if st.form_submit_button('SALVA EMERGENZA'):
-    if e1:
-     nuovo={'Emergenza':e1,'Luogo':e2,'Tipo':e3,'DataEmergenza':fmt_date(e_data),'DataFine':fmt_date(e_data_fine),'Desc':e_desc}
-     st.session_state.emerg.append(nuovo)
-     save(FE,st.session_state.emerg)
-     st.success(f"Salvata {e1}")
-     st.rerun()
-  if st.session_state.emerg:
-   df_emerg=pd.DataFrame(st.session_state.emerg)
-   st.dataframe(df_emerg,use_container_width=True)
-   c1,c2=st.columns(2)
-   with c1:
-    st.download_button('SCARICA EXCEL EMERGENZE',export_excel(df_emerg),file_name='Emergenze.xlsx')
-   with c2:
-    if st.button('CREA PDF EMERGENZE',key='pdf_emerg_btn'):
-     pdf=make_pdf("Emergenze ANA Varese",df_emerg)
-     if pdf:
-      st.session_state['pdf_emerg']=pdf
-      st.success('PDF creato!')
-   if 'pdf_emerg' in st.session_state:
-    st.download_button('SCARICA PDF EMERGENZE',st.session_state['pdf_emerg'],file_name='Emergenze.pdf',mime='application/pdf')
-
- elif scelta=='Check In':
-  torna()
-  st.markdown('#### CHECK IN - DATA GG/MM/AAAA')
-  vol_list=[]
-  for d in st.session_state.dati:
-   vol_list.append(d.get('Nome',''))
-  if not vol_list:
-   vol_list=['Nessuno']
-  with st.form('form_checkin'):
-   c1,c2=st.columns(2)
-   with c1:
-    ch_data=st.date_input('Data Check In (gg/mm/aaaa)',value=date.today(),format="DD/MM/YYYY")
-    ch_ora=st.time_input('Ora Check In')
-   with c2:
-    c2_sel=st.selectbox('Volontario',vol_list)
-    # Mostra foto volontario in check in
-    for d in st.session_state.dati:
-     if d.get('Nome','')==c2_sel:
-      fp=d.get('FotoFile','')
-      if fp and os.path.exists(fp):
-       st.image(fp,width=60)
-    c3=st.selectbox('Stato',['Presente','Assente','In servizio','Fuori servizio'])
-    c4=st.text_input('Luogo Servizio')
-   if st.form_submit_button('REGISTRA CHECK IN'):
-    nuovo={'Data':fmt_date(ch_data),'Ora':str(ch_ora),'Vol':c2_sel,'Stato':c3,'Luogo':c4}
-    st.session_state.check.append(nuovo)
-    save(FC,st.session_state.check)
-    st.success(f"Check In {fmt_date(ch_data)} per {c2_sel}")
-    st.rerun()
-  if st.session_state.check:
-   df_check=pd.DataFrame(st.session_state.check)
-   st.dataframe(df_check,use_container_width=True)
-   c1,c2=st.columns(2)
-   with c1:
-    st.download_button('SCARICA EXCEL CHECK IN',export_excel(df_check),file_name='CheckIn.xlsx')
-   with c2:
-    if st.button('CREA PDF CHECK IN',key='pdf_check_btn'):
-     pdf=make_pdf("Check In ANA Varese",df_check)
-     if pdf:
-      st.session_state['pdf_check']=pdf
-      st.success('PDF creato!')
-   if 'pdf_check' in st.session_state:
-    st.download_button('SCARICA PDF CHECK IN',st.session_state['pdf_check'],file_name='CheckIn.pdf',mime='application/pdf')
-
- elif scelta=='DB Radio':
-  torna()
-  st.markdown('#### DB RADIO - TIPO DMR ANALOGICA TETRA + DATA')
-  with st.form('form_radio'):
-   c1,c2=st.columns(2)
-   with c1:
-    r1=st.text_input('Nome radio *')
-    r2=st.text_input('Frequenza *')
-    r_tipo=st.selectbox('Tipo Radio *',['ANALOGICA','DMR','TETRA','PMR','Altro'])
-    r3=st.text_input('Canale')
-   with c2:
-    r_data=st.date_input('Data Acquisto (gg/mm/aaaa)',value=date.today(),format="DD/MM/YYYY")
-    r_mod=st.text_input('Modello Radio')
-    r4=st.text_input('Note')
-   if st.form_submit_button('SALVA RADIO'):
-    if r1:
-     nuovo={'Radio':r1,'Freq':r2,'TipoRadio':r_tipo,'Canale':r3,'Modello':r_mod,'DataAcquisto':fmt_date(r_data),'Note':r4}
-     st.session_state.radio.append(nuovo)
-     save(FR,st.session_state.radio)
-     st.success(f"Salvata radio {r1} Tipo {r_tipo}")
-     st.rerun()
-  if st.session_state.radio:
-   df_radio=pd.DataFrame(st.session_state.radio)
-   st.dataframe(df_radio,use_container_width=True)
-   c1,c2=st.columns(2)
-   with c1:
-    st.download_button('SCARICA EXCEL RADIO',export_excel(df_radio),file_name='DB_Radio.xlsx')
-   with c2:
-    if st.button('CREA PDF RADIO',key='pdf_radio_btn'):
-     pdf=make_pdf("DB Radio ANA Varese",df_radio)
-     if pdf:
-      st.session_state['pdf_radio']=pdf
-      st.success('PDF creato!')
-   if 'pdf_radio' in st.session_state:
-    st.download_button('SCARICA PDF RADIO',st.session_state['pdf_radio'],file_name='DB_Radio.pdf',mime='application/pdf')
-
- elif scelta=='Consegna Radio':
-  torna()
-  st.markdown('#### CONSEGNA RADIO - CON CAMPO CANALE')
-  vol_list=[]
-  for d in st.session_state.dati:
-   vol_list.append(d.get('Nome',''))
-  if not vol_list:
-   vol_list=['Nessuno']
-  radio_list=[]
-  for r in st.session_state.radio:
-   radio_list.append(r.get('Radio',''))
-  if not radio_list:
-   radio_list=['Nessuna radio']
-  with st.form('form_consegna'):
-   c1,c2=st.columns(2)
-   with c1:
-    cr1=st.selectbox('Volontario',vol_list)
-    for d in st.session_state.dati:
-     if d.get('Nome','')==cr1:
-      fp=d.get('FotoFile','')
-      if fp and os.path.exists(fp):
-       st.image(fp,width=60)
-    cr2=st.selectbox('Radio',radio_list)
-    cr_canale=st.text_input('Canale *',placeholder='Es: CH 1 - Emergenza')
-    cr_freq=st.text_input('Frequenza')
-   with c2:
-    cr3=st.date_input('Data Consegna (gg/mm/aaaa)',value=date.today(),format="DD/MM/YYYY")
-    cr4=st.date_input('Data Riconsegna Prevista (gg/mm/aaaa)',value=date.today(),format="DD/MM/YYYY")
-    cr5=st.selectbox('Stato',['Consegnata','Riconsegnata','In uso','Guasta'])
-    cr6=st.text_area('Note')
-   if st.form_submit_button('SALVA CONSEGNA RADIO'):
-    nuovo={'Vol':cr1,'Radio':cr2,'Canale':cr_canale,'Frequenza':cr_freq,'DataConsegna':fmt_date(cr3),'DataRiconsegna':fmt_date(cr4),'Stato':cr5,'Note':cr6}
-    st.session_state.cons.append(nuovo)
-    save(FR2,st.session_state.cons)
-    st.success(f"Radio {cr2} Canale {cr_canale} consegnata a {cr1}")
-    st.rerun()
-  if st.session_state.cons:
-   df_cons=pd.DataFrame(st.session_state.cons)
-   st.dataframe(df_cons,use_container_width=True)
-   c1,c2=st.columns(2)
-   with c1:
-    st.download_button('SCARICA EXCEL CONSEGNE',export_excel(df_cons),file_name='ConsegnaRadio.xlsx')
-   with c2:
-    if st.button('CREA PDF CONSEGNE',key='pdf_cons_btn'):
-     pdf=make_pdf("Consegna Radio ANA Varese",df_cons)
-     if pdf:
-      st.session_state['pdf_cons']=pdf
-      st.success('PDF creato!')
-   if 'pdf_cons' in st.session_state:
-    st.download_button('SCARICA PDF CONSEGNE',st.session_state['pdf_cons'],file_name='ConsegnaRadio.pdf',mime='application/pdf')
-
- elif scelta=='Backup':
-  torna()
-  st.markdown('#### BACKUP - EXPORT SINGOLI + IMPORT TUTTI I FORM - CON FOTO')
-  tab_exp,tab_imp,tab_all=st.tabs(['EXPORT SINGOLI FORM','IMPORT TUTTI I FORM','BACKUP COMPLETO'])
-  with tab_exp:
-   st.markdown('##### EXPORT EXCEL PER SINGOLI FORM')
-   c1,c2,c3=st.columns(3)
-   with c1:
-    st.markdown('**VOLONTARI CON FOTO**')
-    if st.session_state.dati:
-     df=pd.DataFrame(st.session_state.dati)
-     st.write(f"Record: {len(df)}")
-     st.download_button('EXPORT VOLONTARI EXCEL',export_excel(df),file_name='Volontari.xlsx',key='exp_vol',use_container_width=True)
-     if st.button('CREA PDF VOLONTARI',key='pdf_vol_btn2',use_container_width=True):
-      pdf=make_pdf("Volontari ANA Varese con Foto",df)
-      if pdf:
-       st.session_state['pdf_bk_vol']=pdf
-       st.success('PDF creato!')
-     if 'pdf_bk_vol' in st.session_state:
-      st.download_button('SCARICA PDF VOLONTARI',st.session_state['pdf_bk_vol'],file_name='Volontari.pdf',mime='application/pdf',key='pdf_vol_dl',use_container_width=True)
-    else:
-     st.warning('Nessun volontario')
-   with c2:
-    st.markdown('**MAPPA POSTAZIONI**')
-    if st.session_state.post:
-     df=pd.DataFrame(st.session_state.post)
-     st.write(f"Record: {len(df)}")
-     st.download_button('EXPORT MAPPA EXCEL',export_excel(df),file_name='Mappa_Postazioni.xlsx',key='exp_mappa',use_container_width=True)
-     if st.button('CREA PDF MAPPA',key='pdf_mappa_btn2',use_container_width=True):
-      pdf=make_pdf("Mappa Postazioni ANA Varese",df)
-      if pdf:
-       st.session_state['pdf_bk_mappa']=pdf
-       st.success('PDF creato!')
-     if 'pdf_bk_mappa' in st.session_state:
-      st.download_button('SCARICA PDF MAPPA',st.session_state['pdf_bk_mappa'],file_name='Mappa.pdf',mime='application/pdf',key='pdf_mappa_dl',use_container_width=True)
-    else:
-     st.warning('Nessuna postazione')
-   with c3:
-    st.markdown('**EMERGENZE**')
-    if st.session_state.emerg:
-     df=pd.DataFrame(st.session_state.emerg)
-     st.write(f"Record: {len(df)}")
-     st.download_button('EXPORT EMERGENZE EXCEL',export_excel(df),file_name='Emergenze.xlsx',key='exp_emerg',use_container_width=True)
-     if st.button('CREA PDF EMERGENZE',key='pdf_emerg_btn2',use_container_width=True):
-      pdf=make_pdf("Emergenze ANA Varese",df)
-      if pdf:
-       st.session_state['pdf_bk_emerg']=pdf
-       st.success('PDF creato!')
-     if 'pdf_bk_emerg' in st.session_state:
-      st.download_button('SCARICA PDF EMERGENZE',st.session_state['pdf_bk_emerg'],file_name='Emergenze.pdf',mime='application/pdf',key='pdf_emerg_dl',use_container_width=True)
-    else:
-     st.warning('Nessuna emergenza')
-   st.divider()
-   c1,c2,c3=st.columns(3)
-   with c1:
-    st.markdown('**CHECK IN**')
-    if st.session_state.check:
-     df=pd.DataFrame(st.session_state.check)
-     st.write(f"Record: {len(df)}")
-     st.download_button('EXPORT CHECK IN EXCEL',export_excel(df),file_name='CheckIn.xlsx',key='exp_check',use_container_width=True)
-     if st.button('CREA PDF CHECK IN',key='pdf_check_btn2',use_container_width=True):
-      pdf=make_pdf("Check In ANA Varese",df)
-      if pdf:
-       st.session_state['pdf_bk_check']=pdf
-       st.success('PDF creato!')
-     if 'pdf_bk_check' in st.session_state:
-      st.download_button('SCARICA PDF CHECK IN',st.session_state['pdf_bk_check'],file_name='CheckIn.pdf',mime='application/pdf',key='pdf_check_dl',use_container_width=True)
-    else:
-     st.warning('Nessun check in')
-   with c2:
-    st.markdown('**DB RADIO**')
-    if st.session_state.radio:
-     df=pd.DataFrame(st.session_state.radio)
-     st.write(f"Record: {len(df)}")
-     st.download_button('EXPORT DB RADIO EXCEL',export_excel(df),file_name='DB_Radio.xlsx',key='exp_radio',use_container_width=True)
-     if st.button('CREA PDF DB RADIO',key='pdf_radio_btn2',use_container_width=True):
-      pdf=make_pdf("DB Radio ANA Varese - DMR ANALOGICA TETRA",df)
-      if pdf:
-       st.session_state['pdf_bk_radio']=pdf
-       st.success('PDF creato!')
-     if 'pdf_bk_radio' in st.session_state:
-      st.download_button('SCARICA PDF DB RADIO',st.session_state['pdf_bk_radio'],file_name='DB_Radio.pdf',mime='application/pdf',key='pdf_radio_dl',use_container_width=True)
-    else:
-     st.warning('Nessuna radio')
-   with c3:
-    st.markdown('**CONSEGNA RADIO**')
-    if st.session_state.cons:
-     df=pd.DataFrame(st.session_state.cons)
-     st.write(f"Record: {len(df)}")
-     st.download_button('EXPORT CONSEGNA RADIO EXCEL',export_excel(df),file_name='ConsegnaRadio.xlsx',key='exp_cons',use_container_width=True)
-     if st.button('CREA PDF CONSEGNA RADIO',key='pdf_cons_btn2',use_container_width=True):
-      pdf=make_pdf("Consegna Radio ANA Varese - Con Canale",df)
-      if pdf:
-       st.session_state['pdf_bk_cons']=pdf
-       st.success('PDF creato!')
-     if 'pdf_bk_cons' in st.session_state:
-      st.download_button('SCARICA PDF CONSEGNA RADIO',st.session_state['pdf_bk_cons'],file_name='ConsegnaRadio.pdf',mime='application/pdf',key='pdf_cons_dl',use_container_width=True)
-    else:
-     st.warning('Nessuna consegna')
-
-  with tab_imp:
-   st.markdown('##### IMPORT EXCEL PER TUTTI I FORM')
-   c1,c2=st.columns(2)
-   with c1:
-    st.markdown('**IMPORT VOLONTARI CON FOTO**')
-    st.caption('Nota: le foto vanno ricaricate manualmente dopo import Excel')
-    up_vol=st.file_uploader('Carica Excel Volontari',type=['xlsx'],key='up_vol')
-    if up_vol is not None:
-     try:
-      df_up=pd.read_excel(up_vol)
-      st.write(f"Trovati {len(df_up)} record")
-      if st.button('IMPORTA VOLONTARI',key='imp_vol_btn',use_container_width=True):
-       for _,row in df_up.iterrows():
-        st.session_state.dati.append(row.to_dict())
-       save(FD,st.session_state.dati)
-       st.success(f"Importati {len(df_up)} volontari")
-       st.rerun()
-     except Exception as e:
-      st.error(f"Errore: {e}")
-    st.markdown('**IMPORT MAPPA**')
-    up_mappa=st.file_uploader('Carica Excel Mappa',type=['xlsx'],key='up_mappa')
-    if up_mappa is not None:
-     try:
-      df_up=pd.read_excel(up_mappa)
-      st.write(f"Trovati {len(df_up)} record")
-      if st.button('IMPORTA MAPPA',key='imp_mappa_btn',use_container_width=True):
-       for _,row in df_up.iterrows():
-        st.session_state.post.append(row.to_dict())
-       save(FP,st.session_state.post)
-       st.success(f"Importate {len(df_up)} postazioni")
-       st.rerun()
-     except Exception as e:
-      st.error(f"Errore: {e}")
-    st.markdown('**IMPORT EMERGENZE**')
-    up_emerg=st.file_uploader('Carica Excel Emergenze',type=['xlsx'],key='up_emerg')
-    if up_emerg is not None:
-     try:
-      df_up=pd.read_excel(up_emerg)
-      st.write(f"Trovati {len(df_up)} record")
-      if st.button('IMPORTA EMERGENZE',key='imp_emerg_btn',use_container_width=True):
-       for _,row in df_up.iterrows():
-        st.session_state.emerg.append(row.to_dict())
-       save(FE,st.session_state.emerg)
-       st.success(f"Importate {len(df_up)} emergenze")
-       st.rerun()
-     except Exception as e:
-      st.error(f"Errore: {e}")
-    st.markdown('**IMPORT CHECK IN**')
-    up_check=st.file_uploader('Carica Excel Check In',type=['xlsx'],key='up_check')
-    if up_check is not None:
-     try:
-      df_up=pd.read_excel(up_check)
-      st.write(f"Trovati {len(df_up)} record")
-      if st.button('IMPORTA CHECK IN',key='imp_check_btn',use_container_width=True):
-       for _,row in df_up.iterrows():
-        st.session_state.check.append(row.to_dict())
-       save(FC,st.session_state.check)
-       st.success(f"Importati {len(df_up)} check in")
-       st.rerun()
-     except Exception as e:
-      st.error(f"Errore: {e}")
-   with c2:
-    st.markdown('**IMPORT DB RADIO**')
-    up_radio=st.file_uploader('Carica Excel DB Radio',type=['xlsx'],key='up_radio')
-    if up_radio is not None:
-     try:
-      df_up=pd.read_excel(up_radio)
-      st.write(f"Trovati {len(df_up)} record")
-      if st.button('IMPORTA DB RADIO',key='imp_radio_btn',use_container_width=True):
-       for _,row in df_up.iterrows():
-        st.session_state.radio.append(row.to_dict())
-       save(FR,st.session_state.radio)
-       st.success(f"Importate {len(df_up)} radio")
-       st.rerun()
-     except Exception as e:
-      st.error(f"Errore: {e}")
-    st.markdown('**IMPORT CONSEGNA RADIO**')
-    up_cons=st.file_uploader('Carica Excel Consegna Radio',type=['xlsx'],key='up_cons')
-    if up_cons is not None:
-     try:
-      df_up=pd.read_excel(up_cons)
-      st.write(f"Trovati {len(df_up)} record")
-      if st.button('IMPORTA CONSEGNA RADIO',key='imp_cons_btn',use_container_width=True):
-       for _,row in df_up.iterrows():
-        st.session_state.cons.append(row.to_dict())
-       save(FR2,st.session_state.cons)
-       st.success(f"Importate {len(df_up)} consegne")
-       st.rerun()
-     except Exception as e:
-      st.error(f"Errore: {e}")
-    st.markdown('**IMPORT ICONE**')
-    up_icone=st.file_uploader('Carica Excel Icone',type=['xlsx'],key='up_icone')
-    if up_icone is not None:
-     try:
-      df_up=pd.read_excel(up_icone)
-      st.write(f"Trovati {len(df_up)} record")
-      if st.button('IMPORTA ICONE',key='imp_icone_btn',use_container_width=True):
-       for _,row in df_up.iterrows():
-        st.session_state.icone.append(row.to_dict())
-       save(FI,st.session_state.icone)
-       st.success(f"Importate {len(df_up)} icone")
-       st.rerun()
-     except Exception as e:
-      st.error(f"Errore: {e}")
-
-  with tab_all:
-   st.markdown('##### BACKUP COMPLETO TUTTI I FORM')
-   if st.button('CREA BACKUP COMPLETO EXCEL TUTTI I FORM',type='primary',use_container_width=True):
-    out=BytesIO()
-    with pd.ExcelWriter(out,engine='openpyxl') as writer:
-     if st.session_state.dati:
-      pd.DataFrame(st.session_state.dati).to_excel(writer,sheet_name='Volontari',index=False)
-     if st.session_state.post:
-      pd.DataFrame(st.session_state.post).to_excel(writer,sheet_name='Mappa',index=False)
-     if st.session_state.icone:
-      pd.DataFrame(st.session_state.icone).to_excel(writer,sheet_name='Icone',index=False)
-     if st.session_state.tip:
-      pd.DataFrame(st.session_state.tip,columns=['Tipologia']).to_excel(writer,sheet_name='Tipologie',index=False)
-     if st.session_state.odv:
-      pd.DataFrame(st.session_state.odv,columns=['ODV']).to_excel(writer,sheet_name='ODV',index=False)
-     if st.session_state.emerg:
-      pd.DataFrame(st.session_state.emerg).to_excel(writer,sheet_name='Emergenze',index=False)
-     if st.session_state.check:
-      pd.DataFrame(st.session_state.check).to_excel(writer,sheet_name='CheckIn',index=False)
-     if st.session_state.radio:
-      pd.DataFrame(st.session_state.radio).to_excel(writer,sheet_name='DBRadio',index=False)
-     if st.session_state.cons:
-      pd.DataFrame(st.session_state.cons).to_excel(writer,sheet_name='ConsegnaRadio',index=False)
-    st.session_state['bk_all']=out.getvalue()
-    st.success('Backup completo creato!')
-   if 'bk_all' in st.session_state:
-    c1,c2=st.columns(2)
-    with c1:
-     st.download_button('SCARICA BACKUP COMPLETO EXCEL',st.session_state['bk_all'],file_name='BACKUP_COMPLETO_ANA_VARESE_TUTTI_FORM.xlsx',use_container_width=True,type='primary')
-    with c2:
-     if st.button('CREA PDF BACKUP COMPLETO',use_container_width=True):
-      df_all=pd.DataFrame([
-       {'Form':'Volontari con Foto','Num':len(st.session_state.dati)},
-       {'Form':'Mappa','Num':len(st.session_state.post)},
-       {'Form':'Icone','Num':len(st.session_state.icone)},
-       {'Form':'Emergenze','Num':len(st.session_state.emerg)},
-       {'Form':'Check In','Num':len(st.session_state.check)},
-       {'Form':'DB Radio DMR ANALOGICA TETRA','Num':len(st.session_state.radio)},
-       {'Form':'Consegna Radio Con Canale','Num':len(st.session_state.cons)}
-      ])
-      pdf=make_pdf("BACKUP COMPLETO ANA VARESE",df_all)
-      if pdf:
-       st.session_state['pdf_bk_all']=pdf
-       st.success('PDF backup creato!')
-    if 'pdf_bk_all' in st.session_state:
-     st.download_button('SCARICA PDF BACKUP COMPLETO',st.session_state['pdf_bk_all'],file_name='BACKUP_COMPLETO_ANA_VARESE.pdf',mime='application/pdf',use_container_width=True)
-
- elif scelta=='Impostazioni Popup':
-  torna()
-  st.markdown('#### IMPOSTAZIONI POPUP')
-  with st.form('form_popup'):
-   p_titolo=st.text_input('Titolo Popup',value=st.session_state.popup_cfg.get('titolo','ANA VARESE - VOLONTARIATO'))
-   p_sotto=st.text_input('Sottotitolo Popup',value=st.session_state.popup_cfg.get('sottotitolo','Sezione di Varese - Protezione Civile'))
-   p_mostra=st.checkbox('Mostra popup all avvio',value=st.session_state.popup_cfg.get('mostra',True))
-   if st.form_submit_button('SALVA IMPOSTAZIONI POPUP'):
-    st.session_state.popup_cfg={'titolo':p_titolo,'sottotitolo':p_sotto,'mostra':p_mostra}
-    save(FPOP,st.session_state.popup_cfg)
-    st.success('Impostazioni salvate')
-  st.divider()
-  st.markdown('##### CARICA IMMAGINE POPUP')
-  up_popup=st.file_uploader('Carica immagine popup',type=['jpg','png','jpeg'],key='up_popup')
-  if up_popup is not None:
-   if st.button('SALVA IMMAGINE POPUP COME COPERTINA.JPG'):
-    with open('copertina.jpg','wb') as f:
-     f.write(up_popup.getbuffer())
-    st.success('Immagine salvata come copertina.jpg!')
-    st.image(up_popup,use_container_width=True)
-  st.divider()
-  for img_name in ['copertina.jpg','copertina.png','benvenuto.jpg','logo.png']:
-   if os.path.exists(img_name):
-    st.write(f"File trovato: {img_name}")
-    try:
-     st.image(img_name,width=300)
-    except:
-     pass
-  if st.button('MOSTRA ANTEPRIMA POPUP',type='primary',use_container_width=True):
-   st.session_state.popup_shown=False
-   st.rerun()
+    m2=st.text_input('Com
