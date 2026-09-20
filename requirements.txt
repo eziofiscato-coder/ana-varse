@@ -7,3 +7,4 @@ requests
 Pillow
 reportlab
 fpdf2
+qrcode
