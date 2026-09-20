@@ -2,7 +2,7 @@
 import pandas as pd
 from io import BytesIO
 import os, json, hashlib
-from datetime import datetime, date
+from datetime import date
 
 try:
     import folium
@@ -10,7 +10,6 @@ try:
     HAS=True
 except:
     HAS=False
-
 try:
     from PIL import Image, ImageDraw, ImageFont
     HAS_PIL=True
@@ -40,16 +39,16 @@ st.markdown("""
 def load(f,d):
     try:
         if os.path.exists(f):
-            with open(f,'r',encoding='utf-8') as file:
-                return json.load(file)
+            with open(f,'r',encoding='utf-8') as ff:
+                return json.load(ff)
     except:
         pass
     return d
 
 def save(f,d):
     try:
-        with open(f,'w',encoding='utf-8') as file:
-            json.dump(d,file,indent=2)
+        with open(f,'w',encoding='utf-8') as ff:
+            json.dump(d,ff,indent=2)
     except:
         pass
 
@@ -67,12 +66,12 @@ def export_excel(df):
         df.to_excel(w,index=False)
     return out.getvalue()
 
-def crea_tesserino(vol,foto_path,template_path):
+def crea_tess(vol,foto_path,tmpl):
     try:
         if not HAS_PIL:
             return None
-        if template_path and os.path.exists(template_path):
-            base=Image.open(template_path)
+        if tmpl and os.path.exists(tmpl):
+            base=Image.open(tmpl)
             base=base.convert("RGB")
             tess=base.copy()
             draw=ImageDraw.Draw(tess)
@@ -110,18 +109,13 @@ def crea_tesserino(vol,foto_path,template_path):
             fill='black',
             font=fn
         )
-        odv=vol.get('ODV','A.N.A. Sezione di Varese')
+        odv=vol.get('ODV','ANA Varese')
         oy=ny+int(H*0.12)
         draw.rectangle(
             [nx,oy-2,nx+int(W*0.5),oy+int(H*0.08)],
             fill='white'
         )
-        draw.text(
-            (nx,oy),
-            odv,
-            fill='black',
-            font=fo
-        )
+        draw.text((nx,oy),odv,fill='black',font=fo)
         buf=BytesIO()
         tess.save(buf,format='PNG')
         buf.seek(0)
@@ -193,7 +187,7 @@ def torna():
         st.session_state.menu='Dashboard'
         st.rerun()
 
-# PRIMA PAGINA - SOLO FOTO PICCOLA
+# PRIMA PAGINA - SOLO TUA IMG PICCOLA 250px
 if not st.session_state.popup_shown:
     st.markdown(
         "<h1 style='text-align:center;color:#0e7a3d;'>"
@@ -216,7 +210,7 @@ if not st.session_state.popup_shown:
             if os.path.exists(img_name):
                 try:
                     st.image(img_name,width=250)
-                    st.success("TUA IMMAGINE PICCOLA")
+                    st.success("TUA IMG PICCOLA 250px")
                     found=True
                     break
                 except:
@@ -232,7 +226,7 @@ if not st.session_state.popup_shown:
             st.rerun()
     st.stop()
 
-# LOGIN - RIPRISTINATO
+# LOGIN
 if not st.session_state.auth:
     header()
     c1,c2,c3=st.columns([1,2,1])
@@ -246,10 +240,7 @@ if not st.session_state.auth:
                 except:
                     pass
         with st.form('login'):
-            u=st.text_input(
-                'Username',
-                value='admin'
-            )
+            u=st.text_input('Username',value='admin')
             p=st.text_input(
                 'Password',
                 type='password',
@@ -271,7 +262,7 @@ if not st.session_state.auth:
 
 def pagina_interventi():
     st.markdown("## INTERVENTI EMERGENZA")
-    with st.form("form_emergenza",clear_on_submit=True):
+    with st.form("form_emerg",clear_on_submit=True):
         c1,c2,c3=st.columns(3)
         with c1:
             data_int=st.date_input("Data *")
@@ -282,15 +273,11 @@ def pagina_interventi():
         with c3:
             civico_int=st.text_input("Civico")
             odv_int=st.selectbox(
-                "ODV Operativa *",
-                ["ANA Varese",
-                 "Protezione Civile Lombardia",
+                "ODV *",
+                ["ANA Varese","PC Lombardia",
                  "Croce Rossa","Altro"]
             )
-        azione_int=st.text_area(
-            "Azione *",
-            height=100
-        )
+        azione_int=st.text_area("Azione *",height=100)
         salva=st.form_submit_button(
             "SALVA INTERVENTO",
             use_container_width=True
@@ -306,19 +293,12 @@ def pagina_interventi():
                     "ODV":odv_int,
                     "Azione":azione_int
                 }
-                st.session_state.interventi_lista.append(
-                    nuovo
-                )
-                save(
-                    FE,
-                    st.session_state.interventi_lista
-                )
+                st.session_state.interventi_lista.append(nuovo)
+                save(FE,st.session_state.interventi_lista)
                 st.success("Salvato!")
                 st.rerun()
     if st.session_state.interventi_lista:
-        df=pd.DataFrame(
-            st.session_state.interventi_lista
-        )
+        df=pd.DataFrame(st.session_state.interventi_lista)
         st.dataframe(df,use_container_width=True)
 
 def pagina_backup():
@@ -414,10 +394,7 @@ def pagina_backup():
                         st.session_state.interventi_lista.append(
                             row.to_dict()
                         )
-                    save(
-                        FE,
-                        st.session_state.interventi_lista
-                    )
+                    save(FE,st.session_state.interventi_lista)
                     st.success("Importati!")
                     st.rerun()
     with tab_all:
@@ -468,7 +445,7 @@ def pagina_backup():
 # MENU
 header()
 with st.sidebar:
-    st.markdown('**MENU**')
+    st.markdown('**MENU COMPLETO**')
     opts=[
         'Dashboard','Volontari','Mappa',
         'Interventi Emergenza',
@@ -524,84 +501,350 @@ if scelta=='Dashboard':
 
 elif scelta=='Volontari':
     torna()
-    st.markdown("## VOLONTARI CON FOTO")
-    t1,t2,t3=st.tabs([
-        "Anagrafica Foto",
-        "Elenco",
-        "Foto Cartella"
+    st.markdown(
+        "## VOLONTARI - TUTTE LE SOTTOMASCHERE"
+    )
+    # SOTTOMASCHERE COMPLETE
+    t1,t2,t3,t4,t5,t6=st.tabs([
+        "1.Anagrafica",
+        "2.Contatti",
+        "3.Foto e Documenti",
+        "4.Formazione DPI",
+        "5.Disponibilita",
+        "6.Elenco Tesserino"
     ])
     with t1:
-        st.markdown("### Anagrafica con Foto")
-        with st.form("form_vol_foto",clear_on_submit=True):
+        st.markdown("### 1 - Anagrafica")
+        with st.form("form_anag",clear_on_submit=True):
             c1,c2=st.columns(2)
             with c1:
-                a1=st.text_input("Nome *")
-                a2=st.text_input("Cognome *")
+                a_nome=st.text_input("Nome *")
+                a_cogn=st.text_input("Cognome *")
                 a_cf=st.text_input("CF *")
-                a_foto=st.file_uploader(
-                    "Foto",
-                    type=['jpg','png','jpeg'],
-                    key='foto_vol'
-                )
-                if a_foto:
-                    st.image(a_foto,width=150)
+                a_nasc=st.date_input("Data nascita")
+                a_comune_n=st.text_input("Comune nascita")
             with c2:
+                a_ind=st.text_input("Indirizzo")
+                a_comune=st.text_input("Comune residenza")
+                a_cap=st.text_input("CAP")
+                a_prov=st.text_input("Provincia")
                 a_odv=st.selectbox(
                     "ODV",
                     ["A.N.A. Sezione di Varese",
                      "Protezione Civile Varese",
-                     "ANA Varese","Altro"]
+                     "ANA Varese","CRI","Altro"]
                 )
-                a_tess=st.text_input("Tessera")
-                a_tel=st.text_input("Cellulare")
-                a_email=st.text_input("Email")
-            # FIX RIGA 524 - RIGHE CORTE
-            salva_vol=st.form_submit_button(
-                "SALVA VOLONTARIO CON FOTO",
+            c1,c2=st.columns(2)
+            with c1:
+                a_tess=st.text_input("Tessera ANA")
+                a_ruolo=st.selectbox(
+                    "Ruolo",
+                    ["Volontario","Caposquadra",
+                     "Coordinatore","Autista",
+                     "Radio","Logistica","Sanitario","Altro"]
+                )
+            with c2:
+                a_data_is=st.date_input("Data iscrizione")
+                a_note=st.text_area("Note")
+            btn1=st.form_submit_button(
+                "SALVA ANAGRAFICA",
                 use_container_width=True,
                 type="primary"
             )
-            if salva_vol:
-                if a1 and a2:
-                    nc=f"{a1} {a2}"
-                    fp=''
-                    if a_foto:
-                        try:
-                            os.makedirs(
-                                'foto_volontari',
-                                exist_ok=True
-                            )
-                            fp=f"foto_volontari/{nc.replace(' ','_')}_{a_foto.name}"
-                            with open(fp,'wb') as f:
-                                f.write(a_foto.getbuffer())
-                        except:
-                            fp=''
+            if btn1:
+                if a_nome and a_cogn:
+                    nc=f"{a_nome} {a_cogn}"
                     nuovo={
                         'Nome':nc,
                         'CF':a_cf,
+                        'DataNascita':fmt_date(a_nasc),
+                        'ComuneNascita':a_comune_n,
+                        'Indirizzo':a_ind,
+                        'Comune':a_comune,
+                        'CAP':a_cap,
+                        'Provincia':a_prov,
                         'ODV':a_odv,
                         'Tessera':a_tess,
-                        'Telefono':a_tel,
-                        'Email':a_email,
-                        'FotoFile':fp
+                        'Ruolo':a_ruolo,
+                        'DataIscrizione':fmt_date(a_data_is),
+                        'Note':a_note,
+                        'FotoFile':''
                     }
                     found=False
                     for i,d in enumerate(st.session_state.dati):
                         if d.get('Nome','')==nc:
-                            if not fp:
-                                nuovo['FotoFile']=d.get('FotoFile','')
+                            # mantieni foto
+                            nuovo['FotoFile']=d.get('FotoFile','')
+                            # mantieni altri campi
+                            for k in ['Telefono','Email','DocFile','Formazione','DPI','Disponibilita']:
+                                if k in d:
+                                    nuovo[k]=d[k]
                             st.session_state.dati[i].update(nuovo)
                             found=True
                     if not found:
                         st.session_state.dati.append(nuovo)
                     save(FD,st.session_state.dati)
-                    st.success(f"Salvato {nc}!")
+                    st.success(f"Salvata anagrafica {nc}!")
                     st.rerun()
     with t2:
-        st.markdown("### Elenco")
+        st.markdown("### 2 - Contatti")
+        vol_list=[
+            d.get('Nome','')
+            for d in st.session_state.dati
+        ]
+        if vol_list:
+            sel=st.selectbox(
+                "Seleziona volontario",
+                vol_list,
+                key='cont_sel'
+            )
+            vol_data={}
+            idx_sel=-1
+            for i,d in enumerate(st.session_state.dati):
+                if d.get('Nome','')==sel:
+                    vol_data=d
+                    idx_sel=i
+                    break
+            with st.form("form_cont"):
+                c1,c2=st.columns(2)
+                with c1:
+                    tel=st.text_input(
+                        "Cellulare",
+                        value=vol_data.get('Telefono','')
+                    )
+                    tel2=st.text_input(
+                        "Altro telefono",
+                        value=vol_data.get('Telefono2','')
+                    )
+                    email=st.text_input(
+                        "Email",
+                        value=vol_data.get('Email','')
+                    )
+                with c2:
+                    email2=st.text_input(
+                        "Email 2",
+                        value=vol_data.get('Email2','')
+                    )
+                    contatto_em=st.text_input(
+                        "Contatto emergenza",
+                        value=vol_data.get('ContattoEmergenza','')
+                    )
+                    tel_em=st.text_input(
+                        "Tel emergenza",
+                        value=vol_data.get('TelEmergenza','')
+                    )
+                btn2=st.form_submit_button(
+                    "SALVA CONTATTI",
+                    use_container_width=True,
+                    type="primary"
+                )
+                if btn2:
+                    st.session_state.dati[idx_sel]['Telefono']=tel
+                    st.session_state.dati[idx_sel]['Telefono2']=tel2
+                    st.session_state.dati[idx_sel]['Email']=email
+                    st.session_state.dati[idx_sel]['Email2']=email2
+                    st.session_state.dati[idx_sel]['ContattoEmergenza']=contatto_em
+                    st.session_state.dati[idx_sel]['TelEmergenza']=tel_em
+                    save(FD,st.session_state.dati)
+                    st.success("Contatti salvati!")
+                    st.rerun()
+        else:
+            st.warning("Nessun volontario")
+    with t3:
+        st.markdown("### 3 - Foto e Documenti")
+        vol_list=[
+            d.get('Nome','')
+            for d in st.session_state.dati
+        ]
+        if vol_list:
+            sel=st.selectbox(
+                "Seleziona volontario",
+                vol_list,
+                key='foto_sel'
+            )
+            vol_data={}
+            idx_sel=-1
+            for i,d in enumerate(st.session_state.dati):
+                if d.get('Nome','')==sel:
+                    vol_data=d
+                    idx_sel=i
+                    break
+            c1,c2=st.columns([1,2])
+            with c1:
+                fp=vol_data.get('FotoFile','')
+                if fp and os.path.exists(fp):
+                    st.image(fp,width=150,caption="Foto attuale")
+                else:
+                    st.warning("Nessuna foto")
+                a_foto=st.file_uploader(
+                    "Carica foto",
+                    type=['jpg','png','jpeg'],
+                    key='foto_vol'
+                )
+                if a_foto:
+                    st.image(a_foto,width=150,caption="Anteprima")
+                a_doc=st.file_uploader(
+                    "Carica documento CI",
+                    type=['jpg','png','pdf'],
+                    key='doc_vol'
+                )
+            with c2:
+                with st.form("form_foto"):
+                    st.write(f"Volontario: {sel}")
+                    btn3=st.form_submit_button(
+                        "SALVA FOTO E DOC",
+                        use_container_width=True,
+                        type="primary"
+                    )
+                    if btn3:
+                        if a_foto:
+                            try:
+                                os.makedirs(
+                                    'foto_volontari',
+                                    exist_ok=True
+                                )
+                                fp_new=f"foto_volontari/{sel.replace(' ','_')}_{a_foto.name}"
+                                with open(fp_new,'wb') as f:
+                                    f.write(a_foto.getbuffer())
+                                st.session_state.dati[idx_sel]['FotoFile']=fp_new
+                            except:
+                                pass
+                        if a_doc:
+                            try:
+                                os.makedirs(
+                                    'foto_volontari',
+                                    exist_ok=True
+                                )
+                                fd_new=f"foto_volontari/DOC_{sel.replace(' ','_')}_{a_doc.name}"
+                                with open(fd_new,'wb') as f:
+                                    f.write(a_doc.getbuffer())
+                                st.session_state.dati[idx_sel]['DocFile']=fd_new
+                            except:
+                                pass
+                        save(FD,st.session_state.dati)
+                        st.success("Foto e doc salvati!")
+                        st.rerun()
+                df_doc=vol_data.get('DocFile','')
+                if df_doc and os.path.exists(df_doc):
+                    st.success(f"Doc: {df_doc}")
+        else:
+            st.warning("Nessun volontario")
+    with t4:
+        st.markdown("### 4 - Formazione e DPI")
+        vol_list=[
+            d.get('Nome','')
+            for d in st.session_state.dati
+        ]
+        if vol_list:
+            sel=st.selectbox(
+                "Seleziona volontario",
+                vol_list,
+                key='form_sel'
+            )
+            idx_sel=-1
+            for i,d in enumerate(st.session_state.dati):
+                if d.get('Nome','')==sel:
+                    idx_sel=i
+                    break
+            with st.form("form_formazione"):
+                c1,c2=st.columns(2)
+                with c1:
+                    corso_base=st.checkbox("Corso base PC")
+                    corso_antis=st.checkbox("Corso antincendio")
+                    corso_ps=st.checkbox("Primo soccorso")
+                    corso_radio=st.checkbox("Corso radio")
+                    patente=st.text_input("Patenti")
+                with c2:
+                    dpi_scarpe=st.checkbox("Scarpe antinf.")
+                    dpi_casco=st.checkbox("Casco")
+                    dpi_gilet=st.checkbox("Gilet alta visib.")
+                    dpi_guanti=st.checkbox("Guanti")
+                    taglia=st.text_input("Taglia vestiario")
+                note_form=st.text_area("Note formazione")
+                btn4=st.form_submit_button(
+                    "SALVA FORMAZIONE DPI",
+                    use_container_width=True,
+                    type="primary"
+                )
+                if btn4:
+                    st.session_state.dati[idx_sel]['Formazione']={
+                        'Base':corso_base,
+                        'Antincendio':corso_antis,
+                        'PrimoSoccorso':corso_ps,
+                        'Radio':corso_radio,
+                        'Patenti':patente
+                    }
+                    st.session_state.dati[idx_sel]['DPI']={
+                        'Scarpe':dpi_scarpe,
+                        'Casco':dpi_casco,
+                        'Gilet':dpi_gilet,
+                        'Guanti':dpi_guanti,
+                        'Taglia':taglia,
+                        'Note':note_form
+                    }
+                    save(FD,st.session_state.dati)
+                    st.success("Formazione DPI salvati!")
+                    st.rerun()
+        else:
+            st.warning("Nessun volontario")
+    with t5:
+        st.markdown("### 5 - Disponibilita")
+        vol_list=[
+            d.get('Nome','')
+            for d in st.session_state.dati
+        ]
+        if vol_list:
+            sel=st.selectbox(
+                "Seleziona volontario",
+                vol_list,
+                key='disp_sel'
+            )
+            idx_sel=-1
+            for i,d in enumerate(st.session_state.dati):
+                if d.get('Nome','')==sel:
+                    idx_sel=i
+                    break
+            with st.form("form_disp"):
+                c1,c2=st.columns(2)
+                with c1:
+                    lun=st.checkbox("Lunedi")
+                    mar=st.checkbox("Martedi")
+                    mer=st.checkbox("Mercoledi")
+                    gio=st.checkbox("Giovedi")
+                    ven=st.checkbox("Venerdi")
+                with c2:
+                    sab=st.checkbox("Sabato")
+                    dom=st.checkbox("Domenica")
+                    mattina=st.checkbox("Mattina")
+                    pomeriggio=st.checkbox("Pomeriggio")
+                    sera=st.checkbox("Sera/notte")
+                note_disp=st.text_area("Note disponibilita")
+                btn5=st.form_submit_button(
+                    "SALVA DISPONIBILITA",
+                    use_container_width=True,
+                    type="primary"
+                )
+                if btn5:
+                    st.session_state.dati[idx_sel]['Disponibilita']={
+                        'Lun':lun,'Mar':mar,'Mer':mer,
+                        'Gio':gio,'Ven':ven,
+                        'Sab':sab,'Dom':dom,
+                        'Mattina':mattina,
+                        'Pomeriggio':pomeriggio,
+                        'Sera':sera,
+                        'Note':note_disp
+                    }
+                    save(FD,st.session_state.dati)
+                    st.success("Disponibilita salvata!")
+                    st.rerun()
+        else:
+            st.warning("Nessun volontario")
+    with t6:
+        st.markdown("### 6 - Elenco e Tesserino")
         if st.session_state.dati:
             df=pd.DataFrame(st.session_state.dati)
             st.dataframe(df,use_container_width=True)
+            st.divider()
             vol_list=[
                 d.get('Nome','')
                 for d in st.session_state.dati
@@ -609,7 +852,7 @@ elif scelta=='Volontari':
             sel=st.selectbox(
                 "Seleziona per tesserino",
                 vol_list,
-                key='sel_tess'
+                key='tess_sel'
             )
             vol_data={}
             for d in st.session_state.dati:
@@ -623,8 +866,10 @@ elif scelta=='Volontari':
                     st.image(fp,width=150)
                 st.write(f"Nome: {vol_data.get('Nome','')}")
                 st.write(f"CF: {vol_data.get('CF','')}")
+                st.write(f"ODV: {vol_data.get('ODV','')}")
+                st.write(f"Tessera: {vol_data.get('Tessera','')}")
             with c2:
-                tess=crea_tesserino(
+                tess=crea_tess(
                     vol_data,
                     vol_data.get('FotoFile',''),
                     "Tesserino-Ezio.JPG" if os.path.exists("Tesserino-Ezio.JPG") else None
@@ -639,23 +884,14 @@ elif scelta=='Volontari':
                         type='primary',
                         use_container_width=True
                     )
-    with t3:
-        st.markdown("### Foto Cartella")
-        if os.path.exists('foto_volontari'):
-            files=os.listdir('foto_volontari')
-            st.write(f"Foto: {len(files)}")
-            for f in files:
-                fp=os.path.join('foto_volontari',f)
-                c1,c2=st.columns([1,3])
-                with c1:
-                    try:
-                        st.image(fp,width=100)
-                    except:
-                        pass
-                with c2:
-                    st.write(f)
+                if os.path.exists("Tesserino-Ezio.JPG"):
+                    st.image(
+                        "Tesserino-Ezio.JPG",
+                        caption="Template",
+                        use_container_width=True
+                    )
         else:
-            st.info("Nessuna foto - cartella creata al salvataggio")
+            st.warning("Nessun volontario")
 
 elif scelta=='Backup':
     torna()
@@ -667,19 +903,23 @@ elif scelta=='Interventi Emergenza':
 
 elif scelta=='Tesserino':
     torna()
-    st.markdown("### TESSERINO")
+    st.markdown("### TESSERINO REGIONALE")
     vol_list=[
         d.get('Nome','')
         for d in st.session_state.dati
     ]
     if vol_list:
-        sel=st.selectbox("Volontario",vol_list,key='tess_final')
+        sel=st.selectbox(
+            "Volontario",
+            vol_list,
+            key='tess_final'
+        )
         vol_data={}
         for d in st.session_state.dati:
             if d.get('Nome','')==sel:
                 vol_data=d
                 break
-        tess=crea_tesserino(
+        tess=crea_tess(
             vol_data,
             vol_data.get('FotoFile',''),
             "Tesserino-Ezio.JPG" if os.path.exists("Tesserino-Ezio.JPG") else None
