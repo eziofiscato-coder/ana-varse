@@ -384,4 +384,317 @@ def pagina_backup():
             if up_vol:
                 df_up=pd.read_excel(up_vol)
                 if st.button(
-                    '
+                    'IMPORTA VOLONTARI',
+                    key='imp_vol',
+                    use_container_width=True,
+                    type="primary"
+                ):
+                    for _,row in df_up.iterrows():
+                        st.session_state.dati.append(
+                            row.to_dict()
+                        )
+                    save(FD,st.session_state.dati)
+                    st.success("Importati!")
+                    st.rerun()
+        with c2:
+            up_int=st.file_uploader(
+                'Import Interventi',
+                type=['xlsx'],
+                key='up_int'
+            )
+            if up_int:
+                df_up=pd.read_excel(up_int)
+                if st.button(
+                    'IMPORTA INTERVENTI',
+                    key='imp_int',
+                    use_container_width=True,
+                    type="primary"
+                ):
+                    for _,row in df_up.iterrows():
+                        st.session_state.interventi_lista.append(
+                            row.to_dict()
+                        )
+                    save(
+                        FE,
+                        st.session_state.interventi_lista
+                    )
+                    st.success("Importati!")
+                    st.rerun()
+    with tab_all:
+        if st.button(
+            'CREA BACKUP COMPLETO',
+            type='primary',
+            use_container_width=True
+        ):
+            out=BytesIO()
+            with pd.ExcelWriter(
+                out,engine='openpyxl'
+            ) as writer:
+                if st.session_state.dati:
+                    pd.DataFrame(
+                        st.session_state.dati
+                    ).to_excel(
+                        writer,
+                        sheet_name='Volontari',
+                        index=False
+                    )
+                if st.session_state.post:
+                    pd.DataFrame(
+                        st.session_state.post
+                    ).to_excel(
+                        writer,
+                        sheet_name='Mappa',
+                        index=False
+                    )
+                if st.session_state.interventi_lista:
+                    pd.DataFrame(
+                        st.session_state.interventi_lista
+                    ).to_excel(
+                        writer,
+                        sheet_name='Interventi',
+                        index=False
+                    )
+            st.session_state['bk_all']=out.getvalue()
+            st.success('Backup creato!')
+        if 'bk_all' in st.session_state:
+            st.download_button(
+                'SCARICA BACKUP',
+                st.session_state['bk_all'],
+                file_name='BACKUP.xlsx',
+                use_container_width=True,
+                type='primary'
+            )
+
+# MENU
+header()
+with st.sidebar:
+    st.markdown('**MENU**')
+    opts=[
+        'Dashboard','Volontari','Mappa',
+        'Interventi Emergenza',
+        'Check In','DB Radio',
+        'Consegna Radio','Backup',
+        'Tesserino','Logout'
+    ]
+    sel=st.radio('Vai a',opts,index=0)
+    if sel=='Logout':
+        st.session_state.auth=False
+        st.session_state.popup_shown=False
+        st.rerun()
+    st.session_state.menu=sel
+
+scelta=st.session_state.menu
+
+if scelta=='Dashboard':
+    st.markdown("## ANA Varese - Dashboard")
+    c1,c2=st.columns(2)
+    with c1:
+        if st.button('VOLONTARI',use_container_width=True):
+            st.session_state.menu='Volontari'
+            st.rerun()
+        if st.button('MAPPA',use_container_width=True):
+            st.session_state.menu='Mappa'
+            st.rerun()
+        if st.button('INTERVENTI',use_container_width=True):
+            st.session_state.menu='Interventi Emergenza'
+            st.rerun()
+        if st.button('BACKUP',use_container_width=True,type="primary"):
+            st.session_state.menu='Backup'
+            st.rerun()
+    with c2:
+        if st.button('CHECK IN',use_container_width=True):
+            st.session_state.menu='Check In'
+            st.rerun()
+        if st.button('DB RADIO',use_container_width=True):
+            st.session_state.menu='DB Radio'
+            st.rerun()
+        if st.button('TESSERINO',use_container_width=True):
+            st.session_state.menu='Tesserino'
+            st.rerun()
+    st.divider()
+    c1,c2,c3,c4=st.columns(4)
+    with c1:
+        st.metric('Vol',len(st.session_state.dati))
+    with c2:
+        st.metric('Post',len(st.session_state.post))
+    with c3:
+        st.metric('Int',len(st.session_state.interventi_lista))
+    with c4:
+        st.metric('Radio',len(st.session_state.radio))
+
+elif scelta=='Volontari':
+    torna()
+    st.markdown("## VOLONTARI CON FOTO")
+    t1,t2,t3=st.tabs([
+        "Anagrafica Foto",
+        "Elenco",
+        "Foto Cartella"
+    ])
+    with t1:
+        st.markdown("### Anagrafica con Foto")
+        with st.form("form_vol_foto",clear_on_submit=True):
+            c1,c2=st.columns(2)
+            with c1:
+                a1=st.text_input("Nome *")
+                a2=st.text_input("Cognome *")
+                a_cf=st.text_input("CF *")
+                a_foto=st.file_uploader(
+                    "Foto",
+                    type=['jpg','png','jpeg'],
+                    key='foto_vol'
+                )
+                if a_foto:
+                    st.image(a_foto,width=150)
+            with c2:
+                a_odv=st.selectbox(
+                    "ODV",
+                    ["A.N.A. Sezione di Varese",
+                     "Protezione Civile Varese",
+                     "ANA Varese","Altro"]
+                )
+                a_tess=st.text_input("Tessera")
+                a_tel=st.text_input("Cellulare")
+                a_email=st.text_input("Email")
+            # FIX RIGA 524 - RIGHE CORTE
+            salva_vol=st.form_submit_button(
+                "SALVA VOLONTARIO CON FOTO",
+                use_container_width=True,
+                type="primary"
+            )
+            if salva_vol:
+                if a1 and a2:
+                    nc=f"{a1} {a2}"
+                    fp=''
+                    if a_foto:
+                        try:
+                            os.makedirs(
+                                'foto_volontari',
+                                exist_ok=True
+                            )
+                            fp=f"foto_volontari/{nc.replace(' ','_')}_{a_foto.name}"
+                            with open(fp,'wb') as f:
+                                f.write(a_foto.getbuffer())
+                        except:
+                            fp=''
+                    nuovo={
+                        'Nome':nc,
+                        'CF':a_cf,
+                        'ODV':a_odv,
+                        'Tessera':a_tess,
+                        'Telefono':a_tel,
+                        'Email':a_email,
+                        'FotoFile':fp
+                    }
+                    found=False
+                    for i,d in enumerate(st.session_state.dati):
+                        if d.get('Nome','')==nc:
+                            if not fp:
+                                nuovo['FotoFile']=d.get('FotoFile','')
+                            st.session_state.dati[i].update(nuovo)
+                            found=True
+                    if not found:
+                        st.session_state.dati.append(nuovo)
+                    save(FD,st.session_state.dati)
+                    st.success(f"Salvato {nc}!")
+                    st.rerun()
+    with t2:
+        st.markdown("### Elenco")
+        if st.session_state.dati:
+            df=pd.DataFrame(st.session_state.dati)
+            st.dataframe(df,use_container_width=True)
+            vol_list=[
+                d.get('Nome','')
+                for d in st.session_state.dati
+            ]
+            sel=st.selectbox(
+                "Seleziona per tesserino",
+                vol_list,
+                key='sel_tess'
+            )
+            vol_data={}
+            for d in st.session_state.dati:
+                if d.get('Nome','')==sel:
+                    vol_data=d
+                    break
+            c1,c2=st.columns([1,2])
+            with c1:
+                fp=vol_data.get('FotoFile','')
+                if fp and os.path.exists(fp):
+                    st.image(fp,width=150)
+                st.write(f"Nome: {vol_data.get('Nome','')}")
+                st.write(f"CF: {vol_data.get('CF','')}")
+            with c2:
+                tess=crea_tesserino(
+                    vol_data,
+                    vol_data.get('FotoFile',''),
+                    "Tesserino-Ezio.JPG" if os.path.exists("Tesserino-Ezio.JPG") else None
+                )
+                if tess:
+                    st.image(tess,use_container_width=True)
+                    st.download_button(
+                        'SCARICA TESSERINO',
+                        tess,
+                        file_name=f"Tesserino_{sel}.png",
+                        mime='image/png',
+                        type='primary',
+                        use_container_width=True
+                    )
+    with t3:
+        st.markdown("### Foto Cartella")
+        if os.path.exists('foto_volontari'):
+            files=os.listdir('foto_volontari')
+            st.write(f"Foto: {len(files)}")
+            for f in files:
+                fp=os.path.join('foto_volontari',f)
+                c1,c2=st.columns([1,3])
+                with c1:
+                    try:
+                        st.image(fp,width=100)
+                    except:
+                        pass
+                with c2:
+                    st.write(f)
+        else:
+            st.info("Nessuna foto - cartella creata al salvataggio")
+
+elif scelta=='Backup':
+    torna()
+    pagina_backup()
+
+elif scelta=='Interventi Emergenza':
+    torna()
+    pagina_interventi()
+
+elif scelta=='Tesserino':
+    torna()
+    st.markdown("### TESSERINO")
+    vol_list=[
+        d.get('Nome','')
+        for d in st.session_state.dati
+    ]
+    if vol_list:
+        sel=st.selectbox("Volontario",vol_list,key='tess_final')
+        vol_data={}
+        for d in st.session_state.dati:
+            if d.get('Nome','')==sel:
+                vol_data=d
+                break
+        tess=crea_tesserino(
+            vol_data,
+            vol_data.get('FotoFile',''),
+            "Tesserino-Ezio.JPG" if os.path.exists("Tesserino-Ezio.JPG") else None
+        )
+        if tess:
+            st.image(tess,use_container_width=True)
+            st.download_button(
+                'SCARICA TESSERINO',
+                tess,
+                file_name=f"Tesserino_{sel}.png",
+                mime='image/png',
+                type='primary'
+            )
+
+else:
+    torna()
+    st.markdown(f"### {scelta}")
+    st.info(f"Form {scelta} - OK")
