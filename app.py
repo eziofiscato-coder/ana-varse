@@ -16,10 +16,7 @@ try:
 except:
     HAS_PIL=False
 
-st.set_page_config(
-    page_title="ANA Varese",
-    layout="wide"
-)
+st.set_page_config(page_title="ANA Varese", layout="wide")
 
 st.markdown("""
 <style>
@@ -284,13 +281,12 @@ sc=st.session_state.menu
 
 if sc=='Dashboard':
     st.markdown("## Dashboard")
-    st.markdown("### A.N.A. NUCLEO VOLONTARI DI PROTEZIONE CIVILE SEZIONE DI VARESE")
     a,b=st.columns(2)
     with a:
         if st.button('VOLONTARI'):
             st.session_state.menu='Volontari'
             st.rerun()
-        if st.button('MAPPA POSTAZIONI'):
+        if st.button('MAPPA'):
             st.session_state.menu='Mappa'
             st.rerun()
         if st.button('LIBRERIA ICONE'):
@@ -300,45 +296,37 @@ if sc=='Dashboard':
             st.session_state.menu='Backup'
             st.rerun()
     with b:
-        if st.button('INTERVENTI EMERGENZA'):
+        if st.button('INTERVENTI'):
             st.session_state.menu='Interventi Emergenza'
             st.rerun()
         if st.button('EVENTI'):
             st.session_state.menu='Eventi'
             st.rerun()
-        if st.button('DB RADIO'):
+        if st.button('RADIO'):
             st.session_state.menu='DB Radio'
             st.rerun()
-        if st.button('TESSERINO NITIDO'):
+        if st.button('TESSERINO'):
             st.session_state.menu='Tesserino'
             st.rerun()
-    st.divider()
-    c1,c2,c3,c4,c5=st.columns(5)
-    with c1:
-        st.metric('Volontari',len(st.session_state.dati))
-    with c2:
-        st.metric('Postazioni',len(st.session_state.post))
-    with c3:
-        st.metric('Icone',len(st.session_state.icone))
-    with c4:
-        st.metric('Interventi',len(st.session_state.interv))
-    with c5:
-        st.metric('Eventi',len(st.session_state.eventi))
 
 elif sc=='Volontari':
     to_dash()
     st.markdown("## VOLONTARI")
-    st.markdown("### Maschera Anagrafica Completa")
+    st.markdown("### Con sottomaschere + foto")
+    # SOTTOMASCHERA EDIT - FUORI
     if st.session_state.edit_idx >=0:
         if st.session_state.edit_idx < len(st.session_state.dati):
             vol=st.session_state.dati[st.session_state.edit_idx]
-            st.success(f"Selezionato: {vol.get('Nome','')}")
-            st.markdown("### MASCHERA AGGIORNAMENTO")
+            st.success(f"Modifica: {vol.get('Nome','')}")
+            # Foto esistente
+            fp=vol.get('FotoFile','')
+            if fp and os.path.exists(fp):
+                st.image(fp,width=150,caption="Foto attuale")
             with st.form("edit_vol"):
                 c1,c2=st.columns(2)
                 with c1:
-                    e_nome=st.text_input("Nome e Cognome",value=vol.get('Nome',''))
-                    e_cf=st.text_input("Codice Fiscale",value=vol.get('CF',''))
+                    e_nome=st.text_input("Nome",value=vol.get('Nome',''))
+                    e_cf=st.text_input("CF",value=vol.get('CF',''))
                     e_ind=st.text_input("Indirizzo",value=vol.get('Indirizzo',''))
                     e_com=st.text_input("Comune",value=vol.get('Comune',''))
                     e_tel=st.text_input("Telefono",value=vol.get('Telefono',''))
@@ -349,11 +337,11 @@ elif sc=='Volontari':
                     e_mail=st.text_input("Email",value=vol.get('Email',''))
                 b1,b2,b3=st.columns(3)
                 with b1:
-                    bs=st.form_submit_button("SALVA AGGIORNAMENTI")
+                    bs=st.form_submit_button("SALVA")
                 with b2:
                     ba=st.form_submit_button("ANNULLA")
                 with b3:
-                    bd=st.form_submit_button("ELIMINA VOLONTARIO")
+                    bd=st.form_submit_button("ELIMINA")
                 if bs:
                     vol['Nome']=e_nome
                     vol['CF']=e_cf
@@ -377,7 +365,8 @@ elif sc=='Volontari':
                     st.session_state.edit_idx=-1
                     st.rerun()
             st.divider()
-    with st.expander("NUOVO VOLONTARIO - MASCHERA 1"):
+    # SOTTOMASCHERA 1 - ANAGRAFICA
+    with st.expander("SOTTOMASCHERA 1 - ANAGRAFICA"):
         with st.form("anag",clear_on_submit=True):
             c1,c2=st.columns(2)
             with c1:
@@ -386,22 +375,80 @@ elif sc=='Volontari':
                 a_cf=st.text_input("CF *")
             with c2:
                 a_ind=st.text_input("Indirizzo")
-                a_odv=st.selectbox("ODV",['A.N.A. Sezione Varese','PC Varese','CRI','Altro'])
+                a_odv=st.selectbox("ODV",['ANA Varese','PC Varese','CRI','Altro'])
                 a_tess=st.text_input("Tessera")
             a_ruolo=st.selectbox("Ruolo",['Volontario','Caposquadra','Coordinatore','Autista','Radio','Altro'])
-            b1=st.form_submit_button("SALVA NUOVO VOLONTARIO")
+            b1=st.form_submit_button("SALVA ANAGRAFICA")
             if b1:
                 if a_nome and a_cogn:
                     nc=f"{a_nome} {a_cogn}"
-                    nuovo={'Nome':nc,'CF':a_cf,'Indirizzo':a_ind,'ODV':a_odv,'Tessera':a_tess,'Ruolo':a_ruolo,'FotoFile':''}
+                    nuovo={'Nome':nc,'CF':a_cf,'Indirizzo':a_ind,'ODV':a_odv,'Tessera':a_tess,'Ruolo':a_ruolo,'FotoFile':'','Telefono':'','Email':'','Comune':''}
                     st.session_state.dati.append(nuovo)
                     save_json(FD,st.session_state.dati)
                     st.success(f"Salvato {nc}")
                     st.rerun()
+    # SOTTOMASCHERA 2 - CONTATTI
+    with st.expander("SOTTOMASCHERA 2 - CONTATTI"):
+        vlist=[d.get('Nome','') for d in st.session_state.dati]
+        if vlist:
+            sel=st.selectbox("Seleziona volontario",vlist,key='c2')
+            idx=-1
+            for i,d in enumerate(st.session_state.dati):
+                if d.get('Nome','')==sel:
+                    idx=i
+                    break
+            if idx>=0:
+                st.write(f"Contatti per {sel}")
+                with st.form("cont",clear_on_submit=True):
+                    tel=st.text_input("Telefono",value=st.session_state.dati[idx].get('Telefono',''))
+                    mail=st.text_input("Email",value=st.session_state.dati[idx].get('Email',''))
+                    com=st.text_input("Comune",value=st.session_state.dati[idx].get('Comune',''))
+                    bc=st.form_submit_button("SALVA CONTATTI")
+                    if bc:
+                        st.session_state.dati[idx]['Telefono']=tel
+                        st.session_state.dati[idx]['Email']=mail
+                        st.session_state.dati[idx]['Comune']=com
+                        save_json(FD,st.session_state.dati)
+                        st.success("Contatti salvati")
+                        st.rerun()
+        else:
+            st.info("Nessun volontario")
+    # SOTTOMASCHERA 3 - FOTO - DEVE CARICARE FOTO
+    with st.expander("SOTTOMASCHERA 3 - FOTO VOLONTARIO - CARICA FOTO"):
+        vlist=[d.get('Nome','') for d in st.session_state.dati]
+        if vlist:
+            sel=st.selectbox("Seleziona volontario per foto",vlist,key='c3')
+            idx=-1
+            for i,d in enumerate(st.session_state.dati):
+                if d.get('Nome','')==sel:
+                    idx=i
+                    break
+            if idx>=0:
+                fp=st.session_state.dati[idx].get('FotoFile','')
+                if fp and os.path.exists(fp):
+                    st.image(fp,width=200,caption="Foto attuale")
+                else:
+                    st.warning("Nessuna foto caricata")
+                up=st.file_uploader("Carica foto volontario",type=['jpg','jpeg','png'])
+                if up:
+                    st.image(up,width=200,caption="Anteprima")
+                    if st.button("SALVA FOTO VOLONTARIO"):
+                        os.makedirs('foto_volontari',exist_ok=True)
+                        fn=f"foto_volontari/{sel.replace(' ','_')}_{up.name}"
+                        fout=open(fn,'wb')
+                        fout.write(up.getbuffer())
+                        fout.close()
+                        st.session_state.dati[idx]['FotoFile']=fn
+                        save_json(FD,st.session_state.dati)
+                        st.success(f"Foto salvata per {sel}")
+                        st.rerun()
+        else:
+            st.info("Nessun volontario")
+    st.divider()
     if st.session_state.dati:
         df=pd.DataFrame(st.session_state.dati)
-        st.markdown("### Elenco - Clicca riga per maschera aggiornamento")
-        ev=st.dataframe(df,hide_index=False,on_select="rerun",selection_mode="single-row",key='tab_vol')
+        st.markdown("### Elenco - Clicca riga per maschera aggiornamento con foto")
+        ev=st.dataframe(df,hide_index=False,on_select="rerun",selection_mode="single-row",key='vol_list')
         if ev and ev.selection and ev.selection.rows:
             st.session_state.edit_idx=ev.selection.rows[0]
             st.rerun()
@@ -409,7 +456,7 @@ elif sc=='Volontari':
 elif sc=='Mappa':
     to_dash()
     st.markdown("## MAPPA POSTAZIONI")
-    st.markdown("### Mappa sopra - Maschera sotto - Selezione icona")
+    st.markdown("### Clicca su mappa per segnare posizione - poi scegli icona sotto")
     if HAS_MAP:
         try:
             mm=folium.Map(location=[45.8205,8.8250],zoom_start=12)
@@ -425,22 +472,25 @@ elif sc=='Mappa':
                         col='blue'
                     la=float(lat)
                     lo=float(lon)
-                    folium.Marker([la,lo],popup=f"{p.get('Nome','')} - {p.get('Icona','')}",icon=folium.Icon(color=col)).add_to(mm)
+                    icona=p.get('Icona','Default')
+                    folium.Marker([la,lo],popup=f"{p.get('Nome','')} - Icona: {icona}",icon=folium.Icon(color=col)).add_to(mm)
                 except:
                     pass
             mp=st_folium(mm,width=1100,height=400)
             if mp and mp.get('last_clicked'):
                 st.session_state.sel_lat=str(mp['last_clicked']['lat'])
                 st.session_state.sel_lon=str(mp['last_clicked']['lng'])
-                st.success("Posizione selezionata - scegli icona sotto")
+                st.success(f"Posizione cliccata: {st.session_state.sel_lat} - {st.session_state.sel_lon} - Ora scegli icona sotto e salva")
         except Exception as e:
             st.error(f"Errore mappa: {e}")
+    else:
+        st.warning("Mappa non disponibile - installa folium")
     st.divider()
-    st.markdown("### Maschera sotto - Con riferimenti e icona")
+    st.markdown("### Maschera sotto - Con selezione icona quando clicchi mappa")
     if st.session_state.edit_map >=0:
         if st.session_state.edit_map < len(st.session_state.post):
             p=st.session_state.post[st.session_state.edit_map]
-            st.success(f"Modifica postazione: {p.get('Nome','')}")
+            st.success(f"Modifica: {p.get('Nome','')} - Icona attuale: {p.get('Icona','')}")
             with st.form("edit_map"):
                 c1,c2,c3=st.columns(3)
                 with c1:
@@ -463,7 +513,7 @@ elif sc=='Mappa':
                     e_note=st.text_area("Note postazione",value=p.get('Note',''))
                 b1,b2=st.columns(2)
                 with b1:
-                    bs=st.form_submit_button("SALVA MODIFICHE")
+                    bs=st.form_submit_button("SALVA MODIFICHE CON ICONA")
                 with b2:
                     bd=st.form_submit_button("ELIMINA POSTAZIONE")
                 if bs:
@@ -490,6 +540,7 @@ elif sc=='Mappa':
                 st.session_state.edit_map=-1
                 st.rerun()
     else:
+        st.markdown("#### Nuova postazione - Clicca prima su mappa sopra")
         with st.form("mapa",clear_on_submit=True):
             c1,c2,c3=st.columns(3)
             with c1:
@@ -497,33 +548,35 @@ elif sc=='Mappa':
                 m_com=st.text_input("Comune *")
                 m_via=st.text_input("Via")
             with c2:
-                m_lat=st.text_input("Latitudine",value=st.session_state.sel_lat)
-                m_lon=st.text_input("Longitudine",value=st.session_state.sel_lon)
+                m_lat=st.text_input("Latitudine - click mappa sopra",value=st.session_state.sel_lat)
+                m_lon=st.text_input("Longitudine - click mappa sopra",value=st.session_state.sel_lon)
                 m_tipo=st.selectbox("Tipo postazione",['COC','Campo base','Magazzino','Sede','Punto ritrovo','Altro'])
                 lst=['Default','COC','Campo','Magazzino','Sede','Mezzo']
                 if st.session_state.icone:
                     lst=[]
                     for it in st.session_state.icone:
                         lst.append(it.get('Nome','Default'))
-                m_icon=st.selectbox("Scegli icona per posizione selezionata",lst)
+                m_icon=st.selectbox("SCEGLI ICONA - Quando clicchi su mappa",lst)
+                st.info(f"Icone disponibili: {len(lst)} - da Libreria Icone")
             with c3:
-                m_r1=st.text_input("Riferimento 1 Coordinatore")
-                m_r2=st.text_input("Riferimento 2 Telefono")
+                m_r1=st.text_input("Rif Coordinatore")
+                m_r2=st.text_input("Rif Telefono")
                 m_note=st.text_area("Note postazione")
-            bm=st.form_submit_button("SALVA POSTAZIONE CON ICONA")
+            bm=st.form_submit_button("SALVA POSTAZIONE CON ICONA SELEZIONATA")
             if bm:
                 if m_nome and m_com:
                     nuovo={'Nome':m_nome,'Comune':m_com,'Via':m_via,'Lat':m_lat,'Lon':m_lon,'Tipo':m_tipo,'Icona':m_icon,'Rif1':m_r1,'Rif2':m_r2,'Note':m_note}
                     st.session_state.post.append(nuovo)
                     save_json(FP,st.session_state.post)
-                    st.success(f"Salvata {m_nome} con icona {m_icon}")
+                    st.success(f"Postazione {m_nome} salvata con icona {m_icon}!")
+                    st.balloons()
                     st.rerun()
     if st.session_state.post:
         st.divider()
-        st.markdown("### Anteprima postazioni con tutte le impostazioni")
+        st.markdown("### Anteprima postazioni con icone")
         df=pd.DataFrame(st.session_state.post)
         st.dataframe(df)
-        ev=st.dataframe(df,hide_index=False,on_select="rerun",selection_mode="single-row",key='tab_mapa')
+        ev=st.dataframe(df,hide_index=False,on_select="rerun",selection_mode="single-row",key='map_list')
         if ev and ev.selection and ev.selection.rows:
             st.session_state.edit_map=ev.selection.rows[0]
             st.rerun()
@@ -531,302 +584,38 @@ elif sc=='Mappa':
 elif sc=='Libreria Icone':
     to_dash()
     st.markdown("## LIBRERIA ICONE")
-    st.markdown("### Maschera icone per mappa")
-    c1,c2=st.columns([1,1])
-    with c1:
-        with st.form("icone",clear_on_submit=True):
+    st.markdown("### Maschera icone - Le icone poi appaiono in Mappa quando clicchi")
+    with st.form("icone",clear_on_submit=True):
+        c1,c2=st.columns(2)
+        with c1:
             i_nome=st.text_input("Nome icona *")
             i_cat=st.selectbox("Categoria",['COC','Campo base','Magazzino','Sede','Mezzo','Volontario','Altro'])
-            i_file=st.file_uploader("Carica icona file",type=['png','jpg','jpeg','svg'])
+        with c2:
             i_desc=st.text_area("Descrizione icona")
-            bi=st.form_submit_button("SALVA ICONA")
-            if bi:
-                if i_nome:
-                    fp=""
-                    if i_file:
-                        try:
-                            os.makedirs('icone',exist_ok=True)
-                            fp=f"icone/{i_nome}_{i_file.name}"
-                            fout=open(fp,'wb')
-                            fout.write(i_file.getbuffer())
-                            fout.close()
-                        except:
-                            pass
-                    nuovo={'Nome':i_nome,'Categoria':i_cat,'File':fp,'Descrizione':i_desc}
-                    st.session_state.icone.append(nuovo)
-                    save_json(FI,st.session_state.icone)
-                    st.success(f"Icona {i_nome} salvata - ora in mappa")
-                    st.rerun()
-    with c2:
-        if st.session_state.icone:
-            df=pd.DataFrame(st.session_state.icone)
-            st.dataframe(df)
-            st.markdown("### Anteprima icone salvate")
-            for ic in st.session_state.icone[-5:]:
-                fp=ic.get('File','')
-                if fp and os.path.exists(fp):
-                    st.image(fp,width=60,caption=ic.get('Nome',''))
-
-elif sc=='Interventi Emergenza':
-    to_dash()
-    st.markdown("## INTERVENTI EMERGENZA")
-    st.markdown("### Maschera intervento completa")
-    with st.form("emerg",clear_on_submit=True):
-        c1,c2,c3=st.columns(3)
-        with c1:
-            d_int=st.date_input("Data intervento *")
-            o_int=st.time_input("Ora intervento *")
-        with c2:
-            com_int=st.text_input("Comune *")
-            via_int=st.text_input("Via *")
-        with c3:
-            civ_int=st.text_input("Civico")
-            odv_int=st.selectbox("ODV",['A.N.A. Sezione Varese','PC Lombardia','CRI','Altro'])
-        az_int=st.text_area("Azione svolta *",height=100)
-        sv=st.form_submit_button("SALVA INTERVENTO")
-        if sv:
-            if com_int and via_int and az_int:
-                nuovo={"Data":str(d_int),"Ora":str(o_int),"Comune":com_int,"Via":via_int,"Civico":civ_int,"ODV":odv_int,"Azione":az_int}
-                st.session_state.interv.append(nuovo)
-                save_json(FE,st.session_state.interv)
-                st.success("Intervento salvato")
+        i_file=st.file_uploader("Carica file icona",type=['png','jpg','jpeg','svg'])
+        bi=st.form_submit_button("SALVA ICONA - POI IN MAPPA")
+        if bi:
+            if i_nome:
+                fp=""
+                if i_file:
+                    try:
+                        os.makedirs('icone',exist_ok=True)
+                        fp=f"icone/{i_nome}_{i_file.name}"
+                        fout=open(fp,'wb')
+                        fout.write(i_file.getbuffer())
+                        fout.close()
+                    except:
+                        pass
+                nuovo={'Nome':i_nome,'Categoria':i_cat,'File':fp,'Descrizione':i_desc}
+                st.session_state.icone.append(nuovo)
+                save_json(FI,st.session_state.icone)
+                st.success(f"Icona {i_nome} salvata - Ora appare in Mappa quando clicchi posizione!")
                 st.rerun()
-    if st.session_state.interv:
-        df=pd.DataFrame(st.session_state.interv)
-        st.dataframe(df)
-
-elif sc=='Eventi':
-    to_dash()
-    st.markdown("## EVENTI")
-    st.markdown("### Maschera eventi")
-    with st.form("eventi",clear_on_submit=True):
-        c1,c2=st.columns(2)
-        with c1:
-            ev_nome=st.text_input("Nome evento *")
-            ev_data=st.date_input("Data evento")
-            ev_com=st.text_input("Comune evento")
-        with c2:
-            ev_luogo=st.text_input("Luogo evento")
-            ev_tipo=st.selectbox("Tipo evento",['Esercitazione','Intervento','Formazione','Riunione','Altro'])
-            ev_resp=st.text_input("Responsabile")
-        ev_desc=st.text_area("Descrizione evento")
-        be=st.form_submit_button("SALVA EVENTO")
-        if be:
-            if ev_nome:
-                nuovo={'Nome':ev_nome,'Data':str(ev_data),'Comune':ev_com,'Luogo':ev_luogo,'Tipo':ev_tipo,'Responsabile':ev_resp,'Descrizione':ev_desc}
-                st.session_state.eventi.append(nuovo)
-                save_json(FEV,st.session_state.eventi)
-                st.success("Evento salvato")
-                st.rerun()
-    if st.session_state.eventi:
-        df=pd.DataFrame(st.session_state.eventi)
-        st.dataframe(df)
-
-elif sc=='Check In':
-    to_dash()
-    st.markdown("## CHECK IN VOLONTARI")
-    vlist=[d.get('Nome','') for d in st.session_state.dati]
-    if vlist:
-        with st.form("check",clear_on_submit=True):
-            sel=st.selectbox("Seleziona volontario",vlist)
-            d_check=st.date_input("Data check in")
-            o_check=st.time_input("Ora check in")
-            bc=st.form_submit_button("SALVA CHECK IN")
-            if bc:
-                nuovo={'Volontario':sel,'Data':str(d_check),'Ora':str(o_check)}
-                st.session_state.check.append(nuovo)
-                save_json(FC,st.session_state.check)
-                st.success("Check in salvato")
-                st.rerun()
-    if st.session_state.check:
-        df=pd.DataFrame(st.session_state.check)
-        st.dataframe(df)
-
-elif sc=='DB Radio':
-    to_dash()
-    st.markdown("## DB RADIO")
-    st.markdown("### Maschera radio")
-    with st.form("radio",clear_on_submit=True):
-        c1,c2=st.columns(2)
-        with c1:
-            r_mod=st.text_input("Modello radio *")
-            r_mat=st.text_input("Matricola *")
-        with c2:
-            r_freq=st.text_input("Frequenza")
-            r_stato=st.selectbox("Stato radio",['Disponibile','In uso','Guasta','In riparazione'])
-        br=st.form_submit_button("SALVA RADIO")
-        if br:
-            if r_mod and r_mat:
-                nuovo={'Modello':r_mod,'Matricola':r_mat,'Frequenza':r_freq,'Stato':r_stato}
-                st.session_state.radio.append(nuovo)
-                save_json(FR,st.session_state.radio)
-                st.success("Radio salvata")
-                st.rerun()
-    if st.session_state.radio:
-        df=pd.DataFrame(st.session_state.radio)
-        st.dataframe(df)
-
-elif sc=='Consegna Radio':
-    to_dash()
-    st.markdown("## CONSEGNA RADIO")
-    st.markdown("### Maschera consegna")
-    vlist=[d.get('Nome','') for d in st.session_state.dati]
-    rlist=[r.get('Matricola','') for r in st.session_state.radio]
-    if vlist and rlist:
-        with st.form("cons",clear_on_submit=True):
-            s_vol=st.selectbox("Seleziona volontario",vlist)
-            s_rad=st.selectbox("Seleziona radio",rlist)
-            d_cons=st.date_input("Data consegna")
-            b_cons=st.form_submit_button("SALVA CONSEGNA RADIO")
-            if b_cons:
-                nuovo={'Volontario':s_vol,'Radio':s_rad,'Data':str(d_cons)}
-                st.session_state.cons.append(nuovo)
-                save_json(FR2,st.session_state.cons)
-                st.success("Consegna salvata")
-                st.rerun()
-    if st.session_state.cons:
-        df=pd.DataFrame(st.session_state.cons)
-        st.dataframe(df)
-
-elif sc=='Backup':
-    to_dash()
-    st.markdown("## BACKUP E RIPRISTINO")
-    st.markdown("### Export import con selezione form")
-    t1,t2,t3=st.tabs(["EXPORT SELEZIONE","IMPORT SELEZIONE","BACKUP COMPLETO"])
-    with t1:
-        st.markdown("#### Seleziona form da esportare")
-        c1,c2,c3=st.columns(3)
-        with c1:
-            ev=st.checkbox("Volontari",value=True,key='ev')
-            ep=st.checkbox("Mappa postazioni",value=True,key='ep')
-            ei=st.checkbox("Libreria icone",value=True,key='ei')
-        with c2:
-            e_int=st.checkbox("Interventi emergenza",value=True,key='eint')
-            e_ev=st.checkbox("Eventi",value=True,key='eev')
-            e_ch=st.checkbox("Check in",value=True,key='ech')
-        with c3:
-            e_ra=st.checkbox("DB Radio",value=True,key='era')
-            e_co=st.checkbox("Consegna radio",value=True,key='eco')
+    if st.session_state.icone:
         st.divider()
-        if ev and st.session_state.dati:
-            st.download_button('SCARICA VOLONTARI',exp_excel(pd.DataFrame(st.session_state.dati)),file_name='Volontari.xlsx',key='exv')
-        if ep and st.session_state.post:
-            st.download_button('SCARICA MAPPA',exp_excel(pd.DataFrame(st.session_state.post)),file_name='Mappa.xlsx',key='exm')
-        if ei and st.session_state.icone:
-            st.download_button('SCARICA ICONE',exp_excel(pd.DataFrame(st.session_state.icone)),file_name='Icone.xlsx',key='exi')
-        if e_int and st.session_state.interv:
-            st.download_button('SCARICA INTERVENTI',exp_excel(pd.DataFrame(st.session_state.interv)),file_name='Interventi.xlsx',key='exint')
-        if e_ev and st.session_state.eventi:
-            st.download_button('SCARICA EVENTI',exp_excel(pd.DataFrame(st.session_state.eventi)),file_name='Eventi.xlsx',key='exev')
-        if e_ch and st.session_state.check:
-            st.download_button('SCARICA CHECK IN',exp_excel(pd.DataFrame(st.session_state.check)),file_name='CheckIn.xlsx',key='exch')
-        if e_ra and st.session_state.radio:
-            st.download_button('SCARICA RADIO',exp_excel(pd.DataFrame(st.session_state.radio)),file_name='Radio.xlsx',key='exra')
-        if e_co and st.session_state.cons:
-            st.download_button('SCARICA CONSEGNA',exp_excel(pd.DataFrame(st.session_state.cons)),file_name='Consegna.xlsx',key='exco')
-    with t2:
-        st.markdown("#### Import selezione form")
-        c1,c2=st.columns(2)
-        with c1:
-            up_v=st.file_uploader('Import Volontari',type=['xlsx'],key='upv')
-            if up_v:
-                df_up=pd.read_excel(up_v)
-                if st.button(f'IMPORTA {len(df_up)} VOLONTARI',key='imv'):
-                    for _,r in df_up.iterrows():
-                        st.session_state.dati.append(r.to_dict())
-                    save_json(FD,st.session_state.dati)
-                    st.success("Volontari importati")
-                    st.rerun()
-            up_p=st.file_uploader('Import Mappa postazioni',type=['xlsx'],key='upp')
-            if up_p:
-                df_up=pd.read_excel(up_p)
-                if st.button(f'IMPORTA {len(df_up)} POSTAZIONI',key='imp'):
-                    for _,r in df_up.iterrows():
-                        st.session_state.post.append(r.to_dict())
-                    save_json(FP,st.session_state.post)
-                    st.success("Postazioni importate")
-                    st.rerun()
-            up_e=st.file_uploader('Import Eventi',type=['xlsx'],key='upe')
-            if up_e:
-                df_up=pd.read_excel(up_e)
-                if st.button(f'IMPORTA {len(df_up)} EVENTI',key='ime'):
-                    for _,r in df_up.iterrows():
-                        st.session_state.eventi.append(r.to_dict())
-                    save_json(FEV,st.session_state.eventi)
-                    st.success("Eventi importati")
-                    st.rerun()
-        with c2:
-            up_i=st.file_uploader('Import Interventi',type=['xlsx'],key='upi')
-            if up_i:
-                df_up=pd.read_excel(up_i)
-                if st.button(f'IMPORTA {len(df_up)} INTERVENTI',key='imi'):
-                    for _,r in df_up.iterrows():
-                        st.session_state.interv.append(r.to_dict())
-                    save_json(FE,st.session_state.interv)
-                    st.success("Interventi importati")
-                    st.rerun()
-            up_r=st.file_uploader('Import Radio',type=['xlsx'],key='upr')
-            if up_r:
-                df_up=pd.read_excel(up_r)
-                if st.button(f'IMPORTA {len(df_up)} RADIO',key='imr'):
-                    for _,r in df_up.iterrows():
-                        st.session_state.radio.append(r.to_dict())
-                    save_json(FR,st.session_state.radio)
-                    st.success("Radio importate")
-                    st.rerun()
-    with t3:
-        if st.button('CREA BACKUP COMPLETO DI TUTTI I FORM'):
-            out=BytesIO()
-            w=pd.ExcelWriter(out,engine='openpyxl')
-            if st.session_state.dati:
-                pd.DataFrame(st.session_state.dati).to_excel(w,sheet_name='Volontari',index=False)
-            if st.session_state.post:
-                pd.DataFrame(st.session_state.post).to_excel(w,sheet_name='Mappa',index=False)
-            if st.session_state.icone:
-                pd.DataFrame(st.session_state.icone).to_excel(w,sheet_name='Icone',index=False)
-            if st.session_state.interv:
-                pd.DataFrame(st.session_state.interv).to_excel(w,sheet_name='Interventi',index=False)
-            if st.session_state.eventi:
-                pd.DataFrame(st.session_state.eventi).to_excel(w,sheet_name='Eventi',index=False)
-            if st.session_state.check:
-                pd.DataFrame(st.session_state.check).to_excel(w,sheet_name='CheckIn',index=False)
-            if st.session_state.radio:
-                pd.DataFrame(st.session_state.radio).to_excel(w,sheet_name='Radio',index=False)
-            if st.session_state.cons:
-                pd.DataFrame(st.session_state.cons).to_excel(w,sheet_name='Consegna',index=False)
-            w.close()
-            st.session_state['bk']=out.getvalue()
-            st.success('Backup completo creato')
-            st.balloons()
-        if 'bk' in st.session_state:
-            st.download_button('SCARICA BACKUP COMPLETO',st.session_state['bk'],file_name='BACKUP_COMPLETO.xlsx',key='bkt')
-
-elif sc=='Tesserino':
-    to_dash()
-    st.markdown("## TESSERINO NITIDO PICCOLO")
-    st.markdown("### 860x540 - Foto + ODV + Barcode CF")
-    if st.session_state.dati:
-        df=pd.DataFrame(st.session_state.dati)
-        st.markdown("### Clicca riga volontario per generare tesserino")
-        ev=st.dataframe(df,on_select="rerun",selection_mode="single-row",key='tt')
-        if ev and ev.selection and ev.selection.rows:
-            idx=ev.selection.rows[0]
-            vol=st.session_state.dati[idx]
-            st.divider()
-            c1,c2=st.columns([1,2])
-            with c1:
-                fp=vol.get('FotoFile','')
-                if fp and os.path.exists(fp):
-                    st.image(fp,width=200)
-            with c2:
-                tess=tess_make(vol,vol.get('FotoFile',''),"Tesserino-Ezio.JPG" if os.path.exists("Tesserino-Ezio.JPG") else None)
-                if tess:
-                    st.image(tess)
-                    st.download_button('SCARICA TESSERINO NITIDO PICCOLO',tess,file_name=f"Tesserino_{vol.get('Nome','')}_NITIDO.png",mime='image/png',key='t1')
-                    st.download_button('SCARICA QUELLO SOTTO OK',tess,file_name=f"Tesserino_{vol.get('Nome','')}_SOTTO.png",mime='image/png',key='t2')
-    else:
-        st.warning("Nessun volontario presente")
-
-else:
-    to_dash()
-    st.markdown(f"### {sc} - Form in preparazione")
+        st.markdown("### Icone salvate - Disponibili in Mappa")
+        df=pd.DataFrame(st.session_state.icone)
+        st.dataframe(df)
+        st.markdown("### Anteprima icone")
+        cols=st.columns(5)
+        for idx,ic in enumerate(st.session_state.icone
