@@ -4,3 +4,6 @@ openpyxl
 folium
 streamlit-folium
 requests
+Pillow
+reportlab
+fpdf2
