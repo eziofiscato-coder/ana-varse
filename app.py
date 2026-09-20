@@ -76,10 +76,10 @@ if not st.session_state.utenti:
  st.session_state.utenti=[{'username':'admin','password':hash_pwd('ana2024')}]
  save_json(FU,st.session_state.utenti)
 if not st.session_state.tipologie:
- st.session_state.tipologie=['Presidio','Blocco stradale','Punto ritrovo','Parcheggio','Sanitario','Logistica','Altro']
+ st.session_state.tipologie=['Presidio','Blocco stradale','Punto ritrovo','Parcheggio','Sanitario','Logistica','Altro','cancello']
  save_json(FT,st.session_state.tipologie)
 if not st.session_state.odv_list:
- st.session_state.odv_list=['ANA Varese','Protezione Civile Varese','Croce Rossa','Alpini','AIB','Altro']
+ st.session_state.odv_list=['ANA Varese','Protezione Civile Varese','Croce Rossa','Alpini','AIB','Altro','ANC Insubria']
  save_json(FO,st.session_state.odv_list)
 if not st.session_state.icone:
  st.session_state.icone=[{'nome':'Presidio','col':'blue'},{'nome':'Blocco','col':'red'},{'nome':'Sanitario','col':'green'}]
