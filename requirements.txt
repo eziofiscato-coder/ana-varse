@@ -8,3 +8,4 @@ Pillow
 reportlab
 fpdf2
 qrcode
+python-barcode
