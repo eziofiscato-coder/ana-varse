@@ -338,53 +338,7 @@ def torna():
         st.session_state.menu='Dashboard'
         st.rerun()
 
-# SCHERMO INTERO MAPPA
-if st.session_state.exp1:
-    st.markdown("<style>header{visibility:hidden!important;} [data-testid='stSidebar']{display:none!important;}</style>", unsafe_allow_html=True)
-    if st.button('TORNA AL FORM',use_container_width=True,type='primary'):
-        st.session_state.exp1=False
-        st.rerun()
-    st.markdown('## MAPPA SCHERMO INTERO - CLICCA PER SCEGLIERE VIA COMUNE LAT LON')
-    lat_c=st.session_state.lat
-    lon_c=st.session_state.lon
-    zm=st.session_state.zoom
-    if HAS:
-        m=folium.Map(location=[lat_c,lon_c],zoom_start=zm,tiles='OpenStreetMap')
-        for idx,p in enumerate(st.session_state.post):
-            try:
-                la=float(p.get('Lat','0'))
-                lo=float(p.get('Lon','0'))
-                ficon=p.get('IconFile','')
-                if ficon and os.path.exists(ficon):
-                    ic=folium.CustomIcon(ficon,icon_size=(40,40))
-                    folium.Marker([la,lo],popup=p.get('Postazione',''),icon=ic).add_to(m)
-                else:
-                    col='red' if idx==st.session_state.sel else 'blue'
-                    folium.Marker([la,lo],popup=p.get('Postazione',''),icon=folium.Icon(color=col)).add_to(m)
-            except:
-                pass
-        if st.session_state.clat is not None:
-            folium.Marker([st.session_state.clat,st.session_state.clon],icon=folium.Icon(color='green')).add_to(m)
-        out=st_folium(m,height=850,width=1600,key='full1')
-        if out and out.get('last_clicked'):
-            try:
-                nl=out['last_clicked']['lat']
-                ng=out['last_clicked']['lng']
-                st.session_state.lat=nl
-                st.session_state.lon=ng
-                st.session_state.clat=nl
-                st.session_state.clon=ng
-                com,via=gaddr(nl,ng)
-                st.session_state.com=com
-                st.session_state.via=via
-                st.session_state.sel=-1
-                st.session_state.zoom=16
-                st.rerun()
-            except:
-                pass
-    st.stop()
-
-# POPUP INIZIALE - SOLO TUA IMMAGINE FUMETTO, NO LOGO
+# POPUP INIZIALE - SOLO TUA IMMAGINE FUMETTO
 if st.session_state.popup_cfg.get('mostra',True) and not st.session_state.popup_shown:
     st.markdown(f"<h1 style='text-align:center;color:#0e7a3d;font-family:Times New Roman;'>{st.session_state.popup_cfg.get('titolo','ANA VARESE - VOLONTARIATO')}</h1>", unsafe_allow_html=True)
     st.markdown(f"<h3 style='text-align:center;color:#0e7a3d;'>{st.session_state.popup_cfg.get('sottotitolo','Ciao Ragazzi, Buon Lavoro!')}</h3>", unsafe_allow_html=True)
@@ -392,19 +346,23 @@ if st.session_state.popup_cfg.get('mostra',True) and not st.session_state.popup_
     c1,c2,c3=st.columns([1,2,1])
     with c2:
         img_found=False
-        for img_name in ['copertina.jpg','copertina_fumetto.jpg','mia_immagine_fumetto.jpg','benvenuto.jpg']:
+        for img_name in ['copertina.jpg','copertina_fumetto.jpg','mia_immagine_fumetto.jpg','benvenuto.jpg','copertina.png','logo.png']:
             if os.path.exists(img_name):
                 try:
                     st.image(img_name,use_container_width=True)
-                    st.success(f"Tua immagine con fumetto: {img_name} - NO logo PC - Prima pagina")
+                    if 'copertina' in img_name:
+                        st.success(f"La tua immagine con fumetto: {img_name} - NO logo PC")
+                    else:
+                        st.warning(f"Trovato {img_name} - carica copertina.jpg con tua immagine fumetto")
                     img_found=True
-                    break
+                    if 'copertina' in img_name:
+                        break
                 except:
                     pass
         if not img_found:
             st.error("MANCA IMMAGINE PRIMA PAGINA!")
-            st.warning("Carica la tua immagine con fumetto come copertina.jpg su GitHub - NO logo qui!")
-            st.markdown("<div style='background:#e8f5e9;padding:20px;border-radius:10px;text-align:center;border:2px dashed #0e7a3d;'><h3>QUI VA LA TUA IMMAGINE FUMETTO</h3><p>Ciao Ragazzi, Buon Lavoro!</p><p>Carica copertina.jpg su GitHub</p></div>", unsafe_allow_html=True)
+            st.warning("Carica la tua immagine con fumetto come copertina.jpg")
+            st.markdown("<div style='background:#e8f5e9;padding:20px;border-radius:10px;text-align:center;border:2px dashed #0e7a3d;'><h3>QUI VA LA TUA IMMAGINE FUMETTO</h3><p>Carica copertina.jpg su GitHub</p></div>", unsafe_allow_html=True)
         st.divider()
         st.markdown(f"<div style='background:#e8f5e9;padding:15px;border-radius:10px;border:2px solid #0e7a3d;text-align:center;'><b style='font-size:20px;'>ANA Varese - Protezione Civile</b><br><b style='color:#0e7a3d;font-size:18px;'>Ciao Ragazzi, Buon Lavoro!</b><br><br>Volontari: {len(st.session_state.dati)} - Postazioni: {len(st.session_state.post)}<br>Data: {datetime.now().strftime('%d/%m/%Y %H:%M')}</div>", unsafe_allow_html=True)
         st.divider()
@@ -505,19 +463,16 @@ if scelta=='Dashboard':
         st.metric('Emergenze',len(st.session_state.emerg))
         st.metric('Radio',len(st.session_state.radio))
     st.divider()
-    st.markdown("**Anteprima immagine prima pagina (popup) - TUA IMMAGINE FUMETTO, NO logo:**")
+    st.markdown("**Anteprima immagine prima pagina (popup):**")
     for img_name in ['copertina.jpg','copertina_fumetto.jpg']:
         if os.path.exists(img_name):
             st.image(img_name,width=300,caption=f"{img_name} - tua immagine fumetto per prima pagina")
             break
-    else:
-        st.warning("Manca copertina.jpg - carica tua immagine con fumetto!")
 
 elif scelta=='Volontari':
     torna()
     st.markdown('<h3>VOLONTARI - CON FOTO + CF + ODV + TESSERINO</h3>', unsafe_allow_html=True)
     tab1,tab2,tab3,tab4,tab5,tab6=st.tabs(['Anagrafica + Foto e CF','Contatti','Ruolo e ODV','Documenti','Elenco con Foto','Tesserino come Esempio'])
-
     with tab1:
         with st.form('form_vol_anag'):
             c1,c2=st.columns(2)
@@ -557,7 +512,6 @@ elif scelta=='Volontari':
                     save(FD,st.session_state.dati)
                     st.success(f"Salvato {nc} con CF {a_cf} per barcode tesserino!")
                     st.rerun()
-
     with tab2:
         with st.form('form_vol_cont'):
             vol_list=[d.get('Nome','') for d in st.session_state.dati] or ['Nessun volontario']
@@ -581,7 +535,6 @@ elif scelta=='Volontari':
                         save(FD,st.session_state.dati)
                         st.success(f"Contatti salvati per {sel_vol}")
                         st.rerun()
-
     with tab3:
         with st.form('form_vol_ruolo'):
             vol_list=[d.get('Nome','') for d in st.session_state.dati] or ['Nessun volontario']
@@ -608,324 +561,7 @@ elif scelta=='Volontari':
                         save(FD,st.session_state.dati)
                         st.success(f"Ruolo e ODV {c_odv} salvati per {sel_vol2}")
                         st.rerun()
-
-    with tab5:
-        st.markdown('##### ELENCO VOLONTARI CON FOTO')
-        if st.session_state.dati:
-            df=pd.DataFrame(st.session_state.dati)
-            st.dataframe(df,use_container_width=True)
-            st.download_button('SCARICA EXCEL VOLONTARI',export_excel(df),file_name='Volontari.xlsx')
-            if st.button('CREA PDF VOLONTARI',key='pdf_vol_btn'):
-                pdf=make_pdf("Volontari ANA Varese",df)
-                if pdf:
-                    st.session_state['pdf_vol']=pdf
-                    st.success('PDF creato!')
-            if 'pdf_vol' in st.session_state:
-                st.download_button('SCARICA PDF VOLONTARI',st.session_state['pdf_vol'],file_name='Volontari_ANA_Varese.pdf',mime='application/pdf',use_container_width=True)
-
-    with tab6:
-        st.markdown('##### TESSERINO REGIONE LOMBARDIA - IDENTICO AL TUO ESEMPIO')
-        st.info("Replica esatta: loghi e intestazione UGUALI, cambiano solo nome cognome, ODV, foto, barcode CF")
-        vol_list=[d.get('Nome','') for d in st.session_state.dati] or []
-        if not vol_list:
-            st.warning('Nessun volontario')
-        else:
-            sel_tess=st.selectbox('Seleziona Volontario per Tesserino',vol_list,key='sel_tess_vol')
-            vol_data={}
-            for d in st.session_state.dati:
-                if d.get('Nome','')==sel_tess:
-                    vol_data=d
-                    break
-            c1,c2=st.columns([1,2])
-            with c1:
-                fp=vol_data.get('FotoFile','')
-                if fp and os.path.exists(fp):
-                    st.image(fp,width=150,caption=f"Foto {sel_tess}")
-                st.write(f"**Nome:** {vol_data.get('Nome','')}")
-                st.write(f"**CF:** {vol_data.get('CF','')} (barcode)")
-                st.write(f"**ODV:** {vol_data.get('ODV','A.N.A. Sezione di Varese')}")
-                if os.path.exists("Tesserino-Ezio.JPG"):
-                    st.image("Tesserino-Ezio.JPG",caption="Template originale con loghi UGUALI",use_container_width=True)
-                else:
-                    up_tmpl=st.file_uploader('Carica template tesserino per loghi uguali',type=['jpg','png','jpeg'],key='tmpl_tess')
-                    if up_tmpl is not None:
-                        with open("Tesserino-Ezio.JPG",'wb') as f:
-                            f.write(up_tmpl.getbuffer())
-                        st.success('Template salvato!')
-                        st.rerun()
-            with c2:
-                st.markdown('##### Anteprima Tesserino - IDENTICO')
-                foto_path=vol_data.get('FotoFile','')
-                tmpl_path="Tesserino-Ezio.JPG" if os.path.exists("Tesserino-Ezio.JPG") else None
-                tess_bytes=crea_tesserino_identico(vol_data, foto_path, tmpl_path)
-                if tess_bytes:
-                    st.image(tess_bytes,use_container_width=True)
-                    st.download_button('SCARICA TESSERINO PNG',tess_bytes,file_name=f"Tesserino_{sel_tess.replace(' ','_')}.png",mime='image/png',use_container_width=True,type='primary')
-
-elif scelta=='Mappa':
-    torna()
-    st.markdown('<h3>MAPPA - CLICCA SU MAPPA PER INSERIRE VIA COMUNE LAT LON + MAPPA SOTTO CON POSTAZIONI + TASTI VAI + GOOGLE MAPS + WAZE</h3>', unsafe_allow_html=True)
-
-    st.markdown("##### 1. CLICCA SULLA MAPPA PER SCEGLIERE POSTAZIONE - TI RIEMPIE VIA COMUNE LAT LON")
-    icon_names=[it.get('nome','') for it in st.session_state.icone]
-    sel_idx=0
-    if icon_names:
-        sel_str=st.selectbox('Icona PNG da libreria per questa postazione',icon_names,index=0)
-        sel_idx=icon_names.index(sel_str)
-        try:
-            ic_sel=st.session_state.icone[sel_idx]
-            fsel=ic_sel.get('file','')
-            if fsel and os.path.exists(fsel):
-                st.image(fsel,width=60,caption=f"Icona: {sel_str}")
-        except:
-            pass
-
-    c1,c2=st.columns([3,1])
-    with c1:
-        st.info("Clicca sulla mappa qui sotto per scegliere la postazione - via comune lat lon si compilano da soli")
-    with c2:
-        if st.button('ESPANDI SCHERMO INTERO',use_container_width=True,key='e1'):
-            st.session_state.exp1=True
-            st.rerun()
-
-    lat_c=st.session_state.lat
-    lon_c=st.session_state.lon
-    zm=st.session_state.zoom
-
-    if HAS:
-        m=folium.Map(location=[lat_c,lon_c],zoom_start=zm,tiles='OpenStreetMap')
-        for idx,p in enumerate(st.session_state.post):
-            try:
-                la=float(p.get('Lat','0'))
-                lo=float(p.get('Lon','0'))
-                ficon=p.get('IconFile','')
-                if ficon and os.path.exists(ficon):
-                    ic=folium.CustomIcon(ficon,icon_size=(40,40))
-                    folium.Marker([la,lo],popup=f"{p.get('Postazione','')} - {p.get('Comune','')}",icon=ic).add_to(m)
-                else:
-                    col='red' if idx==st.session_state.sel else 'blue'
-                    folium.Marker([la,lo],popup=f"{p.get('Postazione','')} - {p.get('Comune','')}",icon=folium.Icon(color=col)).add_to(m)
-            except:
-                pass
-        if st.session_state.clat is not None:
-            folium.Marker([st.session_state.clat,st.session_state.clon],icon=folium.Icon(color='green',icon='plus')).add_to(m)
-        out=st_folium(m,height=500,width=900,key='map_top')
-        if out and out.get('last_clicked'):
-            try:
-                nl=out['last_clicked']['lat']
-                ng=out['last_clicked']['lng']
-                st.session_state.lat=nl
-                st.session_state.lon=ng
-                st.session_state.clat=nl
-                st.session_state.clon=ng
-                com,via=gaddr(nl,ng)
-                st.session_state.com=com
-                st.session_state.via=via
-                st.session_state.sel=-1
-                st.session_state.zoom=16
-                st.rerun()
-            except:
-                pass
-
-    c1,c2,c3,c4=st.columns(4)
-    with c1:
-        st.success(f"Comune: {st.session_state.com}")
-    with c2:
-        st.success(f"Via: {st.session_state.via}")
-    with c3:
-        st.info(f"Lat: {round(st.session_state.lat,6)}")
-    with c4:
-        st.info(f"Lon: {round(st.session_state.lon,6)}")
-
-    st.divider()
-    st.markdown("##### 2. MASCHERA - INSERISCI DATI POSTAZIONE (via comune lat lon già compilati)")
-    vol_nomi=[d.get('Nome','') for d in st.session_state.dati] or ['Nessun volontario']
-    with st.form('form_mappa'):
-        c1,c2=st.columns(2)
-        with c1:
-            m1=st.text_input('Nome postazione *',placeholder='Es: Presidio 1 - Piazza Varese')
-            m2=st.text_input('Comune *',value=st.session_state.com,help='Si compila automatico dopo click su mappa')
-            m3=st.text_input('Via *',value=st.session_state.via,help='Si compila automatico dopo click su mappa')
-            m4=st.selectbox('Tipologia *',st.session_state.tip)
-            m_data=st.date_input('Data Attivazione (gg/mm/aaaa)',value=date.today(),format="DD/MM/YYYY")
-        with c2:
-            m5=st.text_input('Latitudine *',value=str(st.session_state.lat),help='Si compila automatico dopo click su mappa')
-            m6=st.text_input('Longitudine *',value=str(st.session_state.lon),help='Si compila automatico dopo click su mappa')
-            m8=st.selectbox('Responsabile *',vol_nomi)
-            for d in st.session_state.dati:
-                if d.get('Nome','')==m8:
-                    fp=d.get('FotoFile','')
-                    if fp and os.path.exists(fp):
-                        st.image(fp,width=80,caption=f"Foto {m8}")
-            m9=st.selectbox('ODV operante *',st.session_state.odv)
-            m9_new=st.text_input('Nuova ODV se non in lista')
-        if st.form_submit_button('SALVA POSTAZIONE',type="primary",use_container_width=True):
-            if m1:
-                odv_f=m9_new if m9_new else m9
-                if odv_f not in st.session_state.odv and odv_f:
-                    st.session_state.odv.append(odv_f)
-                    save(FO,st.session_state.odv)
-                ic=st.session_state.icone[sel_idx] if st.session_state.icone else {'col':'blue','file':'','nome':''}
-                nuovo={'Postazione':m1,'Comune':m2,'Via':m3,'Lat':m5,'Lon':m6,'Responsabile':m8,'ODV':odv_f,'Tipo':m4,'DataAttivazione':fmt_date(m_data),'Icona':ic.get('nome',''),'IconFile':ic.get('file',''),'Col':ic.get('col','blue')}
-                st.session_state.post.append(nuovo)
-                save(FP,st.session_state.post)
-                st.session_state.clat=None
-                st.session_state.clon=None
-                st.success(f"Salvata postazione {m1} a {m2} - {m3} - Lat {m5} Lon {m6}")
-                st.rerun()
-
-    st.divider()
-    st.markdown("##### 3. MAPPA SOTTO CON TUTTE LE POSTAZIONI + TASTI CHE APRONO MAPPA NEL PUNTO GIUSTO + GOOGLE MAPS + WAZE")
-    if st.session_state.post:
-        if HAS:
-            m2=folium.Map(location=[45.8205,8.8250],zoom_start=11,tiles='OpenStreetMap')
-            for p in st.session_state.post:
-                try:
-                    la=float(p.get('Lat','0'))
-                    lo=float(p.get('Lon','0'))
-                    ficon=p.get('IconFile','')
-                    if ficon and os.path.exists(ficon):
-                        ic=folium.CustomIcon(ficon,icon_size=(40,40))
-                        folium.Marker([la,lo],popup=f"{p.get('Postazione','')} - {p.get('Comune','')} {p.get('Via','')}",icon=ic).add_to(m2)
-                    else:
-                        folium.Marker([la,lo],popup=f"{p.get('Postazione','')} - {p.get('Comune','')}",icon=folium.Icon(color='blue')).add_to(m2)
-                except:
-                    pass
-            st_folium(m2,height=450,width=900,key='map_all_postazioni')
-
-        st.markdown("**Elenco postazioni - clicca VAI per centrare mappa, oppure apri con Google Maps / Waze:**")
-        for idx,p in enumerate(st.session_state.post):
-            c1,c2,c3,c4=st.columns([2,2,2,4])
-            with c1:
-                st.write(f"**{p.get('Postazione','')}**")
-                st.caption(f"{p.get('Comune','')} - {p.get('Via','')}")
-                st.write(f"Lat: {p.get('Lat','')} Lon: {p.get('Lon','')}")
-            with c2:
-                st.write(f"Resp: {p.get('Responsabile','')}")
-                for d in st.session_state.dati:
-                    if d.get('Nome','')==p.get('Responsabile',''):
-                        fp=d.get('FotoFile','')
-                        if fp and os.path.exists(fp):
-                            st.image(fp,width=60)
-                st.write(f"ODV: {p.get('ODV','')}")
-            with c3:
-                # Link Google Maps e Waze
-                try:
-                    la=p.get('Lat','')
-                    lo=p.get('Lon','')
-                    gmaps_url=f"https://www.google.com/maps/search/?api=1&query={la},{lo}"
-                    waze_url=f"https://waze.com/ul?ll={la},{lo}&navigate=yes"
-                    st.link_button('🗺️ Google Maps',gmaps_url,use_container_width=True)
-                    st.link_button('🚗 Waze',waze_url,use_container_width=True)
-                except:
-                    pass
-            with c4:
-                col1,col2,col3=st.columns(3)
-                with col1:
-                    if st.button('📍 VAI',key=f'vai_{idx}',use_container_width=True):
-                        try:
-                            st.session_state.lat=float(p.get('Lat','0'))
-                            st.session_state.lon=float(p.get('Lon','0'))
-                            st.session_state.clat=float(p.get('Lat','0'))
-                            st.session_state.clon=float(p.get('Lon','0'))
-                            st.session_state.com=p.get('Comune','')
-                            st.session_state.via=p.get('Via','')
-                            st.session_state.sel=idx
-                            st.session_state.zoom=18
-                            st.success(f"Centrata mappa su {p.get('Postazione','')}")
-                            st.rerun()
-                        except:
-                            st.error("Coordinate non valide")
-                with col2:
-                    if st.button('🔍 Dettagli',key=f'det_{idx}',use_container_width=True):
-                        st.session_state.prev=idx
-                        st.session_state.exp2=False
-                        st.session_state.exp1=False
-                        # Mostra dettagli
-                        st.info(f"{p.get('Postazione','')} - {p.get('Comune','')} {p.get('Via','')} - Resp: {p.get('Responsabile','')} - ODV: {p.get('ODV','')} - Data: {p.get('DataAttivazione','')}")
-                with col3:
-                    if st.button('🗑️ Elimina',key=f'del_post_{idx}',use_container_width=True):
-                        st.session_state.post.pop(idx)
-                        save(FP,st.session_state.post)
-                        st.rerun()
-            st.divider()
-
-        df_post=pd.DataFrame(st.session_state.post)
-        st.dataframe(df_post,use_container_width=True)
-        c1,c2=st.columns(2)
-        with c1:
-            st.download_button('SCARICA EXCEL MAPPA',export_excel(df_post),file_name='Mappa_Postazioni.xlsx')
-        with c2:
-            if st.button('CREA PDF MAPPA',key='pdf_mappa_btn'):
-                pdf=make_pdf("Mappa Postazioni ANA Varese - Con Via Comune Lat Lon + Google Maps Waze",df_post)
-                if pdf:
-                    st.session_state['pdf_mappa']=pdf
-                    st.success('PDF mappa creato!')
-        if 'pdf_mappa' in st.session_state:
-            st.download_button('SCARICA PDF MAPPA',st.session_state['pdf_mappa'],file_name='Mappa_Postazioni.pdf',mime='application/pdf')
-    else:
-        st.warning("Nessuna postazione - clicca sulla mappa in alto per iniziare - via comune lat lon si compilano automatici")
-
-elif scelta=='Libreria Icone':
-    torna()
-    st.markdown('#### LIBRERIA ICONE - UPLOAD PNG')
-    with st.form('form_icone'):
-        c1,c2=st.columns(2)
-        with c1:
-            n1=st.text_input('Nome icona *')
-            n3=st.selectbox('Colore',['blue','red','green','orange','black'])
-        with c2:
-            up_file=st.file_uploader('Carica PNG',type=['png','jpg','jpeg'],key='single_png')
-        if st.form_submit_button('SALVA ICONA'):
-            if n1:
-                fname=''
-                if up_file is not None:
-                    os.makedirs('icone',exist_ok=True)
-                    fname=f"icone/{n1}_{up_file.name}"
-                    with open(fname,'wb') as f:
-                        f.write(up_file.getbuffer())
-                nuovo={'nome':n1,'col':n3,'file':fname}
-                st.session_state.icone.append(nuovo)
-                save(FI,st.session_state.icone)
-                st.success('Salvata')
-                st.rerun()
-    if st.session_state.icone:
-        for idx,ic in enumerate(st.session_state.icone):
-            c1,c2,c3,c4=st.columns([2,1,2,1])
-            with c1:
-                st.write(f"{ic.get('nome','')}")
-            with c2:
-                f=ic.get('file','')
-                if f and os.path.exists(f):
-                    try:
-                        st.image(f,width=50)
-                    except:
-                        st.write('Img')
-            with c4:
-                if st.button('Elimina',key=f'del_{idx}'):
-                    st.session_state.icone.pop(idx)
-                    save(FI,st.session_state.icone)
-                    st.rerun()
-
-elif scelta=='Emergenza':
-    torna()
-    st.markdown('#### EMERGENZA - DATA GG/MM/AAAA')
-    with st.form('form_emerg'):
-        c1,c2=st.columns(2)
-        with c1:
-            e1=st.text_input('Nome emergenza *')
-            e2=st.text_input('Luogo *')
-            e3=st.selectbox('Tipo',['Alluvione','Terremoto','Incendio','Neve','Altro'])
-        with c2:
-            e_data=st.date_input('Data Emergenza (gg/mm/aaaa)',value=date.today(),format="DD/MM/YYYY")
-            e_data_fine=st.date_input('Data Fine Prevista (gg/mm/aaaa)',value=date.today(),format="DD/MM/YYYY")
-            e_desc=st.text_area('Descrizione')
-        if st.form_submit_button('SALVA EMERGENZA'):
-            if e1:
-                nuovo={'Emergenza':e1,'Luogo':e2,'Tipo':e3,'DataEmergenza':fmt_date(e_data),'DataFine':fmt_date(e_data_fine),'Desc':e_desc}
-                st.session_state.emerg.append(nuovo)
-                save(FE,st.session_state.emerg)
-                st.success(f"Salvata {e1}")
-                st.rerun()
-    if st.session_state.emerg:
-        df_emerg=pd.DataFrame(st.session
+    with tab4:
+        with st.form('form_vol_doc'):
+            vol_list=[d.get('Nome','') for d in st.session_state.dati] or ['Nessun volontario']
+            sel_vol3=st.selectbox('Seleziona Vol
