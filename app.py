@@ -161,8 +161,8 @@ def hdr():
     a,b=st.columns([1,5])
     with a:
         try:
-            if os.path.exists("fumetto.png"):
-                st.image("fumetto.png",width=100)
+            if os.path.exists("mia_foto_ieri.png"):
+                st.image("mia_foto_ieri.png",width=100)
             elif os.path.exists("logo.png"):
                 st.image("logo.png",width=100)
             else:
@@ -171,7 +171,6 @@ def hdr():
             st.write("ANA")
     with b:
         st.markdown("<div class='ana-head'><b>ANA VARESE</b></div>", unsafe_allow_html=True)
-
 def to_dash():
     if st.button('TORNA DASHBOARD'):
         st.session_state.menu='Dashboard'
