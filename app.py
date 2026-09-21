@@ -616,7 +616,7 @@ elif sc=='Libreria Icone':
     st.markdown("<div class='ana-head'><b>LIBRERIA ICONE</b></div>", unsafe_allow_html=True)
     st.markdown("<div class='ana-box'>MASCHERA ICONE - VERDE ANA</div>", unsafe_allow_html=True)
     # FIX RIGA 632 - FORM FUORI DAL DIV - NO MARKDOWN PRIMA!
-    with st.form("icone"):
+    with st.button("icone"):
         i_nome=st.text_input("Nome *")
         i_cat=st.text_input("Cat")
         i_desc=st.text_area("Desc")
