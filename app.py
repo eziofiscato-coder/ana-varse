@@ -184,6 +184,7 @@ elif st.session_state.page == 'dashboard':
         st.markdown('## Brogliaccio')
         with st.form('brog'):
             mittente = st.text_input('Mittente *')
+            destinatario = st.text_input('Destinatario *')
             msg = st.text_area('Messaggio *')
             if st.form_submit_button('Salva', use_container_width=True, type='primary'):
                 if msg:
