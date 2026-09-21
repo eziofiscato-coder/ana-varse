@@ -161,6 +161,7 @@ def hdr():
     with col_logo:
         try:
             st.image("logo.png",width=120)
+            
 def hdr():
     col_logo, col_tit = st.columns([1,5])
     with col_logo:
