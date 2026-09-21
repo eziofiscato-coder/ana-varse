@@ -162,7 +162,7 @@ def hdr():
     with col_logo:
         try:
             st.image("logo.png", width=120)
-            st-image("copertina.png",with=300)
+            st.image("copertina.png",with=300)
         except:
             st.write("ANA")
     with b:
