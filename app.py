@@ -9,7 +9,9 @@ def hdr():
     st.markdown(
         '<div style="background:#0e7a3d;padding:8px;'
         'border-radius:8px;color:white;text-align:center;'
-        'font-weight:bold;">NUCLEO DI PROTEZIONE CIVILE ANA SEZ. DI VARESE Squadra Gruppo Alpini Caronno Pertusella Bariola</div>',
+        'font-weight:bold;">NUCLEO DI PROTEZIONE CIVILE ANA '
+        'SEZ. DI VARESE Squadra Gruppo Alpini Caronno '
+        'Pertusella Bariola</div>',
         unsafe_allow_html=True
     )
 
@@ -88,6 +90,7 @@ elif st.session_state.page == 'dashboard':
         menu = st.radio(
             'Scegli:',
             [
+                'Dashboard',
                 'Volontari',
                 'DB Radio',
                 'Brogliaccio',
@@ -167,7 +170,7 @@ elif st.session_state.page == 'dashboard':
                         st.write(f"{v['Nome']} - {v['Comune']}")
 
     elif m == 'DB Radio':
-        st.markdown('## DB Radio')
+        st.markdown('## DB Radio - Combo DMR PMR446 TETRA NAUTICHE VHF/UHF')
         with st.form('radio'):
             modello = st.text_input('Modello *')
             matricola = st.text_input('Matricola *')
@@ -187,9 +190,16 @@ elif st.session_state.page == 'dashboard':
             destinatario = st.text_input('Destinatario *')
             msg = st.text_area('Messaggio *')
             if st.form_submit_button('Salva', use_container_width=True, type='primary'):
-                if msg:
-                    st.session_state.brogliaccio.append({'Data': str(date.today()), 'Messaggio': msg})
+                if msg and mittente and destinatario:
+                    st.session_state.brogliaccio.append({
+                        'Data': str(date.today()),
+                        'Mittente': mittente,
+                        'Destinatario': destinatario,
+                        'Messaggio': msg
+                    })
                     st.success('Salvato')
+                else:
+                    st.error('Compila Mittente, Destinatario e Messaggio')
         if st.session_state.brogliaccio:
             st.dataframe(pd.DataFrame(st.session_state.brogliaccio), use_container_width=True)
 
