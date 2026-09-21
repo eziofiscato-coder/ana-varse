@@ -161,8 +161,8 @@ def hdr():
     col_logo, col_tit = st.columns([1,5])
     with col_logo:
         try:
-            st.image("logo.png".width=120)
-            st.image("copertina.png".width=300)
+            st.image("logo.png",width=120)
+            st.image("copertina.png",width=300)
         except:
             st.write("ANA")
     with b:
