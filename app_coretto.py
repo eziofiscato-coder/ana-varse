@@ -21,53 +21,75 @@ with c2:
     try:
         st.image("copertina.png", width=400)
     except:
-        st.write("")
+        try:
+            st.image("logo.png", width=200)
+        except:
+            st.write("")
 
 st.markdown("<h2 style='text-align:center; color:#0e7a3d;'>VOLONTARIATO<br>Sezione di Varese</h2>", unsafe_allow_html=True)
 
 if "dati" not in st.session_state:
     st.session_state.dati = []
 
-with st.form("form"):
-    nome = st.text_input("Nome e Cognome *")
-    assoc = st.text_input("Associazione *")
-    cell = st.text_input("Cellulare *")
-    ruolo = st.selectbox("Ruolo *", ["Volontario", "Caposquadra", "Coordinatore", "Autista", "Radio", "Telecomunicazioni", "Logistica", "Segreteria", "Sanitario", "Altro"])
-    st.divider()
-    comune = st.text_input("Comune *")
-    via = st.text_input("Via / Localita")
-    cc1, cc2 = st.columns(2)
-    with cc1:
-        lat_txt = st.text_input("Lat", placeholder="es. 45.123456")
-    with cc2:
-        lon_txt = st.text_input("Log", placeholder="es. 8.123456")
-    submitted = st.form_submit_button("✅ Salva", use_container_width=True)
-    if submitted:
-        if nome and assoc and cell and comune:
-            try:
-                lat_v = float(lat_txt.replace(",", ".")) if lat_txt else 0.0
-                lon_v = float(lon_txt.replace(",", ".")) if lon_txt else 0.0
-            except:
-                lat_v = 0.0
-                lon_v = 0.0
-            st.session_state.dati.append({"Nome": nome, "Associazione": assoc, "Cellulare": cell, "Ruolo": ruolo, "Comune": comune, "Via": via, "Lat": lat_v, "Log": lon_v})
-            st.success(f"Aggiunto {nome} - {comune}")
-        else:
-            st.error("Compila * e Comune")
+# TABS - Dashboard primo, non parte piu con form volontario
+tab1, tab2, tab3 = st.tabs(["📊 Dashboard", "👥 Volontari", "🗺️ Mappa"])
 
-if st.session_state.dati:
-    df = pd.DataFrame(st.session_state.dati)
-    st.divider()
-    st.dataframe(df, use_container_width=True, hide_index=True)
-    st.divider()
+with tab1:
+    st.markdown("### Dashboard ANA Varese")
+    st.info(f"Totale volontari registrati: {len(st.session_state.dati)}")
+    if st.session_state.dati:
+        df_dash = pd.DataFrame(st.session_state.dati)
+        st.dataframe(df_dash, use_container_width=True, hide_index=True)
+        if "Ruolo" in df_dash.columns:
+            st.bar_chart(df_dash["Ruolo"].value_counts())
+        output = BytesIO()
+        df_dash.to_excel(output, index=False, engine="openpyxl")
+        st.download_button("📥 Scarica Excel completo", output.getvalue(), file_name="ana_varese_completo.xlsx", mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", use_container_width=True)
+    else:
+        st.warning("Nessun volontario ancora registrato. Vai in tab Volontari.")
+
+with tab2:
+    st.markdown("### Registra Volontario")
+    with st.form("form"):
+        nome = st.text_input("Nome e Cognome *")
+        assoc = st.text_input("Associazione *")
+        cell = st.text_input("Cellulare *")
+        ruolo = st.selectbox("Ruolo *", ["Volontario", "Caposquadra", "Coordinatore", "Autista", "Radio", "Telecomunicazioni", "Logistica", "Segreteria", "Sanitario", "Altro"])
+        st.divider()
+        st.markdown("**Posizione**")
+        comune = st.text_input("Comune *")
+        via = st.text_input("Via / Localita")
+        cc1, cc2 = st.columns(2)
+        with cc1:
+            lat_txt = st.text_input("Lat", placeholder="es. 45.123456")
+        with cc2:
+            lon_txt = st.text_input("Log", placeholder="es. 8.123456")
+        submitted = st.form_submit_button("✅ Salva con posizione", use_container_width=True)
+        if submitted:
+            if nome and assoc and cell and comune:
+                try:
+                    lat_v = float(lat_txt.replace(",", ".")) if lat_txt else 0.0
+                    lon_v = float(lon_txt.replace(",", ".")) if lon_txt else 0.0
+                except:
+                    lat_v = 0.0
+                    lon_v = 0.0
+                st.session_state.dati.append({"Nome": nome, "Associazione": assoc, "Cellulare": cell, "Ruolo": ruolo, "Comune": comune, "Via": via, "Lat": lat_v, "Log": lon_v})
+                st.success(f"Aggiunto {nome} - {comune}")
+            else:
+                st.error("Compila * e Comune")
+
+with tab3:
     st.markdown("### Mappa - Tutti i marker")
-    if "Lat" in df.columns:
-        df_map = df.rename(columns={"Lat": "lat", "Log": "lon"})
-        df_map = df_map[(df_map["lat"] != 0) & (df_map["lon"] != 0)]
-        if not df_map.empty:
-            st.map(df_map, latitude="lat", longitude="lon", zoom=10)
-        else:
-            st.info("Inserisci Lat e Log - nessun default Varese")
-    output = BytesIO()
-    df.to_excel(output, index=False, engine="openpyxl")
-    st.download_button("📥 Scarica Excel", output.getvalue(), file_name="associazioni.xlsx", mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", use_container_width=True)
+    if st.session_state.dati:
+        df = pd.DataFrame(st.session_state.dati)
+        st.dataframe(df, use_container_width=True, hide_index=True)
+        if "Lat" in df.columns:
+            df_map = df.rename(columns={"Lat": "lat", "Log": "lon"})
+            df_map = df_map[(df_map["lat"] != 0) & (df_map["lon"] != 0)]
+            if not df_map.empty:
+                st.map(df_map, latitude="lat", longitude="lon", zoom=10, use_container_width=True)
+                st.info(f"{len(df_map)} marker sulla mappa - nessun default Varese")
+            else:
+                st.info("Inserisci Lat e Log nel form - nessun default Varese")
+    else:
+        st.info("Nessuna posizione da mostrare")
