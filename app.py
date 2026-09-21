@@ -21,30 +21,41 @@ h1,h2,h3 {{ color: {VERDE}!important; }}
     background-color: {VERDE}!important;
     color: white!important;
     border: 2px solid {VERDE}!important;
+    font-weight: bold!important;
+}}
+.stButton>button:hover {{
+    background-color: {VERDE_LIGHT}!important;
+}}
+[data-testid="stSidebar"] {{
+    background-color: {VERDE_BG}!important;
 }}
 </style>
 """, unsafe_allow_html=True)
 
 def hdr():
     st.markdown(
-        f'<div style="background:{VERDE};padding:8px;'
-        f'border-radius:8px;color:white;'
-        f'text-align:center;font-weight:bold;">'
+        f'<div style="background:{VERDE};'
+        f'padding:8px;border-radius:8px;'
+        f'color:white;text-align:center;'
+        f'font-weight:bold;">'
         f'NUCLEO PROT CIVILE ANA VARESE '
-        f'Squadra Alpini Caronno</div>',
+        f'Squadra Alpini</div>',
         unsafe_allow_html=True
     )
 
 def to_excel(df):
     out = BytesIO()
-    df2 = df[[c for c in df.columns
-               if c not in ['Foto','FileBytes']]]
-    df2.to_excel(out, index=False, engine='openpyxl')
+    cols = [c for c in df.columns
+            if c not in ['Foto','FileBytes']]
+    df[cols].to_excel(
+        out, index=False, engine='openpyxl'
+    )
     return out.getvalue()
 
 def genera_pdf(df, titolo):
     try:
-        from reportlab.lib.pagesizes import A4, landscape
+        from reportlab.lib.pagesizes import A4
+        from reportlab.lib.pagesizes import landscape
         from reportlab.platypus import (
             SimpleDocTemplate,
             Table,
@@ -52,28 +63,31 @@ def genera_pdf(df, titolo):
             Paragraph,
             Spacer
         )
-        from reportlab.lib.styles import getSampleStyleSheet
+        from reportlab.lib.styles import (
+            getSampleStyleSheet
+        )
         from reportlab.lib import colors
         buf = BytesIO()
         doc = SimpleDocTemplate(
-            buf,
-            pagesize=landscape(A4)
+            buf, pagesize=landscape(A4)
         )
         styles = getSampleStyleSheet()
         story = []
         story.append(Paragraph(
-            f"<b>{titolo}</b> - {datetime.now():%d/%m/%Y}",
+            f"<b>{titolo}</b> {datetime.now():%d/%m/%Y}",
             styles['Title']
         ))
         story.append(Spacer(1,12))
-        df2 = df[[c for c in df.columns
-                  if c not in ['Foto','FileBytes']]].astype(str)
+        cols = [c for c in df.columns
+                if c not in ['Foto','FileBytes']]
+        df2 = df[cols].astype(str)
         data = [list(df2.columns)] + df2.values.tolist()
         if len(data[0]) > 8:
             data = [r[:8] for r in data]
         t = Table(data)
         t.setStyle(TableStyle([
-            ('BACKGROUND',(0,0),(-1,0), colors.HexColor(VERDE)),
+            ('BACKGROUND',(0,0),(-1,0),
+             colors.HexColor(VERDE)),
             ('TEXTCOLOR',(0,0),(-1,0), colors.white),
             ('GRID',(0,0),(-1,-1),0.5, colors.grey),
             ('FONTSIZE',(0,0),(-1,-1),7),
@@ -97,11 +111,11 @@ def salva_icona_temp(fb, nome):
         return None
 
 for k in [
-    'page','logged','menu','volontari','radio_db',
-    'eventi','emergenze','checkin','icone',
-    'postazioni','last_clicked','temp_markers',
-    'brogliaccio','mezzi','attrezzature',
-    'map_fullscreen','map_fullscreen2'
+    'page','logged','menu','volontari',
+    'radio_db','eventi','emergenze','checkin',
+    'icone','postazioni','last_clicked',
+    'temp_markers','brogliaccio','mezzi',
+    'attrezzature','map_fullscreen','map_fullscreen2'
 ]:
     if k not in st.session_state:
         if k == 'page':
@@ -138,8 +152,10 @@ if st.session_state.page == 'entra':
     st.divider()
     c1,c2,c3 = st.columns([1,1,1])
     with c2:
-        if st.button('ENTRA', use_container_width=True,
-                      type='primary'):
+        if st.button(
+            'ENTRA', use_container_width=True,
+            type='primary'
+        ):
             st.session_state.page = 'login'
             st.rerun()
 
@@ -159,8 +175,10 @@ elif st.session_state.page == 'login':
                 st.session_state.page = 'entra'
                 st.rerun()
         with b:
-            if st.button('Accedi', use_container_width=True,
-                          type='primary'):
+            if st.button(
+                'Accedi', use_container_width=True,
+                type='primary'
+            ):
                 if user == 'admin' and pwd == 'ana2024':
                     st.session_state.logged = True
                     st.session_state.page = 'dashboard'
@@ -172,7 +190,7 @@ elif st.session_state.page == 'dashboard':
     hdr()
     with st.sidebar:
         st.markdown(
-            f'### <span style="color:{VERDE}">MENU</span>',
+            f'### <span style="color:{VERDE}">MENU COMPLETO</span>',
             unsafe_allow_html=True
         )
         menu = st.radio(
@@ -204,7 +222,7 @@ elif st.session_state.page == 'dashboard':
     m = st.session_state.menu
 
     if m == 'Dashboard':
-        st.markdown(f'## Dashboard', unsafe_allow_html=True)
+        st.markdown('## Dashboard', unsafe_allow_html=True)
         c1,c2,c3,c4 = st.columns(4)
         with c1:
             st.metric('Volontari',
@@ -219,6 +237,7 @@ elif st.session_state.page == 'dashboard':
             st.metric('Postazioni',
                       len(st.session_state.postazioni))
         st.divider()
+        st.markdown('### Menu Rapido')
         r1 = st.columns(4)
         with r1[0]:
             if st.button('VOLONTARI', use_container_width=True):
@@ -238,15 +257,14 @@ elif st.session_state.page == 'dashboard':
                 st.rerun()
 
     elif m == 'Volontari':
-        st.markdown(f'## Volontari', unsafe_allow_html=True)
+        st.markdown('## Volontari', unsafe_allow_html=True)
         t1,t2 = st.tabs(['Anagrafica','Elenco'])
         with t1:
             with st.form('vol1'):
                 nome = st.text_input('Nome *')
                 comune = st.text_input('Comune *')
                 foto = st.file_uploader(
-                    'Foto',
-                    type=['png','jpg','jpeg']
+                    'Foto', type=['png','jpg','jpeg']
                 )
                 if foto:
                     st.image(foto, width=100)
@@ -270,26 +288,9 @@ elif st.session_state.page == 'dashboard':
                     for v in st.session_state.volontari
                 ])
                 st.dataframe(df, use_container_width=True)
-                c1,c2 = st.columns(2)
-                c1.download_button(
-                    'Excel',
-                    to_excel(df),
-                    file_name='volontari.xlsx',
-                    mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-                    use_container_width=True
-                )
-                pdf = genera_pdf(df, 'Volontari')
-                if pdf:
-                    c2.download_button(
-                        'PDF',
-                        pdf,
-                        file_name='volontari.pdf',
-                        mime='application/pdf',
-                        use_container_width=True
-                    )
 
     elif m == 'DB Radio':
-        st.markdown(f'## DB Radio', unsafe_allow_html=True)
+        st.markdown('## DB Radio', unsafe_allow_html=True)
         with st.form('radio'):
             modello = st.text_input('Modello *')
             matricola = st.text_input('Matricola *')
@@ -314,7 +315,7 @@ elif st.session_state.page == 'dashboard':
             st.dataframe(df, use_container_width=True)
 
     elif m == 'Emergenze':
-        st.markdown(f'## Emergenze', unsafe_allow_html=True)
+        st.markdown('## Emergenze', unsafe_allow_html=True)
         with st.form('emergenze'):
             tipo_em = st.selectbox(
                 'Tipo *',
@@ -338,26 +339,9 @@ elif st.session_state.page == 'dashboard':
         if st.session_state.emergenze:
             df = pd.DataFrame(st.session_state.emergenze)
             st.dataframe(df, use_container_width=True)
-            c1,c2 = st.columns(2)
-            c1.download_button(
-                'Excel',
-                to_excel(df),
-                file_name='emergenze.xlsx',
-                mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-                use_container_width=True
-            )
-            pdf = genera_pdf(df, 'Emergenze')
-            if pdf:
-                c2.download_button(
-                    'PDF',
-                    pdf,
-                    file_name='emergenze.pdf',
-                    mime='application/pdf',
-                    use_container_width=True
-                )
 
     elif m == 'Eventi':
-        st.markdown(f'## Eventi', unsafe_allow_html=True)
+        st.markdown('## Eventi', unsafe_allow_html=True)
         with st.form('eventi'):
             nome_e = st.text_input('NOME EVENTO *')
             luogo = st.text_input('Luogo *')
@@ -376,10 +360,9 @@ elif st.session_state.page == 'dashboard':
             st.dataframe(df, use_container_width=True)
 
     elif m == 'Mappa Avanzata':
-        st.markdown(f'## Mappa Avanzata', unsafe_allow_html=True)
-        st.info(
-            'Fullscreen sotto + e - con ESC per tornare'
-        )
+        st.markdown('## Mappa Avanzata', unsafe_allow_html=True)
+        st.info('Fullscreen sotto + e - con ESC')
+
         col1,col2,col3 = st.columns([2,2,1])
         with col1:
             map_type = st.selectbox(
@@ -399,8 +382,9 @@ elif st.session_state.page == 'dashboard':
                 lab1 = 'Riduci Mappa 1'
             else:
                 lab1 = 'Espandi Mappa 1'
-            if st.button(lab1, use_container_width=True,
-                          key='exp1'):
+            if st.button(
+                lab1, use_container_width=True, key='exp1'
+            ):
                 st.session_state.map_fullscreen = not st.session_state.map_fullscreen
                 st.rerun()
 
@@ -417,7 +401,7 @@ elif st.session_state.page == 'dashboard':
                     url = (
                         f'https://nominatim.openstreetmap.org/'
                         f'reverse?format=json&lat={lat}'
-                        f'&lon={lon}&zoom=18&addressdetails=1'
+                        f'&lon={lon}&zoom=18'
                     )
                     r = requests.get(
                         url,
@@ -436,8 +420,12 @@ elif st.session_state.page == 'dashboard':
 
             lat_c, lon_c = 45.65, 8.79
             if st.session_state.postazioni:
-                lat_c = sum([p['Lat'] for p in st.session_state.postazioni]) / len(st.session_state.postazioni)
-                lon_c = sum([p['Log'] for p in st.session_state.postazioni]) / len(st.session_state.postazioni)
+                lat_c = sum(
+                    [p['Lat'] for p in st.session_state.postazioni]
+                ) / len(st.session_state.postazioni)
+                lon_c = sum(
+                    [p['Log'] for p in st.session_state.postazioni]
+                ) / len(st.session_state.postazioni)
 
             m = folium.Map(
                 location=[lat_c, lon_c],
@@ -464,8 +452,8 @@ elif st.session_state.page == 'dashboard':
 
             Fullscreen(
                 position='topleft',
-                title='Espandi a tutto schermo',
-                title_cancel='Esci - ESC',
+                title='Espandi',
+                title_cancel='Esci ESC',
                 force_separate_button=True
             ).add_to(m)
 
@@ -481,6 +469,89 @@ elif st.session_state.page == 'dashboard':
                     f"<a href='https://waze.com/ul?ll={lat_f},"
                     f"{lon_f}&navigate=yes' target='_blank'>Waze</a>"
                 )
+                # FIX INDENTAZIONE RIGA 486
                 p_icon = p.get('Icona','Nessuna')
                 use_path = None
                 if p_icon!= 'Nessuna':
+                    ico = next(
+                        (i for i in st.session_state.icone
+                         if i['Nome'] == p_icon),
+                        None
+                    )
+                    if ico and ico.get('FileBytes'):
+                        use_path = salva_icona_temp(
+                            ico['FileBytes'], p_icon
+                        )
+                if use_path:
+                    try:
+                        icon = folium.CustomIcon(
+                            use_path, icon_size=(40,40)
+                        )
+                        folium.Marker(
+                            [lat_f, lon_f],
+                            popup=folium.Popup(
+                                popup_html, max_width=250
+                            ),
+                            icon=icon
+                        ).add_to(m)
+                    except:
+                        folium.Marker(
+                            [lat_f, lon_f],
+                            popup=popup_html,
+                            icon=folium.Icon(color='green')
+                        ).add_to(m)
+                else:
+                    folium.Marker(
+                        [lat_f, lon_f],
+                        popup=folium.Popup(
+                            popup_html, max_width=250
+                        ),
+                        icon=folium.Icon(color='green')
+                    ).add_to(m)
+
+            icon_path_sel = None
+            if icona_sel!= 'Nessuna':
+                ico_sel = next(
+                    (i for i in st.session_state.icone
+                     if i['Nome'] == icona_sel),
+                    None
+                )
+                if ico_sel and ico_sel.get('FileBytes'):
+                    icon_path_sel = salva_icona_temp(
+                        ico_sel['FileBytes'], icona_sel
+                    )
+
+            for tm in st.session_state.temp_markers:
+                if icon_path_sel:
+                    try:
+                        icon = folium.CustomIcon(
+                            icon_path_sel, icon_size=(40,40)
+                        )
+                        folium.Marker(
+                            [tm['lat'], tm['lon']],
+                            icon=icon
+                        ).add_to(m)
+                    except:
+                        folium.Marker(
+                            [tm['lat'], tm['lon']],
+                            icon=folium.Icon(color='orange')
+                        ).add_to(m)
+                else:
+                    folium.Marker(
+                        [tm['lat'], tm['lon']],
+                        icon=folium.Icon(color='orange')
+                    ).add_to(m)
+
+            folium.LayerControl().add_to(m)
+            out = st_folium(
+                m, width=1400, height=h1,
+                use_container_width=True,
+                returned_objects=['last_clicked'],
+                key='map1'
+            )
+            if out and out.get('last_clicked'):
+                lat_c = out['last_clicked']['lat']
+                lon_c = out['last_clicked']['lng']
+                com, via = rev_geo(lat_c, lon_c)
+                st.session_state.temp_markers.append(
+                    {'lat': lat
