@@ -142,7 +142,7 @@ elif st.session_state.page == 'dashboard':
                 st.rerun()
 
     elif m == 'Volontari':
-        st.markdown('## Volontari - Con Foto e Sottomaschere')
+        st.markdown('## Volontari')
         t1,t2 = st.tabs(['Anagrafica e Foto', 'Elenco'])
         with t1:
             with st.form('vol'):
