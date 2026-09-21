@@ -143,7 +143,7 @@ elif st.session_state.page == 'dashboard':
 
     elif m == 'Volontari':
         st.markdown('## Volontari')
-        t1,t2 = st.tabs(['Anagrafica e Foto', 'Elenco'])
+        t1,t2 = st.tabs(['Anagrafica', 'Elenco'])
         with t1:
             with st.form('vol'):
                 nome = st.text_input('Nome *')
@@ -167,7 +167,7 @@ elif st.session_state.page == 'dashboard':
                         st.write(f"{v['Nome']} - {v['Comune']}")
 
     elif m == 'DB Radio':
-        st.markdown('## DB Radio - Combo')
+        st.markdown('## DB Radio')
         with st.form('radio'):
             modello = st.text_input('Modello *')
             matricola = st.text_input('Matricola *')
@@ -183,6 +183,7 @@ elif st.session_state.page == 'dashboard':
     elif m == 'Brogliaccio':
         st.markdown('## Brogliaccio')
         with st.form('brog'):
+            mittente = st.text_input('Mittente *')
             msg = st.text_area('Messaggio *')
             if st.form_submit_button('Salva', use_container_width=True, type='primary'):
                 if msg:
