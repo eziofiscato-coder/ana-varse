@@ -183,6 +183,7 @@ elif st.session_state.page == 'dashboard':
     elif m == 'Brogliaccio':
         st.markdown('## Brogliaccio')
         with st.form('brog'):
+            nome = st.tex_area('Mittente *')
             msg = st.text_area('Messaggio *')
             if st.form_submit_button('Salva', use_container_width=True, type='primary'):
                 if msg:
