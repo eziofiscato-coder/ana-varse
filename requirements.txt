@@ -1,11 +1,7 @@
 streamlit
 pandas
 openpyxl
+pydeck
+reportlab
 folium
 streamlit-folium
-requests
-Pillow
-reportlab
-python-barcode
-fpdf2
-qrcode
