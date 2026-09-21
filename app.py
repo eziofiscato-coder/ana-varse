@@ -182,13 +182,13 @@ if not st.session_state.popup:
     st.markdown("<div class='ana-box'>", unsafe_allow_html=True)
     try:
         if os.path.exists("copertina.png"):
-            st.image("copertina.png",width=70)
+            st.image("copertina.png",width=300)
         elif os.path.exists("logo.png"):
             st.image("logo.png",width=10)
     except:
         st.write("copertina.png")
     st.markdown("</div>", unsafe_allow_html=True)
-    c1,c2,c3=st.columns([1,1,1])
+    c1,c2,c3=st.columns([2,2,2])
     with c2:
         if st.button("ENTRA"):
             st.session_state.popup=True
