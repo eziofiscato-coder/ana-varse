@@ -11,19 +11,13 @@ try:
     HAS_MAP=True
 except: HAS_MAP=False
 
-try:
-    from PIL import Image, ImageDraw, ImageFont
-    HAS_PIL=True
-except: HAS_PIL=False
-
 st.set_page_config(page_title="ANA Varese", layout="wide")
 
 st.markdown('''
 <style>
-.stForm{background:#e8f5e9;padding:15px;border-radius:10px;border:2px solid #0e7a3d;}
 .ana-box{background:#e8f5e9;padding:15px;border-radius:10px;border:2px solid #0e7a3d;margin-bottom:10px;}
 .ana-head{background:#0e7a3d;padding:15px;border-radius:8px;color:white;text-align:center;font-family:"Times New Roman", Times, serif;font-weight:bold;font-size:26px;}
-h2,h3{color:#0e7a3d;font-family:"Times New Roman", Times, serif;font-weight:bold;}
+h2{color:#0e7a3d;font-family:"Times New Roman", Times, serif;font-weight:bold;}
 </style>
 ''', unsafe_allow_html=True)
 
@@ -59,20 +53,14 @@ def hdr():
 def to_dash():
     if st.button('TORNA DASHBOARD'): st.session_state.menu='Dashboard'; st.rerun()
 
-# ============ PRIMA PAGINA - SENZA LOGO PC ANA, SOLO COPERTINA ============
+# PRIMA PAGINA SENZA LOGO PC ANA
 if not st.session_state.popup:
-    # QUI HO TOLTO hdr() - niente logo PC ANA in prima pagina
     st.markdown("<div class='ana-head' style='font-size:50px;padding:25px;'><b>ANA VARESE - PROTEZIONE CIVILE</b></div>", unsafe_allow_html=True)
     st.markdown("<div class='ana-box' style='text-align:center;'>", unsafe_allow_html=True)
     try:
-        if os.path.exists("copertina.png"):
-            st.image("copertina.png", width=700)
-        elif os.path.exists("logo.png"):
-            st.image("logo.png", width=350)
-        else:
-            st.warning("Carica copertina.png su GitHub!")
-    except:
-        st.warning("Carica copertina.png su GitHub!")
+        if os.path.exists("copertina.png"): st.image("copertina.png", width=700)
+        else: st.warning("Carica copertina.png su GitHub!")
+    except: st.warning("Carica copertina.png")
     st.markdown("</div>", unsafe_allow_html=True)
     c1,c2,c3=st.columns([1,1,1])
     with c2:
@@ -92,7 +80,7 @@ if not st.session_state.auth:
                 for ut in uts:
                     if ut['username']==u and ut['password']==ph:
                         st.session_state.auth=True; st.session_state.menu='Dashboard'; st.session_state.popup=True; st.session_state.chat_user=u; st.rerun()
-                st.error('Errore login')
+                st.error('Errore')
     st.stop()
 
 hdr()
@@ -105,124 +93,120 @@ with st.sidebar:
 sc=st.session_state.menu
 
 if sc=='Dashboard':
-    st.markdown("<div class='ana-box'><h2>Dashboard ANA - Tutte le maschere ripristinate</h2></div>", unsafe_allow_html=True)
-    c1,c2,c3,c4=st.columns(4)
+    st.markdown("<div class='ana-box'><h2>Dashboard ANA</h2></div>", unsafe_allow_html=True)
+    c1,c2,c3=st.columns(4)
     with c1:
         if st.button('VOLONTARI', use_container_width=True): st.session_state.menu='Volontari'; st.rerun()
         if st.button('MAPPA', use_container_width=True): st.session_state.menu='Mappa'; st.rerun()
-        if st.button('ICONE', use_container_width=True): st.session_state.menu='Libreria Icone'; st.rerun()
     with c2:
+        if st.button('ICONE', use_container_width=True): st.session_state.menu='Libreria Icone'; st.rerun()
         if st.button('INTERVENTI', use_container_width=True): st.session_state.menu='Interventi Emergenza'; st.rerun()
+    with c3:
         if st.button('EVENTI', use_container_width=True): st.session_state.menu='Eventi'; st.rerun()
         if st.button('CHECK IN', use_container_width=True): st.session_state.menu='Check In'; st.rerun()
-    with c3:
-        if st.button('RADIO DB', use_container_width=True): st.session_state.menu='DB Radio'; st.rerun()
-        if st.button('CONSEGNA RADIO', use_container_width=True): st.session_state.menu='Consegna Radio'; st.rerun()
-        if st.button('CHAT', use_container_width=True): st.session_state.menu='Chat Volontari'; st.rerun()
     with c4:
+        if st.button('RADIO', use_container_width=True): st.session_state.menu='DB Radio'; st.rerun()
         if st.button('BACKUP', use_container_width=True): st.session_state.menu='Backup'; st.rerun()
-        if st.button('TESSERINO', use_container_width=True): st.session_state.menu='Tesserino'; st.rerun()
-    c1,c2,c3,c4=st.columns(4)
-    c1.metric('Volontari', len(st.session_state.dati)); c2.metric('Post', len(st.session_state.post)); c3.metric('Icone', len(st.session_state.icone)); c4.metric('Chat', len(st.session_state.chat))
-
-elif sc=='Volontari':
-    to_dash(); st.markdown("<div class='ana-head'><b>VOLONTARI</b></div>", unsafe_allow_html=True)
-    with st.form("form_vol"):
-        nome=st.text_input("Nome e Cognome *"); assoc=st.text_input("Associazione *"); cell=st.text_input("Cellulare *")
-        ruolo=st.selectbox("Ruolo *", ["Volontario","Caposquadra","Coordinatore","Autista","Radio","Telecomunicazioni","Logistica","Segreteria","Sanitario","Altro"])
-        data=st.date_input("Data iscrizione", value=datetime.now().date(), format="DD/MM/YYYY")
-        submitted=st.form_submit_button("✅ Salva", use_container_width=True)
-        if submitted:
-            if nome and assoc and cell:
-                st.session_state.dati.append({"Nome":nome,"Associazione":assoc,"Cellulare":cell,"Ruolo":ruolo,"Data":data.strftime("%d/%m/%Y")})
-                save_json(FD,st.session_state.dati); st.success(f"Aggiunto {nome} - {data.strftime('%d/%m/%Y')}"); st.rerun()
-            else: st.error("Compila i campi *")
-    if st.session_state.dati: st.dataframe(pd.DataFrame(st.session_state.dati), use_container_width=True)
 
 elif sc=='Mappa':
-    to_dash(); st.markdown("<div class='ana-head'><b>MAPPA</b></div>", unsafe_allow_html=True)
+    to_dash()
+    st.markdown("<div class='ana-head'><b>MAPPA - CLICCA SULLA MAPPA PER POSIZIONARE</b></div>", unsafe_allow_html=True)
     if not HAS_MAP:
-        st.warning("Installa folium: pip install folium streamlit-folium")
+        st.error("Manca folium: aggiungi su requirements.txt -> folium, streamlit-folium")
     else:
-        lat=st.text_input("Lat", value=st.session_state.sel_lat); lon=st.text_input("Lon", value=st.session_state.sel_lon)
-        comune=st.text_input("Comune", value=st.session_state.sel_comune); via=st.text_input("Via", value=st.session_state.sel_via)
-        m=folium.Map(location=[float(lat),float(lon)], zoom_start=13); Fullscreen().add_to(m)
-        folium.Marker([float(lat),float(lon)], popup=f"{comune} - {via}").add_to(m)
-        st_folium(m, width=1200, height=600)
-        if st.session_state.post: st.dataframe(pd.DataFrame(st.session_state.post))
+        col1,col2=st.columns([1,2])
+        with col1:
+            st.session_state.sel_lat=st.text_input("Lat", value=st.session_state.sel_lat)
+            st.session_state.sel_lon=st.text_input("Lon", value=st.session_state.sel_lon)
+            st.session_state.sel_comune=st.text_input("Comune", value=st.session_state.sel_comune)
+            st.session_state.sel_via=st.text_input("Via", value=st.session_state.sel_via)
+            sel_icon=st.selectbox("Icona", ["Default"] + [i.get('Nome','') for i in st.session_state.icone])
+            nota=st.text_area("Nota")
+            d_map=st.date_input("Data", value=datetime.now().date(), format="DD/MM/YYYY")
+            if st.button("SALVA POST MAPPA", use_container_width=True):
+                nuovo={"Lat":st.session_state.sel_lat,"Lon":st.session_state.sel_lon,"Comune":st.session_state.sel_comune,"Via":st.session_state.sel_via,"Icona":sel_icon,"Nota":nota,"Data":d_map.strftime("%d/%m/%Y")}
+                st.session_state.post.append(nuovo); save_json(FP,st.session_state.post); st.success("Salvato "+d_map.strftime("%d/%m/%Y")); st.rerun()
+        with col2:
+            m=folium.Map(location=[float(st.session_state.sel_lat), float(st.session_state.sel_lon)], zoom_start=14)
+            Fullscreen().add_to(m)
+            # Tutti i post salvati
+            for p in st.session_state.post:
+                try: folium.Marker([float(p.get('Lat','45.82')), float(p.get('Lon','8.82'))], popup=f"{p.get('Comune','')} {p.get('Via','')} {p.get('Data','')}").add_to(m)
+                except: pass
+            folium.Marker([float(st.session_state.sel_lat), float(st.session_state.sel_lon)], popup="NUOVO", icon=folium.Icon(color='red')).add_to(m)
+            out=st_folium(m, width=800, height=600)
+            if out and out.get("last_clicked"):
+                st.session_state.sel_lat=str(out["last_clicked"]["lat"])
+                st.session_state.sel_lon=str(out["last_clicked"]["lng"])
+                st.rerun()
+        if st.session_state.post:
+            st.divider(); st.dataframe(pd.DataFrame(st.session_state.post), use_container_width=True)
+            if st.button("CANCELLA TUTTA MAPPA"): st.session_state.post=[]; save_json(FP,[]); st.rerun()
 
 elif sc=='Libreria Icone':
-    to_dash(); st.markdown("<div class='ana-head'><b>LIBRERIA ICONE</b></div>", unsafe_allow_html=True)
-    nome_icona=st.text_input("Nome icona"); url_icona=st.text_input("URL icona")
-    if st.button("SALVA ICONA"):
-        if nome_icona:
-            st.session_state.icone.append({"Nome":nome_icona,"URL":url_icona}); save_json(FI,st.session_state.icone); st.rerun()
-    if st.session_state.icone: st.dataframe(pd.DataFrame(st.session_state.icone))
+    to_dash()
+    st.markdown("<div class='ana-head'><b>LIBRERIA ICONE - CARICA ICONE</b></div>", unsafe_allow_html=True)
+    c1,c2=st.columns(2)
+    with c1:
+        nome_icona=st.text_input("Nome icona *", key="nome_icona")
+        # NUOVA FUNZIONE CARICAMENTO ICONE
+        uploaded=st.file_uploader("Carica immagine icona (PNG, JPG)", type=["png","jpg","jpeg"])
+        url_icona=st.text_input("Oppure URL icona")
+        if st.button("SALVA ICONA", use_container_width=True):
+            path_icona=url_icona
+            if uploaded:
+                # Salva file in cartella
+                os.makedirs("icone_upload", exist_ok=True)
+                path_icona=os.path.join("icone_upload", uploaded.name)
+                with open(path_icona,"wb") as f: f.write(uploaded.getbuffer())
+                st.success(f"File salvato: {path_icona}")
+            if nome_icona:
+                st.session_state.icone.append({"Nome":nome_icona,"URL":path_icona,"File":uploaded.name if uploaded else ""})
+                save_json(FI,st.session_state.icone)
+                st.success(f"Icona {nome_icona} salvata!"); st.rerun()
+            else: st.error("Metti nome icona")
+    with c2:
+        if st.session_state.icone:
+            st.write(f"Icone salvate: {len(st.session_state.icone)}")
+            for idx, ic in enumerate(st.session_state.icone):
+                c_a,c_b=st.columns([3,1])
+                with c_a:
+                    st.write(f"{ic.get('Nome')} - {ic.get('URL')}")
+                    if os.path.exists(ic.get('URL','')):
+                        st.image(ic.get('URL'), width=60)
+                with c_b:
+                    if st.button("Elimina", key=f"del_ic_{idx}"):
+                        st.session_state.icone.pop(idx); save_json(FI,st.session_state.icone); st.rerun()
+        else: st.info("Nessuna icona ancora")
 
 elif sc=='Interventi Emergenza':
     to_dash(); st.markdown("<div class='ana-head'><b>INTERVENTI - DATA GG/MM/AAAA</b></div>", unsafe_allow_html=True)
-    d_int=st.date_input("Data", value=datetime.now().date(), format="DD/MM/YYYY", key="d_int")
-    o_int=st.time_input("Ora",key="o_int"); com_int=st.text_input("Comune *",key="com_int"); via_int=st.text_input("Via *",key="via_int"); az_int=st.text_area("Azione *",key="az_int")
-    if st.button("SALVA INTERVENTO",key="sv_int"):
+    d_int=st.date_input("Data", value=datetime.now().date(), format="DD/MM/YYYY"); o_int=st.time_input("Ora"); com_int=st.text_input("Comune *"); via_int=st.text_input("Via *"); az_int=st.text_area("Azione *")
+    if st.button("SALVA INTERVENTO"):
         if com_int and via_int and az_int:
             nuovo={"Data":d_int.strftime("%d/%m/%Y"),"Ora":str(o_int),"Comune":com_int,"Via":via_int,"Azione":az_int}
             st.session_state.interv.append(nuovo); save_json(FE,st.session_state.interv); st.success("OK "+d_int.strftime("%d/%m/%Y")); st.rerun()
     if st.session_state.interv: st.dataframe(pd.DataFrame(st.session_state.interv))
 
 elif sc=='Eventi':
-    to_dash(); st.markdown("<div class='ana-head'><b>EVENTI - DATA GG/MM/AAAA</b></div>", unsafe_allow_html=True)
-    ev_nome=st.text_input("Nome *",key="ev_nome"); ev_data=st.date_input("Data", value=datetime.now().date(), format="DD/MM/YYYY", key="ev_data"); ev_com=st.text_input("Comune",key="ev_com")
-    if st.button("SALVA EVENTO",key="ev_be"):
+    to_dash(); st.markdown("<div class='ana-head'><b>EVENTI</b></div>", unsafe_allow_html=True)
+    ev_nome=st.text_input("Nome *"); ev_data=st.date_input("Data", value=datetime.now().date(), format="DD/MM/YYYY")
+    if st.button("SALVA EVENTO"):
         if ev_nome:
-            nuovo={'Nome':ev_nome,'Data':ev_data.strftime("%d/%m/%Y"),'Comune':ev_com}
-            st.session_state.eventi.append(nuovo); save_json(FEV,st.session_state.eventi); st.success("OK "+ev_data.strftime("%d/%m/%Y")); st.rerun()
+            nuovo={'Nome':ev_nome,'Data':ev_data.strftime("%d/%m/%Y")}; st.session_state.eventi.append(nuovo); save_json(FEV,st.session_state.eventi); st.success("OK "+ev_data.strftime("%d/%m/%Y")); st.rerun()
     if st.session_state.eventi: st.dataframe(pd.DataFrame(st.session_state.eventi))
 
 elif sc=='Check In':
-    to_dash(); st.markdown("<div class='ana-head'><b>CHECK IN - DATA GG/MM/AAAA</b></div>", unsafe_allow_html=True)
+    to_dash(); st.markdown("<div class='ana-head'><b>CHECK IN</b></div>", unsafe_allow_html=True)
     vlist=[d.get('Nome','') for d in st.session_state.dati]
     if vlist:
-        sel=st.selectbox("Volontario",vlist,key="check_vol"); d_check=st.date_input("Data", value=datetime.now().date(), format="DD/MM/YYYY", key="d_check")
-        o_check=st.time_input("Ora",key="o_check"); luogo=st.text_input("Luogo",key="luogo_check")
-        if st.button("SALVA CHECK IN",key="bc_check"):
-            nuovo={'Volontario':sel,'Data':d_check.strftime("%d/%m/%Y"),'Ora':str(o_check),'Luogo':luogo}
-            st.session_state.check.append(nuovo); save_json(FC,st.session_state.check); st.success("OK "+d_check.strftime("%d/%m/%Y")); st.rerun()
+        sel=st.selectbox("Volontario",vlist); d_check=st.date_input("Data", value=datetime.now().date(), format="DD/MM/YYYY"); luogo=st.text_input("Luogo")
+        if st.button("SALVA CHECK IN"):
+            nuovo={'Volontario':sel,'Data':d_check.strftime("%d/%m/%Y"),'Luogo':luogo}; st.session_state.check.append(nuovo); save_json(FC,st.session_state.check); st.rerun()
     if st.session_state.check: st.dataframe(pd.DataFrame(st.session_state.check))
 
-elif sc=='DB Radio':
-    to_dash(); st.markdown("<div class='ana-head'><b>DB RADIO</b></div>", unsafe_allow_html=True)
-    matr=st.text_input("Matricola"); tipo=st.text_input("Tipo")
-    if st.button("SALVA RADIO"):
-        if matr: st.session_state.radio.append({"Matricola":matr,"Tipo":tipo}); save_json(FR,st.session_state.radio); st.rerun()
-    if st.session_state.radio: st.dataframe(pd.DataFrame(st.session_state.radio))
-
-elif sc=='Consegna Radio':
-    to_dash(); st.markdown("<div class='ana-head'><b>CONSEGNA RADIO - DATA GG/MM/AAAA</b></div>", unsafe_allow_html=True)
-    vlist=[d.get('Nome','') for d in st.session_state.dati]; rlist=[r.get('Matricola','')+" - "+r.get('Tipo','') for r in st.session_state.radio]
-    if vlist and rlist:
-        s_vol=st.selectbox("Volontario",vlist,key="s_vol"); s_rad=st.selectbox("Radio",rlist,key="s_rad")
-        d_cons=st.date_input("Data", value=datetime.now().date(), format="DD/MM/YYYY", key="d_cons")
-        if st.button("SALVA CONSEGNA",key="b_cons"):
-            nuovo={'Volontario':s_vol,'Radio':s_rad,'Data':d_cons.strftime("%d/%m/%Y")}
-            st.session_state.cons.append(nuovo); save_json(FR2,st.session_state.cons); st.success("OK "+d_cons.strftime("%d/%m/%Y")); st.rerun()
-    if st.session_state.cons: st.dataframe(pd.DataFrame(st.session_state.cons))
-
-elif sc=='Chat Volontari':
-    to_dash(); st.markdown("<div class='ana-head'><b>CHAT VOLONTARI</b></div>", unsafe_allow_html=True)
-    msg=st.text_input("Messaggio")
-    if st.button("INVIA"):
-        if msg: st.session_state.chat.append({"User":st.session_state.chat_user,"Messaggio":msg,"Data":datetime.now().strftime("%d/%m/%Y %H:%M")}); save_json(FCHAT,st.session_state.chat); st.rerun()
-    if st.session_state.chat:
-        for c in st.session_state.chat[-20:]: st.write(f"{c.get('Data','')} - {c.get('User','')}: {c.get('Messaggio','')}")
-
 elif sc=='Backup':
-    to_dash(); st.markdown("<div class='ana-head'><b>BACKUP</b></div>", unsafe_allow_html=True)
-    df=pd.DataFrame(st.session_state.dati)
+    to_dash(); df=pd.DataFrame(st.session_state.dati)
     if not df.empty:
         output=BytesIO(); df.to_excel(output, index=False, engine="openpyxl")
-        st.download_button("📥 Scarica Excel Volontari", output.getvalue(), file_name="volontari.xlsx", mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
-    st.json({"dati":len(st.session_state.dati),"post":len(st.session_state.post),"icone":len(st.session_state.icone)})
-
-elif sc=='Tesserino':
-    to_dash(); st.markdown("<div class='ana-head'><b>TESSERINO</b></div>", unsafe_allow_html=True)
-    st.write("Maschera tesserino con foto")
+        st.download_button("📥 Scarica Excel", output.getvalue(), file_name="volontari.xlsx", mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
