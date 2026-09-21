@@ -43,7 +43,7 @@ if st.session_state.page == 'entra':
     c1,c2,c3 = st.columns([1,2,1])
     with c2:
         try:
-            st.image('copertina.png', width=400)
+            st.image('copertina.png', width=300)
         except:
             try:
                 st.image('logo.png', width=250)
