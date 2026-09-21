@@ -22,13 +22,13 @@ st.set_page_config(page_title="ANA Varese", layout="wide")
 
 st.markdown('''
 <style>
+.stForm{background:#e8f5e9;padding:15px;
+border-radius:10px;border:2px solid #0e7a3d;}
 .ana-box{background:#e8f5e9;padding:15px;
 border-radius:10px;border:2px solid #0e7a3d;
 margin-bottom:10px;}
 .ana-head{background:#0e7a3d;padding:10px;
 border-radius:8px;color:white;text-align:center;}
-.stForm{background:#e8f5e9;
-border:2px solid #0e7a3d;border-radius:10px;}
 h2,h3,h4{color:#0e7a3d;}
 </style>
 ''', unsafe_allow_html=True)
@@ -200,7 +200,6 @@ if not st.session_state.auth:
     hdr()
     c1,c2,c3=st.columns([1,2,1])
     with c2:
-        st.markdown("<div class='ana-box'>", unsafe_allow_html=True)
         with st.form('login'):
             u=st.text_input('User',value='admin')
             p=st.text_input('Pwd',type='password',value='ana2024')
@@ -215,7 +214,6 @@ if not st.session_state.auth:
                         st.session_state.chat_user=u
                         st.rerun()
                 st.error('Err')
-        st.markdown("</div>", unsafe_allow_html=True)
     st.stop()
 
 hdr()
@@ -293,7 +291,6 @@ elif sc=='Volontari':
     if st.session_state.edit_idx >=0:
         vol=st.session_state.dati[st.session_state.edit_idx]
         st.success(f"Modifica: {vol.get('Nome','')}")
-        st.markdown("<div class='ana-box'>", unsafe_allow_html=True)
         with st.form("edit_vol"):
             e_nome=st.text_input("Nome",value=vol.get('Nome',''))
             e_cf=st.text_input("CF",value=vol.get('CF',''))
@@ -333,9 +330,7 @@ elif sc=='Volontari':
             if ba:
                 st.session_state.edit_idx=-1
                 st.rerun()
-        st.markdown("</div>", unsafe_allow_html=True)
-    st.markdown("<div class='ana-box'>", unsafe_allow_html=True)
-    st.markdown("#### CON ALETTE SOPRA - COME IERI")
+    st.markdown("<div class='ana-box'>CON ALETTE SOPRA - COME IERI</div>", unsafe_allow_html=True)
     tab1, tab2, tab3, tab4 = st.tabs(["ALETTA 1 - ANAGRAFICA","ALETTA 2 - CONTATTI","ALETTA 3 - FOTO","ALETTA 4 - TESSERINO"])
     with tab1:
         st.markdown("<div class='ana-box'>MASCHERA PRINCIPALE</div>", unsafe_allow_html=True)
@@ -375,8 +370,6 @@ elif sc=='Volontari':
                 vol=st.session_state.dati[idx]
                 st.write(f"Tel: {vol.get('Telefono','')}")
                 st.write(f"Email: {vol.get('Email','')}")
-                st.write(f"Comune: {vol.get('Comune','')}")
-                st.write(f"Via: {vol.get('Indirizzo','')}")
     with tab3:
         st.markdown("<div class='ana-box'>SOTTOMASCHERA FOTO</div>", unsafe_allow_html=True)
         vlist=[]
@@ -427,8 +420,6 @@ elif sc=='Volontari':
                 if tess:
                     st.image(tess)
                     st.download_button('SCARICA',tess,file_name="Tess.png",mime='image/png',key='tess_dl')
-    st.markdown("</div>", unsafe_allow_html=True)
-    st.markdown("<div class='ana-box'>", unsafe_allow_html=True)
     if st.session_state.dati:
         df=pd.DataFrame(st.session_state.dati)
         ev=st.dataframe(df,on_select="rerun",selection_mode="single-row",key='vol_list')
@@ -436,13 +427,11 @@ elif sc=='Volontari':
             st.session_state.edit_idx=ev.selection.rows[0]
             st.rerun()
     else:
-        st.info("Nessun volontario - Usa maschera sopra")
-    st.markdown("</div>", unsafe_allow_html=True)
+        st.info("Nessun volontario")
 
 elif sc=='Mappa':
     to_dash()
     st.markdown("<div class='ana-head'><b>MAPPA - SALVA TUTTE + CANCELLA</b></div>", unsafe_allow_html=True)
-    st.markdown("<div class='ana-box'>", unsafe_allow_html=True)
     c1,c2=st.columns(2)
     with c1:
         mt=st.selectbox("Tipo",['Standard','Google Map','Satellite','Terreno','Waze Chiaro','Waze Scuro'],index=0,key='mt')
@@ -452,7 +441,6 @@ elif sc=='Mappa':
             lst_icon.append(item.get('Nome','Default'))
         sel_icon=st.selectbox("Icona",lst_icon,key='sel_icon_lib')
         st.session_state.sel_icon=sel_icon
-    st.markdown("</div>", unsafe_allow_html=True)
     if HAS_MAP:
         try:
             if mt=='Google Map':
@@ -507,7 +495,7 @@ elif sc=='Mappa':
         except:
             st.error("Err mappa")
     st.divider()
-    st.markdown("<div class='ana-box'><h3>Maschera sotto - Salva tutte - Comune/Via/Lat/Lon</h3>", unsafe_allow_html=True)
+    st.markdown("<div class='ana-box'><h3>Maschera sotto - Comune/Via/Lat/Lon</h3></div>", unsafe_allow_html=True)
     if st.session_state.edit_map >=0:
         p=st.session_state.post[st.session_state.edit_map]
         st.success(f"Modifica: {p.get('Nome','')}")
@@ -581,9 +569,8 @@ elif sc=='Mappa':
                     st.success("OK "+mn)
                     st.balloons()
                     st.rerun()
-    st.markdown("</div>", unsafe_allow_html=True)
     st.divider()
-    st.markdown("<div class='ana-box'><h3>Mappa sotto + lista con cancella</h3>", unsafe_allow_html=True)
+    st.markdown("<div class='ana-box'><h3>Mappa sotto + lista con cancella</h3></div>", unsafe_allow_html=True)
     if st.session_state.post:
         st.write(f"Totale: {len(st.session_state.post)}")
         df=pd.DataFrame(st.session_state.post)
@@ -623,12 +610,12 @@ elif sc=='Mappa':
             st.rerun()
     else:
         st.info("Nessuna postazione - Usa maschera sopra")
-    st.markdown("</div>", unsafe_allow_html=True)
 
 elif sc=='Libreria Icone':
     to_dash()
-    st.markdown("<div class='ana-head'><b>LIBRERIA ICONE - MASCHERA</b></div>", unsafe_allow_html=True)
-    st.markdown("<div class='ana-box'>", unsafe_allow_html=True)
+    st.markdown("<div class='ana-head'><b>LIBRERIA ICONE</b></div>", unsafe_allow_html=True)
+    st.markdown("<div class='ana-box'>MASCHERA ICONE - VERDE ANA</div>", unsafe_allow_html=True)
+    # FIX RIGA 632 - FORM FUORI DAL DIV - NO MARKDOWN PRIMA!
     with st.form("icone"):
         i_nome=st.text_input("Nome *")
         i_cat=st.text_input("Cat")
@@ -649,8 +636,6 @@ elif sc=='Libreria Icone':
                 save_json(FI,st.session_state.icone)
                 st.success("OK")
                 st.rerun()
-    st.markdown("</div>", unsafe_allow_html=True)
-    st.markdown("<div class='ana-box'>", unsafe_allow_html=True)
     if st.session_state.icone:
         df=pd.DataFrame(st.session_state.icone)
         st.dataframe(df)
@@ -660,12 +645,11 @@ elif sc=='Libreria Icone':
                 st.image(fp,width=60,caption=ic.get('Nome',''))
     else:
         st.info("Nessuna icona - Usa maschera sopra")
-    st.markdown("</div>", unsafe_allow_html=True)
 
 elif sc=='Interventi Emergenza':
     to_dash()
-    st.markdown("<div class='ana-head'><b>INTERVENTI - MASCHERA</b></div>", unsafe_allow_html=True)
-    st.markdown("<div class='ana-box'>", unsafe_allow_html=True)
+    st.markdown("<div class='ana-head'><b>INTERVENTI</b></div>", unsafe_allow_html=True)
+    st.markdown("<div class='ana-box'>MASCHERA INTERVENTI</div>", unsafe_allow_html=True)
     with st.form("emerg"):
         d_int=st.date_input("Data")
         o_int=st.time_input("Ora")
@@ -682,18 +666,15 @@ elif sc=='Interventi Emergenza':
                 save_json(FE,st.session_state.interv)
                 st.success("OK")
                 st.rerun()
-    st.markdown("</div>", unsafe_allow_html=True)
-    st.markdown("<div class='ana-box'>", unsafe_allow_html=True)
     if st.session_state.interv:
         st.dataframe(pd.DataFrame(st.session_state.interv))
     else:
-        st.info("Nessun intervento - Usa maschera sopra")
-    st.markdown("</div>", unsafe_allow_html=True)
+        st.info("Nessun intervento")
 
 elif sc=='Eventi':
     to_dash()
-    st.markdown("<div class='ana-head'><b>EVENTI - MASCHERA</b></div>", unsafe_allow_html=True)
-    st.markdown("<div class='ana-box'>", unsafe_allow_html=True)
+    st.markdown("<div class='ana-head'><b>EVENTI</b></div>", unsafe_allow_html=True)
+    st.markdown("<div class='ana-box'>MASCHERA EVENTI</div>", unsafe_allow_html=True)
     with st.form("eventi"):
         ev_nome=st.text_input("Nome *")
         ev_data=st.date_input("Data")
@@ -710,18 +691,15 @@ elif sc=='Eventi':
                 save_json(FEV,st.session_state.eventi)
                 st.success("OK")
                 st.rerun()
-    st.markdown("</div>", unsafe_allow_html=True)
-    st.markdown("<div class='ana-box'>", unsafe_allow_html=True)
     if st.session_state.eventi:
         st.dataframe(pd.DataFrame(st.session_state.eventi))
     else:
-        st.info("Nessun evento - Usa maschera sopra")
-    st.markdown("</div>", unsafe_allow_html=True)
+        st.info("Nessun evento")
 
 elif sc=='Check In':
     to_dash()
-    st.markdown("<div class='ana-head'><b>CHECK IN - MASCHERA</b></div>", unsafe_allow_html=True)
-    st.markdown("<div class='ana-box'>", unsafe_allow_html=True)
+    st.markdown("<div class='ana-head'><b>CHECK IN</b></div>", unsafe_allow_html=True)
+    st.markdown("<div class='ana-box'>MASCHERA CHECK IN</div>", unsafe_allow_html=True)
     vlist=[]
     for d in st.session_state.dati:
         vlist.append(d.get('Nome',''))
@@ -740,18 +718,15 @@ elif sc=='Check In':
                 st.rerun()
     else:
         st.warning("Nessun volontario")
-    st.markdown("</div>", unsafe_allow_html=True)
-    st.markdown("<div class='ana-box'>", unsafe_allow_html=True)
     if st.session_state.check:
         st.dataframe(pd.DataFrame(st.session_state.check))
     else:
         st.info("Nessun check in")
-    st.markdown("</div>", unsafe_allow_html=True)
 
 elif sc=='DB Radio':
     to_dash()
-    st.markdown("<div class='ana-head'><b>DB RADIO - MASCHERA</b></div>", unsafe_allow_html=True)
-    st.markdown("<div class='ana-box'>", unsafe_allow_html=True)
+    st.markdown("<div class='ana-head'><b>DB RADIO</b></div>", unsafe_allow_html=True)
+    st.markdown("<div class='ana-box'>MASCHERA RADIO</div>", unsafe_allow_html=True)
     with st.form("radio"):
         r_mod=st.text_input("Modello *")
         r_mat=st.text_input("Matricola *")
@@ -766,18 +741,15 @@ elif sc=='DB Radio':
                 save_json(FR,st.session_state.radio)
                 st.success("OK")
                 st.rerun()
-    st.markdown("</div>", unsafe_allow_html=True)
-    st.markdown("<div class='ana-box'>", unsafe_allow_html=True)
     if st.session_state.radio:
         st.dataframe(pd.DataFrame(st.session_state.radio))
     else:
-        st.info("Nessuna radio - Usa maschera sopra")
-    st.markdown("</div>", unsafe_allow_html=True)
+        st.info("Nessuna radio")
 
 elif sc=='Consegna Radio':
     to_dash()
-    st.markdown("<div class='ana-head'><b>CONSEGNA RADIO - MASCHERA</b></div>", unsafe_allow_html=True)
-    st.markdown("<div class='ana-box'>", unsafe_allow_html=True)
+    st.markdown("<div class='ana-head'><b>CONSEGNA RADIO</b></div>", unsafe_allow_html=True)
+    st.markdown("<div class='ana-box'>MASCHERA CONSEGNA</div>", unsafe_allow_html=True)
     vlist=[]
     for d in st.session_state.dati:
         vlist.append(d.get('Nome',''))
@@ -798,18 +770,15 @@ elif sc=='Consegna Radio':
                 st.rerun()
     else:
         st.warning("Servono volontari e radio")
-    st.markdown("</div>", unsafe_allow_html=True)
-    st.markdown("<div class='ana-box'>", unsafe_allow_html=True)
     if st.session_state.cons:
         st.dataframe(pd.DataFrame(st.session_state.cons))
     else:
         st.info("Nessuna consegna")
-    st.markdown("</div>", unsafe_allow_html=True)
 
 elif sc=='Chat Volontari':
     to_dash()
-    st.markdown("<div class='ana-head'><b>CHAT VOLONTARI - MASCHERA</b></div>", unsafe_allow_html=True)
-    st.markdown("<div class='ana-box'>", unsafe_allow_html=True)
+    st.markdown("<div class='ana-head'><b>CHAT VOLONTARI</b></div>", unsafe_allow_html=True)
+    st.markdown("<div class='ana-box'>CHAT - VERDE ANA</div>", unsafe_allow_html=True)
     c1,c2=st.columns([3,1])
     with c1:
         st.write(f"Utente: {st.session_state.chat_user}")
@@ -817,8 +786,6 @@ elif sc=='Chat Volontari':
         if st.button("AGGIORNA"):
             st.session_state.chat=load_json(FCHAT,[])
             st.rerun()
-    st.markdown("</div>", unsafe_allow_html=True)
-    st.markdown("<div class='ana-box'>", unsafe_allow_html=True)
     if st.session_state.chat:
         for msg in st.session_state.chat[-20:]:
             user=msg.get('User','')
@@ -827,8 +794,6 @@ elif sc=='Chat Volontari':
             st.write(f"{user} {tm}: {text}")
     else:
         st.info("Nessun msg")
-    st.markdown("</div>", unsafe_allow_html=True)
-    st.markdown("<div class='ana-box'>", unsafe_allow_html=True)
     with st.form("chat_form"):
         chat_text=st.text_input("Scrivi")
         chat_send=st.form_submit_button("INVIA")
@@ -839,13 +804,11 @@ elif sc=='Chat Volontari':
                 save_json(FCHAT,st.session_state.chat)
                 st.success("Inviato")
                 st.rerun()
-    st.markdown("</div>", unsafe_allow_html=True)
 
 elif sc=='Backup':
     to_dash()
-    st.markdown("<div class='ana-head'><b>BACKUP - MASCHERA IMPORT EXPORT</b></div>", unsafe_allow_html=True)
-    st.markdown("<div class='ana-box'>", unsafe_allow_html=True)
-    st.markdown("### EXPORT - Come ieri")
+    st.markdown("<div class='ana-head'><b>BACKUP - IMPORT EXPORT</b></div>", unsafe_allow_html=True)
+    st.markdown("<div class='ana-box'>EXPORT - Come ieri</div>", unsafe_allow_html=True)
     if st.button('CREA BACKUP COMPLETO'):
         out=BytesIO()
         has=False
@@ -880,22 +843,20 @@ elif sc=='Backup':
             if not has:
                 pd.DataFrame([{"Info":"Nessun dato"}]).to_excel(w,sheet_name='Vuoto',index=False)
         st.session_state['bk']=out.getvalue()
-        st.success('OK backup creato - Export come ieri')
+        st.success('OK backup creato')
         st.balloons()
     if 'bk' in st.session_state:
         st.download_button('SCARICA BACKUP COMPLETO',st.session_state['bk'],file_name='BACKUP_ANA_VARESE.xlsx',key='bkt')
-    st.markdown("</div>", unsafe_allow_html=True)
-    st.markdown("<div class='ana-box'>", unsafe_allow_html=True)
-    st.markdown("### IMPORT - Come ieri - Ripristina dati")
-    st.write("Carica Excel backup per ripristinare tutti i form")
+    st.markdown("<div class='ana-box'>IMPORT - Come ieri</div>", unsafe_allow_html=True)
+    st.write("Carica Excel backup per ripristinare")
     up_file=st.file_uploader("Carica Excel backup",type=['xlsx','xls'])
     if up_file:
         try:
             xls=pd.ExcelFile(up_file)
-            st.write(f"Fogli trovati: {xls.sheet_names}")
+            st.write(f"Fogli: {xls.sheet_names}")
             for sheet in xls.sheet_names:
                 df=pd.read_excel(xls,sheet_name=sheet)
-                st.write(f"**{sheet}**: {len(df)} righe")
+                st.write(f"{sheet}: {len(df)} righe")
                 st.dataframe(df.head())
                 if st.button(f"IMPORTA {sheet}",key=f"imp_{sheet}"):
                     data=df.to_dict('records')
@@ -926,9 +887,9 @@ elif sc=='Backup':
                     elif sheet=='Chat':
                         st.session_state.chat=data
                         save_json(FCHAT,data)
-                    st.success(f"OK {sheet} importato - {len(data)} righe")
+                    st.success(f"OK {sheet} importato")
                     st.rerun()
-            if st.button("IMPORTA TUTTO - TUTTI I FOGLI"):
+            if st.button("IMPORTA TUTTO"):
                 for sheet in xls.sheet_names:
                     df=pd.read_excel(xls,sheet_name=sheet)
                     data=df.to_dict('records')
@@ -959,14 +920,12 @@ elif sc=='Backup':
                     elif sheet=='Chat':
                         st.session_state.chat=data
                         save_json(FCHAT,data)
-                st.success("OK tutto importato - Tutti i form ripristinati")
+                st.success("OK tutto importato")
                 st.balloons()
                 st.rerun()
         except Exception as e:
             st.error(f"Err import: {e}")
-    st.markdown("</div>", unsafe_allow_html=True)
-    st.markdown("<div class='ana-box'>", unsafe_allow_html=True)
-    st.markdown("### Stato attuale form")
+    st.markdown("<div class='ana-box'>Stato form</div>", unsafe_allow_html=True)
     c1,c2,c3,c4=st.columns(4)
     with c1:
         st.metric('Volontari',len(st.session_state.dati))
@@ -976,12 +935,11 @@ elif sc=='Backup':
         st.metric('Icone',len(st.session_state.icone))
     with c4:
         st.metric('Chat',len(st.session_state.chat))
-    st.markdown("</div>", unsafe_allow_html=True)
 
 elif sc=='Tesserino':
     to_dash()
-    st.markdown("<div class='ana-head'><b>TESSERINO - MASCHERA</b></div>", unsafe_allow_html=True)
-    st.markdown("<div class='ana-box'>", unsafe_allow_html=True)
+    st.markdown("<div class='ana-head'><b>TESSERINO</b></div>", unsafe_allow_html=True)
+    st.markdown("<div class='ana-box'>MASCHERA TESSERINO</div>", unsafe_allow_html=True)
     if st.session_state.dati:
         df=pd.DataFrame(st.session_state.dati)
         ev=st.dataframe(df,on_select="rerun",selection_mode="single-row",key='tess_list')
@@ -1002,8 +960,7 @@ elif sc=='Tesserino':
                     st.image(tess)
                     st.download_button('SCARICA NITIDO',tess,file_name="Tess.png",mime='image/png',key='t1')
     else:
-        st.warning("Nessun volontario - Usa maschera volontari")
-    st.markdown("</div>", unsafe_allow_html=True)
+        st.warning("Nessun volontario")
 
 else:
     to_dash()
