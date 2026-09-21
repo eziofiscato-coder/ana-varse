@@ -170,7 +170,7 @@ def hdr():
         except:
             st.write("ANA")
     with b:
-        st.markdown("<div class='ana-head'><b>ANA VARESE</b></div>", unsafe_allow_html=True)
+        st.markdown("<div class='ana-head'><b>NUCLEO DI VOLONTARI DI PROTEZIONE CIVILE ANA SEZIONE DI VARESE</b></div>", unsafe_allow_html=True)
 def to_dash():
     if st.button('TORNA DASHBOARD'):
         st.session_state.menu='Dashboard'
