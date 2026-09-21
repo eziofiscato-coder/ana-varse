@@ -99,7 +99,6 @@ elif st.session_state.page == 'dashboard':
                 'Libreria Icone',
                 'Backup',
                 'Esporta'
-            ],
             index=0
         )
         st.session_state.menu = menu
