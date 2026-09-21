@@ -330,30 +330,28 @@ elif sc=='Volontari':
             if ba:
                 st.session_state.edit_idx=-1
                 st.rerun()
-    st.markdown("<div class='ana-box'>CON ALETTE SOPRA - COME IERI</div>", unsafe_allow_html=True)
+    st.markdown("<div class='ana-box'>CON ALETTE SOPRA</div>", unsafe_allow_html=True)
     tab1, tab2, tab3, tab4 = st.tabs(["ALETTA 1 - ANAGRAFICA","ALETTA 2 - CONTATTI","ALETTA 3 - FOTO","ALETTA 4 - TESSERINO"])
     with tab1:
         st.markdown("<div class='ana-box'>MASCHERA PRINCIPALE</div>", unsafe_allow_html=True)
-        with st.form("anag"):
-            a_nome=st.text_input("Nome *")
-            a_cogn=st.text_input("Cognome *")
-            a_cf=st.text_input("CF *")
-            a_tel=st.text_input("Telefono")
-            a_ind=st.text_input("Indirizzo")
-            a_com=st.text_input("Comune")
-            a_odv=st.text_input("ODV")
-            a_tess=st.text_input("Tessera")
-            a_ruolo=st.text_input("Ruolo")
-            a_mail=st.text_input("Email")
-            b1=st.form_submit_button("SALVA")
-            if b1:
-                if a_nome and a_cogn:
-                    nc=f"{a_nome} {a_cogn}"
-                    nuovo={'Nome':nc,'CF':a_cf,'Indirizzo':a_ind,'Comune':a_com,'ODV':a_odv,'Tessera':a_tess,'Ruolo':a_ruolo,'FotoFile':'','Telefono':a_tel,'Email':a_mail}
-                    st.session_state.dati.append(nuovo)
-                    save_json(FD,st.session_state.dati)
-                    st.success("OK")
-                    st.rerun()
+        a_nome=st.text_input("Nome *",key="an_nome")
+        a_cogn=st.text_input("Cognome *",key="an_cogn")
+        a_cf=st.text_input("CF *",key="an_cf")
+        a_tel=st.text_input("Telefono",key="an_tel")
+        a_ind=st.text_input("Indirizzo",key="an_ind")
+        a_com=st.text_input("Comune",key="an_com")
+        a_odv=st.text_input("ODV",key="an_odv")
+        a_tess=st.text_input("Tessera",key="an_tess")
+        a_ruolo=st.text_input("Ruolo",key="an_ruolo")
+        a_mail=st.text_input("Email",key="an_mail")
+        if st.button("SALVA VOLONTARIO",key="an_salva"):
+            if a_nome and a_cogn:
+                nc=f"{a_nome} {a_cogn}"
+                nuovo={'Nome':nc,'CF':a_cf,'Indirizzo':a_ind,'Comune':a_com,'ODV':a_odv,'Tessera':a_tess,'Ruolo':a_ruolo,'FotoFile':'','Telefono':a_tel,'Email':a_mail}
+                st.session_state.dati.append(nuovo)
+                save_json(FD,st.session_state.dati)
+                st.success("OK")
+                st.rerun()
     with tab2:
         st.markdown("<div class='ana-box'>SOTTOMASCHERA CONTATTI</div>", unsafe_allow_html=True)
         vlist=[]
@@ -386,10 +384,10 @@ elif sc=='Volontari':
                 fp=st.session_state.dati[idx].get('FotoFile','')
                 if fp and os.path.exists(fp):
                     st.image(fp,width=200)
-                up=st.file_uploader("Foto",type=['jpg','jpeg','png'])
+                up=st.file_uploader("Foto",type=['jpg','jpeg','png'],key="up3")
                 if up:
                     st.image(up,width=200)
-                    if st.button("SALVA FOTO"):
+                    if st.button("SALVA FOTO",key="sf3"):
                         os.makedirs('foto_volontari',exist_ok=True)
                         fn="foto_volontari/"+sel.replace(' ','_')+"_"+up.name
                         fout=open(fn,'wb')
@@ -426,8 +424,6 @@ elif sc=='Volontari':
         if ev and ev.selection and ev.selection.rows:
             st.session_state.edit_idx=ev.selection.rows[0]
             st.rerun()
-    else:
-        st.info("Nessun volontario")
 
 elif sc=='Mappa':
     to_dash()
@@ -495,30 +491,26 @@ elif sc=='Mappa':
         except:
             st.error("Err mappa")
     st.divider()
-    st.markdown("<div class='ana-box'><h3>Maschera sotto - Comune/Via/Lat/Lon</h3></div>", unsafe_allow_html=True)
+    st.markdown("<div class='ana-box'><h3>Maschera sotto</h3></div>", unsafe_allow_html=True)
     if st.session_state.edit_map >=0:
         p=st.session_state.post[st.session_state.edit_map]
         st.success(f"Modifica: {p.get('Nome','')}")
-        with st.form("edit_map"):
-            e_nome=st.text_input("Nome",value=p.get('Nome',''))
-            e_com=st.text_input("Comune",value=p.get('Comune',''))
-            e_via=st.text_input("Via",value=p.get('Via',''))
-            e_lat=st.text_input("Lat",value=p.get('Lat','45.8205'))
-            e_lon=st.text_input("Lon",value=p.get('Lon','8.8250'))
-            e_tipo=st.text_input("Tipo",value=p.get('Tipo',''))
-            lst=['Default']
-            for ic in st.session_state.icone:
-                lst.append(ic.get('Nome','Default'))
-            e_icon=st.selectbox("Icona",lst)
-            e_r1=st.text_input("Rif1",value=p.get('Rif1',''))
-            e_r2=st.text_input("Rif2",value=p.get('Rif2',''))
-            e_note=st.text_area("Note",value=p.get('Note',''))
-            b1,b2=st.columns(2)
-            with b1:
-                bs=st.form_submit_button("SALVA")
-            with b2:
-                bd=st.form_submit_button("ELIMINA")
-            if bs:
+        e_nome=st.text_input("Nome",value=p.get('Nome',''),key="e_nome")
+        e_com=st.text_input("Comune",value=p.get('Comune',''),key="e_com")
+        e_via=st.text_input("Via",value=p.get('Via',''),key="e_via")
+        e_lat=st.text_input("Lat",value=p.get('Lat','45.8205'),key="e_lat")
+        e_lon=st.text_input("Lon",value=p.get('Lon','8.8250'),key="e_lon")
+        e_tipo=st.text_input("Tipo",value=p.get('Tipo',''),key="e_tipo")
+        lst=['Default']
+        for ic in st.session_state.icone:
+            lst.append(ic.get('Nome','Default'))
+        e_icon=st.selectbox("Icona",lst,key="e_icon")
+        e_r1=st.text_input("Rif1",value=p.get('Rif1',''),key="e_r1")
+        e_r2=st.text_input("Rif2",value=p.get('Rif2',''),key="e_r2")
+        e_note=st.text_area("Note",value=p.get('Note',''),key="e_note")
+        b1,b2=st.columns(2)
+        with b1:
+            if st.button("SALVA MODIFICA",key="bs_mod"):
                 p['Nome']=e_nome
                 p['Comune']=e_com
                 p['Via']=e_via
@@ -533,42 +525,41 @@ elif sc=='Mappa':
                 save_json(FP,st.session_state.post)
                 st.session_state.edit_map=-1
                 st.rerun()
-            if bd:
+        with b2:
+            if st.button("ELIMINA",key="bd_mod"):
                 st.session_state.post.pop(st.session_state.edit_map)
                 save_json(FP,st.session_state.post)
                 st.session_state.edit_map=-1
                 st.rerun()
-        if st.button("ANNULLA"):
+        if st.button("ANNULLA",key="an_mod"):
             st.session_state.edit_map=-1
             st.rerun()
     else:
-        with st.form("mapa"):
-            mn=st.text_input("Nome *")
-            sc_com=st.session_state.sel_comune
-            sc_via=st.session_state.sel_via
-            sc_lat=st.session_state.sel_lat
-            sc_lon=st.session_state.sel_lon
-            mc=st.text_input("Comune",value=sc_com)
-            mv=st.text_input("Via",value=sc_via)
-            mlat=st.text_input("Lat",value=sc_lat)
-            mlon=st.text_input("Lon",value=sc_lon)
-            mtp=st.text_input("Tipo")
-            lst=['Default']
-            for ic in st.session_state.icone:
-                lst.append(ic.get('Nome','Default'))
-            mi=st.selectbox("Icona",lst)
-            mr1=st.text_input("Rif1")
-            mr2=st.text_input("Rif2")
-            mnt=st.text_area("Note")
-            bm=st.form_submit_button("SALVA TUTTE")
-            if bm:
-                if mn and mc:
-                    nuovo={'Nome':mn,'Comune':mc,'Via':mv,'Lat':mlat,'Lon':mlon,'Tipo':mtp,'Icona':mi,'Rif1':mr1,'Rif2':mr2,'Note':mnt}
-                    st.session_state.post.append(nuovo)
-                    save_json(FP,st.session_state.post)
-                    st.success("OK "+mn)
-                    st.balloons()
-                    st.rerun()
+        mn=st.text_input("Nome *",key="mn")
+        sc_com=st.session_state.sel_comune
+        sc_via=st.session_state.sel_via
+        sc_lat=st.session_state.sel_lat
+        sc_lon=st.session_state.sel_lon
+        mc=st.text_input("Comune",value=sc_com,key="mc")
+        mv=st.text_input("Via",value=sc_via,key="mv")
+        mlat=st.text_input("Lat",value=sc_lat,key="mlat")
+        mlon=st.text_input("Lon",value=sc_lon,key="mlon")
+        mtp=st.text_input("Tipo",key="mtp")
+        lst=['Default']
+        for ic in st.session_state.icone:
+            lst.append(ic.get('Nome','Default'))
+        mi=st.selectbox("Icona",lst,key="mi")
+        mr1=st.text_input("Rif1",key="mr1")
+        mr2=st.text_input("Rif2",key="mr2")
+        mnt=st.text_area("Note",key="mnt")
+        if st.button("SALVA TUTTE LE POSIZIONI",key="bm"):
+            if mn and mc:
+                nuovo={'Nome':mn,'Comune':mc,'Via':mv,'Lat':mlat,'Lon':mlon,'Tipo':mtp,'Icona':mi,'Rif1':mr1,'Rif2':mr2,'Note':mnt}
+                st.session_state.post.append(nuovo)
+                save_json(FP,st.session_state.post)
+                st.success("OK "+mn)
+                st.balloons()
+                st.rerun()
     st.divider()
     st.markdown("<div class='ana-box'><h3>Mappa sotto + lista con cancella</h3></div>", unsafe_allow_html=True)
     if st.session_state.post:
@@ -609,33 +600,31 @@ elif sc=='Mappa':
             st.success("Tutte cancellate")
             st.rerun()
     else:
-        st.info("Nessuna postazione - Usa maschera sopra")
+        st.info("Nessuna postazione")
 
 elif sc=='Libreria Icone':
     to_dash()
-    st.markdown("<div class='ana-head'><b>LIBRERIA ICONE</b></div>", unsafe_allow_html=True)
-    st.markdown("<div class='ana-box'>MASCHERA ICONE - VERDE ANA</div>", unsafe_allow_html=True)
-    # FIX RIGA 632 - FORM FUORI DAL DIV - NO MARKDOWN PRIMA!
-    with st.button("icone"):
-        i_nome=st.text_input("Nome *")
-        i_cat=st.text_input("Cat")
-        i_desc=st.text_area("Desc")
-        i_file=st.file_uploader("File",type=['png','jpg','jpeg','svg'])
-        bi=st.form_submit_button("SALVA")
-        if bi:
-            if i_nome:
-                fp=""
-                if i_file:
-                    os.makedirs('icone',exist_ok=True)
-                    fp="icone/"+i_nome+"_"+i_file.name
-                    fout=open(fp,'wb')
-                    fout.write(i_file.getbuffer())
-                    fout.close()
-                nuovo={'Nome':i_nome,'Categoria':i_cat,'File':fp,'Descrizione':i_desc}
-                st.session_state.icone.append(nuovo)
-                save_json(FI,st.session_state.icone)
-                st.success("OK")
-                st.rerun()
+    st.markdown("<div class='ana-head'><b>LIBRERIA ICONE - FIX RIGA 619</b></div>", unsafe_allow_html=True)
+    st.markdown("<div class='ana-box'>MASCHERA ICONE - SENZA FORM - NO ERRORE</div>", unsafe_allow_html=True)
+    i_nome=st.text_input("Nome icona *",key="icone_nome_fix")
+    i_cat=st.text_input("Categoria",key="icone_cat_fix")
+    i_desc=st.text_area("Descrizione",key="icone_desc_fix")
+    i_file=st.file_uploader("File icona",type=['png','jpg','jpeg','svg'],key="icone_file_fix")
+    if st.button("SALVA ICONA - FIX 619",key="icone_salva_fix"):
+        if i_nome:
+            fp=""
+            if i_file:
+                os.makedirs('icone',exist_ok=True)
+                fp="icone/"+i_nome+"_"+i_file.name
+                fout=open(fp,'wb')
+                fout.write(i_file.getbuffer())
+                fout.close()
+            nuovo={'Nome':i_nome,'Categoria':i_cat,'File':fp,'Descrizione':i_desc}
+            st.session_state.icone.append(nuovo)
+            save_json(FI,st.session_state.icone)
+            st.success("OK icona salvata - Fix 619")
+            st.balloons()
+            st.rerun()
     if st.session_state.icone:
         df=pd.DataFrame(st.session_state.icone)
         st.dataframe(df)
@@ -644,28 +633,26 @@ elif sc=='Libreria Icone':
             if fp and os.path.exists(fp):
                 st.image(fp,width=60,caption=ic.get('Nome',''))
     else:
-        st.info("Nessuna icona - Usa maschera sopra")
+        st.info("Nessuna icona - Usa maschera sopra - Fix 619 OK")
 
 elif sc=='Interventi Emergenza':
     to_dash()
     st.markdown("<div class='ana-head'><b>INTERVENTI</b></div>", unsafe_allow_html=True)
     st.markdown("<div class='ana-box'>MASCHERA INTERVENTI</div>", unsafe_allow_html=True)
-    with st.form("emerg"):
-        d_int=st.date_input("Data")
-        o_int=st.time_input("Ora")
-        com_int=st.text_input("Comune *")
-        via_int=st.text_input("Via *")
-        civ_int=st.text_input("Civico")
-        odv_int=st.text_input("ODV")
-        az_int=st.text_area("Azione *",height=80)
-        sv=st.form_submit_button("SALVA")
-        if sv:
-            if com_int and via_int and az_int:
-                nuovo={"Data":str(d_int),"Ora":str(o_int),"Comune":com_int,"Via":via_int,"Civico":civ_int,"ODV":odv_int,"Azione":az_int}
-                st.session_state.interv.append(nuovo)
-                save_json(FE,st.session_state.interv)
-                st.success("OK")
-                st.rerun()
+    d_int=st.date_input("Data",key="d_int")
+    o_int=st.time_input("Ora",key="o_int")
+    com_int=st.text_input("Comune *",key="com_int")
+    via_int=st.text_input("Via *",key="via_int")
+    civ_int=st.text_input("Civico",key="civ_int")
+    odv_int=st.text_input("ODV",key="odv_int")
+    az_int=st.text_area("Azione *",height=80,key="az_int")
+    if st.button("SALVA INTERVENTO",key="sv_int"):
+        if com_int and via_int and az_int:
+            nuovo={"Data":str(d_int),"Ora":str(o_int),"Comune":com_int,"Via":via_int,"Civico":civ_int,"ODV":odv_int,"Azione":az_int}
+            st.session_state.interv.append(nuovo)
+            save_json(FE,st.session_state.interv)
+            st.success("OK")
+            st.rerun()
     if st.session_state.interv:
         st.dataframe(pd.DataFrame(st.session_state.interv))
     else:
@@ -675,22 +662,20 @@ elif sc=='Eventi':
     to_dash()
     st.markdown("<div class='ana-head'><b>EVENTI</b></div>", unsafe_allow_html=True)
     st.markdown("<div class='ana-box'>MASCHERA EVENTI</div>", unsafe_allow_html=True)
-    with st.form("eventi"):
-        ev_nome=st.text_input("Nome *")
-        ev_data=st.date_input("Data")
-        ev_com=st.text_input("Comune")
-        ev_luogo=st.text_input("Luogo")
-        ev_tipo=st.text_input("Tipo")
-        ev_resp=st.text_input("Resp")
-        ev_desc=st.text_area("Desc")
-        be=st.form_submit_button("SALVA")
-        if be:
-            if ev_nome:
-                nuovo={'Nome':ev_nome,'Data':str(ev_data),'Comune':ev_com,'Luogo':ev_luogo,'Tipo':ev_tipo,'Responsabile':ev_resp,'Descrizione':ev_desc}
-                st.session_state.eventi.append(nuovo)
-                save_json(FEV,st.session_state.eventi)
-                st.success("OK")
-                st.rerun()
+    ev_nome=st.text_input("Nome *",key="ev_nome")
+    ev_data=st.date_input("Data",key="ev_data")
+    ev_com=st.text_input("Comune",key="ev_com")
+    ev_luogo=st.text_input("Luogo",key="ev_luogo")
+    ev_tipo=st.text_input("Tipo",key="ev_tipo")
+    ev_resp=st.text_input("Resp",key="ev_resp")
+    ev_desc=st.text_area("Desc",key="ev_desc")
+    if st.button("SALVA EVENTO",key="ev_be"):
+        if ev_nome:
+            nuovo={'Nome':ev_nome,'Data':str(ev_data),'Comune':ev_com,'Luogo':ev_luogo,'Tipo':ev_tipo,'Responsabile':ev_resp,'Descrizione':ev_desc}
+            st.session_state.eventi.append(nuovo)
+            save_json(FEV,st.session_state.eventi)
+            st.success("OK")
+            st.rerun()
     if st.session_state.eventi:
         st.dataframe(pd.DataFrame(st.session_state.eventi))
     else:
@@ -704,18 +689,16 @@ elif sc=='Check In':
     for d in st.session_state.dati:
         vlist.append(d.get('Nome',''))
     if vlist:
-        with st.form("check"):
-            sel=st.selectbox("Vol",vlist)
-            d_check=st.date_input("Data")
-            o_check=st.time_input("Ora")
-            luogo=st.text_input("Luogo")
-            bc=st.form_submit_button("SALVA")
-            if bc:
-                nuovo={'Volontario':sel,'Data':str(d_check),'Ora':str(o_check),'Luogo':luogo}
-                st.session_state.check.append(nuovo)
-                save_json(FC,st.session_state.check)
-                st.success("OK")
-                st.rerun()
+        sel=st.selectbox("Vol",vlist,key="check_vol")
+        d_check=st.date_input("Data",key="d_check")
+        o_check=st.time_input("Ora",key="o_check")
+        luogo=st.text_input("Luogo",key="luogo_check")
+        if st.button("SALVA CHECK IN",key="bc_check"):
+            nuovo={'Volontario':sel,'Data':str(d_check),'Ora':str(o_check),'Luogo':luogo}
+            st.session_state.check.append(nuovo)
+            save_json(FC,st.session_state.check)
+            st.success("OK")
+            st.rerun()
     else:
         st.warning("Nessun volontario")
     if st.session_state.check:
@@ -727,20 +710,18 @@ elif sc=='DB Radio':
     to_dash()
     st.markdown("<div class='ana-head'><b>DB RADIO</b></div>", unsafe_allow_html=True)
     st.markdown("<div class='ana-box'>MASCHERA RADIO</div>", unsafe_allow_html=True)
-    with st.form("radio"):
-        r_mod=st.text_input("Modello *")
-        r_mat=st.text_input("Matricola *")
-        r_freq=st.text_input("Freq")
-        r_stato=st.text_input("Stato")
-        r_note=st.text_area("Note")
-        br=st.form_submit_button("SALVA")
-        if br:
-            if r_mod and r_mat:
-                nuovo={'Modello':r_mod,'Matricola':r_mat,'Frequenza':r_freq,'Stato':r_stato,'Note':r_note}
-                st.session_state.radio.append(nuovo)
-                save_json(FR,st.session_state.radio)
-                st.success("OK")
-                st.rerun()
+    r_mod=st.text_input("Modello *",key="r_mod")
+    r_mat=st.text_input("Matricola *",key="r_mat")
+    r_freq=st.text_input("Freq",key="r_freq")
+    r_stato=st.text_input("Stato",key="r_stato")
+    r_note=st.text_area("Note",key="r_note")
+    if st.button("SALVA RADIO",key="br_radio"):
+        if r_mod and r_mat:
+            nuovo={'Modello':r_mod,'Matricola':r_mat,'Frequenza':r_freq,'Stato':r_stato,'Note':r_note}
+            st.session_state.radio.append(nuovo)
+            save_json(FR,st.session_state.radio)
+            st.success("OK")
+            st.rerun()
     if st.session_state.radio:
         st.dataframe(pd.DataFrame(st.session_state.radio))
     else:
@@ -757,17 +738,15 @@ elif sc=='Consegna Radio':
     for r in st.session_state.radio:
         rlist.append(r.get('Matricola',''))
     if vlist and rlist:
-        with st.form("cons"):
-            s_vol=st.selectbox("Vol",vlist)
-            s_rad=st.selectbox("Radio",rlist)
-            d_cons=st.date_input("Data")
-            b_cons=st.form_submit_button("SALVA")
-            if b_cons:
-                nuovo={'Volontario':s_vol,'Radio':s_rad,'Data':str(d_cons)}
-                st.session_state.cons.append(nuovo)
-                save_json(FR2,st.session_state.cons)
-                st.success("OK")
-                st.rerun()
+        s_vol=st.selectbox("Vol",vlist,key="s_vol")
+        s_rad=st.selectbox("Radio",rlist,key="s_rad")
+        d_cons=st.date_input("Data",key="d_cons")
+        if st.button("SALVA CONSEGNA",key="b_cons"):
+            nuovo={'Volontario':s_vol,'Radio':s_rad,'Data':str(d_cons)}
+            st.session_state.cons.append(nuovo)
+            save_json(FR2,st.session_state.cons)
+            st.success("OK")
+            st.rerun()
     else:
         st.warning("Servono volontari e radio")
     if st.session_state.cons:
@@ -794,20 +773,18 @@ elif sc=='Chat Volontari':
             st.write(f"{user} {tm}: {text}")
     else:
         st.info("Nessun msg")
-    with st.form("chat_form"):
-        chat_text=st.text_input("Scrivi")
-        chat_send=st.form_submit_button("INVIA")
-        if chat_send:
-            if chat_text:
-                nuovo={'User':st.session_state.chat_user,'Text':chat_text,'Time':datetime.now().strftime("%d/%m %H:%M"),'Data':str(datetime.now().date())}
-                st.session_state.chat.append(nuovo)
-                save_json(FCHAT,st.session_state.chat)
-                st.success("Inviato")
-                st.rerun()
+    chat_text=st.text_input("Scrivi messaggio",key="chat_text")
+    if st.button("INVIA",key="chat_send"):
+        if chat_text:
+            nuovo={'User':st.session_state.chat_user,'Text':chat_text,'Time':datetime.now().strftime("%d/%m %H:%M"),'Data':str(datetime.now().date())}
+            st.session_state.chat.append(nuovo)
+            save_json(FCHAT,st.session_state.chat)
+            st.success("Inviato")
+            st.rerun()
 
 elif sc=='Backup':
     to_dash()
-    st.markdown("<div class='ana-head'><b>BACKUP - IMPORT EXPORT</b></div>", unsafe_allow_html=True)
+    st.markdown("<div class='ana-head'><b>BACKUP - IMPORT EXPORT - COME IERI</b></div>", unsafe_allow_html=True)
     st.markdown("<div class='ana-box'>EXPORT - Come ieri</div>", unsafe_allow_html=True)
     if st.button('CREA BACKUP COMPLETO'):
         out=BytesIO()
@@ -843,13 +820,13 @@ elif sc=='Backup':
             if not has:
                 pd.DataFrame([{"Info":"Nessun dato"}]).to_excel(w,sheet_name='Vuoto',index=False)
         st.session_state['bk']=out.getvalue()
-        st.success('OK backup creato')
+        st.success('OK backup creato - Export come ieri')
         st.balloons()
     if 'bk' in st.session_state:
         st.download_button('SCARICA BACKUP COMPLETO',st.session_state['bk'],file_name='BACKUP_ANA_VARESE.xlsx',key='bkt')
-    st.markdown("<div class='ana-box'>IMPORT - Come ieri</div>", unsafe_allow_html=True)
-    st.write("Carica Excel backup per ripristinare")
-    up_file=st.file_uploader("Carica Excel backup",type=['xlsx','xls'])
+    st.markdown("<div class='ana-box'>IMPORT - Come ieri - Ripristina dati form</div>", unsafe_allow_html=True)
+    st.write("Carica Excel backup per ripristinare tutti i form")
+    up_file=st.file_uploader("Carica Excel backup",type=['xlsx','xls'],key="up_backup")
     if up_file:
         try:
             xls=pd.ExcelFile(up_file)
@@ -889,7 +866,7 @@ elif sc=='Backup':
                         save_json(FCHAT,data)
                     st.success(f"OK {sheet} importato")
                     st.rerun()
-            if st.button("IMPORTA TUTTO"):
+            if st.button("IMPORTA TUTTO - TUTTI I FOGLI",key="imp_tutto"):
                 for sheet in xls.sheet_names:
                     df=pd.read_excel(xls,sheet_name=sheet)
                     data=df.to_dict('records')
@@ -920,12 +897,12 @@ elif sc=='Backup':
                     elif sheet=='Chat':
                         st.session_state.chat=data
                         save_json(FCHAT,data)
-                st.success("OK tutto importato")
+                st.success("OK tutto importato - Tutti i form ripristinati")
                 st.balloons()
                 st.rerun()
         except Exception as e:
             st.error(f"Err import: {e}")
-    st.markdown("<div class='ana-box'>Stato form</div>", unsafe_allow_html=True)
+    st.markdown("<div class='ana-box'>Stato attuale form</div>", unsafe_allow_html=True)
     c1,c2,c3,c4=st.columns(4)
     with c1:
         st.metric('Volontari',len(st.session_state.dati))
