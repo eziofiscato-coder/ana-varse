@@ -9,7 +9,7 @@ def hdr():
     st.markdown(
         '<div style="background:#0e7a3d;padding:8px;'
         'border-radius:8px;color:white;text-align:center;'
-        'font-weight:bold;">NUCLEO VOLONTARI DI PROTEZIONE CIVILE- ANA VARESE Squadra di Caronno Pertusella</div>',
+        'font-weight:bold;">NUCLEO VOLONTARI - ANA VARESE</div>',
         unsafe_allow_html=True
     )
 
@@ -43,15 +43,15 @@ if st.session_state.page == 'entra':
     c1,c2,c3 = st.columns([1,2,1])
     with c2:
         try:
-            st.image('copertina.png', width=300)
+            st.image('copertina.png', width=400)
         except:
             try:
-                st.image('logo.png', width=200)
+                st.image('logo.png', width=250)
             except:
                 pass
     st.markdown(
         '<h2 style="text-align:center;color:#0e7a3d;">'
-        'GESTIONALE<br>DI PROTEZIONE CIVILE</h2>',
+        'VOLONTARIATO<br>Sezione di Varese</h2>',
         unsafe_allow_html=True
     )
     st.divider()
@@ -87,7 +87,8 @@ elif st.session_state.page == 'dashboard':
         st.markdown('### MENU COMPLETO FORM')
         menu = st.radio(
             'Scegli:',
-            
+            [
+                'Dashboard',
                 'Volontari',
                 'DB Radio',
                 'Brogliaccio',
@@ -99,6 +100,7 @@ elif st.session_state.page == 'dashboard':
                 'Libreria Icone',
                 'Backup',
                 'Esporta'
+            ],
             index=0
         )
         st.session_state.menu = menu
