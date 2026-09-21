@@ -4,27 +4,51 @@ from io import BytesIO
 
 st.set_page_config(page_title="ANA Varese", layout="centered")
 
-# INTESTAZIONE VERDE COME PRIMA - RIGA 7-8
-st.markdown("<div style='background:#0e7a3d; padding:12px; border-radius:8px; color:white; text-align:center; font-weight:bold; font-size:16px;'>NUCLEO DI VOLONTARI DI PROTEZIONE CIVILE<br>ANA SEZIONE DI VARESE</div>", unsafe_allow_html=True)
-
-st.write("")
-
-# COPERTINA AL CENTRO 700px - RIGA 12-17
-c1,c2,c3 = st.columns([1,2,1])
-with c2:
-    try:
-        st.image("copertina.png", width=700)
-    except:
-        try:
-            st.image("logo.png", width=250)
-        except:
-            st.write("Carica copertina.png")
-
-# TITOLO VOLONTARIATO - RIGA 20
-st.markdown("<h2 style='text-align:center; color:#0e7a3d; font-family:\"Times New Roman\", Times, serif; font-weight:bold; font-size:32px;'>VOLONTARIATO<br>Sezione di Varese</h2>", unsafe_allow_html=True)
-
+if "popup" not in st.session_state:
+    st.session_state.popup = False
 if "dati" not in st.session_state:
     st.session_state.dati = []
+
+# FUNZIONE LOGO PICCOLO PC ANA - RIGA 13-24
+def hdr():
+    a,b = st.columns([1,5])
+    with a:
+        try:
+            st.image("logo.png", width=120)  # LOGO PICCOLO PC ANA
+        except:
+            st.write("ANA")
+    with b:
+        st.markdown("<div style='background:#0e7a3d; padding:10px; border-radius:8px; color:white; text-align:center; font-weight:bold;'>NUCLEO DI VOLONTARI DI PROTEZIONE CIVILE<br>ANA SEZIONE DI VARESE</div>", unsafe_allow_html=True)
+
+# PRIMA PAGINA - RIGA 27-50
+if not st.session_state.popup:
+    hdr()  # LOGO PICCOLO + INTESTAZIONE
+    st.write("")
+    # COPERTINA AL CENTRO
+    c1,c2,c3 = st.columns([1,2,1])
+    with c2:
+        try:
+            st.image("copertina.png", width=700)
+        except:
+            st.warning("Carica copertina.png")
+    
+    st.markdown("<h2 style='text-align:center; color:#0e7a3d; font-family:'Times New Roman', Times, serif; font-weight:bold;'>VOLONTARIATO<br>Sezione di Varese</h2>", unsafe_allow_html=True)
+    
+    c1,c2,c3 = st.columns([1,1,1])
+    with c2:
+        if st.button("ENTRA", use_container_width=True):
+            st.session_state.popup = True
+            st.rerun()
+    st.stop()
+
+# SECONDA PAGINA DOPO ENTRA - CON LOGO PICCOLO
+hdr()
+
+if st.button("⬅️ TORNA INDIETRO"):
+    st.session_state.popup = False
+    st.rerun()
+
+st.markdown("<h2 style='text-align:center; color:#0e7a3d;'>VOLONTARIATO<br>Sezione di Varese</h2>", unsafe_allow_html=True)
 
 with st.form("form"):
     nome = st.text_input("Nome e Cognome *")
