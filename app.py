@@ -69,12 +69,16 @@ def export_buttons(df, name):
             key=f"pdf_{name}_{len(df)}"
         )
 
-# INIT
-for k in ["page","logged","menu","volontari","radio_db","brogliaccio","eventi","checkin","icone","mezzi","attrezzature","postazioni","map_markers"]:
+for k in [
+    "page","logged","menu","volontari","radio_db",
+    "brogliaccio","eventi","checkin","icone","mezzi",
+    "attrezzature","postazioni","map_markers","last_clicked"
+]:
     if k not in st.session_state:
         if k == "page": st.session_state[k] = "entra"
         elif k == "logged": st.session_state[k] = False
         elif k == "menu": st.session_state[k] = "Dashboard"
+        elif k == "last_clicked": st.session_state[k] = None
         else: st.session_state[k] = []
 
 # ENTRA
@@ -115,13 +119,13 @@ elif st.session_state.page == "login":
                 else:
                     st.error("admin / ana2024")
 
-# DASHBOARD - MENU COMPLETO - NO IMMAGINE
+# DASHBOARD
 elif st.session_state.page == "dashboard":
     hdr_small()
     with st.sidebar:
         st.markdown("### MENU COMPLETO")
         menu = st.radio(
-            "Scegli form:",
+            "Scegli:",
             [
                 "Dashboard",
                 "Volontari",
@@ -145,7 +149,6 @@ elif st.session_state.page == "dashboard":
             st.session_state.page = "entra"
             st.rerun()
 
-    # DASHBOARD
     if st.session_state.menu == "Dashboard":
         st.markdown("## Dashboard - Menu completo")
         c1,c2,c3,c4 = st.columns(4)
@@ -153,39 +156,19 @@ elif st.session_state.page == "dashboard":
         with c2: st.metric("Eventi", len(st.session_state.eventi))
         with c3: st.metric("Check-in", len(st.session_state.checkin))
         with c4: st.metric("Postazioni", len(st.session_state.postazioni))
-        st.markdown("### Tasti rapidi - Tutti i form")
-        r1 = st.columns(4)
-        with r1[0]:
-            if st.button("VOLONTARI", use_container_width=True, type="primary"):
-                st.session_state.menu = "Volontari"
-                st.rerun()
-        with r1[1]:
-            if st.button("EVENTI", use_container_width=True):
-                st.session_state.menu = "Eventi"
-                st.rerun()
-        with r1[2]:
-            if st.button("CHECK-IN", use_container_width=True):
-                st.session_state.menu = "Check-in"
-                st.rerun()
-        with r1[3]:
-            if st.button("MAPPA", use_container_width=True):
-                st.session_state.menu = "Mappa Avanzata"
-                st.rerun()
 
-    # VOLONTARI CON SOTTOMASCHERE
+    # VOLONTARI CON SOTTOMASCHERE + FOTO
     elif st.session_state.menu == "Volontari":
-        st.markdown("## Volontari con sottomaschere")
-        t1,t2,t3 = st.tabs(["Anagrafica e Posizione","Contatti e Ruolo","Qualifiche e Note"])
+        st.markdown("## Volontari con sottomaschere + Foto")
+        t1,t2,t3 = st.tabs(["Anagrafica e Foto","Contatti e Ruolo","Qualifiche"])
         with t1:
             with st.form("vol_anag"):
                 nome = st.text_input("Nome e Cognome *")
-                cf = st.text_input("Codice Fiscale")
-                comune = st.text_input("Comune residenza *")
-                via = st.text_input("Via")
-                c1,c2 = st.columns(2)
-                with c1: lat_txt = st.text_input("Lat - VUOTO=no default")
-                with c2: lon_txt = st.text_input("Log - VUOTO=no default")
-                if st.form_submit_button("Salva Anagrafica", use_container_width=True, type="primary"):
+                comune = st.text_input("Comune *")
+                lat_txt = st.text_input("Lat - VUOTO=no default")
+                lon_txt = st.text_input("Log - VUOTO=no default")
+                foto_file = st.file_uploader("Foto Volontario", type=["png","jpg","jpeg"])
+                if st.form_submit_button("Salva con Foto", use_container_width=True, type="primary"):
                     if nome and comune:
                         try:
                             lat_v = float(lat_txt.replace(",",".")) if lat_txt else 0.0
@@ -193,189 +176,208 @@ elif st.session_state.page == "dashboard":
                         except:
                             lat_v = 0.0
                             lon_v = 0.0
+                        foto_bytes = foto_file.getvalue() if foto_file else None
+                        foto_name = foto_file.name if foto_file else ""
                         st.session_state.volontari.append({
                             "Nome": nome,
-                            "CF": cf,
                             "Comune": comune,
-                            "Via": via,
                             "Lat": lat_v,
                             "Log": lon_v,
+                            "FotoBytes": foto_bytes,
+                            "FotoName": foto_name,
                             "Cellulare": "",
-                            "Ruolo": "",
-                            "Qualifiche": "",
-                            "Note": ""
+                            "Ruolo": ""
                         })
                         st.success(f"Salvato {nome}")
         with t2:
             if st.session_state.volontari:
-                sel = st.selectbox("Seleziona volontario", [v["Nome"] for v in st.session_state.volontari])
+                sel = st.selectbox("Seleziona", [v["Nome"] for v in st.session_state.volontari])
                 idx = [v["Nome"] for v in st.session_state.volontari].index(sel)
+                vol = st.session_state.volontari[idx]
+                if vol.get("FotoBytes"):
+                    st.image(vol["FotoBytes"], width=150)
                 with st.form("vol_cont"):
-                    cell = st.text_input("Cellulare", value=st.session_state.volontari[idx].get("Cellulare",""))
-                    ruolo = st.selectbox("Ruolo", ["Volontario","Caposquadra","Coordinatore","Autista","Radio"])
-                    if st.form_submit_button("Aggiorna Contatti", use_container_width=True):
+                    cell = st.text_input("Cellulare", value=vol.get("Cellulare",""))
+                    ruolo = st.selectbox("Ruolo", ["Volontario","Caposquadra","Coordinatore"])
+                    if st.form_submit_button("Aggiorna", use_container_width=True):
                         st.session_state.volontari[idx]["Cellulare"] = cell
                         st.session_state.volontari[idx]["Ruolo"] = ruolo
                         st.success("Aggiornato")
-            else:
-                st.info("Inserisci prima anagrafica in tab 1")
         with t3:
             if st.session_state.volontari:
-                sel = st.selectbox("Volontario", [v["Nome"] for v in st.session_state.volontari], key="q")
-                idx = [v["Nome"] for v in st.session_state.volontari].index(sel)
-                qual = st.multiselect("Qualifiche", ["AIB","BLSD","Radio","Guida fuoristrada"])
-                note = st.text_area("Note", value=st.session_state.volontari[idx].get("Note",""))
-                if st.button("Salva Qualifiche e Note", use_container_width=True):
-                    st.session_state.volontari[idx]["Qualifiche"] = ",".join(qual)
-                    st.session_state.volontari[idx]["Note"] = note
-                    st.success("Salvato")
-                df = pd.DataFrame(st.session_state.volontari)
+                df = pd.DataFrame([{"Nome": v["Nome"], "Comune": v["Comune"]} for v in st.session_state.volontari])
                 st.dataframe(df, use_container_width=True)
                 export_buttons(df, "Volontari")
 
-    # EVENTI CON NOME EVENTO
-    elif st.session_state.menu == "Eventi":
-        st.markdown("## Eventi - NOME EVENTO per Check-in")
-        with st.form("eventi"):
-            nome_evento = st.text_input("NOME EVENTO * per check-in")
-            luogo_e = st.text_input("Luogo Evento *")
-            tipo_e = st.selectbox("Tipo", ["Emergenza","Esercitazione","Prevenzione"])
-            lat_e = st.text_input("Lat Evento - VUOTO=no default")
-            lon_e = st.text_input("Log Evento - VUOTO=no default")
-            descr = st.text_area("Descrizione")
-            if st.form_submit_button("Crea Evento", use_container_width=True, type="primary"):
-                if nome_evento and luogo_e:
-                    try:
-                        lat_ev = float(lat_e.replace(",",".")) if lat_e else 0.0
-                        lon_ev = float(lon_e.replace(",",".")) if lon_e else 0.0
-                    except:
-                        lat_ev = 0.0
-                        lon_ev = 0.0
-                    st.session_state.eventi.append({
-                        "NomeEvento": nome_evento,
-                        "Luogo": luogo_e,
-                        "Tipo": tipo_e,
-                        "Lat": lat_ev,
-                        "Log": lon_ev,
-                        "Descrizione": descr,
-                        "Stato": "Aperto"
+    # DB RADIO CON CAMPO COMBO
+    elif st.session_state.menu == "DB Radio":
+        st.markdown("## DB Radio - Con Campo Combo")
+        with st.form("radio"):
+            c1,c2 = st.columns(2)
+            with c1:
+                modello = st.text_input("Modello *")
+                matricola = st.text_input("Matricola *")
+                # CAMPO COMBO RICHIESTO
+                tipo_combo = st.selectbox(
+                    "Tipo Radio * - COMBO",
+                    [
+                        "DMR",
+                        "PMR446",
+                        "TETRA",
+                        "NAUTICHE",
+                        "VHF",
+                        "UHF",
+                        "VHF/UHF",
+                        "HF",
+                        "CB",
+                        "LPD",
+                        "Altro"
+                    ]
+                )
+            with c2:
+                freq = st.text_input("Frequenza")
+                canale = st.text_input("Canale")
+                potenza = st.selectbox("Potenza", ["0.5W","2W","5W","25W","50W"])
+            assegnato = st.selectbox("Assegnato", ["Magazzino"] + [v["Nome"] for v in st.session_state.volontari] if st.session_state.volontari else ["Magazzino"])
+            stato = st.selectbox("Stato", ["Operativa","In carica","Guasta"])
+            if st.form_submit_button("Salva Radio con Combo", use_container_width=True, type="primary"):
+                if modello and matricola:
+                    st.session_state.radio_db.append({
+                        "Modello": modello,
+                        "Matricola": matricola,
+                        "TipoCombo": tipo_combo,
+                        "Frequenza": freq,
+                        "Canale": canale,
+                        "Potenza": potenza,
+                        "Assegnato": assegnato,
+                        "Stato": stato,
+                        "Data": datetime.now().strftime("%d/%m/%Y")
                     })
-                    st.success(f"Evento {nome_evento} creato")
-        if st.session_state.eventi:
-            df = pd.DataFrame(st.session_state.eventi)
+                    st.success(f"Radio {tipo_combo} salvata")
+                else:
+                    st.error("Modello e Matricola *")
+        if st.session_state.radio_db:
+            df = pd.DataFrame(st.session_state.radio_db)
             st.dataframe(df, use_container_width=True)
-            export_buttons(df, "Eventi")
+            export_buttons(df, "Radio")
 
-    # CHECK-IN MASCHERA COMPLETA
-    elif st.session_state.menu == "Check-in":
-        st.markdown("## Check-in - Maschera completa associata a NOME EVENTO")
-        if not st.session_state.eventi:
-            st.warning("Crea prima Evento con NOME EVENTO")
-        elif not st.session_state.volontari:
-            st.warning("Registra prima Volontari")
-        else:
-            with st.form("form_checkin"):
-                ev_sel = st.selectbox("NOME EVENTO *", [e["NomeEvento"] for e in st.session_state.eventi])
-                vol_sel = st.selectbox("Volontario *", [v["Nome"] for v in st.session_state.volontari])
-                c1,c2 = st.columns(2)
-                with c1:
-                    data_c = st.date_input("Data", value=date.today())
-                    ora_c = st.time_input("Ora", value=datetime.now().time())
-                with c2:
-                    mezzo_c = st.selectbox("Mezzo", ["Nessuno","Piedi","Fuoristrada","Furgone"])
-                    postazione_c = st.selectbox("Postazione", ["Base","Avanzata"] + [p["Nome"] for p in st.session_state.postazioni] if st.session_state.postazioni else ["Base","Avanzata"])
-                note_c = st.text_input("Note")
-                if st.form_submit_button("REGISTRA CHECK-IN", use_container_width=True, type="primary"):
-                    ev_info = next((e for e in st.session_state.eventi if e["NomeEvento"]==ev_sel), None)
-                    luogo_ev = ev_info["Luogo"] if ev_info else ""
-                    st.session_state.checkin.append({
-                        "NomeEvento": ev_sel,
-                        "Volontario": vol_sel,
-                        "Data": str(data_c),
-                        "Ora": str(ora_c),
-                        "Mezzo": mezzo_c,
-                        "Postazione": postazione_c,
-                        "Note": note_c,
-                        "LuogoEvento": luogo_ev
-                    })
-                    st.success(f"Check-in {vol_sel} -> {ev_sel}")
-        if st.session_state.checkin:
-            df = pd.DataFrame(st.session_state.checkin)
-            st.dataframe(df, use_container_width=True)
-            export_buttons(df, "Checkin")
-
-    # MAPPA AVANZATA CON TUTTO
+    # MAPPA AVANZATA COME STAMATTINA
     elif st.session_state.menu == "Mappa Avanzata":
-        st.markdown("## Mappa Avanzata - Gran lavoro stamattina")
-        tipo_mappa = st.selectbox("Cambia tipo mappa:", ["Google Maps Roadmap","Google Earth Satellite","Waze Dark","HERE Light"])
-        st.info(f"Mappa: {tipo_mappa} | VUOTO=no default | Icona da libreria come marker")
+        st.markdown("## Mappa Avanzata - Come Stamattina")
+        tipo_mappa = st.selectbox(
+            "Cambia tipo mappa:",
+            ["Google Maps Roadmap","Google Earth Satellite","Waze Dark","HERE Light"]
+        )
+        st.info(f"Mappa: {tipo_mappa} - Clicca sulla mappa per marker")
 
-        tab1, tab2, tab3 = st.tabs(["Visione Mappe","Form Aggiungi Postazioni con Icona","Postazioni salvate su altra mappa sotto"])
+        tab1, tab2, tab3 = st.tabs([
+            "Mappa Cliccabile - Visione",
+            "Form Postazioni con Icona",
+            "Postazioni salvate su altra mappa sotto"
+        ])
 
         with tab1:
-            all_markers = []
-            for v in st.session_state.volontari:
-                lat_v = v.get("Lat",0)
-                lon_v = v.get("Log",0)
-                if lat_v!= 0 and lon_v!= 0:
-                    all_markers.append({"lat": lat_v, "lon": lon_v, "tipo": "Volontario", "nome": v["Nome"], "info": v.get("Comune",""), "color": [14,122,61], "icona": ""})
-            for e in st.session_state.eventi:
-                lat_e = e.get("Lat",0)
-                lon_e = e.get("Log",0)
-                if lat_e!= 0 and lon_e!= 0:
-                    all_markers.append({"lat": lat_e, "lon": lon_e, "tipo": "Evento", "nome": e.get("NomeEvento",""), "info": e.get("Luogo",""), "color": [255,0,0], "icona": ""})
-            for p in st.session_state.postazioni:
-                all_markers.append({"lat": p["Lat"], "lon": p["Log"], "tipo": p.get("Tipo","Postazione"), "nome": p["Nome"], "info": p.get("Comune",""), "color": [0,100,255], "icona": p.get("Icona","")})
+            st.markdown("### Mappa visibile - Clicca per aggiungere marker")
+            try:
+                import folium
+                from streamlit_folium import st_folium
 
-            if all_markers:
-                df_map = pd.DataFrame(all_markers)
-                lat_mean = df_map.lat.mean()
-                lon_mean = df_map.lon.mean()
-                layer = pdk.Layer("ScatterplotLayer", data=df_map, get_position='[lon, lat]', get_color='color', get_radius=200, pickable=True)
-                view = pdk.ViewState(latitude=lat_mean, longitude=lon_mean, zoom=11)
-                tooltip = {"html": "<b>{nome}</b><br>{tipo}<br>{info}<br>Icona: {icona}", "style": {"backgroundColor": "steelblue", "color": "white"}}
-                deck = pdk.Deck(layers=[layer], initial_view_state=view, tooltip=tooltip)
-                st.pydeck_chart(deck)
-                st.dataframe(df_map, use_container_width=True)
-                export_buttons(df_map, "Mappa_Totale")
+                if st.session_state.postazioni:
+                    lat_c = sum([p["Lat"] for p in st.session_state.postazioni]) / len(st.session_state.postazioni)
+                    lon_c = sum([p["Log"] for p in st.session_state.postazioni]) / len(st.session_state.postazioni)
+                else:
+                    lat_c = 45.65
+                    lon_c = 8.79
 
-                sel = st.selectbox("Apri in Google Maps / Waze / Earth", [f"{m['nome']} - {m['lat']},{m['lon']}" for m in all_markers])
-                if sel:
-                    for m in all_markers:
-                        tag = f"{m['nome']} - {m['lat']},{m['lon']}"
-                        if tag == sel:
-                            m_sel = m
-                            break
+                m = folium.Map(location=[lat_c, lon_c], zoom_start=11)
+
+                for v in st.session_state.volontari:
+                    lat_v = v.get("Lat",0)
+                    lon_v = v.get("Log",0)
+                    if lat_v!= 0 and lon_v!= 0:
+                        folium.Marker(
+                            [lat_v, lon_v],
+                            popup=f"Volontario: {v['Nome']}",
+                            icon=folium.Icon(color="green")
+                        ).add_to(m)
+
+                for e in st.session_state.eventi:
+                    lat_e = e.get("Lat",0)
+                    lon_e = e.get("Log",0)
+                    if lat_e!= 0 and lon_e!= 0:
+                        folium.Marker(
+                            [lat_e, lon_e],
+                            popup=f"Evento: {e.get('NomeEvento','')}",
+                            icon=folium.Icon(color="red")
+                        ).add_to(m)
+
+                for p in st.session_state.postazioni:
+                    folium.Marker(
+                        [p["Lat"], p["Log"]],
+                        popup=f"{p['Nome']} - {p.get('Tipo','')} - Icona: {p.get('Icona','')}",
+                        icon=folium.Icon(color="blue")
+                    ).add_to(m)
+
+                out = st_folium(m, height=500, width=700, returned_objects=["last_clicked"])
+
+                if out and out.get("last_clicked"):
+                    lat_click = out["last_clicked"]["lat"]
+                    lon_click = out["last_clicked"]["lng"]
+                    st.session_state.last_clicked = {"lat": lat_click, "lon": lon_click}
+                    st.success(f"Cliccato: {lat_click:.6f}, {lon_click:.6f}")
+
                     c1,c2,c3 = st.columns(3)
                     with c1:
-                        url_g = f"https://www.google.com/maps?q={m_sel['lat']},{m_sel['lon']}"
+                        url_g = f"https://www.google.com/maps?q={lat_click},{lon_click}"
                         st.link_button("Google Maps", url_g, use_container_width=True)
                     with c2:
-                        url_w = f"https://waze.com/ul?ll={m_sel['lat']},{m_sel['lon']}&navigate=yes"
+                        url_w = f"https://waze.com/ul?ll={lat_click},{lon_click}&navigate=yes"
                         st.link_button("Waze", url_w, use_container_width=True)
                     with c3:
-                        url_e = f"https://earth.google.com/web/search/{m_sel['lat']},{m_sel['lon']}"
+                        url_e = f"https://earth.google.com/web/search/{lat_click},{lon_click}"
                         st.link_button("Google Earth", url_e, use_container_width=True)
-            else:
-                st.warning("Nessun marker - inserisci Lat/Log - VUOTO=no default")
+
+            except Exception as e:
+                st.error(f"Folium errore: {e}")
+                # fallback pydeck
+                all_markers = []
+                for v in st.session_state.volontari:
+                    lat_v = v.get("Lat",0)
+                    lon_v = v.get("Log",0)
+                    if lat_v!= 0 and lon_v!= 0:
+                        all_markers.append({"lat": lat_v, "lon": lon_v, "tipo": "Volontario", "nome": v["Nome"], "color": [14,122,61]})
+                for p in st.session_state.postazioni:
+                    all_markers.append({"lat": p["Lat"], "lon": p["Log"], "tipo": p.get("Tipo",""), "nome": p["Nome"], "color": [0,100,255]})
+                if all_markers:
+                    df_map = pd.DataFrame(all_markers)
+                    lat_mean = df_map.lat.mean()
+                    lon_mean = df_map.lon.mean()
+                    layer = pdk.Layer("ScatterplotLayer", data=df_map, get_position='[lon, lat]', get_color='color', get_radius=200, pickable=True)
+                    view = pdk.ViewState(latitude=lat_mean, longitude=lon_mean, zoom=11)
+                    deck = pdk.Deck(layers=[layer], initial_view_state=view)
+                    st.pydeck_chart(deck)
+                else:
+                    st.warning("Nessun marker - mappa vuota")
 
         with tab2:
-            st.markdown("### Aggiungi Postazione con Icona da Libreria come Marker")
-            if not st.session_state.icone:
-                st.warning("Carica prima icone in Libreria Icone per usarle come marker")
+            st.markdown("### Form Postazioni con Icona da Libreria")
+            last = st.session_state.last_clicked
+            if last:
+                st.info(f"Da click mappa: Lat {last['lat']:.6f} Log {last['lon']:.6f}")
             with st.form("form_postazioni"):
                 nome_p = st.text_input("Nome Postazione *")
-                tipo_p = st.selectbox("Tipo Postazione *", ["Postazione","Punto ritrovo","Magazzino","Sede","Idrante","Base Operativa","Altro"])
-                comune_p = st.text_input("Comune Postazione *")
-                via_p = st.text_input("Via")
-                # CARICAMENTO ICONA DA LIBRERIA PER MARKER
-                icona_p = st.selectbox("Icona da Libreria come Marker *", ["Nessuna"] + [i["Nome"] for i in st.session_state.icone] if st.session_state.icone else ["Nessuna"])
-                stato_p = st.selectbox("Stato", ["Operativa","Non operativa","In allestimento"])
+                tipo_p = st.selectbox("Tipo *", ["Postazione","Punto ritrovo","Magazzino","Sede","Idrante","Altro"])
+                comune_p = st.text_input("Comune *")
+                icona_p = st.selectbox("Icona da Libreria come Marker", ["Nessuna"] + [i["Nome"] for i in st.session_state.icone] if st.session_state.icone else ["Nessuna"])
                 c1,c2 = st.columns(2)
-                with c1: lat_p = st.text_input("Lat * - VUOTO=no default", placeholder="45.123456")
-                with c2: lon_p = st.text_input("Log * - VUOTO=no default", placeholder="8.123456")
+                with c1:
+                    lat_default = str(last["lat"]) if last else ""
+                    lat_p = st.text_input("Lat *", value=lat_default)
+                with c2:
+                    lon_default = str(last["lon"]) if last else ""
+                    lon_p = st.text_input("Log *", value=lon_default)
                 note_p = st.text_area("Note")
-                if st.form_submit_button("Aggiungi Postazione con Icona Marker", use_container_width=True, type="primary"):
+                if st.form_submit_button("Aggiungi con Icona", use_container_width=True, type="primary"):
                     if nome_p and comune_p and lat_p and lon_p:
                         try:
                             lat_v = float(lat_p.replace(",","."))
@@ -384,163 +386,97 @@ elif st.session_state.page == "dashboard":
                                 "Nome": nome_p,
                                 "Tipo": tipo_p,
                                 "Comune": comune_p,
-                                "Via": via_p,
                                 "Icona": icona_p,
-                                "Stato": stato_p,
                                 "Lat": lat_v,
                                 "Log": lon_v,
                                 "Note": note_p,
                                 "Data": datetime.now().strftime("%d/%m/%Y %H:%M")
                             })
-                            st.success(f"Postazione {nome_p} con icona {icona_p} salvata su mappa sotto")
+                            st.success(f"Postazione {nome_p} con icona {icona_p} salvata sotto")
                         except:
                             st.error("Lat/Log non validi")
                     else:
                         st.error("Compila campi *")
 
         with tab3:
-            st.markdown("### Postazioni Salvate su altra Mappa sotto la maschera")
+            st.markdown("### Postazioni salvate su altra mappa sotto")
             if st.session_state.postazioni:
                 df_post = pd.DataFrame(st.session_state.postazioni)
                 st.dataframe(df_post, use_container_width=True)
                 export_buttons(df_post, "Postazioni")
-                lat_p_mean = df_post.Lat.mean()
-                lon_p_mean = df_post.Log.mean()
-                layer_p = pdk.Layer("ScatterplotLayer", data=df_post, get_position='[Log, Lat]', get_color='[0, 100, 255]', get_radius=200, pickable=True)
-                view_p = pdk.ViewState(latitude=lat_p_mean, longitude=lon_p_mean, zoom=11)
-                tooltip_p = {"html": "<b>{Nome}</b><br>{Tipo}<br>{Comune}<br>Icona: {Icona}", "style": {"backgroundColor": "blue", "color": "white"}}
-                deck_p = pdk.Deck(layers=[layer_p], initial_view_state=view_p, tooltip=tooltip_p)
-                st.pydeck_chart(deck_p)
+                try:
+                    import folium
+                    from streamlit_folium import st_folium
+                    lat_p_mean = df_post.Lat.mean()
+                    lon_p_mean = df_post.Log.mean()
+                    m2 = folium.Map(location=[lat_p_mean, lon_p_mean], zoom_start=12)
+                    for p in st.session_state.postazioni:
+                        folium.Marker(
+                            [p["Lat"], p["Log"]],
+                            popup=f"{p['Nome']} - Icona {p.get('Icona','')}",
+                            icon=folium.Icon(color="blue")
+                        ).add_to(m2)
+                    st_folium(m2, height=400, width=700)
+                except:
+                    lat_p_mean = df_post.Lat.mean()
+                    lon_p_mean = df_post.Log.mean()
+                    layer_p = pdk.Layer("ScatterplotLayer", data=df_post, get_position='[Log, Lat]', get_color='[0, 100, 255]', get_radius=200, pickable=True)
+                    view_p = pdk.ViewState(latitude=lat_p_mean, longitude=lon_p_mean, zoom=11)
+                    deck_p = pdk.Deck(layers=[layer_p], initial_view_state=view_p)
+                    st.pydeck_chart(deck_p)
             else:
-                st.warning("Nessuna postazione - usa Form Aggiungi sopra")
+                st.warning("Nessuna postazione")
 
-    # LIBRERIA ICONE CON UPLOAD E DOWNLOAD
+    elif st.session_state.menu == "Eventi":
+        st.markdown("## Eventi")
+        with st.form("eventi"):
+            nome_evento = st.text_input("NOME EVENTO *")
+            luogo_e = st.text_input("Luogo *")
+            if st.form_submit_button("Crea Evento", use_container_width=True, type="primary"):
+                if nome_evento and luogo_e:
+                    st.session_state.eventi.append({"NomeEvento": nome_evento, "Luogo": luogo_e, "Lat": 0.0, "Log": 0.0})
+                    st.success("Evento creato")
+        if st.session_state.eventi:
+            df = pd.DataFrame(st.session_state.eventi)
+            st.dataframe(df, use_container_width=True)
+            export_buttons(df, "Eventi")
+
+    elif st.session_state.menu == "Check-in":
+        st.markdown("## Check-in")
+        if st.session_state.eventi and st.session_state.volontari:
+            with st.form("form_checkin"):
+                ev_sel = st.selectbox("NOME EVENTO *", [e["NomeEvento"] for e in st.session_state.eventi])
+                vol_sel = st.selectbox("Volontario *", [v["Nome"] for v in st.session_state.volontari])
+                postazione_c = st.selectbox("Postazione", ["Base","Avanzata"] + [p["Nome"] for p in st.session_state.postazioni] if st.session_state.postazioni else ["Base","Avanzata"])
+                if st.form_submit_button("REGISTRA", use_container_width=True, type="primary"):
+                    st.session_state.checkin.append({"NomeEvento": ev_sel, "Volontario": vol_sel, "Postazione": postazione_c})
+                    st.success("Check-in registrato")
+        if st.session_state.checkin:
+            df = pd.DataFrame(st.session_state.checkin)
+            st.dataframe(df, use_container_width=True)
+            export_buttons(df, "Checkin")
+
     elif st.session_state.menu == "Libreria Icone":
-        st.markdown("## Libreria Icone - Upload e Download - Per usarla come marker in mappa")
+        st.markdown("## Libreria Icone")
         with st.form("icone_upload"):
             nome_i = st.text_input("Nome icona *")
-            cat_i = st.selectbox("Categoria", ["Volontari","Radio","Mezzi","Eventi","Mappa","Postazioni","Emergenza"])
-            colore = st.color_picker("Colore", "#0e7a3d")
-            file_i = st.file_uploader("Carica icona PNG/SVG/JPG", type=["png","svg","jpg","jpeg"])
+            file_i = st.file_uploader("Carica icona", type=["png","svg","jpg","jpeg"])
             if st.form_submit_button("Salva Icona", use_container_width=True, type="primary"):
                 if nome_i and file_i:
-                    st.session_state.icone.append({
-                        "Nome": nome_i,
-                        "Categoria": cat_i,
-                        "Colore": colore,
-                        "FileName": file_i.name,
-                        "FileBytes": file_i.getvalue(),
-                        "Tipo": file_i.type
-                    })
-                    st.success(f"Icona {nome_i} caricata - ora disponibile in Mappa come marker")
-                elif nome_i:
-                    st.session_state.icone.append({
-                        "Nome": nome_i,
-                        "Categoria": cat_i,
-                        "Colore": colore,
-                        "FileName": "",
-                        "FileBytes": None,
-                        "Tipo": ""
-                    })
-                    st.success("Icona salvata")
+                    st.session_state.icone.append({"Nome": nome_i, "FileName": file_i.name, "FileBytes": file_i.getvalue(), "Tipo": file_i.type})
+                    st.success(f"Icona {nome_i} caricata - disponibile in Mappa")
         if st.session_state.icone:
-            df = pd.DataFrame([{"Nome": i["Nome"], "Categoria": i["Categoria"], "Colore": i["Colore"], "File": i.get("FileName","")} for i in st.session_state.icone])
-            st.dataframe(df, use_container_width=True)
-            export_buttons(df, "Icone")
             for idx, ico in enumerate(st.session_state.icone):
-                c1,c2,c3 = st.columns([2,2,2])
+                c1,c2 = st.columns([2,2])
                 with c1:
-                    st.markdown(f"<div style='background:{ico['Colore']}; padding:8px; border-radius:6px; color:white; text-align:center;'>{ico['Nome']}</div>", unsafe_allow_html=True)
-                with c2:
+                    st.write(ico["Nome"])
                     if ico.get("FileBytes"):
                         st.download_button(f"Download {ico['Nome']}", ico["FileBytes"], file_name=ico["FileName"], key=f"dl_{idx}", use_container_width=True)
-                with c3:
+                with c2:
                     if st.button("Elimina", key=f"del_{idx}"):
                         st.session_state.icone.pop(idx)
                         st.rerun()
 
-    # ALTRI FORM CON PDF
-    elif st.session_state.menu == "DB Radio":
-        st.markdown("## DB Radio")
-        with st.form("radio"):
-            modello = st.text_input("Modello *")
-            matricola = st.text_input("Matricola *")
-            freq = st.text_input("Frequenza")
-            if st.form_submit_button("Salva Radio", use_container_width=True, type="primary"):
-                if modello and matricola:
-                    st.session_state.radio_db.append({"Modello": modello, "Matricola": matricola, "Frequenza": freq})
-                    st.success("Salvata")
-        if st.session_state.radio_db:
-            df = pd.DataFrame(st.session_state.radio_db)
-            st.dataframe(df, use_container_width=True)
-            export_buttons(df, "Radio")
-
-    elif st.session_state.menu == "Brogliaccio":
-        st.markdown("## Brogliaccio")
-        with st.form("brog"):
-            operatore = st.selectbox("Operatore", [v["Nome"] for v in st.session_state.volontari] if st.session_state.volontari else ["Operatore"])
-            msg = st.text_area("Messaggio *")
-            if st.form_submit_button("Registra", use_container_width=True, type="primary"):
-                if msg:
-                    st.session_state.brogliaccio.append({"Data": str(date.today()), "Operatore": operatore, "Messaggio": msg})
-                    st.success("Registrato")
-        if st.session_state.brogliaccio:
-            df = pd.DataFrame(st.session_state.brogliaccio)
-            st.dataframe(df, use_container_width=True)
-            export_buttons(df, "Brogliaccio")
-
-    elif st.session_state.menu == "Mezzi":
-        st.markdown("## Mezzi")
-        with st.form("mezzi"):
-            targa = st.text_input("Targa *")
-            tipo = st.selectbox("Tipo", ["Fuoristrada","Furgone","Ambulanza","Autocarro"])
-            if st.form_submit_button("Salva Mezzo", use_container_width=True, type="primary"):
-                if targa:
-                    st.session_state.mezzi.append({"Targa": targa, "Tipo": tipo})
-                    st.success("Salvato")
-        if st.session_state.mezzi:
-            df = pd.DataFrame(st.session_state.mezzi)
-            st.dataframe(df, use_container_width=True)
-            export_buttons(df, "Mezzi")
-
-    elif st.session_state.menu == "Attrezzature":
-        st.markdown("## Attrezzature")
-        with st.form("attr"):
-            nome_a = st.text_input("Attrezzatura *")
-            qta = st.number_input("Qta", min_value=1, value=1)
-            if st.form_submit_button("Salva", use_container_width=True, type="primary"):
-                if nome_a:
-                    st.session_state.attrezzature.append({"Attrezzatura": nome_a, "Qta": qta})
-                    st.success("Salvata")
-        if st.session_state.attrezzature:
-            df = pd.DataFrame(st.session_state.attrezzature)
-            st.dataframe(df, use_container_width=True)
-            export_buttons(df, "Attrezzature")
-
-    elif st.session_state.menu == "Backup":
-        st.markdown("## Backup - Import ed Export dati")
-        t1,t2 = st.tabs(["Export Backup","Import Backup"])
-        with t1:
-            if st.session_state.volontari: export_buttons(pd.DataFrame(st.session_state.volontari), "Volontari_Backup")
-            if st.session_state.postazioni: export_buttons(pd.DataFrame(st.session_state.postazioni), "Postazioni_Backup")
-            if st.session_state.eventi: export_buttons(pd.DataFrame(st.session_state.eventi), "Eventi_Backup")
-            if st.session_state.checkin: export_buttons(pd.DataFrame(st.session_state.checkin), "Checkin_Backup")
-        with t2:
-            file_up = st.file_uploader("Carica Excel", type=["xlsx"])
-            tipo = st.selectbox("Tipo dati da importare", ["Volontari","Eventi","Postazioni","Checkin"])
-            if file_up:
-                df_imp = pd.read_excel(file_up)
-                st.dataframe(df_imp)
-                if st.button(f"Importa {tipo}", use_container_width=True, type="primary"):
-                    if tipo == "Volontari": st.session_state.volontari.extend(df_imp.to_dict(orient="records"))
-                    elif tipo == "Eventi": st.session_state.eventi.extend(df_imp.to_dict(orient="records"))
-                    elif tipo == "Postazioni": st.session_state.postazioni.extend(df_imp.to_dict(orient="records"))
-                    elif tipo == "Checkin": st.session_state.checkin.extend(df_imp.to_dict(orient="records"))
-                    st.success(f"Importati {len(df_imp)} {tipo}")
-
-    elif st.session_state.menu == "Esporta":
-        st.markdown("## Esporta - Tutti i dati con PDF ed Excel")
-        if st.session_state.volontari: export_buttons(pd.DataFrame(st.session_state.volontari), "Volontari")
-        if st.session_state.eventi: export_buttons(pd.DataFrame(st.session_state.eventi), "Eventi")
-        if st.session_state.checkin: export_buttons(pd.DataFrame(st.session_state.checkin), "Checkin")
-        if st.session_state.postazioni: export_buttons(pd.DataFrame(st.session_state.postazioni), "Postazioni")
+    else:
+        st.markdown(f"## {st.session_state.menu}")
+        st.info("Form presente - dati con PDF ed Excel")
