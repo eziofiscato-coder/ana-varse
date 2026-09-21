@@ -88,7 +88,6 @@ elif st.session_state.page == 'dashboard':
         menu = st.radio(
             'Scegli:',
             [
-                'Dashboard',
                 'Volontari',
                 'DB Radio',
                 'Brogliaccio',
