@@ -164,7 +164,7 @@ def hdr():
             if os.path.exists("copertina.png"):
                 st.image("copertina.png",width=70)
             elif os.path.exists("logo.png"):
-                st.image("logo.png",width=100)
+                st.image("logo.png",width=10)
             else:
                 st.write("ANA")
         except:
@@ -182,9 +182,9 @@ if not st.session_state.popup:
     st.markdown("<div class='ana-box'>", unsafe_allow_html=True)
     try:
         if os.path.exists("copertina.png"):
-            st.image("copertina.png",width=80)
+            st.image("copertina.png",width=70)
         elif os.path.exists("logo.png"):
-            st.image("logo.png",width=250)
+            st.image("logo.png",width=10)
     except:
         st.write("copertina.png")
     st.markdown("</div>", unsafe_allow_html=True)
