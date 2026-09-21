@@ -34,7 +34,7 @@ if not st.session_state.popup:
     c1,c2,c3 = st.columns([1,2,1])
     with c2:
         try:
-            st.image("copertina.png", width=700)
+            st.image("copertina.png", width=500)
         except:
             try:
                 st.image("logo.png", width=250)
