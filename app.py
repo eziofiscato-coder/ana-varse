@@ -87,8 +87,7 @@ elif st.session_state.page == 'dashboard':
         st.markdown('### MENU COMPLETO FORM')
         menu = st.radio(
             'Scegli:',
-            [
-                'Dashboard',
+            
                 'Volontari',
                 'DB Radio',
                 'Brogliaccio',
