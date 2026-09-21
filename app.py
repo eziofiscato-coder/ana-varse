@@ -46,7 +46,7 @@ if st.session_state.page == 'entra':
             st.image('copertina.png', width=300)
         except:
             try:
-                st.image('logo.png', width=250)
+                st.image('logo.png', width=200)
             except:
                 pass
     st.markdown(
