@@ -9,7 +9,7 @@ def hdr():
     st.markdown(
         '<div style="background:#0e7a3d;padding:8px;'
         'border-radius:8px;color:white;text-align:center;'
-        'font-weight:bold;">NUCLEO VOLONTARI DI PROTEZIONE CIVILE- ANA VARESE</div>',
+        'font-weight:bold;">NUCLEO VOLONTARI DI PROTEZIONE CIVILE- ANA VARESE Squadra di Caronno Pertusella</div>',
         unsafe_allow_html=True
     )
 
