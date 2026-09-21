@@ -807,7 +807,7 @@ elif sc=='Backup':
                 pd.DataFrame(st.session_state.icone).to_excel(w,sheet_name='Icone',index=False)
                 has=True
             if st.session_state.interv:
-                                d=st.session_state.dati
+                            d=st.session_state.dati
                 pd.DataFrame(d).to_excel(w,sheet_name='Volontari',index=False)
                             ic=st.session_state.icone
                 pd.DataFrame(ic).to_excel(w,sheet_name='Icone',index=False)
