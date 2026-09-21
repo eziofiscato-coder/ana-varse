@@ -34,7 +34,7 @@ if not st.session_state.popup:
     c1,c2,c3 = st.columns([1,2,1])
     with c2:
         try:
-            st.image("copertina.png", width=500)
+            st.image("copertina.png", width=400)
         except:
             try:
                 st.image("logo.png", width=250)
@@ -76,7 +76,7 @@ hdr()
 
 with st.sidebar:
     st.markdown("<div style='background:#0e7a3d; padding:8px; border-radius:8px; color:white; text-align:center;'><b>MENU</b></div>", unsafe_allow_html=True)
-    opts = ['Dashboard','Volontari','Backup','Logout']
+    opts = ['Dashboard','Volontari','Mappe Posizioni','Eventi','Backup','Logout']
     sel = st.radio('Menu', opts, index=0)
     if sel == 'Logout':
         st.session_state.auth = False
