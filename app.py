@@ -161,8 +161,8 @@ def hdr():
     a,b=st.columns([1,5])
     with a:
         try:
-            if os.path.exists("mia_foto_ieri.png"):
-                st.image("mia_foto_ieri.png",width=100)
+            if os.path.exists("copertina.png"):
+                st.image("copertina.png",width=100)
             elif os.path.exists("logo.png"):
                 st.image("logo.png",width=100)
             else:
