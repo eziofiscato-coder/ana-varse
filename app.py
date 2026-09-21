@@ -178,7 +178,7 @@ def to_dash():
 
 if not st.session_state.popup:
     hdr()
-    st.markdown("<div class='ana-box'><h3>Buon Lavoro!</h3></div>", unsafe_allow_html=True)
+    st.markdown("<div class='ana-head' style='font-size:38px; font-weight:times romano; padding:20px;'><b>ANA VARESE - PROTEZIONE CIVILE</b></div>", unsafe_allow_html=True)
     st.markdown("<div class='ana-box'>", unsafe_allow_html=True)
     try:
         if os.path.exists("fumetto.png"):
