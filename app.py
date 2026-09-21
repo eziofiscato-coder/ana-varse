@@ -19,7 +19,7 @@ except:
     HAS_PIL=False
 
 st.set_page_config(page_title="ANA Varese", layout="wide")
-    tipo_radio = st.selectbox("Tipo Radio *", ["DMR","PMR446","TETRA","Radioamatoriale","Analogica","Altro"])
+        tipo_radio = st.selectbox("Tipo Radio *", ["DMR", "PMR446", "TETRA", "Radioamatoriale", "Analogica", "Altro"])
 st.markdown('''
 <style>
 .stForm{background:#e8f5e9;padding:15px;
