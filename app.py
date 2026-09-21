@@ -162,9 +162,9 @@ def hdr():
     with a:
         try:
             if os.path.exists("logo.png"):
-                st.image("logo.png",width=10)
+                st.image("logo.png",width=50)
             elif os.path.exists("copertina.png"):
-                st.image("copertina.png",width=70)
+                st.image("copertina.png",width=100)
             else:
                 st.write("ANA")
         except:
