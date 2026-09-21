@@ -162,17 +162,12 @@ def hdr():
     with col_logo:
         try:
             st.image("logo.png",width=120)
-            st.image("copertina.png",width=300)
-        except:
-            st.write("ANA")
+         def hdr():
+    a,b = st.columns([1,5])
+    with a:
+        st.image("logo.png", width=120)
     with b:
-        st.markdown("<div class='ana-head'><b>NUCLEO DI VOLONTARI DI PROTEZIONE CIVILE ANA SEZIONE DI VARESE</b></div>", unsafe_allow_html=True)
-def to_dash():
-    if st.button('TORNA DASHBOARD'):
-        st.session_state.menu='Dashboard'
-        st.rerun()
-
-if not st.session_state.popup:
+        st.markdown(...):
     hdr()
     st.markdown("<div class='ana-head' style='font-size:38px; font-weight:times romano; padding:20px;'><b>ANA VARESE - PROTEZIONE CIVILE</b></div>", unsafe_allow_html=True)
     st.markdown("<div class='ana-box'>", unsafe_allow_html=True)
