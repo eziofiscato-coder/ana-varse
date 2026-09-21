@@ -162,17 +162,15 @@ def hdr():
     with col_logo:
         try:
             st.image("logo.png",width=120)
-         def hdr():
-    a,b = st.columns([1,5])
-    with a:
-        st.image("logo.png", width=120)
-    with b:
-        st.markdown(...):
-    hdr()
-    st.markdown("<div class='ana-head' style='font-size:38px; font-weight:times romano; padding:20px;'><b>ANA VARESE - PROTEZIONE CIVILE</b></div>", unsafe_allow_html=True)
-    st.markdown("<div class='ana-box'>", unsafe_allow_html=True)
-    try:
-        if os.path.exists("copertina.png"):
+def hdr():
+    col_logo, col_tit = st.columns([1,5])
+    with col_logo:
+        try:
+            st.image("logo.png", width=120)
+        except:
+            st.write("ANA")
+    with col_tit:
+        st.markdown("<div style='background:#0e7a3d; padding:10px; border-radius:8px; color:white; text-align:center; font-weight:bold;'>NUCLEO DI VOLONTARI DI PROTEZIONE CIVILE<br>ANA SEZIONE DI VARESE</div>", unsafe_allow_html=True)
             st.image("copertina.png",width=300)
         elif os.path.exists("logo.png"):
             st.image("logo.png",width=10)
