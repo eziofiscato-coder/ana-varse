@@ -162,7 +162,7 @@ def hdr():
     with a:
         try:
             if os.path.exists("copertina.png"):
-                st.image("copertina.png",width=100)
+                st.image("copertina.png",width=70)
             elif os.path.exists("logo.png"):
                 st.image("logo.png",width=100)
             else:
@@ -181,12 +181,12 @@ if not st.session_state.popup:
     st.markdown("<div class='ana-head' style='font-size:38px; font-weight:times romano; padding:20px;'><b>ANA VARESE - PROTEZIONE CIVILE</b></div>", unsafe_allow_html=True)
     st.markdown("<div class='ana-box'>", unsafe_allow_html=True)
     try:
-        if os.path.exists("fumetto.png"):
-            st.image("fumetto.png",width=300)
+        if os.path.exists("copertina.png"):
+            st.image("copertina.png",width=80)
         elif os.path.exists("logo.png"):
             st.image("logo.png",width=250)
     except:
-        st.write("Carica fumetto.png")
+        st.write("copertina.png")
     st.markdown("</div>", unsafe_allow_html=True)
     c1,c2,c3=st.columns([1,1,1])
     with c2:
