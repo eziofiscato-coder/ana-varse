@@ -158,15 +158,11 @@ if not uts:
     save_json(FU,uts)
 
 def hdr():
-    c1,c2,c3,=st.columns([1,2,3])
-    with c2:
+    col_logo, col_tit = st.columns([1,5])
+    with col_logo:
         try:
-            if os.path.exists("copertina.png"):
-                st.image("copertina.png",width=70)
-            elif os.path.exists("logo.png"):
-                st.image("logo.png",width=10)
-            else:
-                st.write("ANA")
+            st.image("logo.png", width=120)
+            st-image("copertina.png",with=300)
         except:
             st.write("ANA")
     with b:
