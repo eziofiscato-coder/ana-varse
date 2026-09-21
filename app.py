@@ -8,7 +8,7 @@ st.set_page_config(page_title='ANA Varese', layout='wide')
 def hdr():
     st.markdown(
         '<div style="background:#0e7a3d;padding:8px;'
-        'border-radius:8px;color:black;text-align:center;'
+        'border-radius:8px;color:white;text-align:center;'
         'font-weight:bold;">NUCLEO VOLONTARI DI PROTEZIONE CIVILE- ANA VARESE</div>',
         unsafe_allow_html=True
     )
