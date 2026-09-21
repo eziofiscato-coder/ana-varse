@@ -32,7 +32,7 @@ if not st.session_state.popup:
     hdr()
     st.write("")
     c1,c2,c3 = st.columns([1,2,1])
-    with c2:
+    with c3:
         try:
             st.image("copertina.png", width=300)
         except:
