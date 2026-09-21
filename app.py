@@ -4,14 +4,24 @@ from io import BytesIO
 
 st.set_page_config(page_title="ANA Varese", layout="centered")
 
+# INTESTAZIONE VERDE COME PRIMA - RIGA 7-8
+st.markdown("<div style='background:#0e7a3d; padding:12px; border-radius:8px; color:white; text-align:center; font-weight:bold; font-size:16px;'>NUCLEO DI VOLONTARI DI PROTEZIONE CIVILE<br>ANA SEZIONE DI VARESE</div>", unsafe_allow_html=True)
+
+st.write("")
+
+# COPERTINA AL CENTRO 700px - RIGA 12-17
 c1,c2,c3 = st.columns([1,2,1])
 with c2:
     try:
         st.image("copertina.png", width=700)
     except:
-        st.write("Carica copertina.png su GitHub!")
+        try:
+            st.image("logo.png", width=250)
+        except:
+            st.write("Carica copertina.png")
 
-st.markdown("<h2 style='text-align:center; color:#0e7a3d;'>VOLONTARIATO<br>Sezione di Varese</h2>", unsafe_allow_html=True)
+# TITOLO VOLONTARIATO - RIGA 20
+st.markdown("<h2 style='text-align:center; color:#0e7a3d; font-family:\"Times New Roman\", Times, serif; font-weight:bold; font-size:32px;'>VOLONTARIATO<br>Sezione di Varese</h2>", unsafe_allow_html=True)
 
 if "dati" not in st.session_state:
     st.session_state.dati = []
