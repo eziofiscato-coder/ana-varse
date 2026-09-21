@@ -19,7 +19,7 @@ except:
     HAS_PIL=False
 
 st.set_page_config(page_title="ANA Varese", layout="wide")
-        tipo_radio = st.selectbox("Tipo Radio *", ["DMR", "PMR446", "TETRA", "Radioamatoriale", "Analogica", "Altro"])
+
 st.markdown('''
 <style>
 .stForm{background:#e8f5e9;padding:15px;
@@ -604,13 +604,13 @@ elif sc=='Mappa':
 
 elif sc=='Libreria Icone':
     to_dash()
-    st.markdown("<div class='ana-head'><b>LIBRERIA ICONE - FIX RIGA 619</b></div>", unsafe_allow_html=True)
-    st.markdown("<div class='ana-box'>MASCHERA ICONE - SENZA FORM - NO ERRORE</div>", unsafe_allow_html=True)
+    st.markdown("<div class='ana-head'><b>LIBRERIA ICONE</b></div>", unsafe_allow_html=True)
+    st.markdown("<div class='ana-box'>MASCHERA ICONE - SENZA FORM</div>", unsafe_allow_html=True)
     i_nome=st.text_input("Nome icona *",key="icone_nome_fix")
     i_cat=st.text_input("Categoria",key="icone_cat_fix")
     i_desc=st.text_area("Descrizione",key="icone_desc_fix")
     i_file=st.file_uploader("File icona",type=['png','jpg','jpeg','svg'],key="icone_file_fix")
-    if st.button("SALVA ICONA - FIX 619",key="icone_salva_fix"):
+    if st.button("SALVA ICONA",key="icone_salva_fix"):
         if i_nome:
             fp=""
             if i_file:
@@ -622,7 +622,7 @@ elif sc=='Libreria Icone':
             nuovo={'Nome':i_nome,'Categoria':i_cat,'File':fp,'Descrizione':i_desc}
             st.session_state.icone.append(nuovo)
             save_json(FI,st.session_state.icone)
-            st.success("OK icona salvata - Fix 619")
+            st.success("OK icona salvata")
             st.balloons()
             st.rerun()
     if st.session_state.icone:
@@ -633,7 +633,7 @@ elif sc=='Libreria Icone':
             if fp and os.path.exists(fp):
                 st.image(fp,width=60,caption=ic.get('Nome',''))
     else:
-        st.info("Nessuna icona - Usa maschera sopra - Fix 619 OK")
+        st.info("Nessuna icona")
 
 elif sc=='Interventi Emergenza':
     to_dash()
@@ -655,8 +655,6 @@ elif sc=='Interventi Emergenza':
             st.rerun()
     if st.session_state.interv:
         st.dataframe(pd.DataFrame(st.session_state.interv))
-    else:
-        st.info("Nessun intervento")
 
 elif sc=='Eventi':
     to_dash()
@@ -678,8 +676,6 @@ elif sc=='Eventi':
             st.rerun()
     if st.session_state.eventi:
         st.dataframe(pd.DataFrame(st.session_state.eventi))
-    else:
-        st.info("Nessun evento")
 
 elif sc=='Check In':
     to_dash()
@@ -703,29 +699,42 @@ elif sc=='Check In':
         st.warning("Nessun volontario")
     if st.session_state.check:
         st.dataframe(pd.DataFrame(st.session_state.check))
-    else:
-        st.info("Nessun check in")
 
 elif sc=='DB Radio':
     to_dash()
-    st.markdown("<div class='ana-head'><b>DB RADIO</b></div>", unsafe_allow_html=True)
-    st.markdown("<div class='ana-box'>MASCHERA RADIO</div>", unsafe_allow_html=True)
+    st.markdown("<div class='ana-head'><b>DB RADIO - CON COMBO TIPO RADIO</b></div>", unsafe_allow_html=True)
+    st.markdown("<div class='ana-box'>MASCHERA RADIO - CON COMBO DMR/PMR446/TETRA/RADIOAMATORIALE</div>", unsafe_allow_html=True)
     r_mod=st.text_input("Modello *",key="r_mod")
     r_mat=st.text_input("Matricola *",key="r_mat")
-    r_freq=st.text_input("Freq",key="r_freq")
-    r_stato=st.text_input("Stato",key="r_stato")
+    r_tipo=st.selectbox("Tipo Radio *",["DMR","PMR446","TETRA","Radioamatoriale","Analogica","Digitale","CB","Altro"],key="r_tipo_combo")
+    r_freq=st.text_input("Frequenza",key="r_freq")
+    r_stato=st.selectbox("Stato",["Disponibile","In uso","Guasta","In riparazione","Ritirata"],key="r_stato")
     r_note=st.text_area("Note",key="r_note")
-    if st.button("SALVA RADIO",key="br_radio"):
+    if st.button("SALVA RADIO CON TIPO",key="br_radio_tipo"):
         if r_mod and r_mat:
-            nuovo={'Modello':r_mod,'Matricola':r_mat,'Frequenza':r_freq,'Stato':r_stato,'Note':r_note}
+            nuovo={'Modello':r_mod,'Matricola':r_mat,'Tipo':r_tipo,'Frequenza':r_freq,'Stato':r_stato,'Note':r_note}
             st.session_state.radio.append(nuovo)
             save_json(FR,st.session_state.radio)
-            st.success("OK")
+            st.success(f"OK Radio {r_mod} Tipo {r_tipo} salvata")
+            st.balloons()
             st.rerun()
     if st.session_state.radio:
-        st.dataframe(pd.DataFrame(st.session_state.radio))
+        df=pd.DataFrame(st.session_state.radio)
+        st.dataframe(df)
+        st.write(f"Totale radio: {len(st.session_state.radio)}")
+        # filtro per tipo
+        tipi=[]
+        for r in st.session_state.radio:
+            t=r.get('Tipo','')
+            if t not in tipi:
+                tipi.append(t)
+        if tipi:
+            sel_tipo=st.selectbox("Filtra per Tipo",['Tutti']+tipi,key="filtra_tipo")
+            if sel_tipo!='Tutti':
+                df_f=df[df['Tipo']==sel_tipo]
+                st.dataframe(df_f)
     else:
-        st.info("Nessuna radio")
+        st.info("Nessuna radio - Inserisci con maschera sopra - Combo Tipo già dentro")
 
 elif sc=='Consegna Radio':
     to_dash()
@@ -736,9 +745,9 @@ elif sc=='Consegna Radio':
         vlist.append(d.get('Nome',''))
     rlist=[]
     for r in st.session_state.radio:
-        rlist.append(r.get('Matricola',''))
+        rlist.append(r.get('Matricola','')+" - "+r.get('Tipo','')+" - "+r.get('Modello',''))
     if vlist and rlist:
-        s_vol=st.selectbox("Vol",vlist,key="s_vol")
+        s_vol=st.selectbox("Volontario",vlist,key="s_vol")
         s_rad=st.selectbox("Radio",rlist,key="s_rad")
         d_cons=st.date_input("Data",key="d_cons")
         if st.button("SALVA CONSEGNA",key="b_cons"):
@@ -751,8 +760,6 @@ elif sc=='Consegna Radio':
         st.warning("Servono volontari e radio")
     if st.session_state.cons:
         st.dataframe(pd.DataFrame(st.session_state.cons))
-    else:
-        st.info("Nessuna consegna")
 
 elif sc=='Chat Volontari':
     to_dash()
@@ -784,8 +791,8 @@ elif sc=='Chat Volontari':
 
 elif sc=='Backup':
     to_dash()
-    st.markdown("<div class='ana-head'><b>BACKUP - IMPORT EXPORT - COME IERI</b></div>", unsafe_allow_html=True)
-    st.markdown("<div class='ana-box'>EXPORT - Come ieri</div>", unsafe_allow_html=True)
+    st.markdown("<div class='ana-head'><b>BACKUP - IMPORT EXPORT</b></div>", unsafe_allow_html=True)
+    st.markdown("<div class='ana-box'>EXPORT</div>", unsafe_allow_html=True)
     if st.button('CREA BACKUP COMPLETO'):
         out=BytesIO()
         has=False
@@ -800,145 +807,4 @@ elif sc=='Backup':
                 pd.DataFrame(st.session_state.icone).to_excel(w,sheet_name='Icone',index=False)
                 has=True
             if st.session_state.interv:
-                pd.DataFrame(st.session_state.interv).to_excel(w,sheet_name='Interventi',index=False)
-                has=True
-            if st.session_state.eventi:
-                pd.DataFrame(st.session_state.eventi).to_excel(w,sheet_name='Eventi',index=False)
-                has=True
-            if st.session_state.check:
-                pd.DataFrame(st.session_state.check).to_excel(w,sheet_name='CheckIn',index=False)
-                has=True
-            if st.session_state.radio:
-                pd.DataFrame(st.session_state.radio).to_excel(w,sheet_name='Radio',index=False)
-                has=True
-            if st.session_state.cons:
-                pd.DataFrame(st.session_state.cons).to_excel(w,sheet_name='Consegna',index=False)
-                has=True
-            if st.session_state.chat:
-                pd.DataFrame(st.session_state.chat).to_excel(w,sheet_name='Chat',index=False)
-                has=True
-            if not has:
-                pd.DataFrame([{"Info":"Nessun dato"}]).to_excel(w,sheet_name='Vuoto',index=False)
-        st.session_state['bk']=out.getvalue()
-        st.success('OK backup creato - Export come ieri')
-        st.balloons()
-    if 'bk' in st.session_state:
-        st.download_button('SCARICA BACKUP COMPLETO',st.session_state['bk'],file_name='BACKUP_ANA_VARESE.xlsx',key='bkt')
-    st.markdown("<div class='ana-box'>IMPORT - Come ieri - Ripristina dati form</div>", unsafe_allow_html=True)
-    st.write("Carica Excel backup per ripristinare tutti i form")
-    up_file=st.file_uploader("Carica Excel backup",type=['xlsx','xls'],key="up_backup")
-    if up_file:
-        try:
-            xls=pd.ExcelFile(up_file)
-            st.write(f"Fogli: {xls.sheet_names}")
-            for sheet in xls.sheet_names:
-                df=pd.read_excel(xls,sheet_name=sheet)
-                st.write(f"{sheet}: {len(df)} righe")
-                st.dataframe(df.head())
-                if st.button(f"IMPORTA {sheet}",key=f"imp_{sheet}"):
-                    data=df.to_dict('records')
-                    if sheet=='Volontari':
-                        st.session_state.dati=data
-                        save_json(FD,data)
-                    elif sheet=='Mappa':
-                        st.session_state.post=data
-                        save_json(FP,data)
-                    elif sheet=='Icone':
-                        st.session_state.icone=data
-                        save_json(FI,data)
-                    elif sheet=='Interventi':
-                        st.session_state.interv=data
-                        save_json(FE,data)
-                    elif sheet=='Eventi':
-                        st.session_state.eventi=data
-                        save_json(FEV,data)
-                    elif sheet=='CheckIn':
-                        st.session_state.check=data
-                        save_json(FC,data)
-                    elif sheet=='Radio':
-                        st.session_state.radio=data
-                        save_json(FR,data)
-                    elif sheet=='Consegna':
-                        st.session_state.cons=data
-                        save_json(FR2,data)
-                    elif sheet=='Chat':
-                        st.session_state.chat=data
-                        save_json(FCHAT,data)
-                    st.success(f"OK {sheet} importato")
-                    st.rerun()
-            if st.button("IMPORTA TUTTO - TUTTI I FOGLI",key="imp_tutto"):
-                for sheet in xls.sheet_names:
-                    df=pd.read_excel(xls,sheet_name=sheet)
-                    data=df.to_dict('records')
-                    if sheet=='Volontari':
-                        st.session_state.dati=data
-                        save_json(FD,data)
-                    elif sheet=='Mappa':
-                        st.session_state.post=data
-                        save_json(FP,data)
-                    elif sheet=='Icone':
-                        st.session_state.icone=data
-                        save_json(FI,data)
-                    elif sheet=='Interventi':
-                        st.session_state.interv=data
-                        save_json(FE,data)
-                    elif sheet=='Eventi':
-                        st.session_state.eventi=data
-                        save_json(FEV,data)
-                    elif sheet=='CheckIn':
-                        st.session_state.check=data
-                        save_json(FC,data)
-                    elif sheet=='Radio':
-                        st.session_state.radio=data
-                        save_json(FR,data)
-                    elif sheet=='Consegna':
-                        st.session_state.cons=data
-                        save_json(FR2,data)
-                    elif sheet=='Chat':
-                        st.session_state.chat=data
-                        save_json(FCHAT,data)
-                st.success("OK tutto importato - Tutti i form ripristinati")
-                st.balloons()
-                st.rerun()
-        except Exception as e:
-            st.error(f"Err import: {e}")
-    st.markdown("<div class='ana-box'>Stato attuale form</div>", unsafe_allow_html=True)
-    c1,c2,c3,c4=st.columns(4)
-    with c1:
-        st.metric('Volontari',len(st.session_state.dati))
-    with c2:
-        st.metric('Postazioni',len(st.session_state.post))
-    with c3:
-        st.metric('Icone',len(st.session_state.icone))
-    with c4:
-        st.metric('Chat',len(st.session_state.chat))
-
-elif sc=='Tesserino':
-    to_dash()
-    st.markdown("<div class='ana-head'><b>TESSERINO</b></div>", unsafe_allow_html=True)
-    st.markdown("<div class='ana-box'>MASCHERA TESSERINO</div>", unsafe_allow_html=True)
-    if st.session_state.dati:
-        df=pd.DataFrame(st.session_state.dati)
-        ev=st.dataframe(df,on_select="rerun",selection_mode="single-row",key='tess_list')
-        if ev and ev.selection and ev.selection.rows:
-            idx=ev.selection.rows[0]
-            vol=st.session_state.dati[idx]
-            c1,c2=st.columns([1,2])
-            with c1:
-                fp=vol.get('FotoFile','')
-                if fp and os.path.exists(fp):
-                    st.image(fp,width=200)
-            with c2:
-                tmpl="Tesserino-Ezio.JPG"
-                if not os.path.exists(tmpl):
-                    tmpl=None
-                tess=tess_make(vol,vol.get('FotoFile',''),tmpl)
-                if tess:
-                    st.image(tess)
-                    st.download_button('SCARICA NITIDO',tess,file_name="Tess.png",mime='image/png',key='t1')
-    else:
-        st.warning("Nessun volontario")
-
-else:
-    to_dash()
-    st.markdown("OK")
+                pd.DataFrame(st.session
