@@ -51,7 +51,7 @@ if st.session_state.page == 'entra':
                 pass
     st.markdown(
         '<h2 style="text-align:center;color:#0e7a3d;">'
-        'VOLONTARIATO<br>Sezione di Varese</h2>',
+        'GESTIONALE<br>DI PROTEZIONE CIVILE</h2>',
         unsafe_allow_html=True
     )
     st.divider()
