@@ -9,7 +9,7 @@ def hdr():
     st.markdown(
         '<div style="background:#0e7a3d;padding:8px;'
         'border-radius:8px;color:white;text-align:center;'
-        'font-weight:bold;">NUCLEO VOLONTARI - ANA VARESE</div>',
+        'font-weight:bold;">NUCLEO DI PROTEZIONE CIVILE ANA SEZ. DI VARESE Squadra Gruppo Alpini Caronno Pertusella Bariola</div>',
         unsafe_allow_html=True
     )
 
