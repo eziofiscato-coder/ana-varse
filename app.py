@@ -3,7 +3,6 @@ import pandas as pd
 from io import BytesIO
 import os, json, hashlib
 from datetime import datetime
-
 try:
     import folium
     from folium.plugins import Fullscreen
