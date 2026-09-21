@@ -2,7 +2,7 @@
 import pandas as pd
 from io import BytesIO
 
-st.set_page_config(page_title="ANA Varese", layout="centered")
+st.set_page_config(page_title="ANA Varese", layout="wide")
 
 def hdr():
     col_logo, col_tit = st.columns([1,5])
@@ -14,15 +14,16 @@ def hdr():
     with col_tit:
         st.markdown("<div style='background:#0e7a3d; padding:10px; border-radius:8px; color:white; text-align:center; font-weight:bold;'>NUCLEO DI VOLONTARI DI PROTEZIONE CIVILE<br>ANA SEZIONE DI VARESE</div>", unsafe_allow_html=True)
 
-# --- GESTIONE PAGINE ---
 if "page" not in st.session_state:
     st.session_state.page = "entra"
 if "logged" not in st.session_state:
     st.session_state.logged = False
 if "dati" not in st.session_state:
     st.session_state.dati = []
+if "menu" not in st.session_state:
+    st.session_state.menu = "Dashboard"
 
-# --- 1° FOGLIO: ENTRA ---
+# 1° FOGLIO ENTRA
 if st.session_state.page == "entra":
     hdr()
     c1,c2,c3 = st.columns([1,2,1])
@@ -30,21 +31,16 @@ if st.session_state.page == "entra":
         try:
             st.image("copertina.png", width=400)
         except:
-            try:
-                st.image("logo.png", width=250)
-            except:
-                st.write("")
+            st.image("logo.png", width=250)
     st.markdown("<h2 style='text-align:center; color:#0e7a3d;'>VOLONTARIATO<br>Sezione di Varese</h2>", unsafe_allow_html=True)
     st.divider()
-    st.markdown("<br><br>", unsafe_allow_html=True)
     c1,c2,c3 = st.columns([1,1,1])
     with c2:
         if st.button("🚪 ENTRA", use_container_width=True, type="primary"):
             st.session_state.page = "login"
             st.rerun()
-    st.markdown("<p style='text-align:center; color:gray;'><br>Benvenuto nel sistema ANA Varese</p>", unsafe_allow_html=True)
 
-# --- 2° FOGLIO: LOGIN ---
+# 2° FOGLIO LOGIN
 elif st.session_state.page == "login":
     hdr()
     st.markdown("<h3 style='text-align:center;'>Login</h3>", unsafe_allow_html=True)
@@ -59,43 +55,66 @@ elif st.session_state.page == "login":
                 st.rerun()
         with col2:
             if st.button("🔐 Accedi", use_container_width=True, type="primary"):
-                # CAMBIA QUI UTENTE E PASSWORD SE VUOI
                 if user == "admin" and pwd == "ana2024":
                     st.session_state.logged = True
                     st.session_state.page = "dashboard"
                     st.rerun()
                 else:
-                    st.error("Utente o password errati - prova admin / ana2024")
+                    st.error("Utente o password errati - admin / ana2024")
 
-# --- 3° FOGLIO: DASHBOARD DOPO LOGIN ---
+# 3° DASHBOARD CON MENU LATERALE DI SEMPRE
 elif st.session_state.page == "dashboard" and st.session_state.logged:
     hdr()
-    c1,c2 = st.columns([8,1])
-    with c2:
-        if st.button("Logout"):
+    
+    # MENU LATERALE DI SEMPRE
+    with st.sidebar:
+        try:
+            st.image("logo.png", width=150)
+        except:
+            st.write("ANA VARESE")
+        st.divider()
+        st.markdown("### MENU")
+        menu = st.radio("Vai a:", ["📊 Dashboard", "👥 Registra Volontario", "📋 Elenco Volontari", "🗺️ Mappa Marker", "📥 Esporta Excel"], label_visibility="collapsed")
+        st.divider()
+        if st.button("🚪 Logout", use_container_width=True):
             st.session_state.logged = False
             st.session_state.page = "entra"
             st.rerun()
     
-    st.markdown("<h2 style='text-align:center; color:#0e7a3d;'>VOLONTARIATO - Dashboard</h2>", unsafe_allow_html=True)
+    # COPERTINA CENTRATA RIDOTTA
+    c1,c2,c3 = st.columns([1,2,1])
+    with c2:
+        try:
+            st.image("copertina.png", width=400)
+        except:
+            st.write("")
     
-    tab1, tab2, tab3 = st.tabs(["📊 Dashboard", "👥 Volontari", "🗺️ Mappa"])
+    st.markdown("<h2 style='text-align:center; color:#0e7a3d;'>VOLONTARIATO - Sezione di Varese</h2>", unsafe_allow_html=True)
+    st.divider()
 
-    with tab1:
-        st.markdown("### Dashboard ANA Varese")
-        st.info(f"Totale volontari registrati: {len(st.session_state.dati)}")
+    # DASHBOARD
+    if menu == "📊 Dashboard":
+        st.markdown("### Dashboard")
+        st.info(f"Totale volontari: {len(st.session_state.dati)}")
         if st.session_state.dati:
-            df_dash = pd.DataFrame(st.session_state.dati)
-            st.dataframe(df_dash, use_container_width=True, hide_index=True)
-            if "Ruolo" in df_dash.columns:
-                st.bar_chart(df_dash["Ruolo"].value_counts())
-            output = BytesIO()
-            df_dash.to_excel(output, index=False, engine="openpyxl")
-            st.download_button("📥 Scarica Excel completo", output.getvalue(), file_name="ana_varese_completo.xlsx", mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", use_container_width=True)
+            df = pd.DataFrame(st.session_state.dati)
+            col1,col2,col3 = st.columns(3)
+            with col1:
+                st.metric("Volontari", len(df))
+            with col2:
+                if "Comune" in df.columns:
+                    st.metric("Comuni", df["Comune"].nunique())
+            with col3:
+                if "Ruolo" in df.columns:
+                    st.metric("Ruoli", df["Ruolo"].nunique())
+            st.dataframe(df, use_container_width=True, hide_index=True)
+            if "Ruolo" in df.columns:
+                st.bar_chart(df["Ruolo"].value_counts())
         else:
-            st.warning("Nessun volontario ancora registrato. Vai in tab Volontari.")
+            st.warning("Nessun dato - vai su Registra Volontario")
 
-    with tab2:
+    # REGISTRA VOLONTARIO CON COMUNE/VIA/LAT/LOG SENZA DEFAULT VARESE
+    elif menu == "👥 Registra Volontario":
         st.markdown("### Registra Volontario")
         with st.form("form"):
             nome = st.text_input("Nome e Cognome *")
@@ -108,9 +127,9 @@ elif st.session_state.page == "dashboard" and st.session_state.logged:
             via = st.text_input("Via / Localita")
             cc1, cc2 = st.columns(2)
             with cc1:
-                lat_txt = st.text_input("Lat", placeholder="es. 45.123456")
+                lat_txt = st.text_input("Lat", placeholder="es. 45.123456 - lascia vuoto se non hai")
             with cc2:
-                lon_txt = st.text_input("Log", placeholder="es. 8.123456")
+                lon_txt = st.text_input("Log", placeholder="es. 8.123456 - lascia vuoto se non hai")
             submitted = st.form_submit_button("✅ Salva con posizione", use_container_width=True)
             if submitted:
                 if nome and assoc and cell and comune:
@@ -125,7 +144,15 @@ elif st.session_state.page == "dashboard" and st.session_state.logged:
                 else:
                     st.error("Compila * e Comune")
 
-    with tab3:
+    elif menu == "📋 Elenco Volontari":
+        st.markdown("### Elenco Volontari")
+        if st.session_state.dati:
+            df = pd.DataFrame(st.session_state.dati)
+            st.dataframe(df, use_container_width=True, hide_index=True)
+        else:
+            st.info("Nessun volontario")
+
+    elif menu == "🗺️ Mappa Marker":
         st.markdown("### Mappa - Tutti i marker")
         if st.session_state.dati:
             df = pd.DataFrame(st.session_state.dati)
@@ -135,8 +162,19 @@ elif st.session_state.page == "dashboard" and st.session_state.logged:
                 df_map = df_map[(df_map["lat"] != 0) & (df_map["lon"] != 0)]
                 if not df_map.empty:
                     st.map(df_map, latitude="lat", longitude="lon", zoom=10, use_container_width=True)
-                    st.info(f"{len(df_map)} marker sulla mappa - nessun default Varese")
+                    st.success(f"{len(df_map)} marker sulla mappa")
                 else:
-                    st.info("Inserisci Lat e Log nel form - nessun default Varese")
+                    st.info("Nessun Lat/Log inserito - nessun default Varese")
         else:
-            st.info("Nessuna posizione da mostrare")
+            st.info("Nessuna posizione")
+
+    elif menu == "📥 Esporta Excel":
+        st.markdown("### Esporta")
+        if st.session_state.dati:
+            df = pd.DataFrame(st.session_state.dati)
+            st.dataframe(df, use_container_width=True)
+            output = BytesIO()
+            df.to_excel(output, index=False, engine="openpyxl")
+            st.download_button("📥 Scarica Excel", output.getvalue(), file_name="ana_varese.xlsx", mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", use_container_width=True)
+        else:
+            st.info("Nessun dato da esportare")
