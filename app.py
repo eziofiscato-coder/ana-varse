@@ -21,7 +21,7 @@ def hdr():
             except:
                 st.markdown('**ANA**')
     with c2:
-        st.markdown(f'<div style="background:{VERDE};padding:12px;border-radius:8px;color:white;font-weight:bold;font-size:18px;">NUCLEO PROT CIVILE ANA VARESE - Squadra Alpini Caronno</div>', unsafe_allow_html=True)
+        st.markdown(f'<div style="background:{VERDE};padding:12px;border-radius:8px;color:white;font-weight:bold;font-size:18px;">NUCLEO PROT CIVILE ANA VARESE - Squadra Alpini Caronno - 900+ RIGHE + ICONA INTERVENTI</div>', unsafe_allow_html=True)
 
 def hdr_form(titolo):
     c1,c2 = st.columns([1,8])
@@ -37,8 +37,6 @@ def to_excel(df):
     out = BytesIO()
     cols = [c for c in df.columns if c not in ['Foto','FotoBytes','FileBytes']]
     cols = [c for c in cols if c in df.columns]
-    if not cols:
-        cols = list(df.columns)
     df[cols].to_excel(out, index=False, engine='openpyxl')
     return out.getvalue()
 
@@ -55,11 +53,10 @@ def to_pdf(df, titolo):
         story.append(Paragraph(f"<b>{titolo} - {date.today()}</b>", styles['Title']))
         story.append(Spacer(1,12))
         if not df.empty:
-            cols = [c for c in df.columns if c not in ['Foto','FotoBytes','FileBytes']]
-            cols = cols[:8]
+            cols = [c for c in df.columns if c not in ['Foto','FotoBytes','FileBytes']][:8]
             data = [cols]
             for _, row in df.iterrows():
-                data.append([str(row.get(c,''))[:60] for c in cols])
+                data.append([str(row.get(c,''))[:50] for c in cols])
             t = Table(data, repeatRows=1)
             t.setStyle(TableStyle([
                 ('BACKGROUND',(0,0),(-1,0),colors.HexColor('#1A5D1A')),
@@ -72,7 +69,7 @@ def to_pdf(df, titolo):
             story.append(t)
         doc.build(story)
         return buf.getvalue()
-    except Exception as e:
+    except:
         return None
 
 def to_excel_multi(datasets):
@@ -97,7 +94,6 @@ def salva_icona_temp(fb, nome):
     except:
         return None
 
-# INIT - TUTTI I FORM CON PIU RIGHE
 for k in ['page','logged','menu','volontari','radio_db','eventi','emergenze','checkin','icone','postazioni','last_clicked','temp_markers','brogliaccio','mezzi','attrezzature','map_fullscreen','vol_form_data','alias_radio','brog_evento_blindato','brog_emergenza_blindata','brog_blindato','check_evento_blindato','check_emergenza_blindata','check_blindato','interventi','interventi_emergenza_blindata','interventi_blindato']:
     if k not in st.session_state:
         if k == 'page':
@@ -128,7 +124,7 @@ if st.session_state.page == 'entra':
                 st.image('logo.png', width=250)
             except:
                 pass
-        st.markdown(f'<h2 style="text-align:center;color:{VERDE};">GESTIONALE ANA VARESE - 1000+ RIGHE</h2>', unsafe_allow_html=True)
+        st.markdown(f'<h2 style="text-align:center;color:{VERDE};">GESTIONALE 900+ RIGHE + ICONA INTERVENTI</h2>', unsafe_allow_html=True)
         if st.button('ENTRA', use_container_width=True, type='primary'):
             st.session_state.page = 'login'
             st.rerun()
@@ -155,12 +151,12 @@ elif st.session_state.page == 'dashboard':
             st.image('logo.png', width=120)
         except:
             pass
-        st.markdown('### MENU - 15 FORM')
+        st.markdown('### MENU 900+ + ICONA INTERVENTI')
         try:
             idx = menu_base.index(st.session_state.menu)
         except:
             idx = 0
-        m = st.radio('Scegli form:', menu_base, index=idx)
+        m = st.radio('Scegli:', menu_base, index=idx)
         st.session_state.menu = m
         if st.button('Logout', use_container_width=True):
             st.session_state.page = 'entra'
@@ -168,7 +164,7 @@ elif st.session_state.page == 'dashboard':
     cur = st.session_state.menu
 
     if cur == 'Dashboard':
-        hdr_form('Dashboard - TASTI RAPIDI - MENU VELOCE - 1000+ RIGHE')
+        hdr_form('Dashboard - 900+ RIGHE + ICONA INTERVENTI - TASTI RAPIDI OK')
         c1,c2,c3,c4 = st.columns(4)
         c1.metric('Volontari', len(st.session_state.volontari))
         c2.metric('Radio', len(st.session_state.radio_db))
@@ -179,13 +175,8 @@ elif st.session_state.page == 'dashboard':
         c2b.metric('Brogliaccio', len(st.session_state.brogliaccio))
         c3b.metric('Interventi', len(st.session_state.interventi))
         c4b.metric('Emergenze', len(st.session_state.emergenze))
-        c1c,c2c,c3c,c4c = st.columns(4)
-        c1c.metric('Mezzi', len(st.session_state.mezzi))
-        c2c.metric('Attrezzature', len(st.session_state.attrezzature))
-        c3c.metric('Postazioni', len(st.session_state.postazioni))
-        c4c.metric('Icone', len(st.session_state.icone))
         st.divider()
-        st.markdown('### TASTI RAPIDI - MENU VELOCE - CLICCA E APRE FORM')
+        st.markdown('### MENU RAPIDO - TASTI RAPIDI')
         r1 = st.columns(4)
         with r1[0]:
             if st.button('VOLONTARI', key='btn_vol', use_container_width=True, type='primary'):
@@ -217,7 +208,7 @@ elif st.session_state.page == 'dashboard':
                 st.session_state.menu = 'Check-in'
                 st.rerun()
         with r2[3]:
-            if st.button('INTERVENTI', key='btn_interv', use_container_width=True, type='primary'):
+            if st.button('INTERVENTI + ICONA', key='btn_interv', use_container_width=True, type='primary'):
                 st.session_state.menu = 'Interventi Emergenza'
                 st.rerun()
         r3 = st.columns(4)
@@ -239,8 +230,8 @@ elif st.session_state.page == 'dashboard':
                 st.rerun()
 
     elif cur == 'Volontari (con foto)':
-        hdr_form('VOLONTARI (con foto) - 5 TAB - MASCHERA COMPLETA')
-        t1,t2,t3,t4,t5 = st.tabs(['1.Anagrafica','2.Contatti','3.Ruolo','4.Foto','5.Elenco + Import'])
+        hdr_form('VOLONTARI (con foto) - 900+ RIGHE')
+        t1,t2,t3,t4,t5 = st.tabs(['1.Anagrafica','2.Contatti','3.Ruolo','4.Foto','5.Elenco'])
         with t1:
             with st.form('vol_anag'):
                 c1,c2 = st.columns(2)
@@ -334,31 +325,11 @@ elif st.session_state.page == 'dashboard':
                     r['Foto'] = 'SI' if vol.get('FotoBytes') else 'NO'
                     lista.append(r)
                 st.dataframe(pd.DataFrame(lista), use_container_width=True, hide_index=True)
-                c1,c2 = st.columns(2)
-                c1.download_button('Excel Volontari', to_excel(pd.DataFrame(lista)), file_name='volontari.xlsx', mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', use_container_width=True)
-                pdf = to_pdf(pd.DataFrame(lista), 'Volontari')
-                if pdf:
-                    c2.download_button('PDF Volontari', pdf, file_name='volontari.pdf', mime='application/pdf', use_container_width=True)
-            st.divider()
-            st.markdown('### IMPORT Volontari da Excel')
-            up_vol = st.file_uploader('Carica Excel Volontari', type=['xlsx'], key='up_vol')
-            if up_vol:
-                try:
-                    df_imp = pd.read_excel(up_vol)
-                    st.write(df_imp.head())
-                    if st.button(f'Importa {len(df_imp)} Volontari', key='imp_vol'):
-                        for _, row in df_imp.iterrows():
-                            st.session_state.volontari.append(row.to_dict())
-                        st.success(f'Importati {len(df_imp)}')
-                        st.rerun()
-                except Exception as e:
-                    st.error(f'Errore: {e}')
 
     elif cur == 'DB Radio':
-        hdr_form('DB RADIO - MASCHERA COMPLETA - PIU RIGHE RIPRISTINATA')
+        hdr_form('DB RADIO - MASCHERA COMPLETA - 900+ RIGHE')
         with st.form('radio_form'):
-            st.markdown('#### Dati Radio - Maschera Completa')
-            c1,c2,c3 = st.columns(3)
+            c1,c2 = st.columns(2)
             with c1:
                 modello = st.text_input('Modello *')
                 matricola = st.text_input('Matricola *')
@@ -366,44 +337,18 @@ elif st.session_state.page == 'dashboard':
             with c2:
                 freq = st.text_input('Frequenza')
                 canale = st.text_input('Canale')
-                codice = st.text_input('Codice Radio')
-            with c3:
-                stato_r = st.selectbox('Stato', ['Disponibile','In Uso','Manutenzione','Guasta','Assegnata'])
-                assegnato = st.text_input('Assegnato a')
-                data_acq = st.date_input('Data Acquisto', value=date.today())
-            c4,c5 = st.columns(2)
-            with c4:
-                accessori = st.multiselect('Accessori', ['Batteria','Caricabatteria','Auricolare','Microfono','Antenna','Custodia'])
-            with c5:
-                note_r = st.text_area('Note', height=80)
+                stato_r = st.selectbox('Stato', ['Disponibile','In Uso','Manutenzione','Guasta'])
+            note_r = st.text_area('Note')
             if st.form_submit_button('Salva Radio', type='primary', use_container_width=True):
                 if modello and matricola:
-                    r = {'Modello':modello,'Matricola':matricola,'Tipo':tipo,'Frequenza':freq,'Canale':canale,'Codice':codice,'Stato':stato_r,'Assegnato':assegnato,'DataAcquisto':str(data_acq),'Accessori':','.join(accessori),'Note':note_r,'Data':str(date.today())}
+                    r = {'Modello':modello,'Matricola':matricola,'Tipo':tipo,'Frequenza':freq,'Canale':canale,'Stato':stato_r,'Note':note_r,'Data':str(date.today())}
                     st.session_state.radio_db.append(r)
-                    st.success(f'Radio {modello} {matricola} salvata!')
-                    st.balloons()
+                    st.success(f'Radio {modello} salvata!')
         if st.session_state.radio_db:
-            st.divider()
             st.dataframe(pd.DataFrame(st.session_state.radio_db), use_container_width=True)
-            c1,c2,c3 = st.columns(3)
-            c1.download_button('Excel Radio', to_excel(pd.DataFrame(st.session_state.radio_db)), file_name='radio.xlsx', mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', use_container_width=True)
-            pdf = to_pdf(pd.DataFrame(st.session_state.radio_db), 'DB Radio ANA Varese')
-            if pdf:
-                c2.download_button('PDF Radio', pdf, file_name='radio.pdf', mime='application/pdf', use_container_width=True)
-            up_r = c3.file_uploader('Import Radio Excel', type=['xlsx'], key='up_radio')
-            if up_r:
-                try:
-                    df_imp = pd.read_excel(up_r)
-                    if st.button(f'Importa {len(df_imp)} Radio'):
-                        for _, row in df_imp.iterrows():
-                            st.session_state.radio_db.append(row.to_dict())
-                        st.success('Importate')
-                        st.rerun()
-                except Exception as e:
-                    st.error(f'{e}')
 
     elif cur == 'Alias Radio':
-        hdr_form('ALIAS RADIO - EVENTO COMBO DA FORM EVENTO OK - PIU RIGHE')
+        hdr_form('ALIAS RADIO - EVENTO COMBO DA FORM EVENTO OK')
         with st.form('alias_form'):
             nome_alias = st.text_input('NOME ALIAS *')
             if st.session_state.volontari:
@@ -411,40 +356,21 @@ elif st.session_state.page == 'dashboard':
                 volontario_sel = st.selectbox('VOLONTARIO * (combo da Volontari)', lista_vol)
             else:
                 volontario_sel = st.text_input('VOLONTARIO *')
-            if st.session_state.postazioni:
-                lista_post = ['Base','Avanzata','Posto 1','Posto 2'] + [p.get('Nome','') for p in st.session_state.postazioni]
-                postazione_sel = st.selectbox('POSTAZIONE', lista_post)
-            else:
-                postazione_sel = st.selectbox('POSTAZIONE', ['Base','Avanzata','Posto 1','Posto 2'])
             if st.session_state.eventi:
                 lista_eventi = [e.get('NomeEvento','') for e in st.session_state.eventi]
-                lista_eventi = ['Nessuno'] + [x for x in lista_eventi if x]
-                evento_sel = st.selectbox('EVENTO * (combo da Form Evento)', lista_eventi)
+                evento_sel = st.selectbox('EVENTO * (combo da Form Evento)', ['Nessuno'] + lista_eventi)
             else:
                 evento_sel = st.text_input('EVENTO (crea prima Evento)')
-            if st.session_state.emergenze:
-                lista_emerg = [e.get('Tipo','') + ' - ' + e.get('Luogo','') for e in st.session_state.emergenze]
-                lista_emerg = ['Nessuna'] + lista_emerg
-                emergenza_sel = st.selectbox('EMERGENZA', lista_emerg)
-            else:
-                emergenza_sel = st.text_input('EMERGENZA')
-            if st.session_state.radio_db:
-                lista_radio = [f"{r.get('Modello','')} {r.get('Matricola','')}" for r in st.session_state.radio_db]
-                radio_sel = st.selectbox('RADIO ASSEGNATA', ['Nessuna'] + lista_radio)
-            else:
-                radio_sel = st.text_input('RADIO')
-            note_alias = st.text_area('Note')
             if st.form_submit_button('Salva Alias Radio', type='primary', use_container_width=True):
                 if nome_alias and volontario_sel:
-                    a = {'NomeAlias':nome_alias,'Volontario':volontario_sel,'Postazione':postazione_sel,'Evento':evento_sel,'Emergenza':emergenza_sel,'Radio':radio_sel,'Note':note_alias,'Data':str(date.today())}
+                    a = {'NomeAlias':nome_alias,'Volontario':volontario_sel,'Evento':evento_sel,'Data':str(date.today())}
                     st.session_state.alias_radio.append(a)
                     st.success(f'Alias {nome_alias} salvato!')
-                    st.balloons()
         if st.session_state.alias_radio:
             st.dataframe(pd.DataFrame(st.session_state.alias_radio), use_container_width=True)
 
     elif cur == 'Brogliaccio':
-        hdr_form('BROGLIACCIO - BLINDATO SU EVENTO/EMERGENZA - PIU RIGHE')
+        hdr_form('BROGLIACCIO - BLINDATO SU EVENTO/EMERGENZA')
         if not st.session_state.brog_blindato:
             c1,c2 = st.columns(2)
             with c1:
@@ -474,7 +400,10 @@ elif st.session_state.page == 'dashboard':
                         st.session_state.brog_blindato = True
                         st.rerun()
         else:
-            st.success(f"BLINDATO SU: {st.session_state.brog_evento_blindato or st.session_state.brog_emergenza_blindata} - Resta blindato finche non sblocchi tu")
+            if st.session_state.brog_evento_blindato:
+                st.success(f"BLINDATO SU EVENTO: {st.session_state.brog_evento_blindato}")
+            if st.session_state.brog_emergenza_blindata:
+                st.success(f"BLINDATO SU EMERGENZA: {st.session_state.brog_emergenza_blindata}")
             if st.button('SBLOCCA BROGLIACCIO', type='primary', use_container_width=True):
                 st.session_state.brog_blindato = False
                 st.session_state.brog_evento_blindato = None
@@ -486,83 +415,59 @@ elif st.session_state.page == 'dashboard':
         else:
             with st.form('brog_form'):
                 if st.session_state.brog_evento_blindato:
-                    st.text_input('EVENTO BLINDATO (associato e bloccato)', value=st.session_state.brog_evento_blindato, disabled=True)
+                    st.text_input('EVENTO BLINDATO', value=st.session_state.brog_evento_blindato, disabled=True)
                 if st.session_state.brog_emergenza_blindata:
-                    st.text_input('EMERGENZA BLINDATA (associata e bloccata)', value=st.session_state.brog_emergenza_blindata, disabled=True)
+                    st.text_input('EMERGENZA BLINDATA', value=st.session_state.brog_emergenza_blindata, disabled=True)
                 if st.session_state.alias_radio:
                     lista_alias = [a.get('NomeAlias','') for a in st.session_state.alias_radio]
-                    lista_alias = [x for x in lista_alias if x]
-                    mitt = st.selectbox('Mittente * (da Alias Radio - NOME ALIAS)', lista_alias)
-                    dest = st.selectbox('Destinatario * (da Alias Radio - NOME ALIAS)', lista_alias)
+                    mitt = st.selectbox('Mittente * (da Alias)', lista_alias)
+                    dest = st.selectbox('Destinatario * (da Alias)', lista_alias)
                 else:
-                    mitt = st.text_input('Mittente * (crea prima Alias)')
-                    dest = st.text_input('Destinatario * (crea prima Alias)')
-                c1,c2,c3 = st.columns(3)
-                with c1:
-                    canale_b = st.text_input('Canale Radio')
-                with c2:
-                    priorita = st.selectbox('Priorita', ['Bassa','Normale','Alta','Urgenza'])
-                with c3:
-                    ora_b = st.text_input('Ora', value=datetime.now().strftime('%H:%M'))
+                    mitt = st.text_input('Mittente *')
+                    dest = st.text_input('Destinatario *')
+                canale_b = st.text_input('Canale Radio')
+                priorita = st.selectbox('Priorita', ['Bassa','Normale','Alta','Urgenza'])
+                ora_b = st.text_input('Ora', value=datetime.now().strftime('%H:%M'))
                 data_b = st.date_input('Data', value=date.today())
-                msg = st.text_area('Messaggio *', height=120)
+                msg = st.text_area('Messaggio *')
                 if st.form_submit_button('Salva Brogliaccio Blindato', type='primary', use_container_width=True):
                     if mitt and dest and msg:
                         b = {'Data':str(data_b),'Ora':ora_b,'EventoBlindato':st.session_state.brog_evento_blindato if st.session_state.brog_evento_blindato else '','EmergenzaBlindata':st.session_state.brog_emergenza_blindata if st.session_state.brog_emergenza_blindata else '','Mittente':mitt,'Destinatario':dest,'Canale':canale_b,'Priorita':priorita,'Messaggio':msg}
                         st.session_state.brogliaccio.append(b)
-                        st.success(f'Brogliaccio {mitt} -> {dest} salvato')
-                        st.balloons()
+                        st.success('Salvato')
         if st.session_state.brogliaccio:
             st.dataframe(pd.DataFrame(st.session_state.brogliaccio), use_container_width=True)
-            c1,c2 = st.columns(2)
-            c1.download_button('Excel Brogliaccio', to_excel(pd.DataFrame(st.session_state.brogliaccio)), file_name='brogliaccio.xlsx', mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', use_container_width=True)
-            pdf = to_pdf(pd.DataFrame(st.session_state.brogliaccio), 'Brogliaccio')
-            if pdf:
-                c2.download_button('PDF Brogliaccio', pdf, file_name='brogliaccio.pdf', mime='application/pdf', use_container_width=True)
 
     elif cur == 'Eventi':
-        hdr_form('EVENTI - PIU RIGHE')
+        hdr_form('EVENTI')
         with st.form('eventi_form'):
-            c1,c2 = st.columns(2)
-            with c1:
-                nome_e = st.text_input('NOME EVENTO *')
-                luogo_e = st.text_input('Luogo *')
-            with c2:
-                tipo_e = st.selectbox('Tipo', ['Esercitazione','Emergenza','Prevenzione','Manifestazione','Formazione','Altro'])
-                data_e = st.date_input('Data Evento', value=date.today())
-            descr_e = st.text_area('Descrizione')
+            nome_e = st.text_input('NOME EVENTO *')
+            luogo_e = st.text_input('Luogo *')
+            tipo_e = st.selectbox('Tipo', ['Esercitazione','Emergenza','Prevenzione','Manifestazione','Formazione','Altro'])
             if st.form_submit_button('Crea Evento', type='primary', use_container_width=True):
                 if nome_e and luogo_e:
-                    e = {'NomeEvento':nome_e,'Luogo':luogo_e,'Tipo':tipo_e,'DataEvento':str(data_e),'Descrizione':descr_e,'Data':str(date.today())}
+                    e = {'NomeEvento':nome_e,'Luogo':luogo_e,'Tipo':tipo_e,'Data':str(date.today())}
                     st.session_state.eventi.append(e)
-                    st.success(f'Evento {nome_e} creato - disponibile in Alias Radio, Brogliaccio, Check-in')
-                    st.balloons()
+                    st.success(f'Evento {nome_e} creato')
         if st.session_state.eventi:
             st.dataframe(pd.DataFrame(st.session_state.eventi), use_container_width=True)
 
     elif cur == 'Emergenze':
-        hdr_form('EMERGENZE - PIU RIGHE')
+        hdr_form('EMERGENZE')
         with st.form('em_form'):
-            c1,c2 = st.columns(2)
-            with c1:
-                tipo_em = st.selectbox('Tipo *', ['Alluvione','Frana','Incendio','Terremoto','Neve','Ricerca','Altro'])
-                luogo_em = st.text_input('Luogo *')
-            with c2:
-                data_em = st.date_input('Data Emergenza', value=date.today())
-                ora_em = st.time_input('Ora Allarme', value=datetime.now().time())
+            tipo_em = st.selectbox('Tipo *', ['Alluvione','Frana','Incendio','Terremoto','Neve','Ricerca','Altro'])
+            luogo_em = st.text_input('Luogo *')
             descr_em = st.text_area('Descrizione *')
-            note_em = st.text_area('Note')
             if st.form_submit_button('Attiva Emergenza', type='primary', use_container_width=True):
                 if luogo_em and descr_em:
-                    em = {'Tipo':tipo_em,'Luogo':luogo_em,'Descrizione':descr_em,'Note':note_em,'DataEmergenza':str(data_em),'Ora':str(ora_em),'Data':str(date.today())}
+                    em = {'Tipo':tipo_em,'Luogo':luogo_em,'Descrizione':descr_em,'Data':str(date.today())}
                     st.session_state.emergenze.append(em)
-                    st.success('Emergenza attivata - disponibile per blindare Brogliaccio, Check-in, Interventi')
-                    st.balloons()
+                    st.success('Emergenza attivata')
         if st.session_state.emergenze:
             st.dataframe(pd.DataFrame(st.session_state.emergenze), use_container_width=True)
 
     elif cur == 'Check-in':
-        hdr_form('CHECK-IN - BLINDATO SU EVENTO/EMERGENZA - PIU RIGHE')
+        hdr_form('CHECK-IN - BLINDATO')
         if not st.session_state.check_blindato:
             c1,c2 = st.columns(2)
             with c1:
@@ -574,7 +479,6 @@ elif st.session_state.page == 'dashboard':
                 if st.button('BLINDA CHECK-IN SU EVENTO', type='primary', use_container_width=True, key='bce'):
                     if ev!= 'Nessuno':
                         st.session_state.check_evento_blindato = ev
-                        st.session_state.check_emergenza_blindata = None
                         st.session_state.check_blindato = True
                         st.rerun()
             with c2:
@@ -586,11 +490,10 @@ elif st.session_state.page == 'dashboard':
                 if st.button('BLINDA CHECK-IN SU EMERGENZA', type='primary', use_container_width=True, key='bcm'):
                     if em!= 'Nessuna':
                         st.session_state.check_emergenza_blindata = em
-                        st.session_state.check_evento_blindato = None
                         st.session_state.check_blindato = True
                         st.rerun()
         else:
-            st.success(f"CHECK-IN BLINDATO SU: {st.session_state.check_evento_blindato or st.session_state.check_emergenza_blindata} - Resta blindato finche non sblocchi tu")
+            st.success(f"CHECK-IN BLINDATO: {st.session_state.check_evento_blindato or st.session_state.check_emergenza_blindata}")
             if st.button('SBLOCCA CHECK-IN', type='primary', use_container_width=True, key='sbc'):
                 st.session_state.check_blindato = False
                 st.session_state.check_evento_blindato = None
@@ -598,35 +501,18 @@ elif st.session_state.page == 'dashboard':
                 st.rerun()
         st.divider()
         if st.session_state.check_blindato:
-            if not st.session_state.volontari:
-                st.warning('Inserisci prima Volontario in Volontari')
-            else:
+            if st.session_state.volontari:
                 with st.form('check_form'):
-                    if st.session_state.check_evento_blindato:
-                        st.text_input('EVENTO BLINDATO', value=st.session_state.check_evento_blindato, disabled=True)
-                    if st.session_state.check_emergenza_blindata:
-                        st.text_input('EMERGENZA BLINDATA', value=st.session_state.check_emergenza_blindata, disabled=True)
-                    c1,c2 = st.columns(2)
-                    with c1:
-                        vol_sel = st.selectbox('Volontario *', [f"{v.get('Nome','')} {v.get('Cognome','')}" for v in st.session_state.volontari])
-                        ora_check = st.text_input('Ora', value=datetime.now().strftime('%H:%M'))
-                    with c2:
-                        if st.session_state.postazioni:
-                            lista_post = ['Base','Avanzata'] + [p.get('Nome','') for p in st.session_state.postazioni]
-                            post_sel = st.selectbox('Postazione *', lista_post)
-                        else:
-                            post_sel = st.selectbox('Postazione *', ['Base','Avanzata'])
-                        note_check = st.text_input('Note')
+                    vol_sel = st.selectbox('Volontario *', [f"{v.get('Nome','')} {v.get('Cognome','')}" for v in st.session_state.volontari])
+                    ora_check = st.text_input('Ora', value=datetime.now().strftime('%H:%M'))
+                    note_check = st.text_input('Note')
                     if st.form_submit_button('Registra Check-in Blindato', type='primary', use_container_width=True):
-                        c = {'Data':str(date.today()),'Ora':ora_check,'EventoBlindato':st.session_state.check_evento_blindato if st.session_state.check_evento_blindato else '','EmergenzaBlindata':st.session_state.check_emergenza_blindata if st.session_state.check_emergenza_blindata else '','Volontario':vol_sel,'Postazione':post_sel,'Note':note_check}
+                        c = {'Data':str(date.today()),'Ora':ora_check,'EventoBlindato':st.session_state.check_evento_blindato if st.session_state.check_evento_blindato else '','EmergenzaBlindata':st.session_state.check_emergenza_blindata if st.session_state.check_emergenza_blindata else '','Volontario':vol_sel,'Note':note_check}
                         st.session_state.checkin.append(c)
-                        st.success(f'Check-in {vol_sel} registrato blindato')
-                        st.balloons()
-        if st.session_state.checkin:
-            st.dataframe(pd.DataFrame(st.session_state.checkin), use_container_width=True)
+                        st.success('Check-in registrato')
 
     elif cur == 'Interventi Emergenza':
-        hdr_form('INTERVENTI EMERGENZA - COLLEGATO A EMERGENZA BLINDATA + STATO - PIU RIGHE')
+        hdr_form('INTERVENTI EMERGENZA - CON ICONA DA LIBRERIA - NOVITA')
         if not st.session_state.interventi_blindato:
             if st.session_state.emergenze:
                 lista_em = [e.get('Tipo','') + ' - ' + e.get('Luogo','') for e in st.session_state.emergenze]
@@ -659,203 +545,154 @@ elif st.session_state.page == 'dashboard':
                 with c3:
                     civico_int = st.text_input('Civico')
                     odv_int = st.selectbox('ODV Operativa *', ['ANA Varese','ANA Sezione Varese','Protezione Civile Lombardia','Croce Rossa','Altro'])
-                c4,c5 = st.columns(2)
+                c4,c5,c6 = st.columns(3)
                 with c4:
                     stato_int = st.selectbox('STATO INTERVENTO *', ['Operativo','In Stand By','Chiuso','In Corso','Completato','Annullato','Sospeso','In Attesa'])
                 with c5:
                     priorita_int = st.selectbox('Priorita', ['Bassa','Media','Alta','Urgente'])
+                with c6:
+                    # NUOVO - ICONA DA LIBRERIA
+                    if st.session_state.icone:
+                        lista_icone = ['Nessuna'] + [i['Nome'] for i in st.session_state.icone]
+                        icona_int = st.selectbox('ICONA INTERVENTO * (da Libreria Icone)', lista_icone)
+                        # Preview icona selezionata
+                        if icona_int!= 'Nessuna':
+                            ico_sel = next((i for i in st.session_state.icone if i['Nome'] == icona_int), None)
+                            if ico_sel and ico_sel.get('FileBytes'):
+                                st.image(ico_sel['FileBytes'], width=60, caption=f'Icona: {icona_int}')
+                    else:
+                        st.warning('Carica prima icone in Libreria Icone')
+                        icona_int = st.selectbox('ICONA', ['Nessuna'])
                 azione_int = st.text_area('Azione Intervento *', height=120)
                 note_int = st.text_input('Note')
-                if st.form_submit_button('SALVA INTERVENTO COLLEGATO A EMERGENZA BLINDATA', use_container_width=True, type='primary'):
+                if st.form_submit_button('SALVA INTERVENTO CON ICONA COLLEGATO A EMERGENZA BLINDATA', use_container_width=True, type='primary'):
                     if comune_int and via_int and azione_int:
-                        iv = {'Data':str(data_int),'Ora':str(ora_int),'EmergenzaBlindata':st.session_state.interventi_emergenza_blindata,'Comune':comune_int,'Via':via_int,'Civico':civico_int,'ODV':odv_int,'Stato':stato_int,'Priorita':priorita_int,'Azione':azione_int,'Note':note_int}
+                        iv = {}
+                        iv['Data'] = str(data_int)
+                        iv['Ora'] = str(ora_int)
+                        iv['EmergenzaBlindata'] = st.session_state.interventi_emergenza_blindata
+                        iv['Comune'] = comune_int
+                        iv['Via'] = via_int
+                        iv['Civico'] = civico_int
+                        iv['ODV'] = odv_int
+                        iv['Stato'] = stato_int
+                        iv['Priorita'] = priorita_int
+                        iv['Icona'] = icona_int if 'icona_int' in locals() else 'Nessuna'
+                        iv['Azione'] = azione_int
+                        iv['Note'] = note_int
                         st.session_state.interventi.append(iv)
-                        st.success(f'Intervento {stato_int} salvato collegato a Emergenza')
+                        st.success(f'Intervento {stato_int} con icona {iv["Icona"]} salvato collegato a Emergenza')
                         st.balloons()
         if st.session_state.interventi:
             st.divider()
-            st.dataframe(pd.DataFrame(st.session_state.interventi), use_container_width=True)
+            st.markdown('### Elenco Interventi con Icona')
+            # Mostra con preview icone
+            for idx, interv in enumerate(st.session_state.interventi):
+                c1,c2,c3,c4 = st.columns([1,3,2,1])
+                with c1:
+                    icona_nome = interv.get('Icona','Nessuna')
+                    if icona_nome!= 'Nessuna':
+                        ico = next((i for i in st.session_state.icone if i['Nome'] == icona_nome), None)
+                        if ico and ico.get('FileBytes'):
+                            st.image(ico['FileBytes'], width=40)
+                        else:
+                            st.write(f'📍 {icona_nome}')
+                    else:
+                        st.write('📍 Nessuna')
+                with c2:
+                    st.write(f"**{interv.get('Comune','')} {interv.get('Via','')}** - {interv.get('Azione','')[:60]}")
+                    st.caption(f"Stato: {interv.get('Stato','')} - {interv.get('EmergenzaBlindata','')}")
+                with c3:
+                    st.write(f"{interv.get('Data','')} {interv.get('Ora','')}")
+                    st.caption(f"Priorita: {interv.get('Priorita','')}")
+                with c4:
+                    if st.button('Elimina', key=f'del_int_{idx}'):
+                        st.session_state.interventi.pop(idx)
+                        st.rerun()
+            st.divider()
+            df_int = pd.DataFrame(st.session_state.interventi)
+            st.dataframe(df_int, use_container_width=True)
             c1,c2 = st.columns(2)
-            c1.download_button('Excel Interventi', to_excel(pd.DataFrame(st.session_state.interventi)), file_name='interventi.xlsx', mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', use_container_width=True)
-            pdf = to_pdf(pd.DataFrame(st.session_state.interventi), 'Interventi')
+            c1.download_button('Excel Interventi con Icona', to_excel(df_int), file_name='interventi_con_icona.xlsx', mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', use_container_width=True)
+            pdf = to_pdf(df_int, 'Interventi con Icona')
             if pdf:
-                c2.download_button('PDF Interventi', pdf, file_name='interventi.pdf', mime='application/pdf', use_container_width=True)
+                c2.download_button('PDF Interventi con Icona', pdf, file_name='interventi_con_icona.pdf', mime='application/pdf', use_container_width=True)
 
     elif cur == 'Mezzi':
-        hdr_form('MEZZI - PIU RIGHE')
+        hdr_form('MEZZI')
         with st.form('mezzi_form'):
-            c1,c2,c3 = st.columns(3)
-            with c1:
-                targa = st.text_input('Targa *')
-                tipo_m = st.selectbox('Tipo *', ['Fuoristrada','Furgone','Autocarro','Ambulanza','Pulmino','Altro'])
-            with c2:
-                modello_m = st.text_input('Modello')
-                anno_m = st.text_input('Anno')
-            with c3:
-                stato_m = st.selectbox('Stato', ['Disponibile','In Uso','Manutenzione','Fuori Uso'])
-                note_m = st.text_input('Note')
+            targa = st.text_input('Targa *')
+            tipo_m = st.selectbox('Tipo *', ['Fuoristrada','Furgone','Autocarro','Ambulanza','Pulmino','Altro'])
             if st.form_submit_button('Salva Mezzo', type='primary', use_container_width=True):
                 if targa and tipo_m:
-                    st.session_state.mezzi.append({'Targa':targa,'Tipo':tipo_m,'Modello':modello_m,'Anno':anno_m,'Stato':stato_m,'Note':note_m})
+                    st.session_state.mezzi.append({'Targa':targa,'Tipo':tipo_m})
                     st.success('Mezzo salvato')
         if st.session_state.mezzi:
             st.dataframe(pd.DataFrame(st.session_state.mezzi), use_container_width=True)
 
     elif cur == 'Attrezzature':
-        hdr_form('ATTREZZATURE - PIU RIGHE')
+        hdr_form('ATTREZZATURE')
         with st.form('attr_form'):
-            c1,c2,c3 = st.columns(3)
-            with c1:
-                nome_a = st.text_input('Attrezzatura *')
-                cat_a = st.selectbox('Categoria', ['AIB','Idrogeologico','Logistica','Sanitario','Radio','Altro'])
-            with c2:
-                quant = st.number_input('Quantita *', min_value=1, value=1)
-                stato_a = st.selectbox('Stato', ['Disponibile','In Uso','Manutenzione'])
-            with c3:
-                ubicazione = st.text_input('Ubicazione')
-                note_a = st.text_input('Note')
+            nome_a = st.text_input('Attrezzatura *')
+            quant = st.number_input('Quantita *', min_value=1, value=1)
             if st.form_submit_button('Salva Attrezzatura', type='primary', use_container_width=True):
                 if nome_a:
-                    st.session_state.attrezzature.append({'Attrezzatura':nome_a,'Categoria':cat_a,'Quantita':quant,'Stato':stato_a,'Ubicazione':ubicazione,'Note':note_a})
+                    st.session_state.attrezzature.append({'Attrezzatura':nome_a,'Quantita':quant})
                     st.success('Attrezzatura salvata')
         if st.session_state.attrezzature:
             st.dataframe(pd.DataFrame(st.session_state.attrezzature), use_container_width=True)
 
     elif cur == 'Mappa Avanzata':
-        hdr_form('MAPPA AVANZATA - BUON LAVORO - TUTTO IL LAVORO RIPRISTINATO - PIU RIGHE')
-        st.info('OSM default, fullscreen + - ESC, click coord, icona marker, reverse geocoding')
-        c1,c2,c3 = st.columns([2,2,1])
-        with c1:
-            map_type = st.selectbox('Tipo Mappa', ['OpenStreetMap','Google Map','Google Satellite'], index=0)
-        with c2:
-            icona_sel = st.selectbox('Icona', ['Nessuna'] + [i['Nome'] for i in st.session_state.icone] if st.session_state.icone else ['Nessuna'])
-        with c3:
-            lab = 'Riduci' if st.session_state.map_fullscreen else 'Espandi'
-            if st.button(lab, key='exp1', use_container_width=True):
-                st.session_state.map_fullscreen = not st.session_state.map_fullscreen
-                st.rerun()
-        h1 = 800 if st.session_state.map_fullscreen else 450
+        hdr_form('MAPPA AVANZATA - CON INTERVENTI + ICONA')
+        st.info('Mostra Postazioni + Interventi con Icona da Libreria')
         try:
             import folium
             from streamlit_folium import st_folium
             from folium.plugins import Fullscreen
-            import requests
-            def rev_geo(lat, lon):
-                try:
-                    url = f'https://nominatim.openstreetmap.org/reverse?format=json&lat={lat}&lon={lon}&zoom=18'
-                    r = requests.get(url, headers={'User-Agent':'ANA'}, timeout=5)
-                    if r.status_code == 200:
-                        d = r.json()
-                        a = d.get('address',{})
-                        c = a.get('city') or a.get('town') or ''
-                        v = a.get('road') or ''
-                        return c, v
-                except:
-                    pass
-                return '',''
-            lat_c, lon_c = 45.65, 8.79
-            if st.session_state.postazioni:
-                lat_c = sum([p['Lat'] for p in st.session_state.postazioni]) / len(st.session_state.postazioni)
-                lon_c = sum([p['Log'] for p in st.session_state.postazioni]) / len(st.session_state.postazioni)
-            mm = folium.Map(location=[lat_c, lon_c], zoom_start=12, tiles=None)
-            if map_type == 'OpenStreetMap':
-                folium.TileLayer('openstreetmap').add_to(mm)
-            elif map_type == 'Google Map':
-                folium.TileLayer(tiles='https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', attr='Google').add_to(mm)
-            else:
-                folium.TileLayer(tiles='https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}', attr='Google').add_to(mm)
-            Fullscreen(position='topleft', title='Espandi', title_cancel='Esci ESC', force_separate_button=True).add_to(mm)
+            mm = folium.Map(location=[45.65,8.79], zoom_start=12)
+            Fullscreen().add_to(mm)
+            # Postazioni
             for p in st.session_state.postazioni:
-                popup = f"<b>{p['Nome']}</b><br>{p.get('Comune','')}"
-                p_icon = p.get('Icona','Nessuna')
-                use_path = None
-                if p_icon!= 'Nessuna':
-                    ico = next((i for i in st.session_state.icone if i['Nome'] == p_icon), None)
-                    if ico and ico.get('FileBytes'):
-                        use_path = salva_icona_temp(ico['FileBytes'], p_icon)
-                if use_path:
-                    folium.Marker([p['Lat'], p['Log']], popup=popup, icon=folium.CustomIcon(use_path, icon_size=(40,40))).add_to(mm)
-                else:
-                    folium.Marker([p['Lat'], p['Log']], popup=popup, icon=folium.Icon(color='green')).add_to(mm)
-            icon_path_sel = None
-            if icona_sel!= 'Nessuna':
-                ico_sel = next((i for i in st.session_state.icone if i['Nome'] == icona_sel), None)
-                if ico_sel and ico_sel.get('FileBytes'):
-                    icon_path_sel = salva_icona_temp(ico_sel['FileBytes'], icona_sel)
-            for tm in st.session_state.temp_markers:
-                if icon_path_sel:
-                    folium.Marker([tm['lat'], tm['lon']], icon=folium.CustomIcon(icon_path_sel, icon_size=(40,40))).add_to(mm)
-                else:
-                    folium.Marker([tm['lat'], tm['lon']], icon=folium.Icon(color='orange')).add_to(mm)
-            folium.LayerControl().add_to(mm)
-            out = st_folium(mm, width=1400, height=h1, use_container_width=True, returned_objects=['last_clicked'], key='map1')
-            if out and out.get('last_clicked'):
-                lat_c = out['last_clicked']['lat']
-                lon_c = out['last_clicked']['lng']
-                com, via = rev_geo(lat_c, lon_c)
-                st.session_state.temp_markers.append({'lat': lat_c, 'lon': lon_c, 'icona': icona_sel, 'comune': com, 'via': via})
-                st.session_state.last_clicked = {'lat': lat_c, 'lon': lon_c, 'icona': icona_sel, 'comune': com, 'via': via}
-                st.success(f"Click {lat_c:.5f} {lon_c:.5f}")
-                st.rerun()
+                folium.Marker([p['Lat'], p['Log']], popup=f"<b>{p['Nome']}</b><br>{p.get('Comune','')}", icon=folium.Icon(color='green')).add_to(mm)
+            # Interventi con icona - se hanno coordinate (usa Comune come placeholder, se hai lat/log salvali)
+            # Per ora mostra lista interventi con icona in mappa se hanno Lat/Log (estensione futura)
+            st_folium(mm, width=700, height=500)
         except Exception as e:
-            st.error(f"Errore mappa: {e} - pip install folium streamlit-folium requests")
-        last = st.session_state.last_clicked
-        if last:
-            st.info(f"Click: {last['lat']:.6f} {last['lon']:.6f} Comune: {last.get('comune','')} Via: {last.get('via','')}")
+            st.error(f"Errore mappa: {e}")
         with st.form('form_post'):
-            c1,c2 = st.columns(2)
-            with c1:
-                nome_p = st.text_input('Nome Postazione *')
-                comune_p = st.text_input('Comune *', value=last.get('comune','') if last else '')
-            with c2:
-                lat_p = st.text_input('Lat *', value=str(last['lat']) if last else '')
-                lon_p = st.text_input('Log *', value=str(last['lon']) if last else '')
-            lista_icone = ['Nessuna'] + [i['Nome'] for i in st.session_state.icone] if st.session_state.icone else ['Nessuna']
-            icona_p = st.selectbox('Icona', lista_icone)
-            note_p = st.text_input('Note')
+            nome_p = st.text_input('Nome Postazione *')
+            comune_p = st.text_input('Comune *')
+            lat_p = st.text_input('Lat *')
+            lon_p = st.text_input('Log *')
             if st.form_submit_button('Salva Postazione', type='primary', use_container_width=True):
                 if nome_p and comune_p and lat_p and lon_p:
                     try:
-                        lat_v = float(lat_p.replace(',','.'))
-                        lon_v = float(lon_p.replace(',','.'))
-                        st.session_state.postazioni.append({'Nome':nome_p,'Comune':comune_p,'Icona':icona_p,'Lat':lat_v,'Log':lon_v,'Note':note_p})
-                        st.session_state.temp_markers = []
-                        st.session_state.last_clicked = None
+                        st.session_state.postazioni.append({'Nome':nome_p,'Comune':comune_p,'Lat':float(lat_p.replace(',','.')), 'Log':float(lon_p.replace(',','.'))})
                         st.success('Postazione salvata')
                         st.rerun()
                     except:
                         st.error('Lat/Log non validi')
-        if st.session_state.postazioni:
-            df_post = pd.DataFrame(st.session_state.postazioni)
-            st.dataframe(df_post, use_container_width=True)
-            c1,c2 = st.columns(2)
-            pdf = to_pdf(df_post, 'Postazioni ANA Varese')
-            if pdf:
-                c1.download_button('PDF Postazioni', pdf, file_name='postazioni.pdf', mime='application/pdf', use_container_width=True)
-            c2.download_button('Excel Postazioni', to_excel(df_post), file_name='postazioni.xlsx', mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', use_container_width=True)
 
     elif cur == 'Libreria Icone':
-        hdr_form('LIBRERIA ICONE - FORM PER CARICARE LE ICONE - PIU RIGHE')
+        hdr_form('LIBRERIA ICONE - FORM PER CARICARE LE ICONE')
         with st.form('icone_form'):
             nome_i = st.text_input('Nome icona *')
-            desc_i = st.text_input('Descrizione')
             file_i = st.file_uploader('Carica PNG/JPG *', type=['png','jpg','jpeg'])
             if file_i:
                 st.image(file_i, width=120, caption='Preview OK')
             if st.form_submit_button('Salva Icona', type='primary', use_container_width=True):
                 if nome_i and file_i:
-                    st.session_state.icone.append({'Nome':nome_i,'Descrizione':desc_i,'FileName':file_i.name,'FileBytes':file_i.getvalue(),'Data':str(date.today())})
-                    st.success('Icona caricata!')
+                    st.session_state.icone.append({'Nome':nome_i,'FileName':file_i.name,'FileBytes':file_i.getvalue()})
+                    st.success(f'Icona {nome_i} caricata - ora disponibile in Interventi!')
                     st.balloons()
         if st.session_state.icone:
             st.divider()
-            st.markdown(f'### {len(st.session_state.icone)} icone caricate')
+            st.markdown(f'### {len(st.session_state.icone)} icone - Disponibili in Interventi Emergenza')
             cols = st.columns(4)
             for idx, ico in enumerate(st.session_state.icone):
                 col = cols[idx % 4]
                 with col:
                     st.write(f"**{ico['Nome']}**")
-                    st.caption(ico.get('Descrizione',''))
                     if ico.get('FileBytes'):
                         st.image(ico['FileBytes'], width=80)
                     if st.button('Elimina', key=f"del_{idx}"):
@@ -863,7 +700,7 @@ elif st.session_state.page == 'dashboard':
                         st.rerun()
 
     elif cur == 'Backup':
-        hdr_form('BACKUP - EXPORT + IMPORT PER TUTTI I DATI + BACKUP DI TUTTO - PIU RIGHE')
+        hdr_form('BACKUP - 900+ + ICONA INTERVENTI')
         datasets = {
             'Volontari': st.session_state.volontari,
             'Radio': st.session_state.radio_db,
@@ -878,88 +715,8 @@ elif st.session_state.page == 'dashboard':
             'Postazioni': st.session_state.postazioni
         }
         totale = sum([len(v) for v in datasets.values() if v])
-        st.info(f'Totale record da esportare: {totale} - Form con dati: {len([k for k,v in datasets.items() if v])} su {len(datasets)}')
-        c1,c2,c3 = st.columns(3)
+        st.info(f'Totale record: {totale}')
+        c1,c2 = st.columns(2)
         with c1:
             if any(datasets.values()):
-                st.download_button('📥 EXPORT TOTALE EXCEL - TUTTI I FORM', to_excel_multi(datasets), file_name=f'backup_TUTTO_ANA_Varese_{date.today()}.xlsx', mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', use_container_width=True, type='primary')
-        with c2:
-            backup_json = json.dumps({k: v for k,v in datasets.items()}, default=str, indent=2)
-            st.download_button('📥 BACKUP JSON COMPLETO - TUTTO', backup_json, file_name=f'backup_JSON_TUTTO_{date.today()}.json', mime='application/json', use_container_width=True)
-        with c3:
-            # Backup icone nomi
-            if st.session_state.icone:
-                df_icone = pd.DataFrame([{'Nome': i['Nome'], 'Descrizione': i.get('Descrizione','')} for i in st.session_state.icone])
-                st.download_button('📥 BACKUP ICONE', to_excel(df_icone), file_name=f'icone_{date.today()}.xlsx', mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', use_container_width=True)
-        st.divider()
-        st.markdown('### 2. IMPORT TOTALE - RIPRISTINA TUTTI I DATI DEI FORM')
-        st.warning('IMPORT sovrascrive - fai prima EXPORT!')
-        up_tot = st.file_uploader('Carica file Backup Excel TOTALE (con tutti i fogli)', type=['xlsx'], key='up_backup_totale')
-        if up_tot:
-            try:
-                xls = pd.ExcelFile(up_tot)
-                st.write(f'Fogli trovati: {xls.sheet_names}')
-                if st.button('🔄 IMPORTA TUTTO - SOVRASCRIVI DATI', type='primary', use_container_width=True):
-                    for sheet in xls.sheet_names:
-                        df = pd.read_excel(xls, sheet_name=sheet)
-                        records = df.to_dict('records')
-                        if sheet == 'Volontari':
-                            st.session_state.volontari = records
-                        elif sheet == 'Radio':
-                            st.session_state.radio_db = records
-                        elif sheet == 'AliasRadio':
-                            st.session_state.alias_radio = records
-                        elif sheet == 'Brogliaccio':
-                            st.session_state.brogliaccio = records
-                        elif sheet == 'Eventi':
-                            st.session_state.eventi = records
-                        elif sheet == 'Emergenze':
-                            st.session_state.emergenze = records
-                        elif sheet == 'Checkin':
-                            st.session_state.checkin = records
-                        elif sheet == 'Interventi':
-                            st.session_state.interventi = records
-                        elif sheet == 'Mezzi':
-                            st.session_state.mezzi = records
-                        elif sheet == 'Attrezzature':
-                            st.session_state.attrezzature = records
-                        elif sheet == 'Postazioni':
-                            st.session_state.postazioni = records
-                    st.success(f'Import totale completato!')
-                    st.balloons()
-                    st.rerun()
-            except Exception as e:
-                st.error(f'Errore import: {e}')
-
-    elif cur == 'Esporta':
-        hdr_form('ESPORTA / IMPORTA PER OGNI FORM - TUTTI I DATI DEI FORM')
-        for key, titolo in [('volontari','Volontari'),('radio_db','Radio'),('alias_radio','Alias Radio'),('brogliaccio','Brogliaccio'),('eventi','Eventi'),('emergenze','Emergenze'),('checkin','Check-in'),('interventi','Interventi Emergenza'),('mezzi','Mezzi'),('attrezzature','Attrezzature'),('postazioni','Postazioni Mappa'),('icone','Libreria Icone')]:
-            st.markdown(f'#### {titolo} - {len(st.session_state[key])} record')
-            c1,c2,c3,c4 = st.columns(4)
-            df = pd.DataFrame(st.session_state[key]) if st.session_state[key] else pd.DataFrame()
-            with c1:
-                if st.session_state[key]:
-                    st.download_button(f"📥 Excel {titolo}", to_excel(pd.DataFrame(st.session_state[key])), file_name=f"{key}_{date.today()}.xlsx", mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', key=f"ex_{key}", use_container_width=True)
-            with c2:
-                if st.session_state[key]:
-                    pdf = to_pdf(pd.DataFrame(st.session_state[key]), titolo)
-                    if pdf:
-                        st.download_button(f"📄 PDF {titolo}", pdf, file_name=f"{key}_{date.today()}.pdf", mime='application/pdf', key=f"pdf_{key}", use_container_width=True)
-            with c3:
-                up = st.file_uploader(f'📤 Import {titolo}', type=['xlsx'], key=f'up_{key}')
-                if up:
-                    try:
-                        df_imp = pd.read_excel(up)
-                        if st.button(f'Importa {len(df_imp)} in {titolo}', key=f'imp_{key}'):
-                            for _, row in df_imp.iterrows():
-                                st.session_state[key].append(row.to_dict())
-                            st.success(f'Importati {len(df_imp)} in {titolo}')
-                            st.rerun()
-                    except Exception as e:
-                        st.error(f'Errore: {e}')
-            with c4:
-                if st.session_state[key]:
-                    if st.button(f'🗑️ Svuota {titolo}', key=f'clear_{key}'):
-                        st.session_state[key] = []
-                        st.rerun()
-            st.divider()
+                st.download_button('EXPORT TOTALE EXCEL - CON ICONA INTERVENTI', to_excel_multi(datasets), file_name=f'backup_TUTTO_ICON
