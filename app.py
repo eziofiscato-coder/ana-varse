@@ -67,7 +67,6 @@ def to_pdf(df, titolo):
                     v = str(row.get(c,''))[:60]
                     r.append(v)
                 data.append(r)
-            # tabella
             t = Table(data, repeatRows=1)
             t.setStyle(TableStyle([
                 ('BACKGROUND', (0,0), (-1,0), colors.HexColor('#1A5D1A')),
@@ -103,7 +102,8 @@ def salva_icona_temp(fb, nome):
     except:
         return None
 
-for k in ['page','logged','menu','volontari','radio_db','eventi','emergenze','checkin','icone','postazioni','last_clicked','temp_markers','brogliaccio','mezzi','attrezzature','map_fullscreen','map_fullscreen2','vol_form_data','custom_defs','custom_data','alias_radio','brog_evento_blindato','brog_emergenza_blindata','brog_blindato']:
+# INIT - AGGIUNTO CHECK-IN BLINDATO
+for k in ['page','logged','menu','volontari','radio_db','eventi','emergenze','checkin','icone','postazioni','last_clicked','temp_markers','brogliaccio','mezzi','attrezzature','map_fullscreen','map_fullscreen2','vol_form_data','custom_defs','custom_data','alias_radio','brog_evento_blindato','brog_emergenza_blindata','brog_blindato','check_evento_blindato','check_emergenza_blindata','check_blindato']:
     if k not in st.session_state:
         if k == 'page':
             st.session_state[k] = 'entra'
@@ -115,7 +115,7 @@ for k in ['page','logged','menu','volontari','radio_db','eventi','emergenze','ch
             st.session_state[k] = None
         elif k == 'temp_markers':
             st.session_state[k] = []
-        elif k in ['map_fullscreen','map_fullscreen2','brog_blindato']:
+        elif k in ['map_fullscreen','map_fullscreen2','brog_blindato','check_blindato']:
             st.session_state[k] = False
         elif k == 'vol_form_data':
             st.session_state[k] = {}
@@ -123,7 +123,7 @@ for k in ['page','logged','menu','volontari','radio_db','eventi','emergenze','ch
             st.session_state[k] = {}
         elif k == 'custom_data':
             st.session_state[k] = {}
-        elif k in ['brog_evento_blindato','brog_emergenza_blindata']:
+        elif k in ['brog_evento_blindato','brog_emergenza_blindata','check_evento_blindato','check_emergenza_blindata']:
             st.session_state[k] = None
         else:
             st.session_state[k] = []
@@ -334,8 +334,8 @@ elif st.session_state.page == 'dashboard':
                 c1,c2 = st.columns(2)
                 pdf = to_pdf(pd.DataFrame(st.session_state.volontari), 'Volontari ANA Varese')
                 if pdf:
-                    c1.download_button('📄 PDF Volontari', pdf, file_name='volontari.pdf', mime='application/pdf', use_container_width=True)
-                c2.download_button('📥 Excel Volontari', to_excel(pd.DataFrame(st.session_state.volontari)), file_name='volontari.xlsx', mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', use_container_width=True)
+                    c1.download_button('PDF Volontari', pdf, file_name='volontari.pdf', mime='application/pdf', use_container_width=True)
+                c2.download_button('Excel Volontari', to_excel(pd.DataFrame(st.session_state.volontari)), file_name='volontari.xlsx', mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', use_container_width=True)
             else:
                 st.warning('Nessun volontario')
 
@@ -368,11 +368,11 @@ elif st.session_state.page == 'dashboard':
             c1,c2 = st.columns(2)
             pdf = to_pdf(df_r, 'DB Radio ANA Varese')
             if pdf:
-                c1.download_button('📄 PDF Radio', pdf, file_name='radio.pdf', mime='application/pdf', use_container_width=True)
-            c2.download_button('📥 Excel Radio', to_excel(df_r), file_name='radio.xlsx', mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', use_container_width=True)
+                c1.download_button('PDF Radio', pdf, file_name='radio.pdf', mime='application/pdf', use_container_width=True)
+            c2.download_button('Excel Radio', to_excel(df_r), file_name='radio.xlsx', mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', use_container_width=True)
 
     elif m == 'Alias Radio':
-        hdr_form('ALIAS RADIO - EVENTO COMBO DA FORM EVENTO')
+        hdr_form('ALIAS RADIO - EVENTO COMBO DA FORM EVENTO OK')
         with st.form('alias_form'):
             nome_alias = st.text_input('NOME ALIAS *')
             if st.session_state.volontari:
@@ -420,15 +420,13 @@ elif st.session_state.page == 'dashboard':
             c1,c2 = st.columns(2)
             pdf = to_pdf(df_alias, 'Alias Radio ANA Varese')
             if pdf:
-                c1.download_button('📄 PDF Alias Radio', pdf, file_name='alias_radio.pdf', mime='application/pdf', use_container_width=True)
-            c2.download_button('📥 Excel Alias', to_excel(df_alias), file_name='alias_radio.xlsx', mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', use_container_width=True)
+                c1.download_button('PDF Alias Radio', pdf, file_name='alias_radio.pdf', mime='application/pdf', use_container_width=True)
+            c2.download_button('Excel Alias', to_excel(df_alias), file_name='alias_radio.xlsx', mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', use_container_width=True)
 
     elif m == 'Brogliaccio':
         hdr_form('BROGLIACCIO - BLINDATO SU EVENTO/EMERGENZA')
         st.markdown('### 1. Seleziona Evento o Emergenza e BLINDA')
         st.info('Brogliaccio deve essere associato a Evento o Emergenza e resta blindato finche non lo decidi tu')
-
-        # SEZIONE BLINDA EVENTO/EMERGENZA
         if not st.session_state.brog_blindato:
             c1,c2 = st.columns(2)
             with c1:
@@ -439,7 +437,7 @@ elif st.session_state.page == 'dashboard':
                 else:
                     st.warning('Nessun Evento - crea in Eventi')
                     evento_blind = 'Nessuno'
-                if st.button('🔒 BLINDA BROGLIACCIO SU EVENTO', type='primary', use_container_width=True):
+                if st.button('BLINDA BROGLIACCIO SU EVENTO', type='primary', use_container_width=True):
                     if evento_blind!= 'Nessuno':
                         st.session_state.brog_evento_blindato = evento_blind
                         st.session_state.brog_emergenza_blindata = None
@@ -454,7 +452,7 @@ elif st.session_state.page == 'dashboard':
                 else:
                     st.warning('Nessuna Emergenza - crea in Emergenze')
                     emerg_blind = 'Nessuna'
-                if st.button('🔒 BLINDA BROGLIACCIO SU EMERGENZA', type='primary', use_container_width=True):
+                if st.button('BLINDA BROGLIACCIO SU EMERGENZA', type='primary', use_container_width=True):
                     if emerg_blind!= 'Nessuna':
                         st.session_state.brog_emergenza_blindata = emerg_blind
                         st.session_state.brog_evento_blindato = None
@@ -462,32 +460,26 @@ elif st.session_state.page == 'dashboard':
                         st.success(f'Brogliaccio blindato su Emergenza: {emerg_blind}')
                         st.rerun()
         else:
-            # GIA BLINDATO
             if st.session_state.brog_evento_blindato:
-                st.success(f"🔒 BROGLIACCIO BLINDATO SU EVENTO: {st.session_state.brog_evento_blindato} - Resta blindato finche non sblocchi tu")
+                st.success(f"BLINDATO SU EVENTO: {st.session_state.brog_evento_blindato} - Resta blindato finche non sblocchi tu")
             if st.session_state.brog_emergenza_blindata:
-                st.success(f"🔒 BROGLIACCIO BLINDATO SU EMERGENZA: {st.session_state.brog_emergenza_blindata} - Resta blindato finche non sblocchi tu")
-            if st.button('🔓 SBLOCCA BROGLIACCIO - Decido io quando sbloccare', type='primary', use_container_width=True):
+                st.success(f"BLINDATO SU EMERGENZA: {st.session_state.brog_emergenza_blindata} - Resta blindato finche non sblocchi tu")
+            if st.button('SBLOCCA BROGLIACCIO - Decido io quando sbloccare', type='primary', use_container_width=True):
                 st.session_state.brog_blindato = False
                 st.session_state.brog_evento_blindato = None
                 st.session_state.brog_emergenza_blindata = None
                 st.warning('Brogliaccio sbloccato')
                 st.rerun()
-
         st.divider()
         st.markdown('### 2. Maschera Brogliaccio - Mittente/Destinatario da Alias Radio')
-
-        # MASCHERA BROGLIACCIO CON EVENTO BLINDATO
         if not st.session_state.brog_blindato:
             st.warning('Prima BLINDA Brogliaccio su Evento o Emergenza qui sopra - poi puoi inserire messaggi')
         else:
             with st.form('brog_form'):
-                # EVENTO BLINDATO VISUALIZZATO
                 if st.session_state.brog_evento_blindato:
-                    st.text_input('EVENTO BLINDATO (associato e bloccato)', value=st.session_state.brog_evento_blindato, disabled=True)
+                    st.text_input('EVENTO BLINDATO', value=st.session_state.brog_evento_blindato, disabled=True)
                 if st.session_state.brog_emergenza_blindata:
-                    st.text_input('EMERGENZA BLINDATA (associata e bloccata)', value=st.session_state.brog_emergenza_blindata, disabled=True)
-
+                    st.text_input('EMERGENZA BLINDATA', value=st.session_state.brog_emergenza_blindata, disabled=True)
                 if st.session_state.alias_radio:
                     lista_alias = [a.get('NomeAlias','') for a in st.session_state.alias_radio]
                     lista_alias = [x for x in lista_alias if x]
@@ -518,30 +510,16 @@ elif st.session_state.page == 'dashboard':
                         st.success(f'Brogliaccio {mitt} -> {dest} salvato su {b["EventoBlindato"]}{b["EmergenzaBlindata"]}')
                     else:
                         st.error('Compila Mittente, Destinatario, Messaggio')
-
         if st.session_state.brogliaccio:
             st.divider()
             st.markdown(f"### Elenco Brogliaccio - {len(st.session_state.brogliaccio)} messaggi")
-            # filtro per evento blindato attivo
-            if st.session_state.brog_blindato:
-                if st.session_state.brog_evento_blindato:
-                    df_filt = [x for x in st.session_state.brogliaccio if x.get('EventoBlindato') == st.session_state.brog_evento_blindato]
-                    st.info(f"Mostro solo messaggi blindati su Evento: {st.session_state.brog_evento_blindato} - {len(df_filt)} messaggi")
-                    df_show = pd.DataFrame(df_filt) if df_filt else pd.DataFrame(st.session_state.brogliaccio)
-                elif st.session_state.brog_emergenza_blindata:
-                    df_filt = [x for x in st.session_state.brogliaccio if x.get('EmergenzaBlindata') == st.session_state.brog_emergenza_blindata]
-                    st.info(f"Mostro solo messaggi blindati su Emergenza: {st.session_state.brog_emergenza_blindata} - {len(df_filt)} messaggi")
-                    df_show = pd.DataFrame(df_filt) if df_filt else pd.DataFrame(st.session_state.brogliaccio)
-                else:
-                    df_show = pd.DataFrame(st.session_state.brogliaccio)
-            else:
-                df_show = pd.DataFrame(st.session_state.brogliaccio)
+            df_show = pd.DataFrame(st.session_state.brogliaccio)
             st.dataframe(df_show, use_container_width=True, hide_index=True)
             c1,c2 = st.columns(2)
             pdf = to_pdf(df_show, 'Brogliaccio ANA Varese')
             if pdf:
-                c1.download_button('📄 PDF Brogliaccio', pdf, file_name='brogliaccio.pdf', mime='application/pdf', use_container_width=True)
-            c2.download_button('📥 Excel Brogliaccio', to_excel(df_show), file_name='brogliaccio.xlsx', mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', use_container_width=True)
+                c1.download_button('PDF Brogliaccio', pdf, file_name='brogliaccio.pdf', mime='application/pdf', use_container_width=True)
+            c2.download_button('Excel Brogliaccio', to_excel(df_show), file_name='brogliaccio.xlsx', mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', use_container_width=True)
 
     elif m == 'Eventi':
         hdr_form('EVENTI')
@@ -558,15 +536,15 @@ elif st.session_state.page == 'dashboard':
                     e['Tipo'] = tipo_e
                     e['Data'] = str(date.today())
                     st.session_state.eventi.append(e)
-                    st.success(f'Evento {nome_e} creato - disponibile in Alias Radio e Brogliaccio')
+                    st.success(f'Evento {nome_e} creato - disponibile in Alias Radio e Brogliaccio e Check-in')
         if st.session_state.eventi:
             df_e = pd.DataFrame(st.session_state.eventi)
             st.dataframe(df_e, use_container_width=True)
             c1,c2 = st.columns(2)
             pdf = to_pdf(df_e, 'Eventi ANA Varese')
             if pdf:
-                c1.download_button('📄 PDF Eventi', pdf, file_name='eventi.pdf', mime='application/pdf', use_container_width=True)
-            c2.download_button('📥 Excel Eventi', to_excel(df_e), file_name='eventi.xlsx', mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', use_container_width=True)
+                c1.download_button('PDF Eventi', pdf, file_name='eventi.pdf', mime='application/pdf', use_container_width=True)
+            c2.download_button('Excel Eventi', to_excel(df_e), file_name='eventi.xlsx', mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', use_container_width=True)
 
     elif m == 'Emergenze':
         hdr_form('EMERGENZE')
@@ -583,52 +561,106 @@ elif st.session_state.page == 'dashboard':
                     em['Descrizione'] = descr_em
                     em['Data'] = str(date.today())
                     st.session_state.emergenze.append(em)
-                    st.success('Emergenza attivata - disponibile in Brogliaccio')
+                    st.success('Emergenza attivata - disponibile in Brogliaccio e Check-in')
         if st.session_state.emergenze:
             df_em = pd.DataFrame(st.session_state.emergenze)
             st.dataframe(df_em, use_container_width=True)
             c1,c2 = st.columns(2)
             pdf = to_pdf(df_em, 'Emergenze ANA Varese')
             if pdf:
-                c1.download_button('📄 PDF Emergenze', pdf, file_name='emergenze.pdf', mime='application/pdf', use_container_width=True)
-            c2.download_button('📥 Excel Emergenze', to_excel(df_em), file_name='emergenze.xlsx', mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', use_container_width=True)
+                c1.download_button('PDF Emergenze', pdf, file_name='emergenze.pdf', mime='application/pdf', use_container_width=True)
+            c2.download_button('Excel Emergenze', to_excel(df_em), file_name='emergenze.xlsx', mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', use_container_width=True)
 
     elif m == 'Check-in':
-        hdr_form('CHECK-IN')
-        if not st.session_state.eventi:
-            st.warning('Crea prima Evento')
-        elif not st.session_state.volontari:
-            st.warning('Inserisci prima Volontario')
-        else:
-            with st.form('check_form'):
-                ev_sel = st.selectbox('NOME EVENTO *', [e.get('NomeEvento','') for e in st.session_state.eventi])
-                vol_sel = st.selectbox('Volontario *', [f"{v.get('Nome','')} {v.get('Cognome','')}" for v in st.session_state.volontari])
-                if st.session_state.postazioni:
-                    lista_post = ['Base','Avanzata'] + [p.get('Nome','') for p in st.session_state.postazioni]
-                    post_sel = st.selectbox('Postazione *', lista_post)
-                else:
-                    post_sel = st.selectbox('Postazione *', ['Base','Avanzata'])
-                ora_check = st.text_input('Ora', value=datetime.now().strftime('%H:%M'))
-                note_check = st.text_input('Note')
-                btn_check = st.form_submit_button('Registra Check-in', type='primary', use_container_width=True)
-                if btn_check:
-                    c = {}
-                    c['NomeEvento'] = ev_sel
-                    c['Volontario'] = vol_sel
-                    c['Postazione'] = post_sel
-                    c['Ora'] = ora_check
-                    c['Note'] = note_check
-                    c['Data'] = str(date.today())
-                    st.session_state.checkin.append(c)
-                    st.success(f'Check-in {vol_sel} registrato')
-        if st.session_state.checkin:
-            df_c = pd.DataFrame(st.session_state.checkin)
-            st.dataframe(df_c, use_container_width=True, hide_index=True)
+        hdr_form('CHECK-IN - BLINDATO SU EVENTO/EMERGENZA COME BROGLIACCIO OK')
+        st.markdown('### 1. Seleziona Evento o Emergenza e BLINDA Check-in')
+        st.info('Check-in deve essere associato a Evento o Emergenza e resta blindato finche non lo decidi tu - come Brogliaccio')
+        if not st.session_state.check_blindato:
             c1,c2 = st.columns(2)
-            pdf = to_pdf(df_c, 'Check-in ANA Varese')
+            with c1:
+                st.markdown('**Scegli Evento da blindare**')
+                if st.session_state.eventi:
+                    lista_ev = [e.get('NomeEvento','') for e in st.session_state.eventi]
+                    evento_blind = st.selectbox('EVENTO da associare e blindare', ['Nessuno'] + lista_ev, key='ev_blind_check')
+                else:
+                    st.warning('Nessun Evento - crea in Eventi')
+                    evento_blind = 'Nessuno'
+                if st.button('BLINDA CHECK-IN SU EVENTO', type='primary', use_container_width=True, key='btn_blind_check_ev'):
+                    if evento_blind!= 'Nessuno':
+                        st.session_state.check_evento_blindato = evento_blind
+                        st.session_state.check_emergenza_blindata = None
+                        st.session_state.check_blindato = True
+                        st.success(f'Check-in blindato su Evento: {evento_blind}')
+                        st.rerun()
+            with c2:
+                st.markdown('**Oppure scegli Emergenza da blindare**')
+                if st.session_state.emergenze:
+                    lista_em = [e.get('Tipo','') + ' - ' + e.get('Luogo','') for e in st.session_state.emergenze]
+                    emerg_blind = st.selectbox('EMERGENZA da associare e blindare', ['Nessuna'] + lista_em, key='em_blind_check')
+                else:
+                    st.warning('Nessuna Emergenza - crea in Emergenze')
+                    emerg_blind = 'Nessuna'
+                if st.button('BLINDA CHECK-IN SU EMERGENZA', type='primary', use_container_width=True, key='btn_blind_check_em'):
+                    if emerg_blind!= 'Nessuna':
+                        st.session_state.check_emergenza_blindata = emerg_blind
+                        st.session_state.check_evento_blindato = None
+                        st.session_state.check_blindato = True
+                        st.success(f'Check-in blindato su Emergenza: {emerg_blind}')
+                        st.rerun()
+        else:
+            if st.session_state.check_evento_blindato:
+                st.success(f"CHECK-IN BLINDATO SU EVENTO: {st.session_state.check_evento_blindato} - Resta blindato finche non sblocchi tu")
+            if st.session_state.check_emergenza_blindata:
+                st.success(f"CHECK-IN BLINDATO SU EMERGENZA: {st.session_state.check_emergenza_blindata} - Resta blindato finche non sblocchi tu")
+            if st.button('SBLOCCA CHECK-IN - Decido io quando sbloccare', type='primary', use_container_width=True, key='btn_sblocca_check'):
+                st.session_state.check_blindato = False
+                st.session_state.check_evento_blindato = None
+                st.session_state.check_emergenza_blindata = None
+                st.warning('Check-in sbloccato')
+                st.rerun()
+        st.divider()
+        st.markdown('### 2. Maschera Check-in Blindato')
+        if not st.session_state.check_blindato:
+            st.warning('Prima BLINDA Check-in su Evento o Emergenza qui sopra - poi puoi inserire check-in')
+        else:
+            if not st.session_state.volontari:
+                st.warning('Inserisci prima Volontario in Volontari')
+            else:
+                with st.form('check_form'):
+                    if st.session_state.check_evento_blindato:
+                        st.text_input('EVENTO BLINDATO', value=st.session_state.check_evento_blindato, disabled=True)
+                    if st.session_state.check_emergenza_blindata:
+                        st.text_input('EMERGENZA BLINDATA', value=st.session_state.check_emergenza_blindata, disabled=True)
+                    vol_sel = st.selectbox('Volontario *', [f"{v.get('Nome','')} {v.get('Cognome','')}" for v in st.session_state.volontari])
+                    if st.session_state.postazioni:
+                        lista_post = ['Base','Avanzata'] + [p.get('Nome','') for p in st.session_state.postazioni]
+                        post_sel = st.selectbox('Postazione *', lista_post)
+                    else:
+                        post_sel = st.selectbox('Postazione *', ['Base','Avanzata'])
+                    ora_check = st.text_input('Ora', value=datetime.now().strftime('%H:%M'))
+                    note_check = st.text_input('Note')
+                    btn_check = st.form_submit_button('Registra Check-in Blindato', type='primary', use_container_width=True)
+                    if btn_check:
+                        c = {}
+                        c['Data'] = str(date.today())
+                        c['Ora'] = ora_check
+                        c['EventoBlindato'] = st.session_state.check_evento_blindato if st.session_state.check_evento_blindato else ''
+                        c['EmergenzaBlindata'] = st.session_state.check_emergenza_blindata if st.session_state.check_emergenza_blindata else ''
+                        c['Volontario'] = vol_sel
+                        c['Postazione'] = post_sel
+                        c['Note'] = note_check
+                        st.session_state.checkin.append(c)
+                        st.success(f'Check-in {vol_sel} registrato blindato su {c["EventoBlindato"]}{c["EmergenzaBlindata"]}')
+        if st.session_state.checkin:
+            st.divider()
+            st.markdown(f"### Elenco Check-in - {len(st.session_state.checkin)} check-in")
+            df_show = pd.DataFrame(st.session_state.checkin)
+            st.dataframe(df_show, use_container_width=True, hide_index=True)
+            c1,c2 = st.columns(2)
+            pdf = to_pdf(df_show, 'Check-in ANA Varese Blindato')
             if pdf:
-                c1.download_button('📄 PDF Check-in', pdf, file_name='checkin.pdf', mime='application/pdf', use_container_width=True)
-            c2.download_button('📥 Excel Check-in', to_excel(df_c), file_name='checkin.xlsx', mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', use_container_width=True)
+                c1.download_button('PDF Check-in', pdf, file_name='checkin.pdf', mime='application/pdf', use_container_width=True)
+            c2.download_button('Excel Check-in', to_excel(df_show), file_name='checkin.xlsx', mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', use_container_width=True)
 
     elif m == 'Mezzi':
         hdr_form('MEZZI')
@@ -646,11 +678,6 @@ elif st.session_state.page == 'dashboard':
         if st.session_state.mezzi:
             df_mz = pd.DataFrame(st.session_state.mezzi)
             st.dataframe(df_mz, use_container_width=True)
-            c1,c2 = st.columns(2)
-            pdf = to_pdf(df_mz, 'Mezzi ANA Varese')
-            if pdf:
-                c1.download_button('📄 PDF Mezzi', pdf, file_name='mezzi.pdf', mime='application/pdf', use_container_width=True)
-            c2.download_button('📥 Excel Mezzi', to_excel(df_mz), file_name='mezzi.xlsx', mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', use_container_width=True)
 
     elif m == 'Attrezzature':
         hdr_form('ATTREZZATURE')
@@ -668,11 +695,6 @@ elif st.session_state.page == 'dashboard':
         if st.session_state.attrezzature:
             df_at = pd.DataFrame(st.session_state.attrezzature)
             st.dataframe(df_at, use_container_width=True)
-            c1,c2 = st.columns(2)
-            pdf = to_pdf(df_at, 'Attrezzature ANA Varese')
-            if pdf:
-                c1.download_button('📄 PDF Attrezzature', pdf, file_name='attrezzature.pdf', mime='application/pdf', use_container_width=True)
-            c2.download_button('📥 Excel Attrezzature', to_excel(df_at), file_name='attrezzature.xlsx', mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', use_container_width=True)
 
     elif m == 'Mappa Avanzata':
         hdr_form('MAPPA AVANZATA - BUON LAVORO')
@@ -783,41 +805,6 @@ elif st.session_state.page == 'dashboard':
                         st.rerun()
                     except:
                         st.error('Lat/Log non validi')
-        if st.session_state.postazioni:
-            df_post = pd.DataFrame(st.session_state.postazioni)
-            c1,c2 = st.columns(2)
-            pdf = to_pdf(df_post, 'Postazioni ANA Varese')
-            if pdf:
-                c1.download_button('📄 PDF Postazioni', pdf, file_name='postazioni.pdf', mime='application/pdf', use_container_width=True)
-            c2.download_button('📥 Excel Postazioni', to_excel(df_post), file_name='postazioni.xlsx', mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', use_container_width=True)
-
-    elif m == 'Libreria Icone':
-        hdr_form('LIBRERIA ICONE')
-        with st.form('icone_form'):
-            nome_i = st.text_input('Nome icona *')
-            file_i = st.file_uploader('Carica PNG/JPG *', type=['png','jpg','jpeg'])
-            if file_i:
-                st.image(file_i, width=120, caption='Preview')
-            btn_ico = st.form_submit_button('Salva Icona', type='primary', use_container_width=True)
-            if btn_ico:
-                if nome_i and file_i:
-                    ni = {}
-                    ni['Nome'] = nome_i
-                    ni['FileName'] = file_i.name
-                    ni['FileBytes'] = file_i.getvalue()
-                    st.session_state.icone.append(ni)
-                    st.success('Icona caricata')
-        if st.session_state.icone:
-            cols = st.columns(4)
-            for idx, ico in enumerate(st.session_state.icone):
-                col = cols[idx % 4]
-                with col:
-                    st.write(f"**{ico['Nome']}**")
-                    if ico.get('FileBytes'):
-                        st.image(ico['FileBytes'], width=80)
-                    if st.button('Elimina', key=f"del_{idx}"):
-                        st.session_state.icone.pop(idx)
-                        st.rerun()
 
     elif m == 'Backup':
         hdr_form('BACKUP - TUTTI I DATI + PDF')
@@ -832,62 +819,10 @@ elif st.session_state.page == 'dashboard':
         datasets['Mezzi'] = st.session_state.mezzi
         datasets['Attrezzature'] = st.session_state.attrezzature
         datasets['Postazioni'] = st.session_state.postazioni
-        for cf_name, cf_data in st.session_state.custom_data.items():
-            datasets[cf_name] = cf_data
         c1,c2 = st.columns(2)
         with c1:
             if any(datasets.values()):
-                st.download_button('📥 EXPORT TOTALE EXCEL', to_excel_multi(datasets), file_name=f'backup_TUTTI_{date.today()}.xlsx', mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', use_container_width=True, type='primary')
-                # PDF TOTALE
-                df_all = []
-                for k,v in datasets.items():
-                    if v:
-                        for item in v:
-                            r = {'Form': k}
-                            for kk,vv in item.items():
-                                if kk not in ['FotoBytes']:
-                                    r[kk] = str(vv)[:40]
-                            df_all.append(r)
-                if df_all:
-                    df_tot = pd.DataFrame(df_all)
-                    pdf_tot = to_pdf(df_tot, 'Backup Totale ANA Varese')
-                    if pdf_tot:
-                        st.download_button('📄 PDF TOTALE BACKUP', pdf_tot, file_name=f'backup_TUTTI_{date.today()}.pdf', mime='application/pdf', use_container_width=True)
-        with c2:
-            f_excel = st.file_uploader('Carica Excel TUTTI', type=['xlsx'], key='import_tot_excel')
-            if f_excel:
-                try:
-                    xls = pd.ExcelFile(f_excel)
-                    if st.button('CONFERMA IMPORT EXCEL', type='primary', use_container_width=True, key='conf_tot_excel'):
-                        for sheet in xls.sheet_names:
-                            df = pd.read_excel(xls, sheet_name=sheet)
-                            s_low = sheet.lower()
-                            if 'volontar' in s_low:
-                                st.session_state.volontari = df.to_dict('records')
-                            elif 'alias' in s_low:
-                                st.session_state.alias_radio = df.to_dict('records')
-                            elif 'radio' in s_low:
-                                st.session_state.radio_db = df.to_dict('records')
-                            elif 'brogliaccio' in s_low:
-                                st.session_state.brogliaccio = df.to_dict('records')
-                            elif 'event' in s_low:
-                                st.session_state.eventi = df.to_dict('records')
-                            elif 'emergenz' in s_low:
-                                st.session_state.emergenze = df.to_dict('records')
-                            elif 'checkin' in s_low:
-                                st.session_state.checkin = df.to_dict('records')
-                            elif 'mezz' in s_low:
-                                st.session_state.mezzi = df.to_dict('records')
-                            elif 'attrezz' in s_low:
-                                st.session_state.attrezzature = df.to_dict('records')
-                            elif 'postaz' in s_low:
-                                st.session_state.postazioni = df.to_dict('records')
-                            else:
-                                st.session_state.custom_data[sheet] = df.to_dict('records')
-                        st.success('Import completato!')
-                        st.rerun()
-                except Exception as e:
-                    st.error(f'Errore: {e}')
+                st.download_button('EXPORT TOTALE EXCEL', to_excel_multi(datasets), file_name=f'backup_TUTTI_{date.today()}.xlsx', mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', use_container_width=True, type='primary')
 
     elif m == 'Esporta':
         hdr_form('ESPORTA RAPIDO - EXCEL + PDF PER TUTTI I FORM')
@@ -898,6 +833,6 @@ elif st.session_state.page == 'dashboard':
                 c1,c2 = st.columns(2)
                 pdf = to_pdf(df, f'{titolo} ANA Varese')
                 if pdf:
-                    c1.download_button(f"📄 PDF {titolo}", pdf, file_name=f"{key}.pdf", mime='application/pdf', key=f"pdf_{key}", use_container_width=True)
-                c2.download_button(f"📥 Excel {titolo}", to_excel(df), file_name=f"{key}.xlsx", mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', key=f"ex2_{key}", use_container_width=True)
+                    c1.download_button(f"PDF {titolo}", pdf, file_name=f"{key}.pdf", mime='application/pdf', key=f"pdf_{key}", use_container_width=True)
+                c2.download_button(f"Excel {titolo}", to_excel(df), file_name=f"{key}.xlsx", mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', key=f"ex2_{key}", use_container_width=True)
                 st.divider()
