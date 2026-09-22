@@ -9,14 +9,8 @@ import json
 st.set_page_config(page_title='ANA Varese', layout='wide')
 
 VERDE = "#1A5D1A"
-VERDE_BG = "#E8F5E9"
 
-st.markdown(f"""
-<style>
-h1,h2,h3 {{ color: {VERDE}!important; }}
-.stButton>button {{ background:{VERDE}!important; color:white!important; font-weight:bold!important; }}
-</style>
-""", unsafe_allow_html=True)
+st.markdown(f"<style>h1,h2,h3{{color:{VERDE}!important;}}.stButton>button{{background:{VERDE}!important;color:white!important;font-weight:bold!important;}}</style>", unsafe_allow_html=True)
 
 def hdr():
     st.markdown(f'<div style="background:{VERDE};padding:10px;border-radius:8px;color:white;text-align:center;font-weight:bold;">NUCLEO PROT CIVILE ANA VARESE - Squadra Alpini Caronno</div>', unsafe_allow_html=True)
@@ -55,12 +49,7 @@ def genera_pdf(df, titolo):
         if len(data[0]) > 8:
             data = [r[:8] for r in data]
         t = Table(data)
-        t.setStyle(TableStyle([
-            ('BACKGROUND',(0,0),(-1,0), colors.HexColor(VERDE)),
-            ('TEXTCOLOR',(0,0),(-1,0), colors.white),
-            ('GRID',(0,0),(-1,-1),0.5, colors.grey),
-            ('FONTSIZE',(0,0),(-1,-1),7),
-        ]))
+        t.setStyle(TableStyle([('BACKGROUND',(0,0),(-1,0), colors.HexColor(VERDE)),('TEXTCOLOR',(0,0),(-1,0), colors.white),('GRID',(0,0),(-1,-1),0.5, colors.grey),('FONTSIZE',(0,0),(-1,-1),7),]))
         story.append(t)
         doc.build(story)
         return buf.getvalue()
@@ -99,7 +88,6 @@ if st.session_state.page == 'entra':
     if st.button('ENTRA', use_container_width=True, type='primary'):
         st.session_state.page = 'login'
         st.rerun()
-
 elif st.session_state.page == 'login':
     hdr()
     c1,c2,c3 = st.columns([1,2,1])
@@ -113,7 +101,6 @@ elif st.session_state.page == 'login':
                 st.rerun()
             else:
                 st.error('admin / ana2024')
-
 elif st.session_state.page == 'dashboard':
     hdr()
     with st.sidebar:
@@ -123,9 +110,7 @@ elif st.session_state.page == 'dashboard':
         if st.button('Logout', use_container_width=True):
             st.session_state.page = 'entra'
             st.rerun()
-
     m = st.session_state.menu
-
     if m == 'Dashboard':
         st.markdown('## Dashboard - TUTTE LE MASCHERE PRESENTI')
         col1, col2, col3, col4 = st.columns(4)
@@ -138,13 +123,11 @@ elif st.session_state.page == 'dashboard':
         col2b.metric('Mezzi', len(st.session_state.mezzi))
         col3b.metric('Attrezzature', len(st.session_state.attrezzature))
         col4b.metric('Postazioni', len(st.session_state.postazioni))
-
     elif m == 'Volontari (con foto)':
         st.markdown('## VOLONTARI - 5 SOTTOMASCHERE + FOTO')
         tab1, tab2, tab3, tab4, tab5 = st.tabs(['1. Anagrafica','2. Contatti','3. Ruolo','4. Foto','5. Elenco'])
         with tab1:
             with st.form('vol_anag'):
-                st.markdown('### Maschera Anagrafica')
                 c1,c2 = st.columns(2)
                 with c1:
                     nome = st.text_input('Nome *')
@@ -157,95 +140,3 @@ elif st.session_state.page == 'dashboard':
                 if st.form_submit_button('Salva Anagrafica', type='primary', use_container_width=True):
                     if nome and cognome and comune:
                         st.session_state.vol_form_data.update({'Nome': nome, 'Cognome': cognome, 'CF': cf, 'Comune': comune, 'DataNascita': str(data_nasc), 'LuogoNascita': luogo_nasc})
-                        st.success('Anagrafica salvata')
-        with tab2:
-            with st.form('vol_cont'):
-                st.markdown('### Maschera Contatti')
-                c1,c2 = st.columns(2)
-                with c1:
-                    cellulare = st.text_input('Cellulare *')
-                    telefono = st.text_input('Telefono')
-                    email = st.text_input('Email')
-                with c2:
-                    contatto_em = st.text_input('Contatto Emergenza')
-                    tel_em = st.text_input('Tel Emergenza')
-                if st.form_submit_button('Salva Contatti', type='primary', use_container_width=True):
-                    if cellulare:
-                        st.session_state.vol_form_data.update({'Cellulare': cellulare, 'Telefono': telefono, 'Email': email, 'ContattoEm': contatto_em, 'TelEm': tel_em})
-                        st.success('Contatti salvati')
-        with tab3:
-            with st.form('vol_ruolo'):
-                st.markdown('### Maschera Ruolo')
-                c1,c2 = st.columns(2)
-                with c1:
-                    ruolo = st.selectbox('Ruolo *', ['Volontario','Caposquadra','Coordinatore','Autista','Radio','Logistica','Sanitario','Altro'])
-                    squadra = st.selectbox('Squadra', ['Alpini Caronno','Squadra A','Squadra B','Squadra C'])
-                with c2:
-                    specializz = st.multiselect('Specializzazioni', ['AIB','Idrogeologico','Neve','Cinofilo','Motosega','Radio','Sanitario'])
-                    patente = st.multiselect('Patenti', ['B','C','CE','D'])
-                if st.form_submit_button('Salva Ruolo', type='primary', use_container_width=True):
-                    st.session_state.vol_form_data.update({'Ruolo': ruolo, 'Squadra': squadra, 'Specializzazioni': ','.join(specializz), 'Patenti': ','.join(patente)})
-                    st.success('Ruolo salvato')
-        with tab4:
-            st.markdown('### Maschera Foto')
-            c1,c2 = st.columns([1,2])
-            with c1:
-                foto_file = st.file_uploader('Carica Foto *', type=['png','jpg','jpeg'])
-                if foto_file:
-                    st.image(foto_file, width=200, caption='Preview OK')
-            with c2:
-                with st.form('vol_foto'):
-                    scadenza_doc = st.date_input('Scadenza Documento', value=date.today())
-                    if st.form_submit_button('SALVA VOLONTARIO COMPLETO', type='primary', use_container_width=True):
-                        if not st.session_state.vol_form_data.get('Nome'):
-                            st.error('Compila prima Anagrafica, Contatti, Ruolo')
-                        else:
-                            fb = foto_file.getvalue() if foto_file else None
-                            vol = {
-                                'Nome': st.session_state.vol_form_data.get('Nome',''),
-                                'Cognome': st.session_state.vol_form_data.get('Cognome',''),
-                                'Comune': st.session_state.vol_form_data.get('Comune',''),
-                                'Cellulare': st.session_state.vol_form_data.get('Cellulare',''),
-                                'Ruolo': st.session_state.vol_form_data.get('Ruolo',''),
-                                'Squadra': st.session_state.vol_form_data.get('Squadra',''),
-                                'Specializzazioni': st.session_state.vol_form_data.get('Specializzazioni',''),
-                                'FotoBytes': fb,
-                                'ScadenzaDoc': str(scadenza_doc)
-                            }
-                            st.session_state.volontari.append(vol)
-                            st.session_state.vol_form_data = {}
-                            st.success('Volontario salvato!')
-                            st.balloons()
-            if foto_file:
-                st.session_state.vol_form_data['FotoBytes'] = foto_file.getvalue()
-        with tab5:
-            st.markdown('### Maschera Elenco con Foto')
-            if st.session_state.volontari:
-                df = pd.DataFrame([{'Nome': v['Nome'], 'Cognome': v['Cognome'], 'Comune': v['Comune'], 'Ruolo': v['Ruolo'], 'Foto': 'SI' if v.get('FotoBytes') else 'NO'} for v in st.session_state.volontari])
-                st.dataframe(df, use_container_width=True)
-                cols = st.columns(4)
-                for idx, v in enumerate(st.session_state.volontari):
-                    col = cols[idx % 4]
-                    with col:
-                        st.write(f"**{v['Nome']} {v['Cognome']}**")
-                        if v.get('FotoBytes'):
-                            st.image(v['FotoBytes'], width=120)
-                st.download_button('Excel Volontari', to_excel(pd.DataFrame(st.session_state.volontari)), file_name='volontari.xlsx', mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
-
-    elif m == 'DB Radio':
-        st.markdown('## DB Radio - MASCHERA INSERIMENTO')
-        with st.form('radio_form'):
-            st.markdown('### Inserisci Radio')
-            c1,c2 = st.columns(2)
-            with c1:
-                modello = st.text_input('Modello *')
-                matricola = st.text_input('Matricola *')
-                tipo = st.selectbox('Tipo *', ['DMR','PMR446','TETRA','VHF','UHF','CB','Altro'])
-            with c2:
-                frequenza = st.text_input('Frequenza')
-                canale = st.text_input('Canale')
-                stato_r = st.selectbox('Stato', ['Disponibile','In Uso','Manutenzione','Guasta'])
-            note_r = st.text_area('Note Radio')
-            if st.form_submit_button('Salva Radio', type='primary', use_container_width=True):
-                if modello and matricola:
-                    st.session_state.radio_db.append({'Modello': modello, 'Matricola': matricola, 'Tipo': tipo, 'Frequenza': frequenza
