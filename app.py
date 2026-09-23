@@ -78,23 +78,18 @@ PATCH_PATHS = [
 ]
 
 def load_base_2032_df():
-    # CLOUD-SAFE: no /mnt/data
-    return None
+    return None  # cloud-safe
 
 def load_patch_df():
     try:
-        if "patch_df" in st.session_state:
-            df = st.session_state.get("patch_df")
-            if df is not None:
-                return df
+        return st.session_state.get("patch_df")
     except:
-        pass
-    return None
+        return None
 
 def ui_patch_loader_sidebar():
-    # CLOUD-SAFE: solo memoria, no scrittura su /mnt/data
+    # FIX CLOUD-SAFE - no /mnt/data, no nested sidebar expander
     with st.expander("🛠️ BASE 2032 + PATCH CSV", expanded=False):
-        st.caption("CSV con colonne comune,via - solo memoria (cloud-safe)")
+        st.caption("CSV con colonne comune,via - solo memoria")
         up_patch = st.file_uploader("PATCH comune via", type=["csv"], key="up_patch_comune_via_cloud")
         if up_patch:
             try:
@@ -104,16 +99,15 @@ def ui_patch_loader_sidebar():
                     st.session_state.patch_df = df
                     st.success(f"Patch: {len(df)} righe - {df['comune'].nunique() if 'comune' in df.columns else '?'} comuni")
                 else:
-                    st.error("CSV deve avere colonna 'comune'")
+                    st.error("Serve colonna 'comune'")
             except Exception as e:
-                st.error(f"Errore patch: {e}")
+                st.error(f"Errore: {e}")
         try:
-            patch_df = st.session_state.get("patch_df")
+            pdf = st.session_state.get("patch_df")
         except:
-            patch_df = None
-        if patch_df is not None:
-            st.metric("Patch memoria", f"{len(patch_df)} righe")
-            st.dataframe(patch_df.head(20), use_container_width=True)
+            pdf = None
+        if pdf is not None:
+            st.metric("Patch", f"{len(pdf)} righe")
             if st.button("❌ Rimuovi patch", key="btn_remove_patch_cloud"):
                 st.session_state.patch_df = None
                 st.rerun()
@@ -804,7 +798,7 @@ with st.sidebar:
         unsafe_allow_html=True
     )
 
-# DASHBOARD MODIFICATA RICHIESTA 1 e 2 - FIX BOTTONI + FULLSCREEN VERO
+# DASHBOARD MODIFICATA RICHIESTA 1 e 2
 if cur == "Dashboard":
     hdr()
     hdr_form("Dashboard - Solo Menu + Tasti Form - Modifica 1 e 2")
@@ -815,7 +809,7 @@ if cur == "Dashboard":
         background:#fffde7;padding:12px;border-radius:8px;
         border-left:4px solid #FFD700;">
         Clicca su un tasto per andare al form - Tutti i form disponibili -
-        Dashboard con apertura form OK - Fullscreen fixato
+        No rubrica colorata come richiesto - Modifica 1 e 2 completate
         </p>
         """,
         unsafe_allow_html=True
@@ -842,56 +836,46 @@ if cur == "Dashboard":
         ("Backup", "💾 Backup + Visualizza JSON")
     ]
 
-    # TASTO FULLSCREEN VERO - usa components.html con JS che funziona su Streamlit
-    c1, c2 = st.columns([1, 2])
-    with c1:
+    # FULLSCREEN VERO - FIX
+    col_fs1, col_fs2 = st.columns([1,3])
+    with col_fs1:
         if st.button("⛶ SCHERMO INTERO", key="btn_fullscreen_dash", use_container_width=True, type="primary"):
-            st.session_state["do_fullscreen"] = True
-    with c2:
-        st.caption("Clicca per espandere a tutto schermo - ESC per uscire")
+            st.session_state["fs_active"] = True
+    with col_fs2:
+        st.caption("ESC per uscire")
     
-    if st.session_state.get("do_fullscreen"):
+    if st.session_state.get("fs_active"):
         st.components.v1.html(
             """
             <script>
-            (function() {
-                function goFS() {
-                    const el = window.parent.document.documentElement || document.documentElement;
-                    if (!document.fullscreenElement && !window.parent.document.fullscreenElement) {
-                        if (el.requestFullscreen) el.requestFullscreen();
-                        else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();
-                    }
-                }
-                goFS();
-                // Prova anche sul parent
+            (function(){
                 try {
-                    const parentEl = window.parent.document.documentElement;
-                    if (parentEl && !window.parent.document.fullscreenElement) {
-                        parentEl.requestFullscreen().catch(()=>{});
-                    }
-                } catch(e) {}
+                    const docEl = window.parent.document.documentElement;
+                    if (docEl.requestFullscreen) docEl.requestFullscreen();
+                } catch(e){}
+                try {
+                    if (document.documentElement.requestFullscreen) document.documentElement.requestFullscreen();
+                } catch(e){}
             })();
             </script>
-            <div style="font-family:Arial; font-size:12px; color:green; padding:4px; background:#e8f5e9; border-radius:4px; text-align:center;">
-            ⛶ Fullscreen attivato - premi ESC per uscire
+            <div style="background:#1A5D1A;color:white;padding:8px;border-radius:6px;text-align:center;font-family:Arial;">
+            ⛶ Fullscreen attivo - premi ESC
             </div>
             """,
-            height=50
+            height=60
         )
-        if st.button("❌ Esci da Fullscreen", key="btn_exit_fs"):
-            st.components.v1.html(
-                "<script>try{document.exitFullscreen(); window.parent.document.exitFullscreen();}catch(e){}</script>",
-                height=0
-            )
-            st.session_state["do_fullscreen"] = False
+        if st.button("❌ Esci Fullscreen", key="btn_exit_fs"):
+            st.components.v1.html("<script>try{document.exitFullscreen(); parent.document.exitFullscreen();}catch(e){}</script>", height=0)
+            st.session_state["fs_active"] = False
             st.rerun()
 
     st.write("")
+    # BOTTONI DASHBOARD CHE APRONO I FORM - FIX DEFINITIVO
     cols = st.columns(3)
     for i, (menu_name, btn_label) in enumerate(form_buttons):
         col = cols[i % 3]
         with col:
-            if st.button(btn_label, key=f"dash_btn_{i}_{menu_name}", use_container_width=True, help=f"Vai a {menu_name}"):
+            if st.button(btn_label, key=f"dash_btn_{i}_{menu_name}_FIX", use_container_width=True, help=f"Vai a {menu_name}"):
                 st.session_state.menu = menu_name
                 st.rerun()
 
