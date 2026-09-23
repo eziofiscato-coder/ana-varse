@@ -78,78 +78,10 @@ PATCH_PATHS = [
 ]
 
 def load_base_2032_df():
-    for p in BASE_2032_PATHS:
-        if os.path.exists(p):
-            try:
-                df = pd.read_csv(p, dtype=str, keep_default_na=False)
-                df.columns = [c.strip().lower() for c in df.columns]
-                if 'comune' in df.columns:
-                    return df
-            except Exception as e:
-                print(f"Errore lettura base {p}: {e}")
     return None
 
 def load_patch_df():
-    try:
-        if "patch_df" in st.session_state:
-            df = st.session_state.get("patch_df")
-            if df is not None:
-                return df
-    except:
-        pass
-    for p in PATCH_PATHS:
-        if os.path.exists(p):
-            try:
-                df = pd.read_csv(p, dtype=str, keep_default_na=False)
-                df.columns = [c.strip().lower() for c in df.columns]
-                if 'comune' in df.columns:
-                    return df
-            except:
-                pass
     return None
-
-def ui_patch_loader_sidebar():
-    with st.expander("🛠️ BASE 2032 + PATCH CSV", expanded=False):
-        st.caption("CSV con colonne `comune,via` - sovrascrive base")
-        up_base = st.file_uploader("BASE 2032 (opzionale)", type=["csv"], key="up_base_2032")
-        if up_base:
-            try:
-                df = pd.read_csv(up_base, dtype=str, keep_default_na=False)
-                df.to_csv("/mnt/data/base_2032.csv", index=False, encoding='utf-8-sig')
-                st.success(f"Base 2032 caricata: {len(df)} righe")
-                st.cache_data.clear()
-            except Exception as e:
-                st.error(f"Errore base: {e}")
-        up_patch = st.file_uploader("PATCH comune via", type=["csv"], key="up_patch_comune_via")
-        if up_patch:
-            try:
-                df = pd.read_csv(up_patch, dtype=str, keep_default_na=False)
-                df.to_csv("/mnt/data/patch_comune_via.csv", index=False, encoding='utf-8-sig')
-                df.columns = [c.strip().lower() for c in df.columns]
-                st.session_state.patch_df = df
-                st.success(f"Patch: {len(df)} righe - {df['comune'].nunique() if 'comune' in df.columns else '?'} comuni")
-                st.cache_data.clear()
-            except Exception as e:
-                st.error(f"Errore patch: {e}")
-        patch_df = load_patch_df()
-        base_df = load_base_2032_df()
-        c1,c2 = st.columns(2)
-        with c1:
-            st.metric("Base", f"{len(base_df) if base_df is not None else 0} righe")
-        with c2:
-            st.metric("Patch", f"{len(patch_df) if patch_df is not None else 0} righe")
-        if patch_df is not None:
-            st.dataframe(patch_df.head(20), use_container_width=True)
-            if st.button("❌ Rimuovi patch", key="btn_remove_patch"):
-                if os.path.exists("/mnt/data/patch_comune_via.csv"):
-                    os.remove("/mnt/data/patch_comune_via.csv")
-                st.session_state.patch_df = None
-                st.cache_data.clear()
-                st.rerun()
-# ===== BASE 2032 + PATCH - FINE =====
-
-
-
 
 def get_stato_color(stato):
     """
@@ -801,10 +733,7 @@ with st.sidebar:
     st.session_state.menu = cur
 
     # BASE 2032 + PATCH UI integrata
-    try:
-        ui_patch_loader_sidebar()
-    except Exception as e:
-        st.caption(f"Patch loader: {e}")
+    st.caption("PATCH disattivata per debug cloud")
 
 
     st.divider()
