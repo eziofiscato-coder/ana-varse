@@ -758,10 +758,16 @@ with st.sidebar:
         "Backup"
     ]
 
+    # Se arriviamo dalla dashboard, menu_radio è già settato prima del widget - nessun errore
+    # Calcola indice sicuro
+    try:
+        idx = menu_base.index(st.session_state.menu) if st.session_state.menu in menu_base else 0
+    except:
+        idx = 0
     cur = st.radio(
         "Seleziona form",
         menu_base,
-        index=menu_base.index(st.session_state.menu) if st.session_state.menu in menu_base else 0,
+        index=idx,
         key="menu_radio"
     )
     st.session_state.menu = cur
@@ -870,14 +876,24 @@ if cur == "Dashboard":
             st.rerun()
 
     st.write("")
-    # BOTTONI DASHBOARD CHE APRONO I FORM - FIX DEFINITIVO
+    # BOTTONI DASHBOARD CHE APRONO I FORM - FIX DEFINITIVO CON CALLBACK
+    def vai_a_form(form_name):
+        st.session_state.menu = form_name
+        # Forza anche la radio per sicurezza
+        st.session_state["menu_radio"] = form_name
+
     cols = st.columns(3)
     for i, (menu_name, btn_label) in enumerate(form_buttons):
         col = cols[i % 3]
         with col:
-            if st.button(btn_label, key=f"dash_btn_{i}_{menu_name}_FIX", use_container_width=True, help=f"Vai a {menu_name}"):
-                st.session_state.menu = menu_name
-                st.rerun()
+            st.button(
+                btn_label, 
+                key=f"dash_btn_{i}_{menu_name}_FIX_V2", 
+                use_container_width=True, 
+                help=f"Vai a {menu_name}",
+                on_click=vai_a_form,
+                args=(menu_name,)
+            )
 
     st.divider()
 
