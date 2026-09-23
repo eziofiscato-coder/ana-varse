@@ -78,68 +78,44 @@ PATCH_PATHS = [
 ]
 
 def load_base_2032_df():
-    for p in BASE_2032_PATHS:
-        if os.path.exists(p):
-            try:
-                df = pd.read_csv(p, dtype=str, keep_default_na=False)
-                df.columns = [c.strip().lower() for c in df.columns]
-                if 'comune' in df.columns:
-                    return df
-            except Exception as e:
-                print(f"Errore lettura base {p}: {e}")
+    # CLOUD-SAFE: no /mnt/data
     return None
 
 def load_patch_df():
-    if "patch_df" in st.session_state and st.session_state.patch_df is not None:
-        return st.session_state.patch_df
-    for p in PATCH_PATHS:
-        if os.path.exists(p):
-            try:
-                df = pd.read_csv(p, dtype=str, keep_default_na=False)
-                df.columns = [c.strip().lower() for c in df.columns]
-                if 'comune' in df.columns:
-                    return df
-            except:
-                pass
+    try:
+        if "patch_df" in st.session_state:
+            df = st.session_state.get("patch_df")
+            if df is not None:
+                return df
+    except:
+        pass
     return None
 
 def ui_patch_loader_sidebar():
-    with st.sidebar.expander("🛠️ BASE 2032 + PATCH CSV", expanded=False):
-        st.caption("CSV con colonne `comune,via` - sovrascrive base")
-        up_base = st.file_uploader("BASE 2032 (opzionale)", type=["csv"], key="up_base_2032")
-        if up_base:
-            try:
-                df = pd.read_csv(up_base, dtype=str, keep_default_na=False)
-                df.to_csv("/mnt/data/base_2032.csv", index=False, encoding='utf-8-sig')
-                st.success(f"Base 2032 caricata: {len(df)} righe")
-                st.cache_data.clear()
-            except Exception as e:
-                st.error(f"Errore base: {e}")
-        up_patch = st.file_uploader("PATCH comune via", type=["csv"], key="up_patch_comune_via")
+    # CLOUD-SAFE: solo memoria, no scrittura su /mnt/data
+    with st.expander("🛠️ BASE 2032 + PATCH CSV", expanded=False):
+        st.caption("CSV con colonne comune,via - solo memoria (cloud-safe)")
+        up_patch = st.file_uploader("PATCH comune via", type=["csv"], key="up_patch_comune_via_cloud")
         if up_patch:
             try:
                 df = pd.read_csv(up_patch, dtype=str, keep_default_na=False)
-                df.to_csv("/mnt/data/patch_comune_via.csv", index=False, encoding='utf-8-sig')
                 df.columns = [c.strip().lower() for c in df.columns]
-                st.session_state.patch_df = df
-                st.success(f"Patch: {len(df)} righe - {df['comune'].nunique() if 'comune' in df.columns else '?'} comuni")
-                st.cache_data.clear()
+                if 'comune' in df.columns:
+                    st.session_state.patch_df = df
+                    st.success(f"Patch: {len(df)} righe - {df['comune'].nunique() if 'comune' in df.columns else '?'} comuni")
+                else:
+                    st.error("CSV deve avere colonna 'comune'")
             except Exception as e:
                 st.error(f"Errore patch: {e}")
-        patch_df = load_patch_df()
-        base_df = load_base_2032_df()
-        c1,c2 = st.columns(2)
-        with c1:
-            st.metric("Base", f"{len(base_df) if base_df is not None else 0} righe")
-        with c2:
-            st.metric("Patch", f"{len(patch_df) if patch_df is not None else 0} righe")
+        try:
+            patch_df = st.session_state.get("patch_df")
+        except:
+            patch_df = None
         if patch_df is not None:
+            st.metric("Patch memoria", f"{len(patch_df)} righe")
             st.dataframe(patch_df.head(20), use_container_width=True)
-            if st.button("❌ Rimuovi patch", key="btn_remove_patch"):
-                if os.path.exists("/mnt/data/patch_comune_via.csv"):
-                    os.remove("/mnt/data/patch_comune_via.csv")
+            if st.button("❌ Rimuovi patch", key="btn_remove_patch_cloud"):
                 st.session_state.patch_df = None
-                st.cache_data.clear()
                 st.rerun()
 # ===== BASE 2032 + PATCH - FINE =====
 
@@ -634,7 +610,8 @@ def init_session():
         "posizioni_pd785": [],
         "posizioni_anytone": [],
         "vol_edit_index": None,
-        "mappe": []
+        "mappe": [],
+        "patch_df": None
     }
 
     for k, v in defaults.items():
@@ -827,7 +804,7 @@ with st.sidebar:
         unsafe_allow_html=True
     )
 
-# DASHBOARD MODIFICATA RICHIESTA 1 e 2
+# DASHBOARD MODIFICATA RICHIESTA 1 e 2 - FIX BOTTONI + FULLSCREEN VERO
 if cur == "Dashboard":
     hdr()
     hdr_form("Dashboard - Solo Menu + Tasti Form - Modifica 1 e 2")
@@ -838,7 +815,7 @@ if cur == "Dashboard":
         background:#fffde7;padding:12px;border-radius:8px;
         border-left:4px solid #FFD700;">
         Clicca su un tasto per andare al form - Tutti i form disponibili -
-        No rubrica colorata come richiesto - Modifica 1 e 2 completate
+        Dashboard con apertura form OK - Fullscreen fixato
         </p>
         """,
         unsafe_allow_html=True
@@ -865,11 +842,51 @@ if cur == "Dashboard":
         ("Backup", "💾 Backup + Visualizza JSON")
     ]
 
-    # Tasto fullscreen dashboard
-    if st.button("⛶ Espandi a tutto schermo", key="btn_fullscreen_dash"):
-        st.markdown("<script>document.documentElement.requestFullscreen();</script>", unsafe_allow_html=True)
-        st.toast("Fullscreen attivo - ESC per uscire")
+    # TASTO FULLSCREEN VERO - usa components.html con JS che funziona su Streamlit
+    c1, c2 = st.columns([1, 2])
+    with c1:
+        if st.button("⛶ SCHERMO INTERO", key="btn_fullscreen_dash", use_container_width=True, type="primary"):
+            st.session_state["do_fullscreen"] = True
+    with c2:
+        st.caption("Clicca per espandere a tutto schermo - ESC per uscire")
+    
+    if st.session_state.get("do_fullscreen"):
+        st.components.v1.html(
+            """
+            <script>
+            (function() {
+                function goFS() {
+                    const el = window.parent.document.documentElement || document.documentElement;
+                    if (!document.fullscreenElement && !window.parent.document.fullscreenElement) {
+                        if (el.requestFullscreen) el.requestFullscreen();
+                        else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();
+                    }
+                }
+                goFS();
+                // Prova anche sul parent
+                try {
+                    const parentEl = window.parent.document.documentElement;
+                    if (parentEl && !window.parent.document.fullscreenElement) {
+                        parentEl.requestFullscreen().catch(()=>{});
+                    }
+                } catch(e) {}
+            })();
+            </script>
+            <div style="font-family:Arial; font-size:12px; color:green; padding:4px; background:#e8f5e9; border-radius:4px; text-align:center;">
+            ⛶ Fullscreen attivato - premi ESC per uscire
+            </div>
+            """,
+            height=50
+        )
+        if st.button("❌ Esci da Fullscreen", key="btn_exit_fs"):
+            st.components.v1.html(
+                "<script>try{document.exitFullscreen(); window.parent.document.exitFullscreen();}catch(e){}</script>",
+                height=0
+            )
+            st.session_state["do_fullscreen"] = False
+            st.rerun()
 
+    st.write("")
     cols = st.columns(3)
     for i, (menu_name, btn_label) in enumerate(form_buttons):
         col = cols[i % 3]
