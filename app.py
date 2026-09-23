@@ -781,7 +781,6 @@ with st.sidebar:
         "Brogliaccio",
         "Eventi",
         "Emergenze",
-        "Mappe (Emergenze+Eventi)",
         "Check-in",
         "Interventi Emergenza",
         "Tabella Interventi Emergenza",
@@ -851,7 +850,6 @@ if cur == "Dashboard":
         ("Brogliaccio", "📓 Brogliaccio"),
         ("Eventi", "📅 Eventi"),
         ("Emergenze", "🚨 Emergenze"),
-        ("Mappe (Emergenze+Eventi)", "🗺️ Mappe Fusione"),
         ("Check-in", "✅ Check-in"),
         ("Interventi Emergenza", "🚒 Interventi Emergenza"),
         ("Tabella Interventi Emergenza", "📋 Tabella Interventi"),
@@ -953,7 +951,7 @@ if cur == "Dashboard":
         Fusione Emergenze+Eventi in Mappe: SI ottima idea - Ezio
         </h4>
         <p style="margin:8px 0 0 0;font-family:Times New Roman;font-weight:bold;color:black;">
-        Già creato form Mappe (Emergenze+Eventi) con Tipo Emergenza/Evento + mappa unica.
+        Già creato form Mappa Avanzata OLD RIMOSSO con Tipo Emergenza/Evento + mappa unica.
         Unico form georeferenziato, filtri per Tipo, priorità e stato colorato.
         Soluzione ottimale per gestione unificata.
         </p>
@@ -972,7 +970,7 @@ if cur == "Dashboard":
     with c3:
         st.metric("Emergenze", len(st.session_state.emergenze))
     with c4:
-        st.metric("Mappe Fusione", len(st.session_state.mappe))
+        st.metric("Mappa Avanzata", len(st.session_state.mappe))
 
 # VOLONTARI FORM CON SOTTOMASCHERE A LINGUETTE + CAMPO ODV - NUOVA VERSIONE FINALE
 elif cur == "Volontari (con foto)":
@@ -1431,7 +1429,7 @@ elif cur == "Emergenze":
             st.download_button("PDF Logo Estesa", to_pdf(df_em, "EMERGENZE"), "emergenze.pdf", use_container_width=True)
 
 # MAPPE (Emergenze+Eventi) FUSIONE - SI OTTIMA IDEA
-elif cur == "Mappe (Emergenze+Eventi)":
+elif cur == "# RIMOSSO":
     hdr()
     hdr_form("MAPPE - Fusione Emergenze + Eventi - Proposta Ezio - SI OTTIMA IDEA")
 
@@ -1499,7 +1497,7 @@ elif cur == "Mappe (Emergenze+Eventi)":
         desc_mappa = st.text_area("Descrizione", key="mappa_desc")
         note_mappa = st.text_area("Note Coordinate", key="mappa_note")
 
-    if st.button("Salva in Mappe Fusione", type="primary", use_container_width=True):
+    if st.button("Salva in Mappa Avanzata", type="primary", use_container_width=True):
         if nome_mappa:
             st.session_state.mappe.append({
                 "Tipo": tipo_mappa,
@@ -1522,7 +1520,7 @@ elif cur == "Mappe (Emergenze+Eventi)":
 
     if st.session_state.mappe:
         st.divider()
-        st.markdown("**Riepilogo Mappe Fusione con Filtri Tipo**")
+        st.markdown("**Riepilogo Mappa Avanzata con Filtri Tipo**")
         filtro_tipo = st.selectbox("Filtra per Tipo", ["Tutti", "Emergenza", "Evento"], key="filtro_mappa_tipo")
         df_map = pd.DataFrame(st.session_state.mappe)
         if filtro_tipo != "Tutti":
@@ -1542,7 +1540,7 @@ elif cur == "Mappe (Emergenze+Eventi)":
         except:
             st.info("Mappa coordinate non disponibili per visualizzazione")
 
-        st.download_button("Excel Mappe Fusione", to_excel(df_map), "mappe_fusione.xlsx", use_container_width=True)
+        st.download_button("Excel Mappa Avanzata", to_excel(df_map), "mappe_fusione.xlsx", use_container_width=True)
         if REPORTLAB_OK:
             st.download_button("PDF Logo Estesa Tutto Foglio", to_pdf(df_map, "MAPPE FUSIONE EMERGENZE+EVENTI"), "mappe_fusione.pdf", use_container_width=True)
 
@@ -1850,54 +1848,161 @@ elif cur == "Attrezzature":
 # MAPPA AVANZATA
 elif cur == "Mappa Avanzata":
     hdr()
-    hdr_form("MAPPA AVANZATA - Visualizzazione Unificata")
+    hdr_form("MAPPA AVANZATA - Marker da Libreria Icone")
 
-    st.markdown("Mappa avanzata con tutti i punti georeferenziati")
+    st.markdown(
+        """
+        <div style="background:#e3f2fd;padding:12px;border-radius:8px;border-left:4px solid #1976d2;">
+        <b>Mappa cliccabile - Scegli icona dalla libreria - Coordinate in maschera - Google Maps / Waze / Google Earth</b>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
 
-    all_points = []
+    if "mappa_avanzata_markers" not in st.session_state:
+        st.session_state.mappa_avanzata_markers = []
 
-    for m in st.session_state.mappe:
-        try:
-            all_points.append({
-                "lat": float(m.get("Lat", 0)),
-                "lon": float(m.get("Lon", 0)),
-                "tipo": m.get("Tipo", ""),
-                "nome": m.get("Nome", "")
-            })
-        except:
-            pass
+    c_tipo1, c_tipo2 = st.columns([1,2])
+    with c_tipo1:
+        tipo_mappa_ext = st.selectbox("Tipo Mappa Esterna", ["Google Maps", "Waze", "Google Earth"], index=0, key="tipo_mappa_ext")
+    with c_tipo2:
+        st.caption("Scegli dove aprire le coordinate - Marker da libreria icone")
 
-    for em in st.session_state.emergenze:
-        coord = em.get("Coordinate", "")
-        if coord and "," in coord:
-            try:
-                lat_s, lon_s = coord.split(",")
-                all_points.append({
-                    "lat": float(lat_s.strip()),
-                    "lon": float(lon_s.strip()),
-                    "tipo": "Emergenza",
-                    "nome": em.get("Nome", "")
-                })
-            except:
-                pass
+    st.markdown("#### 📍 Aggiungi Marker (icona da Libreria Icone)")
 
-    if all_points:
-        df_points = pd.DataFrame(all_points)
-        st.map(df_points[["lat", "lon"]])
-        st.dataframe(df_points, use_container_width=True)
+    icone_disponibili = st.session_state.get("icone", [])
+    if not icone_disponibili:
+        icone_nomi = ["🚨 Emergenza", "📅 Evento", "🚐 Mezzo", "👤 Volontario", "📻 Radio", "🏥 Ospedale", "🔥 Incendio", "💧 Alluvione"]
     else:
-        st.info("Nessun punto georeferenziato - Inserisci in Mappe Fusione o Emergenze")
+        icone_nomi = [f"{ico.get('Nome','')} ({ico.get('Tipo','')})" for ico in icone_disponibili]
 
-        # Demo Varese
-        demo_map = pd.DataFrame([
-            {"lat": 45.8167, "lon": 8.8333},
-            {"lat": 45.82, "lon": 8.84},
-            {"lat": 45.81, "lon": 8.82}
-        ])
-        st.map(demo_map)
-        st.caption("Demo mappa Varese")
+    c1, c2, c3 = st.columns(3)
+    with c1:
+        marker_nome = st.text_input("Nome Marker *", key="adv_marker_nome", placeholder="Es: Incidente Via Roma")
+        marker_lat = st.text_input("Latitudine *", value="45.8167", key="adv_marker_lat", help="Clicca sulla mappa per coordinate")
+        marker_lon = st.text_input("Longitudine *", value="8.8333", key="adv_marker_lon")
+    with c2:
+        marker_icona = st.selectbox("Icona dalla Libreria", icone_nomi, key="adv_marker_icona")
+        marker_desc = st.text_area("Descrizione", key="adv_marker_desc", height=80)
+    with c3:
+        marker_tipo = st.selectbox("Tipo Marker", ["Emergenza", "Evento", "Mezzo", "Volontario", "Punto Interesse"], key="adv_marker_tipo")
+        marker_data = st.date_input("Data Evento", value=date.today(), format="DD/MM/YYYY", key="adv_marker_data")
+
+    if st.button("➕ Aggiungi Marker alla Mappa", type="primary", use_container_width=True):
+        if marker_nome and marker_lat and marker_lon:
+            try:
+                lat_f = float(str(marker_lat).replace(",", "."))
+                lon_f = float(str(marker_lon).replace(",", "."))
+                nuovo_marker = {
+                    "Nome": marker_nome,
+                    "Lat": lat_f,
+                    "Lon": lon_f,
+                    "Icona": marker_icona,
+                    "Descrizione": marker_desc,
+                    "Tipo": marker_tipo,
+                    "Data": str(marker_data),
+                    "DataIns": datetime.now().strftime("%d/%m/%Y %H:%M")
+                }
+                st.session_state.mappa_avanzata_markers.append(nuovo_marker)
+                st.success(f"Marker {marker_nome} aggiunto con icona {marker_icona}")
+                st.rerun()
+            except Exception as e:
+                st.error(f"Coordinate non valide: {e}")
+        else:
+            st.error("Compila Nome, Lat, Lon")
+
+    st.divider()
+
+    all_markers = st.session_state.get("mappa_avanzata_markers", [])
+
+    if all_markers:
+        st.markdown(f"#### Mappa con {len(all_markers)} Marker")
+        df_map = pd.DataFrame([{"lat": m["Lat"], "lon": m["Lon"]} for m in all_markers])
+        st.map(df_map)
+
+        # Prepara dati per JS senza f-string complessa
+        import json as json_lib
+        markers_for_js = json_lib.dumps([{"lat": m["Lat"], "lon": m["Lon"], "nome": m["Nome"], "icona": m["Icona"], "tipo": m["Tipo"]} for m in all_markers])
+
+        html_code = """
+        <div id="map" style="height:500px; width:100%; border-radius:12px; border:2px solid #1A5D1A;"></div>
+        <p style="font-size:12px; margin-top:8px;"><b>Clicca sulla mappa per coordinate - Le coordinate vanno nella maschera sopra</b></p>
+        <div id="coords" style="background:#fffde7;padding:8px;border-radius:6px;margin-top:8px;font-weight:bold;border-left:4px solid #FFD700;"></div>
+        <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+        <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+        <script>
+        var markersData = MARKERS_JSON_PLACEHOLDER;
+        var map = L.map('map').setView([45.8167, 8.8333], 13);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {attribution: 'ANA Varese'}).addTo(map);
+        markersData.forEach(function(m) {
+            L.marker([m.lat, m.lon]).addTo(map).bindPopup("<b>" + m.nome + "</b><br>" + m.icona + "<br>" + m.tipo);
+        });
+        var clickedMarker = null;
+        map.on('click', function(e) {
+            var lat = e.latlng.lat.toFixed(6);
+            var lon = e.latlng.lng.toFixed(6);
+            if (clickedMarker) map.removeLayer(clickedMarker);
+            clickedMarker = L.marker([lat, lon], {draggable:true}).addTo(map).bindPopup("Lat: " + lat + "<br>Lon: " + lon).openPopup();
+            document.getElementById('coords').innerHTML = "Coordinate cliccate: Lat: " + lat + " - Lon: " + lon + " - Copia nella maschera";
+        });
+        </script>
+        """
+        html_code = html_code.replace("MARKERS_JSON_PLACEHOLDER", markers_for_js)
+        st.components.v1.html(html_code, height=600)
+
+        st.markdown("#### Elenco Marker + Link Mappe Esterne")
+        for idx, m in enumerate(all_markers):
+            c1, c2, c3, c4 = st.columns([2,2,3,1])
+            with c1:
+                st.write(f"**{m['Nome']}**")
+                st.caption(f"{m['Icona']} - {m['Tipo']}")
+            with c2:
+                st.text(f"Lat: {m['Lat']} Lon: {m['Lon']}")
+                st.caption(m.get('Data',''))
+            with c3:
+                lat = m['Lat']
+                lon = m['Lon']
+                gmaps = f"https://www.google.com/maps?q={lat},{lon}"
+                waze = f"https://waze.com/ul?ll={lat},{lon}&navigate=yes"
+                gearth = f"https://earth.google.com/web/@{lat},{lon},500a,1000d"
+                st.markdown(f"[Google Maps]({gmaps}) | [Waze]({waze}) | [Earth]({gearth})")
+                if tipo_mappa_ext == "Google Maps":
+                    st.link_button(f"Apri {tipo_mappa_ext}", gmaps, use_container_width=True)
+                elif tipo_mappa_ext == "Waze":
+                    st.link_button(f"Apri {tipo_mappa_ext}", waze, use_container_width=True)
+                else:
+                    st.link_button(f"Apri {tipo_mappa_ext}", gearth, use_container_width=True)
+            with c4:
+                if st.button("🗑️", key=f"del_marker_{idx}"):
+                    st.session_state.mappa_avanzata_markers.pop(idx)
+                    st.rerun()
+            st.divider()
+    else:
+        st.info("Nessun marker - Aggiungi con icona da libreria - Clicca sulla mappa per coordinate")
+
+        html_demo = """
+        <div id="map" style="height:400px; width:100%; border-radius:12px; border:2px solid #1A5D1A;"></div>
+        <div id="coords" style="background:#fffde7;padding:8px;border-radius:6px;margin-top:8px;font-weight:bold;"></div>
+        <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+        <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+        <script>
+        var map = L.map('map').setView([45.8167, 8.8333], 13);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {attribution: 'ANA Varese'}).addTo(map);
+        var clickedMarker = null;
+        map.on('click', function(e) {
+            var lat = e.latlng.lat.toFixed(6);
+            var lon = e.latlng.lng.toFixed(6);
+            if (clickedMarker) map.removeLayer(clickedMarker);
+            clickedMarker = L.marker([lat, lon]).addTo(map).bindPopup("Lat: " + lat + "<br>Lon: " + lon).openPopup();
+            document.getElementById('coords').innerHTML = "Coordinate: Lat " + lat + " Lon " + lon + " - Copia nella maschera sopra";
+        });
+        </script>
+        """
+        st.components.v1.html(html_demo, height=500)
 
 # LIBRERIA ICONE
+
+
 elif cur == "Libreria Icone":
     hdr()
     hdr_form("LIBRERIA ICONE - Icone Personalizzate")
@@ -2054,7 +2159,7 @@ elif cur == "Backup":
         "Brogliaccio": "brogliaccio",
         "Eventi": "eventi",
         "Emergenze": "emergenze",
-        "Mappe (Emergenze+Eventi)": "mappe",
+        "# RIMOSSO": "mappe",
         "Check-in": "checkin",
         "Interventi Emergenza": "interventi",
         "Mezzi": "mezzi",
