@@ -90,8 +90,13 @@ def load_base_2032_df():
     return None
 
 def load_patch_df():
-    if "patch_df" in st.session_state and st.session_state.patch_df is not None:
-        return st.session_state.patch_df
+    try:
+        if "patch_df" in st.session_state:
+            df = st.session_state.get("patch_df", None)
+            if df is not None:
+                return df
+    except:
+        pass
     for p in PATCH_PATHS:
         if os.path.exists(p):
             try:
@@ -104,7 +109,8 @@ def load_patch_df():
     return None
 
 def ui_patch_loader_sidebar():
-    with st.sidebar.expander("🛠️ BASE 2032 + PATCH CSV", expanded=False):
+    # Chiamato già dentro with st.sidebar, quindi usa expander diretto
+    with st.expander("🛠️ BASE 2032 + PATCH CSV", expanded=False):
         st.caption("CSV con colonne `comune,via` - sovrascrive base")
         up_base = st.file_uploader("BASE 2032 (opzionale)", type=["csv"], key="up_base_2032")
         if up_base:
@@ -634,7 +640,8 @@ def init_session():
         "posizioni_pd785": [],
         "posizioni_anytone": [],
         "vol_edit_index": None,
-        "mappe": []
+        "mappe": [],
+        "patch_df": None
     }
 
     for k, v in defaults.items():
