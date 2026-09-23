@@ -901,6 +901,34 @@ if cur == "Dashboard":
 
     def vai_a_form_callback(form_name):
         st.session_state.menu = form_name
+        st.session_state["menu_radio"] = form_name
+
+    # CSS bottoni verde ANA
+    st.markdown(
+        """
+        <style>
+        /* Bottoni dashboard verde ANA */
+        div[data-testid="column"] .stButton > button {
+            background-color: #1A5D1A !important;
+            color: white !important;
+            border: 2px solid #1A5D1A !important;
+            font-weight: bold !important;
+            font-family: 'Times New Roman', serif !important;
+        }
+        div[data-testid="column"] .stButton > button:hover {
+            background-color: #2e7d32 !important;
+            border-color: #2e7d32 !important;
+            color: white !important;
+        }
+        /* Tasto fullscreen rosso */
+        button[kind="primary"] {
+            background-color: #ff0000 !important;
+            border-color: #ff0000 !important;
+        }
+        </style>
+        """,
+        unsafe_allow_html=True
+    )
 
     cols = st.columns(3)
     for i, (menu_name, btn_label) in enumerate(form_buttons):
