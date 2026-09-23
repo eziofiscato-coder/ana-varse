@@ -31,6 +31,13 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
+# Auto-inietta UI PATCH nella sidebar se disponibile
+try:
+    ui_patch_loader_sidebar()
+except:
+    pass
+
+
 
 COMUNI_ITALIA = [
     "Varese", "Busto Arsizio", "Gallarate", "Saronno", "Cassano Magnago",
@@ -78,44 +85,68 @@ PATCH_PATHS = [
 ]
 
 def load_base_2032_df():
-    # CLOUD-SAFE: no /mnt/data
+    for p in BASE_2032_PATHS:
+        if os.path.exists(p):
+            try:
+                df = pd.read_csv(p, dtype=str, keep_default_na=False)
+                df.columns = [c.strip().lower() for c in df.columns]
+                if 'comune' in df.columns:
+                    return df
+            except Exception as e:
+                print(f"Errore lettura base {p}: {e}")
     return None
 
 def load_patch_df():
-    try:
-        if "patch_df" in st.session_state:
-            df = st.session_state.get("patch_df")
-            if df is not None:
-                return df
-    except:
-        pass
+    if "patch_df" in st.session_state and st.session_state.patch_df is not None:
+        return st.session_state.patch_df
+    for p in PATCH_PATHS:
+        if os.path.exists(p):
+            try:
+                df = pd.read_csv(p, dtype=str, keep_default_na=False)
+                df.columns = [c.strip().lower() for c in df.columns]
+                if 'comune' in df.columns:
+                    return df
+            except:
+                pass
     return None
 
 def ui_patch_loader_sidebar():
-    # CLOUD-SAFE: solo memoria, no scrittura su /mnt/data
     with st.expander("🛠️ BASE 2032 + PATCH CSV", expanded=False):
-        st.caption("CSV con colonne comune,via - solo memoria (cloud-safe)")
-        up_patch = st.file_uploader("PATCH comune via", type=["csv"], key="up_patch_comune_via_cloud")
+        st.caption("CSV con colonne `comune,via` - sovrascrive base")
+        up_base = st.file_uploader("BASE 2032 (opzionale)", type=["csv"], key="up_base_2032")
+        if up_base:
+            try:
+                df = pd.read_csv(up_base, dtype=str, keep_default_na=False)
+                df.to_csv("/mnt/data/base_2032.csv", index=False, encoding='utf-8-sig')
+                st.success(f"Base 2032 caricata: {len(df)} righe")
+                st.cache_data.clear()
+            except Exception as e:
+                st.error(f"Errore base: {e}")
+        up_patch = st.file_uploader("PATCH comune via", type=["csv"], key="up_patch_comune_via")
         if up_patch:
             try:
                 df = pd.read_csv(up_patch, dtype=str, keep_default_na=False)
+                df.to_csv("/mnt/data/patch_comune_via.csv", index=False, encoding='utf-8-sig')
                 df.columns = [c.strip().lower() for c in df.columns]
-                if 'comune' in df.columns:
-                    st.session_state.patch_df = df
-                    st.success(f"Patch: {len(df)} righe - {df['comune'].nunique() if 'comune' in df.columns else '?'} comuni")
-                else:
-                    st.error("CSV deve avere colonna 'comune'")
+                st.session_state.patch_df = df
+                st.success(f"Patch: {len(df)} righe - {df['comune'].nunique() if 'comune' in df.columns else '?'} comuni")
+                st.cache_data.clear()
             except Exception as e:
                 st.error(f"Errore patch: {e}")
-        try:
-            patch_df = st.session_state.get("patch_df")
-        except:
-            patch_df = None
+        patch_df = load_patch_df()
+        base_df = load_base_2032_df()
+        c1,c2 = st.columns(2)
+        with c1:
+            st.metric("Base", f"{len(base_df) if base_df is not None else 0} righe")
+        with c2:
+            st.metric("Patch", f"{len(patch_df) if patch_df is not None else 0} righe")
         if patch_df is not None:
-            st.metric("Patch memoria", f"{len(patch_df)} righe")
             st.dataframe(patch_df.head(20), use_container_width=True)
-            if st.button("❌ Rimuovi patch", key="btn_remove_patch_cloud"):
+            if st.button("❌ Rimuovi patch", key="btn_remove_patch"):
+                if os.path.exists("/mnt/data/patch_comune_via.csv"):
+                    os.remove("/mnt/data/patch_comune_via.csv")
                 st.session_state.patch_df = None
+                st.cache_data.clear()
                 st.rerun()
 # ===== BASE 2032 + PATCH - FINE =====
 
@@ -610,8 +641,7 @@ def init_session():
         "posizioni_pd785": [],
         "posizioni_anytone": [],
         "vol_edit_index": None,
-        "mappe": [],
-        "patch_df": None
+        "mappe": []
     }
 
     for k, v in defaults.items():
@@ -772,13 +802,6 @@ with st.sidebar:
     )
     st.session_state.menu = cur
 
-    # BASE 2032 + PATCH UI integrata
-    try:
-        ui_patch_loader_sidebar()
-    except Exception as e:
-        st.caption(f"Patch loader: {e}")
-
-
     st.divider()
 
     # MODIFICA 6 - LOGOUT RIPRISTINATO
@@ -804,7 +827,7 @@ with st.sidebar:
         unsafe_allow_html=True
     )
 
-# DASHBOARD MODIFICATA RICHIESTA 1 e 2 - FIX BOTTONI + FULLSCREEN VERO
+# DASHBOARD MODIFICATA RICHIESTA 1 e 2
 if cur == "Dashboard":
     hdr()
     hdr_form("Dashboard - Solo Menu + Tasti Form - Modifica 1 e 2")
@@ -815,7 +838,7 @@ if cur == "Dashboard":
         background:#fffde7;padding:12px;border-radius:8px;
         border-left:4px solid #FFD700;">
         Clicca su un tasto per andare al form - Tutti i form disponibili -
-        Dashboard con apertura form OK - Fullscreen fixato
+        No rubrica colorata come richiesto - Modifica 1 e 2 completate
         </p>
         """,
         unsafe_allow_html=True
@@ -842,58 +865,20 @@ if cur == "Dashboard":
         ("Backup", "💾 Backup + Visualizza JSON")
     ]
 
-    # TASTO FULLSCREEN VERO - usa components.html con JS che funziona su Streamlit
-    c1, c2 = st.columns([1, 2])
-    with c1:
-        if st.button("⛶ SCHERMO INTERO", key="btn_fullscreen_dash", use_container_width=True, type="primary"):
-            st.session_state["do_fullscreen"] = True
-    with c2:
-        st.caption("Clicca per espandere a tutto schermo - ESC per uscire")
-    
-    if st.session_state.get("do_fullscreen"):
-        st.components.v1.html(
-            """
-            <script>
-            (function() {
-                function goFS() {
-                    const el = window.parent.document.documentElement || document.documentElement;
-                    if (!document.fullscreenElement && !window.parent.document.fullscreenElement) {
-                        if (el.requestFullscreen) el.requestFullscreen();
-                        else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();
-                    }
-                }
-                goFS();
-                // Prova anche sul parent
-                try {
-                    const parentEl = window.parent.document.documentElement;
-                    if (parentEl && !window.parent.document.fullscreenElement) {
-                        parentEl.requestFullscreen().catch(()=>{});
-                    }
-                } catch(e) {}
-            })();
-            </script>
-            <div style="font-family:Arial; font-size:12px; color:green; padding:4px; background:#e8f5e9; border-radius:4px; text-align:center;">
-            ⛶ Fullscreen attivato - premi ESC per uscire
-            </div>
-            """,
-            height=50
-        )
-        if st.button("❌ Esci da Fullscreen", key="btn_exit_fs"):
-            st.components.v1.html(
-                "<script>try{document.exitFullscreen(); window.parent.document.exitFullscreen();}catch(e){}</script>",
-                height=0
-            )
-            st.session_state["do_fullscreen"] = False
-            st.rerun()
+    def vai_a_form_callback(form_name):
+        st.session_state.menu = form_name
 
-    st.write("")
     cols = st.columns(3)
     for i, (menu_name, btn_label) in enumerate(form_buttons):
         col = cols[i % 3]
         with col:
-            if st.button(btn_label, key=f"dash_btn_{i}_{menu_name}", use_container_width=True, help=f"Vai a {menu_name}"):
-                st.session_state.menu = menu_name
-                st.rerun()
+            st.button(
+                btn_label, 
+                key=f"dash_{menu_name}_ok", 
+                use_container_width=True,
+                on_click=vai_a_form_callback,
+                args=(menu_name,)
+            )
 
     st.divider()
 
@@ -926,30 +911,10 @@ if cur == "Dashboard":
     with c4:
         st.metric("Mappe Fusione", len(st.session_state.mappe))
 
-# VOLONTARI FORM CON SOTTOMASCHERE A LINGUETTE - NUOVA VERSIONE
+# VOLONTARI FORM CON MODIFICA 5
 elif cur == "Volontari (con foto)":
     hdr()
-    hdr_form("VOLONTARI - Sottomaschere a Linguette")
-
-    # === FULLSCREEN BUTTON ===
-    st.markdown("""
-    <script>
-    function toggleFullScreen() {
-      if (!document.fullscreenElement) {
-        document.documentElement.requestFullscreen();
-      } else {
-        if (document.exitFullscreen) { document.exitFullscreen(); }
-      }
-    }
-    </script>
-    """, unsafe_allow_html=True)
-    c_fs1, c_fs2 = st.columns([1,4])
-    with c_fs1:
-        if st.button("⛶ Schermo Intero", key="btn_fullscreen_vol", help="Espande il progetto a tutto schermo"):
-            st.markdown("<script>document.documentElement.requestFullscreen();</script>", unsafe_allow_html=True)
-            st.toast("Premi ESC per uscire dal fullscreen")
-    with c_fs2:
-        st.caption("Form volontario con 6 sottomaschere a linguette - BASE 2032 + PATCH attiva")
+    hdr_form("VOLONTARI - Modifica 5 con Click Cognome per Aggiornamento")
 
     edit_mode = False
     edit_data = {}
@@ -962,204 +927,152 @@ elif cur == "Volontari (con foto)":
             edit_mode = False
 
     if edit_mode:
-        st.warning(f"✏️ Modifica Volontario: {edit_data.get('Nome','')} {edit_data.get('Cognome','')} - Sottomaschere attive")
+        st.warning(
+            f"Modifica Volontario: {edit_data.get('Nome','')} {edit_data.get('Cognome','')} - Modifica 5 attiva"
+        )
 
-    # === SOTTOMASCHERE A LINGUETTE ===
-    tab_anag, tab_cont, tab_ruolo, tab_dot, tab_doc, tab_foto = st.tabs([
-        "📋 Anagrafica", "📞 Contatti", "🛡️ Ruolo/Squadra", "📻 Dotazione", "📄 Documenti", "📸 Foto"
-    ])
+    c1, c2, c3 = st.columns(3)
+    with c1:
+        nome_default = edit_data.get("Nome", "") if edit_mode else ""
+        nome = st.text_input("Nome *", value=nome_default, key="vol_nome")
 
-    # Variabili condivise
-    nome_default = edit_data.get("Nome", "") if edit_mode else ""
-    cognome_default = edit_data.get("Cognome", "") if edit_mode else ""
-    cf_default = edit_data.get("CF", "") if edit_mode else ""
-    data_nasc_default = edit_data.get("DataNascita", "") if edit_mode else ""
-    comune_nasc_default = edit_data.get("ComuneNascita", "Varese") if edit_mode else "Varese"
-    comune_res_default = edit_data.get("Comune", "Varese") if edit_mode else "Varese"
-    via_default = edit_data.get("Via", "") if edit_mode else ""
-    cell_default = edit_data.get("Cellulare", "") if edit_mode else ""
-    email_default = edit_data.get("Email", "") if edit_mode else ""
-    emerg_default = edit_data.get("TelEmergenza", "") if edit_mode else ""
-    ruolo_default = edit_data.get("Ruolo", "Volontario") if edit_mode else "Volontario"
-    squadra_default = edit_data.get("Squadra", "Squadra A") if edit_mode else "Squadra A"
-    data_iscriz_default = edit_data.get("DataIscrizione", "") if edit_mode else ""
-    stato_vol_default = edit_data.get("StatoVolontario", "Attivo") if edit_mode else "Attivo"
-    radio_id_default = edit_data.get("RadioID", "") if edit_mode else ""
-    taglia_default = edit_data.get("Taglia", "L") if edit_mode else "L"
-    note_default = edit_data.get("Note", "") if edit_mode else ""
+        cognome_default = edit_data.get("Cognome", "") if edit_mode else ""
+        cognome = st.text_input("Cognome *", value=cognome_default, key="vol_cognome")
 
-    with tab_anag:
-        st.markdown("#### Sottomaschera 1: Anagrafica")
-        c1, c2, c3 = st.columns(3)
-        with c1:
-            nome = st.text_input("Nome *", value=nome_default, key="vol_nome")
-            cognome = st.text_input("Cognome *", value=cognome_default, key="vol_cognome")
-            cf = st.text_input("Codice Fiscale", value=cf_default, key="vol_cf")
-        with c2:
-            data_nasc = st.text_input("Data Nascita (gg/mm/aaaa)", value=data_nasc_default, key="vol_datanasc")
-            comune_nasc = combo_comune("Comune Nascita", "vol_comune_nasc", comune_nasc_default)
-        with c3:
-            comune_res = combo_comune("Comune Residenza", "vol_comune", comune_res_default)
-            via = combo_vie("Via Residenza", comune_res, "vol_via", via_default)
+        comune_res_default = edit_data.get("Comune", "Varese") if edit_mode else "Varese"
+        comune_res = combo_comune("Comune Residenza", "vol_comune", comune_res_default)
 
-    with tab_cont:
-        st.markdown("#### Sottomaschera 2: Contatti")
-        c1, c2, c3 = st.columns(3)
-        with c1:
-            cellulare = st.text_input("Cellulare *", value=cell_default, key="vol_cell")
-            tel_emerg = st.text_input("Tel. Emergenza", value=emerg_default, key="vol_tel_emerg")
-        with c2:
-            email = st.text_input("Email", value=email_default, key="vol_email")
-            tel_casa = st.text_input("Telefono Casa", value=edit_data.get("TelCasa","") if edit_mode else "", key="vol_telcasa")
-        with c3:
-            st.info("Contatti verificati BASE 2032 + PATCH")
-            st.write(f"Comune: **{comune_res}**")
-            st.write(f"Via: **{via}**")
+    with c2:
+        via_default = edit_data.get("Via", "") if edit_mode else ""
+        via = combo_vie("Via", comune_res, "vol_via", via_default)
 
-    with tab_ruolo:
-        st.markdown("#### Sottomaschera 3: Ruolo / Squadra")
-        c1, c2, c3 = st.columns(3)
-        with c1:
-            ruolo = st.selectbox("Ruolo *", ["Volontario", "Capo Squadra", "Coordinatore", "Autista", "Radio Operatore", "Sanitario", "Logistico"], index=["Volontario", "Capo Squadra", "Coordinatore", "Autista", "Radio Operatore", "Sanitario", "Logistico"].index(ruolo_default) if ruolo_default in ["Volontario", "Capo Squadra", "Coordinatore", "Autista", "Radio Operatore", "Sanitario", "Logistico"] else 0, key="vol_ruolo_new")
-        with c2:
-            squadra = st.selectbox("Squadra *", ["Squadra A", "Squadra B", "Squadra C", "Logistica", "Segreteria", "Squadra Alpini", "PC"], index=["Squadra A", "Squadra B", "Squadra C", "Logistica", "Segreteria", "Squadra Alpini", "PC"].index(squadra_default) if squadra_default in ["Squadra A", "Squadra B", "Squadra C", "Logistica", "Segreteria", "Squadra Alpini", "PC"] else 0, key="vol_squadra_new")
-        with c3:
-            data_iscriz = st.text_input("Data Iscrizione", value=data_iscriz_default, key="vol_dataiscr")
-            stato_vol = st.selectbox("Stato Volontario", ["Attivo", "Inattivo", "In Prova", "Sospeso"], index=["Attivo", "Inattivo", "In Prova", "Sospeso"].index(stato_vol_default) if stato_vol_default in ["Attivo", "Inattivo", "In Prova", "Sospeso"] else 0, key="vol_stato")
+        cell_default = edit_data.get("Cellulare", "") if edit_mode else ""
+        cellulare = st.text_input("Cellulare *", value=cell_default, key="vol_cell")
 
-    with tab_dot:
-        st.markdown("#### Sottomaschera 4: Dotazione Radio / Divisa")
-        c1, c2, c3 = st.columns(3)
-        with c1:
-            radio_id = st.text_input("ID Radio Assegnata", value=radio_id_default, key="vol_radioid")
-            if st.session_state.radio_db:
-                radio_list = [f"{r.get('Matricola','')} - {r.get('Modello','')}" for r in st.session_state.radio_db]
-                st.selectbox("Scegli da DB Radio", ["--"]+radio_list, key="vol_radio_sel")
-        with c2:
-            taglia = st.selectbox("Taglia Divisa", ["XS","S","M","L","XL","XXL","XXXL"], index=["XS","S","M","L","XL","XXL","XXXL"].index(taglia_default) if taglia_default in ["XS","S","M","L","XL","XXL","XXXL"] else 3, key="vol_taglia")
-            scarpe = st.text_input("Numero Scarpe", value=edit_data.get("Scarpe","") if edit_mode else "", key="vol_scarpe")
-        with c3:
-            patente = st.selectbox("Patente", ["B","C","D","BE","CE","Nessuna"], key="vol_patente")
-            abilitazioni = st.multiselect("Abilitazioni", ["Motosega", "Idrovora", "AIB", "Cinofilo", "SAPR Drone", "Radio"], default=edit_data.get("Abilitazioni",[]) if edit_mode else [], key="vol_abil")
+        ruolo_default = edit_data.get("Ruolo", "Volontario") if edit_mode else "Volontario"
+        ruolo = st.selectbox(
+            "Ruolo *",
+            ["Volontario", "Capo Squadra", "Coordinatore", "Autista", "Radio Operatore"],
+            index=0,
+            key="vol_ruolo"
+        )
+        if edit_mode:
+            try:
+                ruolo_idx = ["Volontario", "Capo Squadra", "Coordinatore", "Autista", "Radio Operatore"].index(ruolo_default)
+                ruolo = st.selectbox(
+                    "Ruolo *",
+                    ["Volontario", "Capo Squadra", "Coordinatore", "Autista", "Radio Operatore"],
+                    index=ruolo_idx,
+                    key="vol_ruolo_edit"
+                )
+            except:
+                pass
 
-    with tab_doc:
-        st.markdown("#### Sottomaschera 5: Documenti e Note")
-        c1, c2 = st.columns(2)
-        with c1:
-            note = st.text_area("Note Generali", value=note_default, height=120, key="vol_note")
-            note_med = st.text_area("Note Mediche / Allergie", value=edit_data.get("NoteMediche","") if edit_mode else "", height=80, key="vol_notemed")
-        with c2:
-            st.markdown("**Documenti**")
-            doc_upload = st.file_uploader("Carica Documento (PDF/JPG)", type=["pdf","jpg","png"], key="vol_doc")
-            scadenza_doc = st.text_input("Scadenza Documento", value=edit_data.get("ScadDoc","") if edit_mode else "", key="vol_scaddoc")
-            corso_sic = st.checkbox("Corso Sicurezza OK", value=edit_data.get("CorsoSic", False) if edit_mode else False, key="vol_corsosic")
+    with c3:
+        squadra_default = edit_data.get("Squadra", "Squadra A") if edit_mode else "Squadra A"
+        squadra = st.selectbox(
+            "Squadra *",
+            ["Squadra A", "Squadra B", "Squadra C", "Logistica", "Segreteria"],
+            index=0,
+            key="vol_squadra"
+        )
+        if edit_mode:
+            try:
+                sq_idx = ["Squadra A", "Squadra B", "Squadra C", "Logistica", "Segreteria"].index(squadra_default)
+                squadra = st.selectbox(
+                    "Squadra *",
+                    ["Squadra A", "Squadra B", "Squadra C", "Logistica", "Segreteria"],
+                    index=sq_idx,
+                    key="vol_squadra_edit2"
+                )
+            except:
+                pass
 
-    with tab_foto:
-        st.markdown("#### Sottomaschera 6: Foto Volontario")
-        c1, c2 = st.columns([1,2])
-        with c1:
-            foto_file = st.file_uploader("Carica foto volontario", type=["jpg", "jpeg", "png"], key="vol_foto")
-            foto_preview = None
-            if foto_file:
-                foto_bytes = foto_file.getvalue()
-                st.image(foto_bytes, width=200, caption="Preview foto")
-                foto_preview = foto_bytes
-            elif edit_mode and edit_data.get("FotoBytes"):
-                try:
-                    st.image(edit_data.get("FotoBytes"), width=200, caption="Foto salvata")
-                    foto_preview = edit_data.get("FotoBytes")
-                except:
-                    foto_preview = edit_data.get("FotoBytes")
-        with c2:
-            st.info("Foto usata per badge e PDF volontari - Modifica 3 con logo")
-            if edit_mode:
-                st.write(f"Volontario: **{nome_default} {cognome_default}**")
-                st.write(f"Ultimo agg: {edit_data.get('DataAgg','')}")
+        st.markdown("**Foto (prima maschera preview)**")
+        foto_file = st.file_uploader("Carica foto volontario", type=["jpg", "jpeg", "png"], key="vol_foto")
+
+        foto_preview = None
+        if foto_file:
+            foto_bytes = foto_file.getvalue()
+            st.image(foto_bytes, width=120, caption="Preview foto")
+            foto_preview = foto_bytes
+        elif edit_mode and edit_data.get("FotoBytes"):
+            try:
+                st.image(edit_data.get("FotoBytes"), width=120, caption="Foto esistente")
+                foto_preview = edit_data.get("FotoBytes")
+            except:
+                pass
 
     st.divider()
-    col_btn1, col_btn2, col_btn3, col_btn4 = st.columns([1,1,1,2])
+
+    col_btn1, col_btn2, col_btn3 = st.columns([1, 1, 2])
 
     if edit_mode:
         with col_btn1:
-            if st.button("✅ AGGIORNA VOLONTARIO", type="primary", use_container_width=True, key="btn_agg_vol_new"):
+            if st.button("AGGIORNA VOLONTARIO", type="primary", use_container_width=True):
                 if nome and cognome and cellulare:
                     updated = {
                         "Nome": nome,
                         "Cognome": cognome,
-                        "CF": cf,
-                        "DataNascita": data_nasc,
-                        "ComuneNascita": comune_nasc,
                         "Comune": comune_res,
                         "Via": via,
                         "Cellulare": cellulare,
-                        "TelEmergenza": tel_emerg,
-                        "Email": email,
                         "Ruolo": ruolo,
                         "Squadra": squadra,
-                        "DataIscrizione": data_iscriz,
-                        "StatoVolontario": stato_vol,
-                        "RadioID": radio_id,
-                        "Taglia": taglia,
-                        "Note": note,
-                        "NoteMediche": note_med,
                         "FotoBytes": foto_preview,
                         "DataAgg": datetime.now().strftime("%d/%m/%Y %H:%M")
                     }
                     st.session_state.volontari[st.session_state.vol_edit_index] = updated
                     st.session_state.vol_edit_index = None
-                    st.success("Volontario aggiornato con sottomaschere OK")
+                    st.success("Volontario aggiornato - Modifica 5 OK")
                     st.rerun()
                 else:
-                    st.error("Compila Nome, Cognome, Cellulare *")
+                    st.error("Compila campi obbligatori *")
+
         with col_btn2:
-            if st.button("❌ ANNULLA MODIFICA", use_container_width=True, key="btn_ann_mod_new"):
+            if st.button("ANNULLA MODIFICA", use_container_width=True):
                 st.session_state.vol_edit_index = None
                 st.rerun()
     else:
         with col_btn1:
-            if st.button("💾 SALVA NUOVO VOLONTARIO", type="primary", use_container_width=True, key="btn_save_vol_new"):
+            if st.button("SALVA NUOVO VOLONTARIO", type="primary", use_container_width=True):
                 if nome and cognome and cellulare:
                     nuovo = {
                         "Nome": nome,
                         "Cognome": cognome,
-                        "CF": cf,
-                        "DataNascita": data_nasc,
-                        "ComuneNascita": comune_nasc,
                         "Comune": comune_res,
                         "Via": via,
                         "Cellulare": cellulare,
-                        "TelEmergenza": tel_emerg,
-                        "Email": email,
                         "Ruolo": ruolo,
                         "Squadra": squadra,
-                        "DataIscrizione": data_iscriz,
-                        "StatoVolontario": stato_vol,
-                        "RadioID": radio_id,
-                        "Taglia": taglia,
-                        "Note": note,
-                        "NoteMediche": note_med,
                         "FotoBytes": foto_preview,
                         "DataIns": datetime.now().strftime("%d/%m/%Y %H:%M")
                     }
                     st.session_state.volontari.append(nuovo)
-                    st.success(f"Volontario {nome} {cognome} salvato con sottomaschere")
+                    st.success("Volontario salvato")
                     st.rerun()
                 else:
                     st.error("Compila campi obbligatori *")
 
     # Tabella volontari con click cognome
     st.divider()
-    st.markdown("**Tabella Volontari - Clicca su Cognome per caricare maschera aggiornamento (Modifica 5 + Linguette)**")
+    st.markdown("**Tabella Volontari - Clicca su Cognome per caricare maschera aggiornamento (Modifica 5)**")
 
     if len(st.session_state.volontari) > 0:
+        # Selettore alternativo per modifica
         cognomi_list = [f"{v.get('Cognome','')} {v.get('Nome','')} - {v.get('Comune','')}" for v in st.session_state.volontari]
-        sel_cognome = st.selectbox("Seleziona Cognome per modifica rapida", ["-- Seleziona --"] + cognomi_list, key="sel_cognome_mod")
+        sel_cognome = st.selectbox(
+            "Seleziona Cognome per modifica rapida",
+            ["-- Seleziona --"] + cognomi_list,
+            key="sel_cognome_mod"
+        )
         if sel_cognome != "-- Seleziona --":
             idx_sel = cognomi_list.index(sel_cognome)
             if st.button(f"Carica {sel_cognome} in maschera", key="btn_carica_sel"):
                 st.session_state.vol_edit_index = idx_sel
                 st.rerun()
 
+        # Header tabella
         hc1, hc2, hc3, hc4, hc5, hc6, hc7, hc8 = st.columns([1, 1, 1, 1, 1, 1, 1, 1])
         hc1.markdown("**Nome**")
         hc2.markdown("**Cognome [CLICCA]**")
@@ -1175,6 +1088,7 @@ elif cur == "Volontari (con foto)":
             with cc1:
                 st.write(v.get("Nome", ""))
             with cc2:
+                # MODIFICA 5: bottone con cognome che carica dati in maschera
                 if st.button(v.get("Cognome", ""), key=f"mod_vol_{idx}", use_container_width=True):
                     st.session_state.vol_edit_index = idx
                     st.rerun()
@@ -1206,12 +1120,24 @@ elif cur == "Volontari (con foto)":
         if not df_vol.empty:
             cex1, cex2 = st.columns(2)
             with cex1:
-                st.download_button("Download Excel Volontari", data=to_excel(df_vol), file_name="volontari_ana_varese.xlsx", mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", use_container_width=True)
+                st.download_button(
+                    "Download Excel Volontari",
+                    data=to_excel(df_vol),
+                    file_name="volontari_ana_varese.xlsx",
+                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                    use_container_width=True
+                )
             with cex2:
                 if REPORTLAB_OK:
-                    st.download_button("Download PDF con Logo Tabella Estesa - Modifica 3", data=to_pdf(df_vol, "VOLONTARI"), file_name="volontari_ana_varese.pdf", mime="application/pdf", use_container_width=True)
+                    st.download_button(
+                        "Download PDF con Logo Tabella Estesa - Modifica 3",
+                        data=to_pdf(df_vol, "VOLONTARI"),
+                        file_name="volontari_ana_varese.pdf",
+                        mime="application/pdf",
+                        use_container_width=True
+                    )
     else:
-        st.info("Nessun volontario inserito - Usa sottomaschere sopra")
+        st.info("Nessun volontario inserito - Usa form sopra")
 
 # DB RADIO
 elif cur == "DB Radio":
@@ -1276,7 +1202,7 @@ elif cur == "Consegna Radio":
             sel_radio = st.text_input("Radio manuale", key="cons_radio_man")
 
     with c2:
-        data_cons = st.date_input("Data Consegna", value=date.today(), key="cons_data")
+        data_cons = st.date_input("Data Consegna", value=date.today(), format="DD/MM/YYYY", key="cons_data")
         ora_cons = st.time_input("Ora", value=datetime.now().time(), key="cons_ora")
         motivo = st.text_input("Motivo / Evento", key="cons_motivo")
 
@@ -1336,7 +1262,7 @@ elif cur == "Brogliaccio":
 
     c1, c2 = st.columns(2)
     with c1:
-        data_b = st.date_input("Data", value=date.today(), key="brog_data")
+        data_b = st.date_input("Data", value=date.today(), format="DD/MM/YYYY", key="brog_data")
         ora_b = st.time_input("Ora", value=datetime.now().time(), key="brog_ora")
         operatore = st.text_input("Operatore", key="brog_op")
 
@@ -1377,7 +1303,7 @@ elif cur == "Eventi":
     with c1:
         nome_ev = st.text_input("Nome Evento *", key="ev_nome")
         tipo_ev = st.selectbox("Tipo Evento", ["Esercitazione", "Manifestazione", "Formazione", "Riunione", "Altro"], key="ev_tipo")
-        data_ev = st.date_input("Data Evento", value=date.today(), key="ev_data")
+        data_ev = st.date_input("Data Evento", value=date.today(), format="DD/MM/YYYY", key="ev_data")
 
     with c2:
         comune_ev = combo_comune("Comune Evento", "ev_comune", "Varese")
@@ -1421,7 +1347,7 @@ elif cur == "Emergenze":
     with c1:
         nome_em = st.text_input("Nome Emergenza *", key="em_nome")
         tipo_em = st.selectbox("Tipo Emergenza", ["Alluvione", "Incendio", "Frana", "Neve", "Ricerca Persona", "Altro"], key="em_tipo")
-        data_em = st.date_input("Data Emergenza", value=date.today(), key="em_data")
+        data_em = st.date_input("Data Emergenza", value=date.today(), format="DD/MM/YYYY", key="em_data")
 
     with c2:
         comune_em = combo_comune("Comune Emergenza", "em_comune", "Varese")
@@ -1494,7 +1420,7 @@ elif cur == "Mappe (Emergenze+Eventi)":
     with c1:
         tipo_mappa = st.selectbox("Tipo Mappa *", ["Emergenza", "Evento"], key="mappa_tipo")
         nome_mappa = st.text_input("Nome / Titolo *", key="mappa_nome")
-        data_mappa = st.date_input("Data", value=date.today(), key="mappa_data")
+        data_mappa = st.date_input("Data", value=date.today(), format="DD/MM/YYYY", key="mappa_data")
 
     with c2:
         comune_mappa = combo_comune("Comune", "mappa_comune", "Varese")
@@ -1608,7 +1534,7 @@ elif cur == "Check-in":
             sel_check_ref = st.text_input("Evento/Emergenza", key="check_ref_man")
 
     with c2:
-        data_check = st.date_input("Data Check-in", value=date.today(), key="check_data")
+        data_check = st.date_input("Data Check-in", value=date.today(), format="DD/MM/YYYY", key="check_data")
         ora_check = st.time_input("Ora Check-in", value=datetime.now().time(), key="check_ora")
         stato_check = st.selectbox("Stato", ["Presente", "Assente", "Ritardo"], key="check_stato")
 
@@ -1647,7 +1573,7 @@ elif cur == "Interventi Emergenza":
     with c1:
         tipo_int = st.selectbox("Tipo Intervento", ["Soccorso", "Logistica", "Monitoraggio", "Bonifica", "Altro"], key="int_tipo")
         squadra_int = st.selectbox("Squadra", ["Squadra A", "Squadra B", "Squadra C", "Logistica"], key="int_squadra")
-        data_int = st.date_input("Data Intervento", value=date.today(), key="int_data")
+        data_int = st.date_input("Data Intervento", value=date.today(), format="DD/MM/YYYY", key="int_data")
 
     with c2:
         comune_int = combo_comune("Comune Intervento", "int_comune", "Varese")
@@ -1824,7 +1750,7 @@ elif cur == "Mezzi":
     with c2:
         stato_m = st.selectbox("Stato Mezzo", ["Operativo", "In Manutenzione", "Fuori Servizio"], key="mez_stato")
         km = st.text_input("Km", key="mez_km")
-        scadenza = st.date_input("Scadenza Revisione", value=date.today(), key="mez_scad")
+        scadenza = st.date_input("Scadenza Revisione", value=date.today(), format="DD/MM/YYYY", key="mez_scad")
 
     with c3:
         note_mez = st.text_area("Note Mezzo", key="mez_note")
@@ -2081,12 +2007,11 @@ elif cur == "Geolocalizzazione Hytera + Anytone":
         ])
         st.map(demo_pos)
 
-# BACKUP - NUOVO: Import/Export singolo form + backup totale
+# BACKUP - NUOVO: Import/Export singolo form + backup totale - gg/mm/aaaa
 elif cur == "Backup":
     hdr()
     hdr_form("BACKUP - Import / Export Completo")
 
-    # Definizione form gestiti
     FORM_KEYS = {
         "Volontari (con foto)": "volontari",
         "DB Radio": "radio_db",
@@ -2114,7 +2039,6 @@ elif cur == "Backup":
                     new_item = {}
                     for k, v in item.items():
                         if "Bytes" not in k and "Foto" not in k and "File" not in k:
-                            # evita tipi non serializzabili
                             try:
                                 json.dumps(v)
                                 new_item[k] = v
@@ -2132,89 +2056,37 @@ elif cur == "Backup":
 
     with tab_tot:
         st.markdown("#### Backup Completo di tutti i form")
-        backup_data = {
-            "volontari": st.session_state.volontari,
-            "radio_db": st.session_state.radio_db,
-            "consegna_radio": st.session_state.consegna_radio,
-            "alias_radio": st.session_state.alias_radio,
-            "brogliaccio": st.session_state.brogliaccio,
-            "eventi": st.session_state.eventi,
-            "emergenze": st.session_state.emergenze,
-            "mappe": st.session_state.mappe,
-            "checkin": st.session_state.checkin,
-            "interventi": st.session_state.interventi,
-            "mezzi": st.session_state.mezzi,
-            "attrezzature": st.session_state.attrezzature,
-            "icone": st.session_state.icone,
-            "chat": st.session_state.chat,
-            "posizioni_pd785": st.session_state.posizioni_pd785,
-            "posizioni_anytone": st.session_state.posizioni_anytone,
-            "data_backup": datetime.now().strftime("%d/%m/%Y %H:%M:%S"),
-            "versione": "ANA Varese - Backup Totale v2"
-        }
-        json_clean = {}
-        for k, v in backup_data.items():
-            if isinstance(v, list):
-                json_clean[k] = clean_for_json(v)
-            else:
-                json_clean[k] = v
+        backup_data = {k: st.session_state.get(k, []) for k in FORM_KEYS.values()}
+        backup_data["data_backup"] = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
+        backup_data["versione"] = "ANA Varese - Backup Totale v2 - gg/mm/aaaa"
+        json_clean = {k: clean_for_json(v) if isinstance(v, list) else v for k,v in backup_data.items()}
         json_str = json.dumps(json_clean, indent=2, ensure_ascii=False)
 
         c1, c2, c3 = st.columns(3)
         with c1:
-            st.download_button(
-                "⬇️ JSON Totale",
-                data=json_str.encode("utf-8"),
-                file_name=f"backup_totale_ana_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json",
-                mime="application/json",
-                use_container_width=True,
-                type="primary"
-            )
-            st.caption(f"{sum(len(v) for k,v in json_clean.items() if isinstance(v, list))} record totali")
+            st.download_button("⬇️ JSON Totale", data=json_str.encode("utf-8"), file_name=f"backup_totale_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json", mime="application/json", use_container_width=True, type="primary")
+            st.caption(f"{sum(len(v) for v in json_clean.values() if isinstance(v, list))} record totali")
         with c2:
             try:
                 datasets = {}
                 for label, key in FORM_KEYS.items():
                     data = st.session_state.get(key, [])
                     if data:
-                        # pulisci bytes
-                        clean = []
-                        for row in data:
-                            if isinstance(row, dict):
-                                nr = {kk: vv for kk, vv in row.items() if "Bytes" not in kk and "Foto" not in kk}
-                                clean.append(nr)
+                        clean = [{kk: vv for kk, vv in r.items() if "Bytes" not in kk and "Foto" not in kk} for r in data if isinstance(r, dict)]
                         if clean:
                             datasets[label[:31]] = pd.DataFrame(clean)
                 if datasets:
                     excel_multi_data = to_excel_multi(datasets)
-                    st.download_button(
-                        "⬇️ Excel Multi-Fogli",
-                        data=excel_multi_data,
-                        file_name=f"backup_totale_{datetime.now().strftime('%Y%m%d')}.xlsx",
-                        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                        use_container_width=True
-                    )
+                    st.download_button("⬇️ Excel Multi-Fogli", data=excel_multi_data, file_name=f"backup_totale_{datetime.now().strftime('%Y%m%d')}.xlsx", mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", use_container_width=True)
             except Exception as e:
                 st.error(f"Excel: {e}")
         with c3:
             if REPORTLAB_OK:
                 try:
-                    df_summary = pd.DataFrame([
-                        {"Form": label, "Record": len(st.session_state.get(key, []))}
-                        for label, key in FORM_KEYS.items()
-                    ])
-                    st.download_button(
-                        "⬇️ PDF Riepilogo",
-                        data=to_pdf(df_summary, "BACKUP TOTALE - RIEPILOGO"),
-                        file_name="backup_riepilogo.pdf",
-                        mime="application/pdf",
-                        use_container_width=True
-                    )
+                    df_summary = pd.DataFrame([{"Form": label, "Record": len(st.session_state.get(key, []))} for label, key in FORM_KEYS.items()])
+                    st.download_button("⬇️ PDF Riepilogo", data=to_pdf(df_summary, "BACKUP TOTALE - RIEPILOGO"), file_name="backup_riepilogo.pdf", mime="application/pdf", use_container_width=True)
                 except Exception as e:
                     st.error(f"PDF: {e}")
-
-        st.divider()
-        st.markdown("**Anteprima JSON (primi 4000 caratteri)**")
         st.code(json_str[:4000] + ("... [troncato]" if len(json_str) > 4000 else ""), language="json")
 
     with tab_singolo:
@@ -2223,69 +2095,41 @@ elif cur == "Backup":
         sel_key = FORM_KEYS[sel_label]
         sel_data = st.session_state.get(sel_key, [])
         st.metric(f"Record in {sel_label}", len(sel_data))
-
         if sel_data:
             df_sel = pd.DataFrame([{k:v for k,v in r.items() if "Bytes" not in k} for r in sel_data if isinstance(r, dict)])
             st.dataframe(df_sel.head(20), use_container_width=True)
         else:
-            st.info(f"Nessun dato in {sel_label} - puoi comunque importare")
+            st.info(f"Nessun dato in {sel_label} - puoi importare")
 
         c1, c2 = st.columns(2)
         with c1:
             st.markdown(f"**⬇️ EXPORT {sel_label}**")
-            st.caption("Esporta i dati di questo singolo form")
             if sel_data:
                 try:
                     df_clean = pd.DataFrame([{k:v for k,v in r.items() if "Bytes" not in k and "Foto" not in k} for r in sel_data])
-                    st.download_button(
-                        f"⬇️ Export Excel {sel_label}",
-                        data=to_excel(df_clean),
-                        file_name=f"{sel_key}_{datetime.now().strftime('%Y%m%d')}.xlsx",
-                        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                        use_container_width=True,
-                        key=f"exp_excel_{sel_key}"
-                    )
-                    # CSV export
+                    st.download_button(f"⬇️ Excel {sel_label}", data=to_excel(df_clean), file_name=f"{sel_key}_{datetime.now().strftime('%Y%m%d')}.xlsx", mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", use_container_width=True, key=f"exp_excel_{sel_key}")
                     csv_data = df_clean.to_csv(index=False).encode("utf-8")
-                    st.download_button(
-                        f"⬇️ Export CSV {sel_label}",
-                        data=csv_data,
-                        file_name=f"{sel_key}_{datetime.now().strftime('%Y%m%d')}.csv",
-                        mime="text/csv",
-                        use_container_width=True,
-                        key=f"exp_csv_{sel_key}"
-                    )
+                    st.download_button(f"⬇️ CSV {sel_label}", data=csv_data, file_name=f"{sel_key}_{datetime.now().strftime('%Y%m%d')}.csv", mime="text/csv", use_container_width=True, key=f"exp_csv_{sel_key}")
+                    json_single = json.dumps(clean_for_json(sel_data), indent=2, ensure_ascii=False)
+                    st.download_button(f"⬇️ JSON {sel_label}", data=json_single.encode("utf-8"), file_name=f"{sel_key}_{datetime.now().strftime('%Y%m%d')}.json", mime="application/json", use_container_width=True, key=f"exp_json_{sel_key}")
                 except Exception as e:
-                    st.error(f"Excel/CSV: {e}")
-                # Export singolo JSON
-                json_single = json.dumps(clean_for_json(sel_data), indent=2, ensure_ascii=False)
-                st.download_button(
-                    f"⬇️ Export JSON {sel_label}",
-                    data=json_single.encode("utf-8"),
-                    file_name=f"{sel_key}_{datetime.now().strftime('%Y%m%d')}.json",
-                    mime="application/json",
-                    use_container_width=True,
-                    key=f"exp_json_{sel_key}"
-                )
+                    st.error(f"Export: {e}")
             else:
-                st.warning("Niente da esportare - form vuoto")
+                st.warning("Niente da esportare")
 
         with c2:
             st.markdown(f"**📥 IMPORT in {sel_label}**")
-            st.caption("Importa dati in questo singolo form")
-            up_mode = st.radio("Modalità import", ["Aggiungi (merge)", "Sostituisci tutto"], key="up_mode_single", horizontal=True)
-            up_file = st.file_uploader(f"Carica file per {sel_label}", type=["json", "xlsx", "csv"], key="up_single_form")
+            up_mode = st.radio("Modalità", ["Aggiungi (merge)", "Sostituisci tutto"], key="up_mode_single", horizontal=True)
+            up_file = st.file_uploader(f"Carica per {sel_label}", type=["json", "xlsx", "csv"], key="up_single_form")
             if up_file:
                 try:
                     imported = []
                     if up_file.name.endswith(".json"):
                         raw = json.loads(up_file.read().decode("utf-8"))
                         if isinstance(raw, dict):
-                            # se ha chiavi form, cerca sel_key
                             if sel_key in raw and isinstance(raw[sel_key], list):
                                 imported = raw[sel_key]
                             else:
-                                # cerca prima lista
                                 for v in raw.values():
                                     if isinstance(v, list) and len(v)>0 and isinstance(v[0], dict):
                                         imported = v
@@ -2298,35 +2142,30 @@ elif cur == "Backup":
                     elif up_file.name.endswith(".csv"):
                         df_imp = pd.read_csv(up_file)
                         imported = df_imp.to_dict(orient="records")
-
-                    st.success(f"Trovati {len(imported)} record da importare")
+                    st.success(f"Trovati {len(imported)} record")
                     st.dataframe(pd.DataFrame(imported).head(10), use_container_width=True)
-
                     if st.button(f"✅ Conferma import in {sel_label}", key="btn_confirm_single_import", type="primary"):
                         if up_mode == "Sostituisci tutto":
                             st.session_state[sel_key] = imported
                         else:
                             st.session_state[sel_key] = st.session_state.get(sel_key, []) + imported
-                        st.success(f"Importato! Ora {sel_label}: {len(st.session_state[sel_key])} record")
+                        st.success(f"Importato! Ora {len(st.session_state[sel_key])} record")
                         st.rerun()
                 except Exception as e:
                     st.error(f"Errore import: {e}")
 
     with tab_import:
         st.markdown("#### Importa Backup Totale")
-        st.info("Carica un JSON di backup totale esportato prima. Puoi scegliere se aggiungere o sovrascrivere.")
         up_total = st.file_uploader("Backup Totale JSON", type=["json"], key="up_total_backup")
         if up_total:
             try:
                 data_total = json.loads(up_total.read().decode("utf-8"))
-                st.write(f"Backup del: {data_total.get('data_backup','?')} - Versione: {data_total.get('versione','?')}")
+                st.write(f"Backup del: {data_total.get('data_backup','?')}")
                 cols = st.columns(4)
                 for i, (label, key) in enumerate(FORM_KEYS.items()):
                     if key in data_total:
                         cols[i % 4].metric(label, f"{len(data_total.get(key, []))} rec")
-
-                mode_total = st.radio("Modalità", ["Aggiungi ai dati esistenti (merge)", "Sostituisci tutto (reset)"], key="mode_total")
-
+                mode_total = st.radio("Modalità", ["Aggiungi (merge)", "Sostituisci tutto"], key="mode_total")
                 if st.button("✅ CONFERMA IMPORT TOTALE", type="primary", use_container_width=True):
                     for label, key in FORM_KEYS.items():
                         if key in data_total and isinstance(data_total[key], list):
@@ -2334,37 +2173,33 @@ elif cur == "Backup":
                                 st.session_state[key] = data_total[key]
                             else:
                                 st.session_state[key] = st.session_state.get(key, []) + data_total[key]
-                    st.success("Backup totale importato con successo!")
+                    st.success("Backup totale importato!")
                     st.rerun()
             except Exception as e:
-                st.error(f"Errore lettura backup: {e}")
-
+                st.error(f"Errore: {e}")
         st.divider()
-        st.markdown("#### Azzera Dati")
-        with st.expander("⚠️ Zona pericolosa - Azzera form"):
-            sel_zero = st.selectbox("Form da azzerare", ["-- seleziona --"] + list(FORM_KEYS.keys()), key="zero_sel")
-            if sel_zero != "-- seleziona --":
-                if st.button(f"🗑️ Azzera {sel_zero}", key="btn_zero_form"):
-                    k = FORM_KEYS[sel_zero]
-                    st.session_state[k] = []
-                    st.success(f"{sel_zero} azzerato")
+        with st.expander("⚠️ Azzera dati"):
+            sel_zero = st.selectbox("Form da azzerare", ["--"] + list(FORM_KEYS.keys()), key="zero_sel")
+            if sel_zero != "--":
+                if st.button(f"🗑️ Azzera {sel_zero}"):
+                    st.session_state[FORM_KEYS[sel_zero]] = []
+                    st.success("Azzerato")
                     st.rerun()
-            if st.button("🗑️ AZZERA TUTTO (tutti i form)", key="btn_zero_all"):
+            if st.button("🗑️ AZZERA TUTTO"):
                 for k in FORM_KEYS.values():
                     st.session_state[k] = []
-                st.success("Tutti i form azzerati")
+                st.success("Tutto azzerato")
                 st.rerun()
 
-# Footer comune
+# Footer
 st.divider()
 st.markdown(
     """
     <div style="text-align:center;padding:12px;
     background:linear-gradient(135deg,#1A5D1A,#2e7d32);
     border-radius:8px;color:white;font-size:12px;">
-    ANA Varese Protezione Civile - Gestionale 950+ Modifiche 6 Richieste Finali<br>
-    Dashboard con bottoni on_click | PDF logo + tabella estesa | Stato colorato | Click cognome modifica | Login/Logout | Fusione Mappe SI | Backup Import/Export singolo + totale<br>
-    Sviluppato per Ezio - Radio Hytera PD785 + Anytone 878
+    ANA Varese - Dashboard bottoni OK | Date gg/mm/aaaa | Backup Import/Export singolo + totale<br>
+    Sviluppato per Ezio
     </div>
     """,
     unsafe_allow_html=True
