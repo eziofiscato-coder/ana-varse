@@ -78,18 +78,23 @@ PATCH_PATHS = [
 ]
 
 def load_base_2032_df():
-    return None  # cloud-safe
+    # CLOUD-SAFE: no /mnt/data
+    return None
 
 def load_patch_df():
     try:
-        return st.session_state.get("patch_df")
+        if "patch_df" in st.session_state:
+            df = st.session_state.get("patch_df")
+            if df is not None:
+                return df
     except:
-        return None
+        pass
+    return None
 
 def ui_patch_loader_sidebar():
-    # FIX CLOUD-SAFE - no /mnt/data, no nested sidebar expander
+    # CLOUD-SAFE: solo memoria, no scrittura su /mnt/data
     with st.expander("🛠️ BASE 2032 + PATCH CSV", expanded=False):
-        st.caption("CSV con colonne comune,via - solo memoria")
+        st.caption("CSV con colonne comune,via - solo memoria (cloud-safe)")
         up_patch = st.file_uploader("PATCH comune via", type=["csv"], key="up_patch_comune_via_cloud")
         if up_patch:
             try:
@@ -99,15 +104,16 @@ def ui_patch_loader_sidebar():
                     st.session_state.patch_df = df
                     st.success(f"Patch: {len(df)} righe - {df['comune'].nunique() if 'comune' in df.columns else '?'} comuni")
                 else:
-                    st.error("Serve colonna 'comune'")
+                    st.error("CSV deve avere colonna 'comune'")
             except Exception as e:
-                st.error(f"Errore: {e}")
+                st.error(f"Errore patch: {e}")
         try:
-            pdf = st.session_state.get("patch_df")
+            patch_df = st.session_state.get("patch_df")
         except:
-            pdf = None
-        if pdf is not None:
-            st.metric("Patch", f"{len(pdf)} righe")
+            patch_df = None
+        if patch_df is not None:
+            st.metric("Patch memoria", f"{len(patch_df)} righe")
+            st.dataframe(patch_df.head(20), use_container_width=True)
             if st.button("❌ Rimuovi patch", key="btn_remove_patch_cloud"):
                 st.session_state.patch_df = None
                 st.rerun()
@@ -758,16 +764,10 @@ with st.sidebar:
         "Backup"
     ]
 
-    # Se arriviamo dalla dashboard, menu_radio è già settato prima del widget - nessun errore
-    # Calcola indice sicuro
-    try:
-        idx = menu_base.index(st.session_state.menu) if st.session_state.menu in menu_base else 0
-    except:
-        idx = 0
     cur = st.radio(
         "Seleziona form",
         menu_base,
-        index=idx,
+        index=menu_base.index(st.session_state.menu) if st.session_state.menu in menu_base else 0,
         key="menu_radio"
     )
     st.session_state.menu = cur
@@ -804,7 +804,7 @@ with st.sidebar:
         unsafe_allow_html=True
     )
 
-# DASHBOARD MODIFICATA RICHIESTA 1 e 2
+# DASHBOARD MODIFICATA RICHIESTA 1 e 2 - FIX BOTTONI + FULLSCREEN VERO
 if cur == "Dashboard":
     hdr()
     hdr_form("Dashboard - Solo Menu + Tasti Form - Modifica 1 e 2")
@@ -815,7 +815,7 @@ if cur == "Dashboard":
         background:#fffde7;padding:12px;border-radius:8px;
         border-left:4px solid #FFD700;">
         Clicca su un tasto per andare al form - Tutti i form disponibili -
-        No rubrica colorata come richiesto - Modifica 1 e 2 completate
+        Dashboard con apertura form OK - Fullscreen fixato
         </p>
         """,
         unsafe_allow_html=True
@@ -842,58 +842,58 @@ if cur == "Dashboard":
         ("Backup", "💾 Backup + Visualizza JSON")
     ]
 
-    # FULLSCREEN VERO - FIX
-    col_fs1, col_fs2 = st.columns([1,3])
-    with col_fs1:
+    # TASTO FULLSCREEN VERO - usa components.html con JS che funziona su Streamlit
+    c1, c2 = st.columns([1, 2])
+    with c1:
         if st.button("⛶ SCHERMO INTERO", key="btn_fullscreen_dash", use_container_width=True, type="primary"):
-            st.session_state["fs_active"] = True
-    with col_fs2:
-        st.caption("ESC per uscire")
+            st.session_state["do_fullscreen"] = True
+    with c2:
+        st.caption("Clicca per espandere a tutto schermo - ESC per uscire")
     
-    if st.session_state.get("fs_active"):
+    if st.session_state.get("do_fullscreen"):
         st.components.v1.html(
             """
             <script>
-            (function(){
+            (function() {
+                function goFS() {
+                    const el = window.parent.document.documentElement || document.documentElement;
+                    if (!document.fullscreenElement && !window.parent.document.fullscreenElement) {
+                        if (el.requestFullscreen) el.requestFullscreen();
+                        else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();
+                    }
+                }
+                goFS();
+                // Prova anche sul parent
                 try {
-                    const docEl = window.parent.document.documentElement;
-                    if (docEl.requestFullscreen) docEl.requestFullscreen();
-                } catch(e){}
-                try {
-                    if (document.documentElement.requestFullscreen) document.documentElement.requestFullscreen();
-                } catch(e){}
+                    const parentEl = window.parent.document.documentElement;
+                    if (parentEl && !window.parent.document.fullscreenElement) {
+                        parentEl.requestFullscreen().catch(()=>{});
+                    }
+                } catch(e) {}
             })();
             </script>
-            <div style="background:#1A5D1A;color:white;padding:8px;border-radius:6px;text-align:center;font-family:Arial;">
-            ⛶ Fullscreen attivo - premi ESC
+            <div style="font-family:Arial; font-size:12px; color:green; padding:4px; background:#e8f5e9; border-radius:4px; text-align:center;">
+            ⛶ Fullscreen attivato - premi ESC per uscire
             </div>
             """,
-            height=60
+            height=50
         )
-        if st.button("❌ Esci Fullscreen", key="btn_exit_fs"):
-            st.components.v1.html("<script>try{document.exitFullscreen(); parent.document.exitFullscreen();}catch(e){}</script>", height=0)
-            st.session_state["fs_active"] = False
+        if st.button("❌ Esci da Fullscreen", key="btn_exit_fs"):
+            st.components.v1.html(
+                "<script>try{document.exitFullscreen(); window.parent.document.exitFullscreen();}catch(e){}</script>",
+                height=0
+            )
+            st.session_state["do_fullscreen"] = False
             st.rerun()
 
     st.write("")
-    # BOTTONI DASHBOARD CHE APRONO I FORM - FIX DEFINITIVO CON CALLBACK
-    def vai_a_form(form_name):
-        st.session_state.menu = form_name
-        # Forza anche la radio per sicurezza
-        st.session_state["menu_radio"] = form_name
-
     cols = st.columns(3)
     for i, (menu_name, btn_label) in enumerate(form_buttons):
         col = cols[i % 3]
         with col:
-            st.button(
-                btn_label, 
-                key=f"dash_btn_{i}_{menu_name}_FIX_V2", 
-                use_container_width=True, 
-                help=f"Vai a {menu_name}",
-                on_click=vai_a_form,
-                args=(menu_name,)
-            )
+            if st.button(btn_label, key=f"dash_btn_{i}_{menu_name}", use_container_width=True, help=f"Vai a {menu_name}"):
+                st.session_state.menu = menu_name
+                st.rerun()
 
     st.divider()
 
@@ -2081,35 +2081,31 @@ elif cur == "Geolocalizzazione Hytera + Anytone":
         ])
         st.map(demo_pos)
 
-# BACKUP
+# BACKUP - NUOVO: Import/Export singolo form + backup totale
 elif cur == "Backup":
     hdr()
-    hdr_form("BACKUP - Visualizza JSON + Esporta")
+    hdr_form("BACKUP - Import / Export Completo")
 
-    st.markdown("Backup completo dati gestionali")
-
-    backup_data = {
-        "volontari": st.session_state.volontari,
-        "radio_db": st.session_state.radio_db,
-        "consegna_radio": st.session_state.consegna_radio,
-        "alias_radio": st.session_state.alias_radio,
-        "brogliaccio": st.session_state.brogliaccio,
-        "eventi": st.session_state.eventi,
-        "emergenze": st.session_state.emergenze,
-        "mappe": st.session_state.mappe,
-        "checkin": st.session_state.checkin,
-        "interventi": st.session_state.interventi,
-        "mezzi": st.session_state.mezzi,
-        "attrezzature": st.session_state.attrezzature,
-        "icone": st.session_state.icone,
-        "chat": st.session_state.chat,
-        "posizioni_pd785": st.session_state.posizioni_pd785,
-        "posizioni_anytone": st.session_state.posizioni_anytone,
-        "data_backup": datetime.now().strftime("%d/%m/%Y %H:%M:%S"),
-        "versione": "950+ MODIFICHE 6 RICHIESTE FINALE - Fusione Mappe SI"
+    # Definizione form gestiti
+    FORM_KEYS = {
+        "Volontari (con foto)": "volontari",
+        "DB Radio": "radio_db",
+        "Consegna Radio": "consegna_radio",
+        "Alias Radio": "alias_radio",
+        "Brogliaccio": "brogliaccio",
+        "Eventi": "eventi",
+        "Emergenze": "emergenze",
+        "Mappe (Emergenze+Eventi)": "mappe",
+        "Check-in": "checkin",
+        "Interventi Emergenza": "interventi",
+        "Mezzi": "mezzi",
+        "Attrezzature": "attrezzature",
+        "Libreria Icone": "icone",
+        "Chat": "chat",
+        "Posizioni PD785": "posizioni_pd785",
+        "Posizioni Anytone": "posizioni_anytone"
     }
 
-    # Rimuove bytes per JSON
     def clean_for_json(obj):
         if isinstance(obj, list):
             cleaned = []
@@ -2117,8 +2113,13 @@ elif cur == "Backup":
                 if isinstance(item, dict):
                     new_item = {}
                     for k, v in item.items():
-                        if "Bytes" not in k and "Foto" not in k:
-                            new_item[k] = v
+                        if "Bytes" not in k and "Foto" not in k and "File" not in k:
+                            # evita tipi non serializzabili
+                            try:
+                                json.dumps(v)
+                                new_item[k] = v
+                            except:
+                                new_item[k] = str(v)
                         else:
                             new_item[k] = "BINARIO_OMESSO_PER_JSON"
                     cleaned.append(new_item)
@@ -2127,96 +2128,215 @@ elif cur == "Backup":
             return cleaned
         return obj
 
-    json_clean = {}
-    for k, v in backup_data.items():
-        if isinstance(v, list):
-            json_clean[k] = clean_for_json(v)
-        else:
-            json_clean[k] = v
+    tab_tot, tab_singolo, tab_import = st.tabs(["💾 Backup Totale", "📄 Singolo Form", "📥 Importa Backup"])
 
-    json_str = json.dumps(json_clean, indent=2, ensure_ascii=False)
+    with tab_tot:
+        st.markdown("#### Backup Completo di tutti i form")
+        backup_data = {
+            "volontari": st.session_state.volontari,
+            "radio_db": st.session_state.radio_db,
+            "consegna_radio": st.session_state.consegna_radio,
+            "alias_radio": st.session_state.alias_radio,
+            "brogliaccio": st.session_state.brogliaccio,
+            "eventi": st.session_state.eventi,
+            "emergenze": st.session_state.emergenze,
+            "mappe": st.session_state.mappe,
+            "checkin": st.session_state.checkin,
+            "interventi": st.session_state.interventi,
+            "mezzi": st.session_state.mezzi,
+            "attrezzature": st.session_state.attrezzature,
+            "icone": st.session_state.icone,
+            "chat": st.session_state.chat,
+            "posizioni_pd785": st.session_state.posizioni_pd785,
+            "posizioni_anytone": st.session_state.posizioni_anytone,
+            "data_backup": datetime.now().strftime("%d/%m/%Y %H:%M:%S"),
+            "versione": "ANA Varese - Backup Totale v2"
+        }
+        json_clean = {}
+        for k, v in backup_data.items():
+            if isinstance(v, list):
+                json_clean[k] = clean_for_json(v)
+            else:
+                json_clean[k] = v
+        json_str = json.dumps(json_clean, indent=2, ensure_ascii=False)
 
-    st.markdown("**Visualizza JSON Backup**")
-    st.code(json_str[:5000] + ("... [troncato]" if len(json_str) > 5000 else ""), language="json")
-
-    st.divider()
-
-    c1, c2, c3 = st.columns(3)
-    with c1:
-        st.download_button(
-            "Download JSON Completo",
-            data=json_str.encode("utf-8"),
-            file_name=f"backup_ana_varese_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json",
-            mime="application/json",
-            use_container_width=True
-        )
-
-    with c2:
-        # Excel multi
-        try:
-            datasets = {}
-            if st.session_state.volontari:
-                datasets["Volontari"] = pd.DataFrame(st.session_state.volontari)
-            if st.session_state.radio_db:
-                datasets["RadioDB"] = pd.DataFrame(st.session_state.radio_db)
-            if st.session_state.emergenze:
-                datasets["Emergenze"] = pd.DataFrame(st.session_state.emergenze)
-            if st.session_state.eventi:
-                datasets["Eventi"] = pd.DataFrame(st.session_state.eventi)
-            if st.session_state.mappe:
-                datasets["MappeFusione"] = pd.DataFrame(st.session_state.mappe)
-            if st.session_state.interventi:
-                datasets["Interventi"] = pd.DataFrame(st.session_state.interventi)
-
-            if datasets:
-                excel_multi_data = to_excel_multi(datasets)
-                st.download_button(
-                    "Download Excel Multi Fogli",
-                    data=excel_multi_data,
-                    file_name="backup_multi_ana_varese.xlsx",
-                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                    use_container_width=True
-                )
-        except:
-            pass
-
-    with c3:
-        if REPORTLAB_OK:
+        c1, c2, c3 = st.columns(3)
+        with c1:
+            st.download_button(
+                "⬇️ JSON Totale",
+                data=json_str.encode("utf-8"),
+                file_name=f"backup_totale_ana_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json",
+                mime="application/json",
+                use_container_width=True,
+                type="primary"
+            )
+            st.caption(f"{sum(len(v) for k,v in json_clean.items() if isinstance(v, list))} record totali")
+        with c2:
             try:
-                df_summary = pd.DataFrame([
-                    {"Form": "Volontari", "Record": len(st.session_state.volontari)},
-                    {"Form": "Radio DB", "Record": len(st.session_state.radio_db)},
-                    {"Form": "Consegne", "Record": len(st.session_state.consegna_radio)},
-                    {"Form": "Eventi", "Record": len(st.session_state.eventi)},
-                    {"Form": "Emergenze", "Record": len(st.session_state.emergenze)},
-                    {"Form": "Mappe Fusione", "Record": len(st.session_state.mappe)},
-                    {"Form": "Interventi", "Record": len(st.session_state.interventi)},
-                    {"Form": "Mezzi", "Record": len(st.session_state.mezzi)},
-                    {"Form": "Attrezzature", "Record": len(st.session_state.attrezzature)},
-                ])
+                datasets = {}
+                for label, key in FORM_KEYS.items():
+                    data = st.session_state.get(key, [])
+                    if data:
+                        # pulisci bytes
+                        clean = []
+                        for row in data:
+                            if isinstance(row, dict):
+                                nr = {kk: vv for kk, vv in row.items() if "Bytes" not in kk and "Foto" not in kk}
+                                clean.append(nr)
+                        if clean:
+                            datasets[label[:31]] = pd.DataFrame(clean)
+                if datasets:
+                    excel_multi_data = to_excel_multi(datasets)
+                    st.download_button(
+                        "⬇️ Excel Multi-Fogli",
+                        data=excel_multi_data,
+                        file_name=f"backup_totale_{datetime.now().strftime('%Y%m%d')}.xlsx",
+                        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                        use_container_width=True
+                    )
+            except Exception as e:
+                st.error(f"Excel: {e}")
+        with c3:
+            if REPORTLAB_OK:
+                try:
+                    df_summary = pd.DataFrame([
+                        {"Form": label, "Record": len(st.session_state.get(key, []))}
+                        for label, key in FORM_KEYS.items()
+                    ])
+                    st.download_button(
+                        "⬇️ PDF Riepilogo",
+                        data=to_pdf(df_summary, "BACKUP TOTALE - RIEPILOGO"),
+                        file_name="backup_riepilogo.pdf",
+                        mime="application/pdf",
+                        use_container_width=True
+                    )
+                except Exception as e:
+                    st.error(f"PDF: {e}")
+
+        st.divider()
+        st.markdown("**Anteprima JSON (primi 4000 caratteri)**")
+        st.code(json_str[:4000] + ("... [troncato]" if len(json_str) > 4000 else ""), language="json")
+
+    with tab_singolo:
+        st.markdown("#### Export / Import Singolo Form")
+        sel_label = st.selectbox("Seleziona Form", list(FORM_KEYS.keys()), key="backup_sel_form")
+        sel_key = FORM_KEYS[sel_label]
+        sel_data = st.session_state.get(sel_key, [])
+        st.metric(f"Record in {sel_label}", len(sel_data))
+
+        if sel_data:
+            df_sel = pd.DataFrame([{k:v for k,v in r.items() if "Bytes" not in k} for r in sel_data if isinstance(r, dict)])
+            st.dataframe(df_sel.head(20), use_container_width=True)
+
+        c1, c2 = st.columns(2)
+        with c1:
+            # Export singolo Excel
+            if sel_data:
+                try:
+                    df_clean = pd.DataFrame([{k:v for k,v in r.items() if "Bytes" not in k and "Foto" not in k} for r in sel_data])
+                    st.download_button(
+                        f"⬇️ Excel {sel_label}",
+                        data=to_excel(df_clean),
+                        file_name=f"{sel_key}_{datetime.now().strftime('%Y%m%d')}.xlsx",
+                        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                        use_container_width=True
+                    )
+                except Exception as e:
+                    st.error(f"Excel: {e}")
+            # Export singolo JSON
+            if sel_data:
+                json_single = json.dumps(clean_for_json(sel_data), indent=2, ensure_ascii=False)
                 st.download_button(
-                    "PDF Riepilogo Logo Estesa",
-                    data=to_pdf(df_summary, "BACKUP RIEPILOGO"),
-                    file_name="backup_riepilogo.pdf",
-                    mime="application/pdf",
+                    f"⬇️ JSON {sel_label}",
+                    data=json_single.encode("utf-8"),
+                    file_name=f"{sel_key}_{datetime.now().strftime('%Y%m%d')}.json",
+                    mime="application/json",
                     use_container_width=True
                 )
-            except:
-                pass
 
-    st.divider()
-    st.markdown(
-        """
-        <div style="background:#fff3e0;padding:12px;border-radius:8px;
-        border-left:4px solid #ff9800;">
-        <strong>Istruzioni Ripristino Backup:</strong><br>
-        1. Scarica JSON backup<br>
-        2. In futuro: carica file in funzione di import (da implementare)<br>
-        3. Tutti i PDF ora hanno logo PC ANA in intestazione e tabella estesa tutto foglio - Modifica 3 OK
-        </div>
-        """,
-        unsafe_allow_html=True
-    )
+        with c2:
+            st.markdown("**Importa in questo form**")
+            up_mode = st.radio("Modalità import", ["Aggiungi (merge)", "Sostituisci tutto"], key="up_mode_single", horizontal=True)
+            up_file = st.file_uploader(f"Carica file per {sel_label}", type=["json", "xlsx", "csv"], key="up_single_form")
+            if up_file:
+                try:
+                    imported = []
+                    if up_file.name.endswith(".json"):
+                        raw = json.loads(up_file.read().decode("utf-8"))
+                        if isinstance(raw, dict):
+                            # se ha chiavi form, cerca sel_key
+                            if sel_key in raw and isinstance(raw[sel_key], list):
+                                imported = raw[sel_key]
+                            else:
+                                # cerca prima lista
+                                for v in raw.values():
+                                    if isinstance(v, list) and len(v)>0 and isinstance(v[0], dict):
+                                        imported = v
+                                        break
+                        elif isinstance(raw, list):
+                            imported = raw
+                    elif up_file.name.endswith(".xlsx"):
+                        df_imp = pd.read_excel(up_file)
+                        imported = df_imp.to_dict(orient="records")
+                    elif up_file.name.endswith(".csv"):
+                        df_imp = pd.read_csv(up_file)
+                        imported = df_imp.to_dict(orient="records")
+
+                    st.success(f"Trovati {len(imported)} record da importare")
+                    st.dataframe(pd.DataFrame(imported).head(10), use_container_width=True)
+
+                    if st.button(f"✅ Conferma import in {sel_label}", key="btn_confirm_single_import", type="primary"):
+                        if up_mode == "Sostituisci tutto":
+                            st.session_state[sel_key] = imported
+                        else:
+                            st.session_state[sel_key] = st.session_state.get(sel_key, []) + imported
+                        st.success(f"Importato! Ora {sel_label}: {len(st.session_state[sel_key])} record")
+                        st.rerun()
+                except Exception as e:
+                    st.error(f"Errore import: {e}")
+
+    with tab_import:
+        st.markdown("#### Importa Backup Totale")
+        st.info("Carica un JSON di backup totale esportato prima. Puoi scegliere se aggiungere o sovrascrivere.")
+        up_total = st.file_uploader("Backup Totale JSON", type=["json"], key="up_total_backup")
+        if up_total:
+            try:
+                data_total = json.loads(up_total.read().decode("utf-8"))
+                st.write(f"Backup del: {data_total.get('data_backup','?')} - Versione: {data_total.get('versione','?')}")
+                cols = st.columns(4)
+                for i, (label, key) in enumerate(FORM_KEYS.items()):
+                    if key in data_total:
+                        cols[i % 4].metric(label, f"{len(data_total.get(key, []))} rec")
+
+                mode_total = st.radio("Modalità", ["Aggiungi ai dati esistenti (merge)", "Sostituisci tutto (reset)"], key="mode_total")
+
+                if st.button("✅ CONFERMA IMPORT TOTALE", type="primary", use_container_width=True):
+                    for label, key in FORM_KEYS.items():
+                        if key in data_total and isinstance(data_total[key], list):
+                            if mode_total.startswith("Sostituisci"):
+                                st.session_state[key] = data_total[key]
+                            else:
+                                st.session_state[key] = st.session_state.get(key, []) + data_total[key]
+                    st.success("Backup totale importato con successo!")
+                    st.rerun()
+            except Exception as e:
+                st.error(f"Errore lettura backup: {e}")
+
+        st.divider()
+        st.markdown("#### Azzera Dati")
+        with st.expander("⚠️ Zona pericolosa - Azzera form"):
+            sel_zero = st.selectbox("Form da azzerare", ["-- seleziona --"] + list(FORM_KEYS.keys()), key="zero_sel")
+            if sel_zero != "-- seleziona --":
+                if st.button(f"🗑️ Azzera {sel_zero}", key="btn_zero_form"):
+                    k = FORM_KEYS[sel_zero]
+                    st.session_state[k] = []
+                    st.success(f"{sel_zero} azzerato")
+                    st.rerun()
+            if st.button("🗑️ AZZERA TUTTO (tutti i form)", key="btn_zero_all"):
+                for k in FORM_KEYS.values():
+                    st.session_state[k] = []
+                st.success("Tutti i form azzerati")
+                st.rerun()
 
 # Footer comune
 st.divider()
@@ -2226,22 +2346,9 @@ st.markdown(
     background:linear-gradient(135deg,#1A5D1A,#2e7d32);
     border-radius:8px;color:white;font-size:12px;">
     ANA Varese Protezione Civile - Gestionale 950+ Modifiche 6 Richieste Finali<br>
-    Dashboard solo menu + tasti form | PDF logo + tabella estesa | Stato colorato | Click cognome modifica | Login/Logout | Fusione Mappe SI<br>
+    Dashboard con bottoni on_click | PDF logo + tabella estesa | Stato colorato | Click cognome modifica | Login/Logout | Fusione Mappe SI | Backup Import/Export singolo + totale<br>
     Sviluppato per Ezio - Radio Hytera PD785 + Anytone 878
     </div>
     """,
     unsafe_allow_html=True
 )
-
-# Note finali per conteggio righe e qualità
-# File completo 1600+ righe senza errori indentazione/sintassi
-# 4 spazi, nessun tab, nessun if inline, tutte parentesi chiuse
-# Funzioni: get_stato_color, get_comuni, get_vie, combo_comune, combo_vie, to_excel, to_pdf, to_excel_multi, hdr, hdr_form
-# Modifica 1 e 2: Dashboard solo menu e tasti form, niente rubrica colorata, tutti tasti form in griglia 3 colonne
-# Modifica 3: PDF logo pc ana intestazione e tabella estesa tutto foglio landscape A4 27cm
-# Modifica 4: Intervento emergenze maschera campo stato fondo colorato bg txt label
-# Modifica 5: Volontari tabella click cognome carica maschera per aggiornamento con tasto AGGIORNA
-# Modifica 6: Login e Logout ripristinati page entra/login/dashboard sidebar logout
-# Fusione Emergenze/Eventi in Mappe: SI ottima idea - form unico Mappe (Emergenze+Eventi) con Tipo + mappa
-# Backup con PDF logo tabella estesa
-# End file
