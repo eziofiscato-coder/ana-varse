@@ -1976,53 +1976,115 @@ elif cur == "Mappa Avanzata":
     markers_for_js = json_lib.dumps([{"lat": m["Lat"], "lon": m["Lon"], "nome": m["Nome"], "icona": m["Icona"], "tipo": m["Tipo"], "comune": m.get("Comune",""), "via": m.get("Via","")} for m in all_markers])
 
     html_code = """
-    <div id="map-container" style="position:relative;">
-        <div id="map" style="height:600px; width:100%; border-radius:12px; border:3px solid #1A5D1A;"></div>
-        <button id="fs-btn" style="position:absolute; top:10px; right:10px; z-index:1000; background:#1A5D1A; color:white; border:none; padding:8px 12px; border-radius:6px; font-weight:bold; cursor:pointer;">⛶ Fullscreen</button>
+    <div id="map-container" style="position:relative; background:white; border-radius:12px;">
+        <div id="map" style="height:650px; width:100%; border-radius:12px; border:3px solid #1A5D1A;"></div>
+        <button id="fs-btn" style="position:absolute; top:15px; right:15px; z-index:1000; background:#ff0000; color:white; border:2px solid white; padding:10px 16px; border-radius:8px; font-weight:bold; cursor:pointer; box-shadow:0 2px 6px rgba(0,0,0,0.3);">⛶ FULLSCREEN MAPPA</button>
+        <button id="fs-btn-exit" style="position:absolute; top:15px; left:15px; z-index:1000; background:#1A5D1A; color:white; border:2px solid white; padding:8px 12px; border-radius:6px; font-weight:bold; cursor:pointer; display:none;">❌ Esci Fullscreen</button>
     </div>
-    <div id="coords" style="background:#fffde7;padding:12px;border-radius:6px;margin-top:8px;font-weight:bold;border-left:4px solid #FFD700; font-family:Times New Roman;"></div>
+    <div id="coords" style="background:#fffde7;padding:12px;border-radius:6px;margin-top:8px;font-weight:bold;border-left:4px solid #FFD700; font-family:Times New Roman; min-height:50px;">📍 Clicca sulla mappa - Il marker rimarrà - Coordinate in maschera automatica</div>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
     var markersData = MARKERS_JSON_PLACEHOLDER;
-    var map = L.map('map').setView([45.8167, 8.8333], 13);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {attribution: 'ANA Varese'}).addTo(map);
-    document.getElementById('fs-btn').addEventListener('click', function() {
-        var container = document.getElementById('map-container');
-        if (container.requestFullscreen) container.requestFullscreen();
+    var map = L.map('map').setView([45.8167, 8.8333], 14);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {attribution: 'ANA Varese - OpenStreetMap'}).addTo(map);
+
+    // Fullscreen gestione
+    var fsBtn = document.getElementById('fs-btn');
+    var fsExitBtn = document.getElementById('fs-btn-exit');
+    var mapContainer = document.getElementById('map-container');
+    
+    fsBtn.addEventListener('click', function() {
+        if (mapContainer.requestFullscreen) mapContainer.requestFullscreen();
+        else if (mapContainer.webkitRequestFullscreen) mapContainer.webkitRequestFullscreen();
+        else if (mapContainer.msRequestFullscreen) mapContainer.msRequestFullscreen();
     });
+    
+    document.addEventListener('fullscreenchange', function() {
+        if (document.fullscreenElement) {
+            fsBtn.style.display = 'none';
+            fsExitBtn.style.display = 'block';
+            setTimeout(function(){ map.invalidateSize(); }, 500);
+        } else {
+            fsBtn.style.display = 'block';
+            fsExitBtn.style.display = 'none';
+            setTimeout(function(){ map.invalidateSize(); }, 500);
+        }
+    });
+
+    fsExitBtn.addEventListener('click', function() {
+        if (document.exitFullscreen) document.exitFullscreen();
+    });
+
+    // Marker esistenti - RIMANGONO
+    var allMarkers = [];
     markersData.forEach(function(m) {
-        L.marker([m.lat, m.lon]).addTo(map).bindPopup("<b>" + m.nome + "</b><br>" + m.icona + "<br>" + m.tipo + "<br>" + m.comune + " - " + m.via);
+        var iconEmoji = "📍";
+        if (m.icona && m.icona.includes("Emergenza")) iconEmoji = "🚨";
+        else if (m.icona && m.icona.includes("Evento")) iconEmoji = "📅";
+        else if (m.tipo == "Emergenza") iconEmoji = "🚨";
+        else if (m.tipo == "Evento") iconEmoji = "📅";
+        
+        var marker = L.marker([m.lat, m.lon]).addTo(map)
+            .bindPopup("<b>" + m.nome + "</b><br>" + m.icona + "<br>" + m.tipo + "<br>" + m.comune + " - " + m.via + "<br>Lat: " + m.lat + "<br>Lon: " + m.lon);
+        allMarkers.push(marker);
     });
-    var tempMarker = null;
+
+    // Fit bounds se ci sono marker
+    if (allMarkers.length > 0) {
+        var group = new L.featureGroup(allMarkers);
+        map.fitBounds(group.getBounds().pad(0.2));
+    }
+
+    // Marker cliccati - RIMANGONO tutti
+    var clickedMarkers = [];
     map.on('click', function(e) {
         var lat = e.latlng.lat.toFixed(6);
         var lon = e.latlng.lng.toFixed(6);
-        if (tempMarker) map.removeLayer(tempMarker);
-        tempMarker = L.marker([lat, lon], {draggable:true}).addTo(map).bindPopup("Nuovo marker<br>Lat: " + lat + "<br>Lon: " + lon + "<br>Trascina per spostare").openPopup();
-        document.getElementById('coords').innerHTML = "📍 Marker cliccato - Rimane - Coordinate: Lat " + lat + " Lon " + lon + "<br>Comune/Via con reverse geocoding in corso...";
+        
+        // Crea marker che RIMANE - non rimuove precedenti
+        var newMarker = L.marker([lat, lon], {
+            draggable:true,
+            icon: L.icon({
+                iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
+                shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
+                iconSize: [25, 41],
+                iconAnchor: [12, 41],
+                popupAnchor: [1, -34]
+            })
+        }).addTo(map)
+            .bindPopup("<b>Nuovo marker</b><br>Lat: " + lat + "<br>Lon: " + lon + "<br>Trascina per spostare<br><b>RIMANE sulla mappa</b>").openPopup();
+        
+        clickedMarkers.push(newMarker);
+        document.getElementById('coords').innerHTML = "📍 Marker aggiunto - RIMANE sulla mappa - Totale marker temporanei: " + clickedMarkers.length + "<br>Lat: " + lat + " - Lon: " + lon + "<br><b>Copia in maschera sopra e clicca Aggiungi Marker per salvare definitivamente</b><br>Reverse geocoding in corso...";
+
+        // Auto-compila maschera
         try {
             var parentDoc = window.parent.document;
             var allInputs = parentDoc.querySelectorAll('input[type="text"]');
             allInputs.forEach(function(inp) {
                 var label = inp.getAttribute('aria-label') || '';
                 if (label.includes('Latitudine') && label.includes('*')) {
+                    inp.focus();
+                    document.execCommand('selectAll', false, null);
                     inp.value = lat;
                     inp.dispatchEvent(new Event('input', {bubbles:true}));
                     inp.dispatchEvent(new Event('change', {bubbles:true}));
+                    parentDoc.defaultView.localStorage.setItem('last_lat', lat);
                 }
                 if (label.includes('Longitudine') && label.includes('*')) {
                     inp.value = lon;
                     inp.dispatchEvent(new Event('input', {bubbles:true}));
                     inp.dispatchEvent(new Event('change', {bubbles:true}));
+                    parentDoc.defaultView.localStorage.setItem('last_lon', lon);
                 }
             });
             fetch('https://nominatim.openstreetmap.org/reverse?format=json&lat=' + lat + '&lon=' + lon + '&zoom=18&addressdetails=1')
                 .then(response => response.json())
                 .then(data => {
-                    var comune = data.address.city || data.address.town || data.address.village || "";
-                    var via = data.address.road || "";
-                    document.getElementById('coords').innerHTML += "<br>Comune: " + comune + " - Via: " + via;
+                    var comune = data.address.city || data.address.town || data.address.village || data.address.municipality || "";
+                    var via = data.address.road || data.address.street || "";
+                    document.getElementById('coords').innerHTML += "<br>📍 Comune: <b>" + comune + "</b> - Via: <b>" + via + "</b>";
                     allInputs.forEach(function(inp) {
                         var label = inp.getAttribute('aria-label') || '';
                         if (label.includes('Comune (da mappa)')) {
@@ -2037,10 +2099,13 @@ elif cur == "Mappa Avanzata":
                         }
                     });
                 });
-        } catch(err) {}
-        tempMarker.on('dragend', function(event) {
+        } catch(err) {
+            console.log(err);
+        }
+
+        newMarker.on('dragend', function(event) {
             var pos = event.target.getLatLng();
-            document.getElementById('coords').innerHTML = "Marker trascinato - Lat: " + pos.lat.toFixed(6) + " Lon: " + pos.lng.toFixed(6);
+            document.getElementById('coords').innerHTML = "📍 Marker trascinato - RIMANE<br>Lat: " + pos.lat.toFixed(6) + " Lon: " + pos.lng.toFixed(6);
         });
     });
     </script>
