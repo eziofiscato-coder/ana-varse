@@ -31,13 +31,6 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Auto-inietta UI PATCH nella sidebar se disponibile
-try:
-    ui_patch_loader_sidebar()
-except:
-    pass
-
-
 
 COMUNI_ITALIA = [
     "Varese", "Busto Arsizio", "Gallarate", "Saronno", "Cassano Magnago",
@@ -802,6 +795,13 @@ with st.sidebar:
     )
     st.session_state.menu = cur
 
+    # BASE 2032 + PATCH UI integrata
+    try:
+        ui_patch_loader_sidebar()
+    except Exception as e:
+        st.caption(f"Patch loader: {e}")
+
+
     st.divider()
 
     # MODIFICA 6 - LOGOUT RIPRISTINATO
@@ -865,12 +865,19 @@ if cur == "Dashboard":
         ("Backup", "💾 Backup + Visualizza JSON")
     ]
 
+    # Tasto fullscreen dashboard
+    if st.button("⛶ Espandi a tutto schermo", key="btn_fullscreen_dash"):
+        st.markdown("<script>document.documentElement.requestFullscreen();</script>", unsafe_allow_html=True)
+        st.toast("Fullscreen attivo - ESC per uscire")
+
     cols = st.columns(3)
     for i, (menu_name, btn_label) in enumerate(form_buttons):
         col = cols[i % 3]
         with col:
-            if st.button(btn_label, key=f"dash_{menu_name}", use_container_width=True):
+            if st.button(btn_label, key=f"dash_btn_{i}_{menu_name}", use_container_width=True, help=f"Vai a {menu_name}"):
                 st.session_state.menu = menu_name
+                # forza update radio
+                st.session_state["menu_radio"] = menu_name
                 st.rerun()
 
     st.divider()
@@ -904,10 +911,30 @@ if cur == "Dashboard":
     with c4:
         st.metric("Mappe Fusione", len(st.session_state.mappe))
 
-# VOLONTARI FORM CON MODIFICA 5
+# VOLONTARI FORM CON SOTTOMASCHERE A LINGUETTE - NUOVA VERSIONE
 elif cur == "Volontari (con foto)":
     hdr()
-    hdr_form("VOLONTARI - Modifica 5 con Click Cognome per Aggiornamento")
+    hdr_form("VOLONTARI - Sottomaschere a Linguette")
+
+    # === FULLSCREEN BUTTON ===
+    st.markdown("""
+    <script>
+    function toggleFullScreen() {
+      if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen();
+      } else {
+        if (document.exitFullscreen) { document.exitFullscreen(); }
+      }
+    }
+    </script>
+    """, unsafe_allow_html=True)
+    c_fs1, c_fs2 = st.columns([1,4])
+    with c_fs1:
+        if st.button("⛶ Schermo Intero", key="btn_fullscreen_vol", help="Espande il progetto a tutto schermo"):
+            st.markdown("<script>document.documentElement.requestFullscreen();</script>", unsafe_allow_html=True)
+            st.toast("Premi ESC per uscire dal fullscreen")
+    with c_fs2:
+        st.caption("Form volontario con 6 sottomaschere a linguette - BASE 2032 + PATCH attiva")
 
     edit_mode = False
     edit_data = {}
@@ -920,152 +947,204 @@ elif cur == "Volontari (con foto)":
             edit_mode = False
 
     if edit_mode:
-        st.warning(
-            f"Modifica Volontario: {edit_data.get('Nome','')} {edit_data.get('Cognome','')} - Modifica 5 attiva"
-        )
+        st.warning(f"✏️ Modifica Volontario: {edit_data.get('Nome','')} {edit_data.get('Cognome','')} - Sottomaschere attive")
 
-    c1, c2, c3 = st.columns(3)
-    with c1:
-        nome_default = edit_data.get("Nome", "") if edit_mode else ""
-        nome = st.text_input("Nome *", value=nome_default, key="vol_nome")
+    # === SOTTOMASCHERE A LINGUETTE ===
+    tab_anag, tab_cont, tab_ruolo, tab_dot, tab_doc, tab_foto = st.tabs([
+        "📋 Anagrafica", "📞 Contatti", "🛡️ Ruolo/Squadra", "📻 Dotazione", "📄 Documenti", "📸 Foto"
+    ])
 
-        cognome_default = edit_data.get("Cognome", "") if edit_mode else ""
-        cognome = st.text_input("Cognome *", value=cognome_default, key="vol_cognome")
+    # Variabili condivise
+    nome_default = edit_data.get("Nome", "") if edit_mode else ""
+    cognome_default = edit_data.get("Cognome", "") if edit_mode else ""
+    cf_default = edit_data.get("CF", "") if edit_mode else ""
+    data_nasc_default = edit_data.get("DataNascita", "") if edit_mode else ""
+    comune_nasc_default = edit_data.get("ComuneNascita", "Varese") if edit_mode else "Varese"
+    comune_res_default = edit_data.get("Comune", "Varese") if edit_mode else "Varese"
+    via_default = edit_data.get("Via", "") if edit_mode else ""
+    cell_default = edit_data.get("Cellulare", "") if edit_mode else ""
+    email_default = edit_data.get("Email", "") if edit_mode else ""
+    emerg_default = edit_data.get("TelEmergenza", "") if edit_mode else ""
+    ruolo_default = edit_data.get("Ruolo", "Volontario") if edit_mode else "Volontario"
+    squadra_default = edit_data.get("Squadra", "Squadra A") if edit_mode else "Squadra A"
+    data_iscriz_default = edit_data.get("DataIscrizione", "") if edit_mode else ""
+    stato_vol_default = edit_data.get("StatoVolontario", "Attivo") if edit_mode else "Attivo"
+    radio_id_default = edit_data.get("RadioID", "") if edit_mode else ""
+    taglia_default = edit_data.get("Taglia", "L") if edit_mode else "L"
+    note_default = edit_data.get("Note", "") if edit_mode else ""
 
-        comune_res_default = edit_data.get("Comune", "Varese") if edit_mode else "Varese"
-        comune_res = combo_comune("Comune Residenza", "vol_comune", comune_res_default)
+    with tab_anag:
+        st.markdown("#### Sottomaschera 1: Anagrafica")
+        c1, c2, c3 = st.columns(3)
+        with c1:
+            nome = st.text_input("Nome *", value=nome_default, key="vol_nome")
+            cognome = st.text_input("Cognome *", value=cognome_default, key="vol_cognome")
+            cf = st.text_input("Codice Fiscale", value=cf_default, key="vol_cf")
+        with c2:
+            data_nasc = st.text_input("Data Nascita (gg/mm/aaaa)", value=data_nasc_default, key="vol_datanasc")
+            comune_nasc = combo_comune("Comune Nascita", "vol_comune_nasc", comune_nasc_default)
+        with c3:
+            comune_res = combo_comune("Comune Residenza", "vol_comune", comune_res_default)
+            via = combo_vie("Via Residenza", comune_res, "vol_via", via_default)
 
-    with c2:
-        via_default = edit_data.get("Via", "") if edit_mode else ""
-        via = combo_vie("Via", comune_res, "vol_via", via_default)
+    with tab_cont:
+        st.markdown("#### Sottomaschera 2: Contatti")
+        c1, c2, c3 = st.columns(3)
+        with c1:
+            cellulare = st.text_input("Cellulare *", value=cell_default, key="vol_cell")
+            tel_emerg = st.text_input("Tel. Emergenza", value=emerg_default, key="vol_tel_emerg")
+        with c2:
+            email = st.text_input("Email", value=email_default, key="vol_email")
+            tel_casa = st.text_input("Telefono Casa", value=edit_data.get("TelCasa","") if edit_mode else "", key="vol_telcasa")
+        with c3:
+            st.info("Contatti verificati BASE 2032 + PATCH")
+            st.write(f"Comune: **{comune_res}**")
+            st.write(f"Via: **{via}**")
 
-        cell_default = edit_data.get("Cellulare", "") if edit_mode else ""
-        cellulare = st.text_input("Cellulare *", value=cell_default, key="vol_cell")
+    with tab_ruolo:
+        st.markdown("#### Sottomaschera 3: Ruolo / Squadra")
+        c1, c2, c3 = st.columns(3)
+        with c1:
+            ruolo = st.selectbox("Ruolo *", ["Volontario", "Capo Squadra", "Coordinatore", "Autista", "Radio Operatore", "Sanitario", "Logistico"], index=["Volontario", "Capo Squadra", "Coordinatore", "Autista", "Radio Operatore", "Sanitario", "Logistico"].index(ruolo_default) if ruolo_default in ["Volontario", "Capo Squadra", "Coordinatore", "Autista", "Radio Operatore", "Sanitario", "Logistico"] else 0, key="vol_ruolo_new")
+        with c2:
+            squadra = st.selectbox("Squadra *", ["Squadra A", "Squadra B", "Squadra C", "Logistica", "Segreteria", "Squadra Alpini", "PC"], index=["Squadra A", "Squadra B", "Squadra C", "Logistica", "Segreteria", "Squadra Alpini", "PC"].index(squadra_default) if squadra_default in ["Squadra A", "Squadra B", "Squadra C", "Logistica", "Segreteria", "Squadra Alpini", "PC"] else 0, key="vol_squadra_new")
+        with c3:
+            data_iscriz = st.text_input("Data Iscrizione", value=data_iscriz_default, key="vol_dataiscr")
+            stato_vol = st.selectbox("Stato Volontario", ["Attivo", "Inattivo", "In Prova", "Sospeso"], index=["Attivo", "Inattivo", "In Prova", "Sospeso"].index(stato_vol_default) if stato_vol_default in ["Attivo", "Inattivo", "In Prova", "Sospeso"] else 0, key="vol_stato")
 
-        ruolo_default = edit_data.get("Ruolo", "Volontario") if edit_mode else "Volontario"
-        ruolo = st.selectbox(
-            "Ruolo *",
-            ["Volontario", "Capo Squadra", "Coordinatore", "Autista", "Radio Operatore"],
-            index=0,
-            key="vol_ruolo"
-        )
-        if edit_mode:
-            try:
-                ruolo_idx = ["Volontario", "Capo Squadra", "Coordinatore", "Autista", "Radio Operatore"].index(ruolo_default)
-                ruolo = st.selectbox(
-                    "Ruolo *",
-                    ["Volontario", "Capo Squadra", "Coordinatore", "Autista", "Radio Operatore"],
-                    index=ruolo_idx,
-                    key="vol_ruolo_edit"
-                )
-            except:
-                pass
+    with tab_dot:
+        st.markdown("#### Sottomaschera 4: Dotazione Radio / Divisa")
+        c1, c2, c3 = st.columns(3)
+        with c1:
+            radio_id = st.text_input("ID Radio Assegnata", value=radio_id_default, key="vol_radioid")
+            if st.session_state.radio_db:
+                radio_list = [f"{r.get('Matricola','')} - {r.get('Modello','')}" for r in st.session_state.radio_db]
+                st.selectbox("Scegli da DB Radio", ["--"]+radio_list, key="vol_radio_sel")
+        with c2:
+            taglia = st.selectbox("Taglia Divisa", ["XS","S","M","L","XL","XXL","XXXL"], index=["XS","S","M","L","XL","XXL","XXXL"].index(taglia_default) if taglia_default in ["XS","S","M","L","XL","XXL","XXXL"] else 3, key="vol_taglia")
+            scarpe = st.text_input("Numero Scarpe", value=edit_data.get("Scarpe","") if edit_mode else "", key="vol_scarpe")
+        with c3:
+            patente = st.selectbox("Patente", ["B","C","D","BE","CE","Nessuna"], key="vol_patente")
+            abilitazioni = st.multiselect("Abilitazioni", ["Motosega", "Idrovora", "AIB", "Cinofilo", "SAPR Drone", "Radio"], default=edit_data.get("Abilitazioni",[]) if edit_mode else [], key="vol_abil")
 
-    with c3:
-        squadra_default = edit_data.get("Squadra", "Squadra A") if edit_mode else "Squadra A"
-        squadra = st.selectbox(
-            "Squadra *",
-            ["Squadra A", "Squadra B", "Squadra C", "Logistica", "Segreteria"],
-            index=0,
-            key="vol_squadra"
-        )
-        if edit_mode:
-            try:
-                sq_idx = ["Squadra A", "Squadra B", "Squadra C", "Logistica", "Segreteria"].index(squadra_default)
-                squadra = st.selectbox(
-                    "Squadra *",
-                    ["Squadra A", "Squadra B", "Squadra C", "Logistica", "Segreteria"],
-                    index=sq_idx,
-                    key="vol_squadra_edit2"
-                )
-            except:
-                pass
+    with tab_doc:
+        st.markdown("#### Sottomaschera 5: Documenti e Note")
+        c1, c2 = st.columns(2)
+        with c1:
+            note = st.text_area("Note Generali", value=note_default, height=120, key="vol_note")
+            note_med = st.text_area("Note Mediche / Allergie", value=edit_data.get("NoteMediche","") if edit_mode else "", height=80, key="vol_notemed")
+        with c2:
+            st.markdown("**Documenti**")
+            doc_upload = st.file_uploader("Carica Documento (PDF/JPG)", type=["pdf","jpg","png"], key="vol_doc")
+            scadenza_doc = st.text_input("Scadenza Documento", value=edit_data.get("ScadDoc","") if edit_mode else "", key="vol_scaddoc")
+            corso_sic = st.checkbox("Corso Sicurezza OK", value=edit_data.get("CorsoSic", False) if edit_mode else False, key="vol_corsosic")
 
-        st.markdown("**Foto (prima maschera preview)**")
-        foto_file = st.file_uploader("Carica foto volontario", type=["jpg", "jpeg", "png"], key="vol_foto")
-
-        foto_preview = None
-        if foto_file:
-            foto_bytes = foto_file.getvalue()
-            st.image(foto_bytes, width=120, caption="Preview foto")
-            foto_preview = foto_bytes
-        elif edit_mode and edit_data.get("FotoBytes"):
-            try:
-                st.image(edit_data.get("FotoBytes"), width=120, caption="Foto esistente")
-                foto_preview = edit_data.get("FotoBytes")
-            except:
-                pass
+    with tab_foto:
+        st.markdown("#### Sottomaschera 6: Foto Volontario")
+        c1, c2 = st.columns([1,2])
+        with c1:
+            foto_file = st.file_uploader("Carica foto volontario", type=["jpg", "jpeg", "png"], key="vol_foto")
+            foto_preview = None
+            if foto_file:
+                foto_bytes = foto_file.getvalue()
+                st.image(foto_bytes, width=200, caption="Preview foto")
+                foto_preview = foto_bytes
+            elif edit_mode and edit_data.get("FotoBytes"):
+                try:
+                    st.image(edit_data.get("FotoBytes"), width=200, caption="Foto salvata")
+                    foto_preview = edit_data.get("FotoBytes")
+                except:
+                    foto_preview = edit_data.get("FotoBytes")
+        with c2:
+            st.info("Foto usata per badge e PDF volontari - Modifica 3 con logo")
+            if edit_mode:
+                st.write(f"Volontario: **{nome_default} {cognome_default}**")
+                st.write(f"Ultimo agg: {edit_data.get('DataAgg','')}")
 
     st.divider()
-
-    col_btn1, col_btn2, col_btn3 = st.columns([1, 1, 2])
+    col_btn1, col_btn2, col_btn3, col_btn4 = st.columns([1,1,1,2])
 
     if edit_mode:
         with col_btn1:
-            if st.button("AGGIORNA VOLONTARIO", type="primary", use_container_width=True):
+            if st.button("✅ AGGIORNA VOLONTARIO", type="primary", use_container_width=True, key="btn_agg_vol_new"):
                 if nome and cognome and cellulare:
                     updated = {
                         "Nome": nome,
                         "Cognome": cognome,
+                        "CF": cf,
+                        "DataNascita": data_nasc,
+                        "ComuneNascita": comune_nasc,
                         "Comune": comune_res,
                         "Via": via,
                         "Cellulare": cellulare,
+                        "TelEmergenza": tel_emerg,
+                        "Email": email,
                         "Ruolo": ruolo,
                         "Squadra": squadra,
+                        "DataIscrizione": data_iscriz,
+                        "StatoVolontario": stato_vol,
+                        "RadioID": radio_id,
+                        "Taglia": taglia,
+                        "Note": note,
+                        "NoteMediche": note_med,
                         "FotoBytes": foto_preview,
                         "DataAgg": datetime.now().strftime("%d/%m/%Y %H:%M")
                     }
                     st.session_state.volontari[st.session_state.vol_edit_index] = updated
                     st.session_state.vol_edit_index = None
-                    st.success("Volontario aggiornato - Modifica 5 OK")
+                    st.success("Volontario aggiornato con sottomaschere OK")
                     st.rerun()
                 else:
-                    st.error("Compila campi obbligatori *")
-
+                    st.error("Compila Nome, Cognome, Cellulare *")
         with col_btn2:
-            if st.button("ANNULLA MODIFICA", use_container_width=True):
+            if st.button("❌ ANNULLA MODIFICA", use_container_width=True, key="btn_ann_mod_new"):
                 st.session_state.vol_edit_index = None
                 st.rerun()
     else:
         with col_btn1:
-            if st.button("SALVA NUOVO VOLONTARIO", type="primary", use_container_width=True):
+            if st.button("💾 SALVA NUOVO VOLONTARIO", type="primary", use_container_width=True, key="btn_save_vol_new"):
                 if nome and cognome and cellulare:
                     nuovo = {
                         "Nome": nome,
                         "Cognome": cognome,
+                        "CF": cf,
+                        "DataNascita": data_nasc,
+                        "ComuneNascita": comune_nasc,
                         "Comune": comune_res,
                         "Via": via,
                         "Cellulare": cellulare,
+                        "TelEmergenza": tel_emerg,
+                        "Email": email,
                         "Ruolo": ruolo,
                         "Squadra": squadra,
+                        "DataIscrizione": data_iscriz,
+                        "StatoVolontario": stato_vol,
+                        "RadioID": radio_id,
+                        "Taglia": taglia,
+                        "Note": note,
+                        "NoteMediche": note_med,
                         "FotoBytes": foto_preview,
                         "DataIns": datetime.now().strftime("%d/%m/%Y %H:%M")
                     }
                     st.session_state.volontari.append(nuovo)
-                    st.success("Volontario salvato")
+                    st.success(f"Volontario {nome} {cognome} salvato con sottomaschere")
                     st.rerun()
                 else:
                     st.error("Compila campi obbligatori *")
 
     # Tabella volontari con click cognome
     st.divider()
-    st.markdown("**Tabella Volontari - Clicca su Cognome per caricare maschera aggiornamento (Modifica 5)**")
+    st.markdown("**Tabella Volontari - Clicca su Cognome per caricare maschera aggiornamento (Modifica 5 + Linguette)**")
 
     if len(st.session_state.volontari) > 0:
-        # Selettore alternativo per modifica
         cognomi_list = [f"{v.get('Cognome','')} {v.get('Nome','')} - {v.get('Comune','')}" for v in st.session_state.volontari]
-        sel_cognome = st.selectbox(
-            "Seleziona Cognome per modifica rapida",
-            ["-- Seleziona --"] + cognomi_list,
-            key="sel_cognome_mod"
-        )
+        sel_cognome = st.selectbox("Seleziona Cognome per modifica rapida", ["-- Seleziona --"] + cognomi_list, key="sel_cognome_mod")
         if sel_cognome != "-- Seleziona --":
             idx_sel = cognomi_list.index(sel_cognome)
             if st.button(f"Carica {sel_cognome} in maschera", key="btn_carica_sel"):
                 st.session_state.vol_edit_index = idx_sel
                 st.rerun()
 
-        # Header tabella
         hc1, hc2, hc3, hc4, hc5, hc6, hc7, hc8 = st.columns([1, 1, 1, 1, 1, 1, 1, 1])
         hc1.markdown("**Nome**")
         hc2.markdown("**Cognome [CLICCA]**")
@@ -1081,7 +1160,6 @@ elif cur == "Volontari (con foto)":
             with cc1:
                 st.write(v.get("Nome", ""))
             with cc2:
-                # MODIFICA 5: bottone con cognome che carica dati in maschera
                 if st.button(v.get("Cognome", ""), key=f"mod_vol_{idx}", use_container_width=True):
                     st.session_state.vol_edit_index = idx
                     st.rerun()
@@ -1113,26 +1191,16 @@ elif cur == "Volontari (con foto)":
         if not df_vol.empty:
             cex1, cex2 = st.columns(2)
             with cex1:
-                st.download_button(
-                    "Download Excel Volontari",
-                    data=to_excel(df_vol),
-                    file_name="volontari_ana_varese.xlsx",
-                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                    use_container_width=True
-                )
+                st.download_button("Download Excel Volontari", data=to_excel(df_vol), file_name="volontari_ana_varese.xlsx", mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", use_container_width=True)
             with cex2:
                 if REPORTLAB_OK:
-                    st.download_button(
-                        "Download PDF con Logo Tabella Estesa - Modifica 3",
-                        data=to_pdf(df_vol, "VOLONTARI"),
-                        file_name="volontari_ana_varese.pdf",
-                        mime="application/pdf",
-                        use_container_width=True
-                    )
+                    st.download_button("Download PDF con Logo Tabella Estesa - Modifica 3", data=to_pdf(df_vol, "VOLONTARI"), file_name="volontari_ana_varese.pdf", mime="application/pdf", use_container_width=True)
     else:
-        st.info("Nessun volontario inserito - Usa form sopra")
+        st.info("Nessun volontario inserito - Usa sottomaschere sopra")
 
 # DB RADIO
+
+elif cur == "DB Radio":
 elif cur == "DB Radio":
     hdr()
     hdr_form("DB RADIO - Gestione Apparati")
