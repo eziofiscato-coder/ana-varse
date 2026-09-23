@@ -2218,7 +2218,7 @@ elif cur == "Backup":
         st.code(json_str[:4000] + ("... [troncato]" if len(json_str) > 4000 else ""), language="json")
 
     with tab_singolo:
-        st.markdown("#### Export / Import Singolo Form")
+        st.markdown("#### Export / Import Singolo Form - Simmetrico")
         sel_label = st.selectbox("Seleziona Form", list(FORM_KEYS.keys()), key="backup_sel_form")
         sel_key = FORM_KEYS[sel_label]
         sel_data = st.session_state.get(sel_key, [])
@@ -2227,35 +2227,52 @@ elif cur == "Backup":
         if sel_data:
             df_sel = pd.DataFrame([{k:v for k,v in r.items() if "Bytes" not in k} for r in sel_data if isinstance(r, dict)])
             st.dataframe(df_sel.head(20), use_container_width=True)
+        else:
+            st.info(f"Nessun dato in {sel_label} - puoi comunque importare")
 
         c1, c2 = st.columns(2)
         with c1:
-            # Export singolo Excel
+            st.markdown(f"**⬇️ EXPORT {sel_label}**")
+            st.caption("Esporta i dati di questo singolo form")
             if sel_data:
                 try:
                     df_clean = pd.DataFrame([{k:v for k,v in r.items() if "Bytes" not in k and "Foto" not in k} for r in sel_data])
                     st.download_button(
-                        f"⬇️ Excel {sel_label}",
+                        f"⬇️ Export Excel {sel_label}",
                         data=to_excel(df_clean),
                         file_name=f"{sel_key}_{datetime.now().strftime('%Y%m%d')}.xlsx",
                         mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                        use_container_width=True
+                        use_container_width=True,
+                        key=f"exp_excel_{sel_key}"
+                    )
+                    # CSV export
+                    csv_data = df_clean.to_csv(index=False).encode("utf-8")
+                    st.download_button(
+                        f"⬇️ Export CSV {sel_label}",
+                        data=csv_data,
+                        file_name=f"{sel_key}_{datetime.now().strftime('%Y%m%d')}.csv",
+                        mime="text/csv",
+                        use_container_width=True,
+                        key=f"exp_csv_{sel_key}"
                     )
                 except Exception as e:
-                    st.error(f"Excel: {e}")
-            # Export singolo JSON
-            if sel_data:
+                    st.error(f"Excel/CSV: {e}")
+                # Export singolo JSON
                 json_single = json.dumps(clean_for_json(sel_data), indent=2, ensure_ascii=False)
                 st.download_button(
-                    f"⬇️ JSON {sel_label}",
+                    f"⬇️ Export JSON {sel_label}",
                     data=json_single.encode("utf-8"),
                     file_name=f"{sel_key}_{datetime.now().strftime('%Y%m%d')}.json",
                     mime="application/json",
-                    use_container_width=True
+                    use_container_width=True,
+                    key=f"exp_json_{sel_key}"
                 )
+            else:
+                st.warning("Niente da esportare - form vuoto")
 
         with c2:
-            st.markdown("**Importa in questo form**")
+            st.markdown(f"**📥 IMPORT in {sel_label}**")
+            st.caption("Importa dati in questo singolo form")
             up_mode = st.radio("Modalità import", ["Aggiungi (merge)", "Sostituisci tutto"], key="up_mode_single", horizontal=True)
             up_file = st.file_uploader(f"Carica file per {sel_label}", type=["json", "xlsx", "csv"], key="up_single_form")
             if up_file:
