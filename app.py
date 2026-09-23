@@ -78,48 +78,69 @@ PATCH_PATHS = [
 ]
 
 def load_base_2032_df():
-    # Cloud-safe: disattivato lettura da /mnt/data
+    for p in BASE_2032_PATHS:
+        if os.path.exists(p):
+            try:
+                df = pd.read_csv(p, dtype=str, keep_default_na=False)
+                df.columns = [c.strip().lower() for c in df.columns]
+                if 'comune' in df.columns:
+                    return df
+            except Exception as e:
+                print(f"Errore lettura base {p}: {e}")
     return None
 
 def load_patch_df():
-    try:
-        if "patch_df" in st.session_state:
-            df = st.session_state.get("patch_df")
-            if df is not None:
-                return df
-    except:
-        pass
+    if "patch_df" in st.session_state and st.session_state.patch_df is not None:
+        return st.session_state.patch_df
+    for p in PATCH_PATHS:
+        if os.path.exists(p):
+            try:
+                df = pd.read_csv(p, dtype=str, keep_default_na=False)
+                df.columns = [c.strip().lower() for c in df.columns]
+                if 'comune' in df.columns:
+                    return df
+            except:
+                pass
     return None
 
 def ui_patch_loader_sidebar():
-    # CLOUD-SAFE: nessun accesso a /mnt/data, solo session_state
-    with st.expander("🛠️ BASE 2032 + PATCH CSV", expanded=False):
-        st.caption("CSV con colonne comune,via - solo in memoria (cloud-safe)")
-        up_patch = st.file_uploader("PATCH comune via", type=["csv"], key="up_patch_comune_via_cloud")
+    with st.sidebar.expander("🛠️ BASE 2032 + PATCH CSV", expanded=False):
+        st.caption("CSV con colonne `comune,via` - sovrascrive base")
+        up_base = st.file_uploader("BASE 2032 (opzionale)", type=["csv"], key="up_base_2032")
+        if up_base:
+            try:
+                df = pd.read_csv(up_base, dtype=str, keep_default_na=False)
+                df.to_csv("/mnt/data/base_2032.csv", index=False, encoding='utf-8-sig')
+                st.success(f"Base 2032 caricata: {len(df)} righe")
+                st.cache_data.clear()
+            except Exception as e:
+                st.error(f"Errore base: {e}")
+        up_patch = st.file_uploader("PATCH comune via", type=["csv"], key="up_patch_comune_via")
         if up_patch:
             try:
                 df = pd.read_csv(up_patch, dtype=str, keep_default_na=False)
+                df.to_csv("/mnt/data/patch_comune_via.csv", index=False, encoding='utf-8-sig')
                 df.columns = [c.strip().lower() for c in df.columns]
-                if 'comune' in df.columns:
-                    st.session_state.patch_df = df
-                    st.success(f"Patch caricata: {len(df)} righe - {df['comune'].nunique() if 'comune' in df.columns else '?'} comuni - solo memoria")
-                else:
-                    st.error("CSV deve avere colonna 'comune'")
+                st.session_state.patch_df = df
+                st.success(f"Patch: {len(df)} righe - {df['comune'].nunique() if 'comune' in df.columns else '?'} comuni")
+                st.cache_data.clear()
             except Exception as e:
                 st.error(f"Errore patch: {e}")
-        # Mostra stato
-        try:
-            patch_df = st.session_state.get("patch_df")
-        except:
-            patch_df = None
+        patch_df = load_patch_df()
+        base_df = load_base_2032_df()
+        c1,c2 = st.columns(2)
+        with c1:
+            st.metric("Base", f"{len(base_df) if base_df is not None else 0} righe")
+        with c2:
+            st.metric("Patch", f"{len(patch_df) if patch_df is not None else 0} righe")
         if patch_df is not None:
-            st.metric("Patch in memoria", f"{len(patch_df)} righe")
             st.dataframe(patch_df.head(20), use_container_width=True)
-            if st.button("❌ Rimuovi patch", key="btn_remove_patch_cloud"):
+            if st.button("❌ Rimuovi patch", key="btn_remove_patch"):
+                if os.path.exists("/mnt/data/patch_comune_via.csv"):
+                    os.remove("/mnt/data/patch_comune_via.csv")
                 st.session_state.patch_df = None
+                st.cache_data.clear()
                 st.rerun()
-        else:
-            st.info("Nessuna patch caricata - usa i comuni standard + BASE 2032")
 # ===== BASE 2032 + PATCH - FINE =====
 
 
@@ -613,8 +634,7 @@ def init_session():
         "posizioni_pd785": [],
         "posizioni_anytone": [],
         "vol_edit_index": None,
-        "mappe": [],
-        "patch_df": None
+        "mappe": []
     }
 
     for k, v in defaults.items():
@@ -856,8 +876,6 @@ if cur == "Dashboard":
         with col:
             if st.button(btn_label, key=f"dash_btn_{i}_{menu_name}", use_container_width=True, help=f"Vai a {menu_name}"):
                 st.session_state.menu = menu_name
-                # forza update radio
-                st.session_state["menu_radio"] = menu_name
                 st.rerun()
 
     st.divider()
@@ -910,7 +928,7 @@ elif cur == "Volontari (con foto)":
     """, unsafe_allow_html=True)
     c_fs1, c_fs2 = st.columns([1,4])
     with c_fs1:
-        if st.button("⛶ Schermo Intero (ESC per uscire)", key="btn_fullscreen_vol", help="Espande il progetto a tutto schermo"):
+        if st.button("⛶ Schermo Intero", key="btn_fullscreen_vol", help="Espande il progetto a tutto schermo"):
             st.markdown("<script>document.documentElement.requestFullscreen();</script>", unsafe_allow_html=True)
             st.toast("Premi ESC per uscire dal fullscreen")
     with c_fs2:
