@@ -1,7 +1,5 @@
 streamlit
 pandas
-openpyxl
-pydeck
+requests
 reportlab
-folium
-streamlit-folium
+openpyxl
