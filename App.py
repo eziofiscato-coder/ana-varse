@@ -31,6 +31,73 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
+# CSS Globale - Times New Roman grassetto per tutti + Verde ANA
+st.markdown(
+    """
+    <style>
+    * {
+        font-family: 'Times New Roman', Times, serif !important;
+    }
+    html, body, [class*="css"] {
+        font-family: 'Times New Roman', Times, serif !important;
+    }
+    p, div, span, label, input, select, textarea, button {
+        font-family: 'Times New Roman', Times, serif !important;
+        font-weight: bold !important;
+    }
+    .stTextInput label, .stSelectbox label, .stDateInput label, .stTimeInput label, .stTextArea label {
+        font-family: 'Times New Roman', Times, serif !important;
+        font-weight: bold !important;
+        font-size: 14px !important;
+        color: black !important;
+    }
+    /* Bottoni dashboard verde ANA */
+    div[data-testid="column"] .stButton > button {
+        background-color: #1A5D1A !important;
+        color: white !important;
+        border: 2px solid #1A5D1A !important;
+        font-weight: bold !important;
+        font-family: 'Times New Roman', serif !important;
+        font-size: 13px !important;
+    }
+    div[data-testid="column"] .stButton > button:hover {
+        background-color: #2e7d32 !important;
+        border-color: #2e7d32 !important;
+        color: white !important;
+    }
+    /* Bottoni primary verde ANA (tranne fullscreen) */
+    button[kind="primary"] {
+        background-color: #1A5D1A !important;
+        border-color: #1A5D1A !important;
+        font-family: 'Times New Roman', serif !important;
+        font-weight: bold !important;
+    }
+    button[kind="primary"]:hover {
+        background-color: #2e7d32 !important;
+    }
+    /* Fullscreen rosso */
+    button#fs-btn, button[key="btn_fullscreen_dash"], button[key="btn_fs_mappa"] {
+        background-color: #ff0000 !important;
+        border-color: #ff0000 !important;
+    }
+    /* Tab linguette Times New Roman bold */
+    .stTabs [data-baseweb="tab-list"] button {
+        font-family: 'Times New Roman', serif !important;
+        font-weight: bold !important;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True
+)
+
+
+# Auto-inietta UI PATCH nella sidebar se disponibile
+try:
+    ui_patch_loader_sidebar()
+except:
+    pass
+
+
 
 COMUNI_ITALIA = [
     "Varese", "Busto Arsizio", "Gallarate", "Saronno", "Cassano Magnago",
@@ -774,7 +841,6 @@ with st.sidebar:
         "Brogliaccio",
         "Eventi",
         "Emergenze",
-        "Mappe (Emergenze+Eventi)",
         "Check-in",
         "Interventi Emergenza",
         "Tabella Interventi Emergenza",
@@ -794,13 +860,6 @@ with st.sidebar:
         key="menu_radio"
     )
     st.session_state.menu = cur
-
-    # BASE 2032 + PATCH UI integrata
-    try:
-        ui_patch_loader_sidebar()
-    except Exception as e:
-        st.caption(f"Patch loader: {e}")
-
 
     st.divider()
 
@@ -827,18 +886,17 @@ with st.sidebar:
         unsafe_allow_html=True
     )
 
-# DASHBOARD MODIFICATA RICHIESTA 1 e 2
+# DASHBOARD MODIFICATA RICHIESTA 1 e 2 - FULLSCREEN ROSSO + BOTTONI ON_CLICK
 if cur == "Dashboard":
     hdr()
-    hdr_form("Dashboard - Solo Menu + Tasti Form - Modifica 1 e 2")
+    hdr_form("Dashboard - Menu + Tasti Form")
 
     st.markdown(
         """
         <p style="font-family:Times New Roman;font-weight:bold;color:black;
         background:#fffde7;padding:12px;border-radius:8px;
         border-left:4px solid #FFD700;">
-        Clicca su un tasto per andare al form - Tutti i form disponibili -
-        No rubrica colorata come richiesto - Modifica 1 e 2 completate
+        Clicca su un tasto per aprire il form - Fullscreen rosso - Date gg/mm/aaaa
         </p>
         """,
         unsafe_allow_html=True
@@ -852,7 +910,6 @@ if cur == "Dashboard":
         ("Brogliaccio", "📓 Brogliaccio"),
         ("Eventi", "📅 Eventi"),
         ("Emergenze", "🚨 Emergenze"),
-        ("Mappe (Emergenze+Eventi)", "🗺️ Mappe Emergenze+Eventi FUSIONE"),
         ("Check-in", "✅ Check-in"),
         ("Interventi Emergenza", "🚒 Interventi Emergenza"),
         ("Tabella Interventi Emergenza", "📋 Tabella Interventi"),
@@ -861,45 +918,109 @@ if cur == "Dashboard":
         ("Mappa Avanzata", "🌍 Mappa Avanzata"),
         ("Libreria Icone", "🎨 Libreria Icone"),
         ("Chat", "💬 Chat"),
-        ("Geolocalizzazione Hytera + Anytone", "📡 Geoloc Hytera + Anytone"),
-        ("Backup", "💾 Backup + Visualizza JSON")
+        ("Geolocalizzazione Hytera + Anytone", "📡 Geoloc"),
+        ("Backup", "💾 Backup")
     ]
 
-    # TASTO FULLSCREEN - FIXATO
-    cfs1, cfs2 = st.columns([1,3])
-    with cfs1:
+    # TASTO ROSSO FULLSCREEN
+    c_fs1, c_fs2 = st.columns([1,3])
+    with c_fs1:
         if st.button("⛶ SCHERMO INTERO", key="btn_fullscreen_dash", use_container_width=True, type="primary"):
-            st.components.v1.html(
-                """
-                <script>
-                function toggleFullScreen() {
-                    if (!document.fullscreenElement) {
-                        document.documentElement.requestFullscreen().catch(err => {
-                            alert(`Errore fullscreen: ${err.message}`);
-                        });
-                    } else {
-                        if (document.exitFullscreen) {
-                            document.exitFullscreen();
-                        }
-                    }
-                }
-                toggleFullScreen();
-                </script>
-                """,
-                height=0
-            )
-            st.toast("⛶ Fullscreen - premi ESC per uscire", icon="🖥️")
-    with cfs2:
-        st.caption("Premi ESC per uscire dal fullscreen")
+            st.session_state["fs_active"] = True
+    with c_fs2:
+        st.markdown('<span style="background:red;color:white;padding:6px 12px;border-radius:6px;font-weight:bold;">🔴 FULLSCREEN - ESC per uscire</span>', unsafe_allow_html=True)
+
+    if st.session_state.get("fs_active"):
+        st.components.v1.html(
+            """
+            <script>
+            (function(){
+                try {
+                    const docEl = window.parent.document.documentElement;
+                    if (docEl.requestFullscreen) docEl.requestFullscreen();
+                } catch(e){}
+                try {
+                    if (document.documentElement.requestFullscreen) document.documentElement.requestFullscreen();
+                } catch(e){}
+            })();
+            </script>
+            <div style="background:#ff0000;color:white;padding:8px;border-radius:6px;text-align:center;font-weight:bold;">
+            🔴 FULLSCREEN ATTIVO - premi ESC per uscire
+            </div>
+            """,
+            height=70
+        )
+        if st.button("❌ Esci Fullscreen", key="btn_exit_fs", use_container_width=True):
+            st.components.v1.html("<script>try{document.exitFullscreen(); parent.document.exitFullscreen();}catch(e){}</script>", height=0)
+            st.session_state["fs_active"] = False
+            st.rerun()
 
     st.write("")
+
+    def vai_a_form_callback(form_name):
+        st.session_state.menu = form_name
+        st.session_state["menu_radio"] = form_name
+
+    # CSS bottoni verde ANA - FONDO PIENO
+    st.markdown(
+        """
+        <style>
+        /* Forza fondo pieno verde ANA su tutti i bottoni dashboard */
+        div[data-testid="column"] .stButton > button,
+        div[data-testid="stColumn"] .stButton > button,
+        .stButton > button {
+            background-color: #1A5D1A !important;
+            background: #1A5D1A !important;
+            color: white !important;
+            border: 2px solid #1A5D1A !important;
+            font-weight: bold !important;
+            font-family: 'Times New Roman', serif !important;
+        }
+        div[data-testid="column"] .stButton > button:hover,
+        div[data-testid="stColumn"] .stButton > button:hover {
+            background-color: #2e7d32 !important;
+            background: #2e7d32 !important;
+            border-color: #2e7d32 !important;
+            color: white !important;
+        }
+        div[data-testid="column"] .stButton > button:active,
+        div[data-testid="column"] .stButton > button:focus {
+            background-color: #1A5D1A !important;
+            color: white !important;
+            box-shadow: none !important;
+        }
+        /* Tasto fullscreen rosso - solo quelli con primary e fullscreen */
+        button[kind="primary"] {
+            background-color: #ff0000 !important;
+            background: #ff0000 !important;
+            border-color: #ff0000 !important;
+            color: white !important;
+        }
+        /* Bottoni dashboard specifici - key dash_btn */
+        button[data-testid*="dash_btn"] {
+            background-color: #1A5D1A !important;
+        }
+        /* Assicura che il testo sia bianco su verde */
+        .stButton > button p, .stButton > button span {
+            color: white !important;
+        }
+        </style>
+        """,
+        unsafe_allow_html=True
+    )
+
     cols = st.columns(3)
     for i, (menu_name, btn_label) in enumerate(form_buttons):
         col = cols[i % 3]
         with col:
-            if st.button(btn_label, key=f"dash_btn_{i}_{menu_name}", use_container_width=True, help=f"Vai a {menu_name}"):
-                st.session_state.menu = menu_name
-                st.rerun()
+            st.button(
+                btn_label, 
+                key=f"dash_btn_{i}_{menu_name}_FINAL", 
+                use_container_width=True, 
+                help=f"Vai a {menu_name}",
+                on_click=vai_a_form_callback,
+                args=(menu_name,)
+            )
 
     st.divider()
 
@@ -911,7 +1032,7 @@ if cur == "Dashboard":
         Fusione Emergenze+Eventi in Mappe: SI ottima idea - Ezio
         </h4>
         <p style="margin:8px 0 0 0;font-family:Times New Roman;font-weight:bold;color:black;">
-        Già creato form Mappe (Emergenze+Eventi) con Tipo Emergenza/Evento + mappa unica.
+        Già creato form Mappa Avanzata OLD RIMOSSO con Tipo Emergenza/Evento + mappa unica.
         Unico form georeferenziato, filtri per Tipo, priorità e stato colorato.
         Soluzione ottimale per gestione unificata.
         </p>
@@ -930,32 +1051,12 @@ if cur == "Dashboard":
     with c3:
         st.metric("Emergenze", len(st.session_state.emergenze))
     with c4:
-        st.metric("Mappe Fusione", len(st.session_state.mappe))
+        st.metric("Mappa Avanzata", len(st.session_state.mappe))
 
-# VOLONTARI FORM CON SOTTOMASCHERE A LINGUETTE - NUOVA VERSIONE
+# VOLONTARI FORM CON SOTTOMASCHERE A LINGUETTE + CAMPO ODV - NUOVA VERSIONE FINALE
 elif cur == "Volontari (con foto)":
     hdr()
-    hdr_form("VOLONTARI - Sottomaschere a Linguette")
-
-    # === FULLSCREEN BUTTON ===
-    st.markdown("""
-    <script>
-    function toggleFullScreen() {
-      if (!document.fullscreenElement) {
-        document.documentElement.requestFullscreen();
-      } else {
-        if (document.exitFullscreen) { document.exitFullscreen(); }
-      }
-    }
-    </script>
-    """, unsafe_allow_html=True)
-    c_fs1, c_fs2 = st.columns([1,4])
-    with c_fs1:
-        if st.button("⛶ Schermo Intero", key="btn_fullscreen_vol", help="Espande il progetto a tutto schermo"):
-            st.markdown("<script>document.documentElement.requestFullscreen();</script>", unsafe_allow_html=True)
-            st.toast("Premi ESC per uscire dal fullscreen")
-    with c_fs2:
-        st.caption("Form volontario con 6 sottomaschere a linguette - BASE 2032 + PATCH attiva")
+    hdr_form("VOLONTARI - Sottomaschere a Linguette + ODV")
 
     edit_mode = False
     edit_data = {}
@@ -968,256 +1069,221 @@ elif cur == "Volontari (con foto)":
             edit_mode = False
 
     if edit_mode:
-        st.warning(f"✏️ Modifica Volontario: {edit_data.get('Nome','')} {edit_data.get('Cognome','')} - Sottomaschere attive")
+        st.warning(f"✏️ Modifica: {edit_data.get('Nome','')} {edit_data.get('Cognome','')} - Capo ODV: {edit_data.get('CapoODV','')}")
 
-    # === SOTTOMASCHERE A LINGUETTE ===
-    tab_anag, tab_cont, tab_ruolo, tab_dot, tab_doc, tab_foto = st.tabs([
-        "📋 Anagrafica", "📞 Contatti", "🛡️ Ruolo/Squadra", "📻 Dotazione", "📄 Documenti", "📸 Foto"
-    ])
+    # SOTTOMASCHERE A LINGUETTE - 6 TAB
+    tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs(["📋 Anagrafica", "📞 Contatti", "🛡️ Ruolo", "📻 Dotazione", "📄 Documenti", "📸 Foto"])
 
-    # Variabili condivise
-    nome_default = edit_data.get("Nome", "") if edit_mode else ""
-    cognome_default = edit_data.get("Cognome", "") if edit_mode else ""
-    cf_default = edit_data.get("CF", "") if edit_mode else ""
-    data_nasc_default = edit_data.get("DataNascita", "") if edit_mode else ""
-    comune_nasc_default = edit_data.get("ComuneNascita", "Varese") if edit_mode else "Varese"
-    comune_res_default = edit_data.get("Comune", "Varese") if edit_mode else "Varese"
-    via_default = edit_data.get("Via", "") if edit_mode else ""
-    cell_default = edit_data.get("Cellulare", "") if edit_mode else ""
-    email_default = edit_data.get("Email", "") if edit_mode else ""
-    emerg_default = edit_data.get("TelEmergenza", "") if edit_mode else ""
-    ruolo_default = edit_data.get("Ruolo", "Volontario") if edit_mode else "Volontario"
-    squadra_default = edit_data.get("Squadra", "Squadra A") if edit_mode else "Squadra A"
-    data_iscriz_default = edit_data.get("DataIscrizione", "") if edit_mode else ""
-    stato_vol_default = edit_data.get("StatoVolontario", "Attivo") if edit_mode else "Attivo"
-    radio_id_default = edit_data.get("RadioID", "") if edit_mode else ""
-    taglia_default = edit_data.get("Taglia", "L") if edit_mode else "L"
-    note_default = edit_data.get("Note", "") if edit_mode else ""
+    # Valori default da edit
+    nome_def = edit_data.get("Nome", "")
+    cognome_def = edit_data.get("Cognome", "")
+    comune_def = edit_data.get("Comune", "Varese")
+    via_def = edit_data.get("Via", "")
+    capo_odv_def = edit_data.get("CapoODV", "")
+    odv_app_def = edit_data.get("ODVAppartenenza", "ANA Varese")
+    cell_def = edit_data.get("Cellulare", "")
+    email_def = edit_data.get("Email", "")
+    tel_em_def = edit_data.get("TelEmergenza", "")
+    ruolo_def = edit_data.get("Ruolo", "Volontario")
+    squadra_def = edit_data.get("Squadra", "Squadra A")
+    radio_id_def = edit_data.get("RadioID", "")
+    doc_def = edit_data.get("Documento", "")
+    scad_def = edit_data.get("ScadDoc", "")
 
-    with tab_anag:
-        st.markdown("#### Sottomaschera 1: Anagrafica")
-        c1, c2, c3 = st.columns(3)
-        with c1:
-            nome = st.text_input("Nome *", value=nome_default, key="vol_nome")
-            cognome = st.text_input("Cognome *", value=cognome_default, key="vol_cognome")
-            cf = st.text_input("Codice Fiscale", value=cf_default, key="vol_cf")
-        with c2:
-            data_nasc = st.text_input("Data Nascita (gg/mm/aaaa)", value=data_nasc_default, key="vol_datanasc")
-            comune_nasc = combo_comune("Comune Nascita", "vol_comune_nasc", comune_nasc_default)
-        with c3:
-            comune_res = combo_comune("Comune Residenza", "vol_comune", comune_res_default)
-            via = combo_vie("Via Residenza", comune_res, "vol_via", via_default)
-
-    with tab_cont:
-        st.markdown("#### Sottomaschera 2: Contatti")
-        c1, c2, c3 = st.columns(3)
-        with c1:
-            cellulare = st.text_input("Cellulare *", value=cell_default, key="vol_cell")
-            tel_emerg = st.text_input("Tel. Emergenza", value=emerg_default, key="vol_tel_emerg")
-        with c2:
-            email = st.text_input("Email", value=email_default, key="vol_email")
-            tel_casa = st.text_input("Telefono Casa", value=edit_data.get("TelCasa","") if edit_mode else "", key="vol_telcasa")
-        with c3:
-            st.info("Contatti verificati BASE 2032 + PATCH")
-            st.write(f"Comune: **{comune_res}**")
-            st.write(f"Via: **{via}**")
-
-    with tab_ruolo:
-        st.markdown("#### Sottomaschera 3: Ruolo / Squadra")
-        c1, c2, c3 = st.columns(3)
-        with c1:
-            ruolo = st.selectbox("Ruolo *", ["Volontario", "Capo Squadra", "Coordinatore", "Autista", "Radio Operatore", "Sanitario", "Logistico"], index=["Volontario", "Capo Squadra", "Coordinatore", "Autista", "Radio Operatore", "Sanitario", "Logistico"].index(ruolo_default) if ruolo_default in ["Volontario", "Capo Squadra", "Coordinatore", "Autista", "Radio Operatore", "Sanitario", "Logistico"] else 0, key="vol_ruolo_new")
-        with c2:
-            squadra = st.selectbox("Squadra *", ["Squadra A", "Squadra B", "Squadra C", "Logistica", "Segreteria", "Squadra Alpini", "PC"], index=["Squadra A", "Squadra B", "Squadra C", "Logistica", "Segreteria", "Squadra Alpini", "PC"].index(squadra_default) if squadra_default in ["Squadra A", "Squadra B", "Squadra C", "Logistica", "Segreteria", "Squadra Alpini", "PC"] else 0, key="vol_squadra_new")
-        with c3:
-            data_iscriz = st.text_input("Data Iscrizione", value=data_iscriz_default, key="vol_dataiscr")
-            stato_vol = st.selectbox("Stato Volontario", ["Attivo", "Inattivo", "In Prova", "Sospeso"], index=["Attivo", "Inattivo", "In Prova", "Sospeso"].index(stato_vol_default) if stato_vol_default in ["Attivo", "Inattivo", "In Prova", "Sospeso"] else 0, key="vol_stato")
-
-    with tab_dot:
-        st.markdown("#### Sottomaschera 4: Dotazione Radio / Divisa")
-        c1, c2, c3 = st.columns(3)
-        with c1:
-            radio_id = st.text_input("ID Radio Assegnata", value=radio_id_default, key="vol_radioid")
-            if st.session_state.radio_db:
-                radio_list = [f"{r.get('Matricola','')} - {r.get('Modello','')}" for r in st.session_state.radio_db]
-                st.selectbox("Scegli da DB Radio", ["--"]+radio_list, key="vol_radio_sel")
-        with c2:
-            taglia = st.selectbox("Taglia Divisa", ["XS","S","M","L","XL","XXL","XXXL"], index=["XS","S","M","L","XL","XXL","XXXL"].index(taglia_default) if taglia_default in ["XS","S","M","L","XL","XXL","XXXL"] else 3, key="vol_taglia")
-            scarpe = st.text_input("Numero Scarpe", value=edit_data.get("Scarpe","") if edit_mode else "", key="vol_scarpe")
-        with c3:
-            patente = st.selectbox("Patente", ["B","C","D","BE","CE","Nessuna"], key="vol_patente")
-            abilitazioni = st.multiselect("Abilitazioni", ["Motosega", "Idrovora", "AIB", "Cinofilo", "SAPR Drone", "Radio"], default=edit_data.get("Abilitazioni",[]) if edit_mode else [], key="vol_abil")
-
-    with tab_doc:
-        st.markdown("#### Sottomaschera 5: Documenti e Note")
+    with tab1:
+        st.markdown("#### 📋 Anagrafica + Capo ODV")
         c1, c2 = st.columns(2)
         with c1:
-            note = st.text_area("Note Generali", value=note_default, height=120, key="vol_note")
-            note_med = st.text_area("Note Mediche / Allergie", value=edit_data.get("NoteMediche","") if edit_mode else "", height=80, key="vol_notemed")
+            nome = st.text_input("Nome *", value=nome_def, key="vol_nome_tab")
+            cognome = st.text_input("Cognome *", value=cognome_def, key="vol_cognome_tab")
+            comune_res = combo_comune("Comune Residenza", "vol_comune_tab", comune_def)
+            via = combo_vie("Via", comune_res, "vol_via_tab", via_def)
         with c2:
-            st.markdown("**Documenti**")
-            doc_upload = st.file_uploader("Carica Documento (PDF/JPG)", type=["pdf","jpg","png"], key="vol_doc")
-            scadenza_doc = st.text_input("Scadenza Documento", value=edit_data.get("ScadDoc","") if edit_mode else "", key="vol_scaddoc")
-            corso_sic = st.checkbox("Corso Sicurezza OK", value=edit_data.get("CorsoSic", False) if edit_mode else False, key="vol_corsosic")
-
-    with tab_foto:
-        st.markdown("#### Sottomaschera 6: Foto Volontario")
-        c1, c2 = st.columns([1,2])
-        with c1:
-            foto_file = st.file_uploader("Carica foto volontario", type=["jpg", "jpeg", "png"], key="vol_foto")
-            foto_preview = None
-            if foto_file:
-                foto_bytes = foto_file.getvalue()
-                st.image(foto_bytes, width=200, caption="Preview foto")
-                foto_preview = foto_bytes
+            capo_odv = st.text_input("Capo ODV *", value=capo_odv_def, key="vol_capo_odv", help="Nome del Capo ODV di riferimento")
+            # CASELLA COMBO PER SCEGLIERE LE ODV - lista completa
+            odv_lista = [
+                "ANA Varese", "ANA Milano", "ANA Como", "ANA Bergamo", "ANA Brescia", "ANA Torino", "ANA Sezione Varese",
+                "Protezione Civile Varese", "Protezione Civile Lombardia", "Protezione Civile Nazionale",
+                "Croce Rossa Italiana - Varese", "Croce Rossa Italiana - Milano", "Misericordia", "ANPAS",
+                "Associazione Nazionale Alpini", "Gruppo Comunale Volontari", "AIB - Antincendio Boschivo",
+                "Altro"
+            ]
+            # Se valore esistente non in lista, aggiungilo
+            if odv_app_def and odv_app_def not in odv_lista:
+                odv_lista = [odv_app_def] + odv_lista
+            
+            odv_app = st.selectbox("ODV Associazione di Appartenenza *", odv_lista, index=odv_lista.index(odv_app_def) if odv_app_def in odv_lista else 0, key="vol_odv_app")
+            if odv_app == "Altro":
+                odv_app_custom = st.text_input("Specifica ODV - Inserisci nome", value="" if odv_app_def in odv_lista else odv_app_def, key="vol_odv_custom", placeholder="Es: Protezione Civile Busto Arsizio")
+                if odv_app_custom:
+                    odv_app = odv_app_custom
+            data_nascita = st.date_input("Data Nascita", value=date(1990,1,1), format="DD/MM/YYYY", key="vol_data_nasc")
+            codice_fisc = st.text_input("Codice Fiscale", value=edit_data.get("CodFisc",""), key="vol_cf")
+            
+            # FOTO NELLA PRIMA MASCHERA + DOWNLOAD
+            st.markdown("**📸 Foto Volontario - Prima Maschera**")
+            foto_file_prima = st.file_uploader("Carica foto (prima maschera)", type=["jpg", "jpeg", "png"], key="vol_foto_prima")
+            if foto_file_prima:
+                foto_bytes_prima = foto_file_prima.getvalue()
+                st.image(foto_bytes_prima, width=120, caption="Preview prima maschera")
+                # Salva in session per uso globale
+                st.session_state["foto_temp_prima"] = foto_bytes_prima
+                st.download_button("⬇️ Download Foto", data=foto_bytes_prima, file_name=f"foto_{nome}_{cognome}.jpg", mime="image/jpeg", use_container_width=True, key="download_foto_prima")
             elif edit_mode and edit_data.get("FotoBytes"):
                 try:
-                    st.image(edit_data.get("FotoBytes"), width=200, caption="Foto salvata")
-                    foto_preview = edit_data.get("FotoBytes")
+                    st.image(edit_data.get("FotoBytes"), width=120, caption="Foto esistente")
+                    st.download_button("⬇️ Download Foto Esistente", data=edit_data.get("FotoBytes"), file_name=f"foto_{edit_data.get('Cognome','')}_{edit_data.get('Nome','')}.jpg", mime="image/jpeg", use_container_width=True, key="download_foto_esistente_prima")
                 except:
-                    foto_preview = edit_data.get("FotoBytes")
+                    pass
+
+    with tab2:
+        st.markdown("#### 📞 Contatti")
+        c1, c2 = st.columns(2)
+        with c1:
+            cellulare = st.text_input("Cellulare *", value=cell_def, key="vol_cell_tab")
+            email = st.text_input("Email", value=email_def, key="vol_email_tab")
         with c2:
-            st.info("Foto usata per badge e PDF volontari - Modifica 3 con logo")
-            if edit_mode:
-                st.write(f"Volontario: **{nome_default} {cognome_default}**")
-                st.write(f"Ultimo agg: {edit_data.get('DataAgg','')}")
+            tel_emerg = st.text_input("Telefono Emergenza", value=tel_em_def, key="vol_tel_em")
+            note_cont = st.text_area("Note Contatti", value=edit_data.get("NoteContatti",""), key="vol_note_cont")
+
+    with tab3:
+        st.markdown("#### 🛡️ Ruolo e Squadra")
+        c1, c2 = st.columns(2)
+        with c1:
+            ruolo = st.selectbox("Ruolo *", ["Volontario", "Capo Squadra", "Coordinatore", "Autista", "Radio Operatore", "Capo ODV", "Vice Capo ODV"], index=["Volontario", "Capo Squadra", "Coordinatore", "Autista", "Radio Operatore", "Capo ODV", "Vice Capo ODV"].index(ruolo_def) if ruolo_def in ["Volontario", "Capo Squadra", "Coordinatore", "Autista", "Radio Operatore", "Capo ODV", "Vice Capo ODV"] else 0, key="vol_ruolo_tab")
+            squadra = st.selectbox("Squadra *", ["Squadra A", "Squadra B", "Squadra C", "Logistica", "Segreteria", "ODV Centrale"], index=["Squadra A", "Squadra B", "Squadra C", "Logistica", "Segreteria", "ODV Centrale"].index(squadra_def) if squadra_def in ["Squadra A", "Squadra B", "Squadra C", "Logistica", "Segreteria", "ODV Centrale"] else 0, key="vol_squadra_tab")
+        with c2:
+            data_iscriz = st.date_input("Data Iscrizione ODV", value=date.today(), format="DD/MM/YYYY", key="vol_data_iscr")
+            stato_vol = st.selectbox("Stato", ["Attivo", "Inattivo", "In Formazione", "Sospeso"], key="vol_stato")
+
+    with tab4:
+        st.markdown("#### 📻 Dotazione Radio")
+        radio_id = st.text_input("ID Radio / Matricola", value=radio_id_def, key="vol_radio_id")
+        modello_radio = st.selectbox("Modello Radio", ["Hytera PD785", "Anytone 878", "Motorola", "Altro"], key="vol_radio_mod")
+        note_dot = st.text_area("Note Dotazione", value=edit_data.get("NoteDotazione",""), key="vol_note_dot")
+
+    with tab5:
+        st.markdown("#### 📄 Documenti")
+        doc_tipo = st.text_input("Tipo Documento", value=doc_def, key="vol_doc_tipo")
+        doc_num = st.text_input("Numero Documento", value=edit_data.get("DocNum",""), key="vol_doc_num")
+        doc_scad = st.date_input("Scadenza Documento", value=date.today(), format="DD/MM/YYYY", key="vol_doc_scad")
+        st.caption("Formato data gg/mm/aaaa - es: 23/09/2026")
+
+    with tab6:
+        st.markdown("#### 📸 Foto Volontario")
+        foto_file = st.file_uploader("Carica foto", type=["jpg", "jpeg", "png"], key="vol_foto_tab")
+        foto_preview = st.session_state.get("foto_temp_prima", None)
+        if foto_file:
+            foto_bytes = foto_file.getvalue()
+            st.image(foto_bytes, width=150, caption="Preview")
+            foto_preview = foto_bytes
+            st.download_button("⬇️ Download Foto Volontario", data=foto_bytes, file_name=f"foto_{nome}_{cognome}.jpg", mime="image/jpeg", use_container_width=True, key="download_foto_tab")
+        elif edit_mode and edit_data.get("FotoBytes"):
+            try:
+                st.image(edit_data.get("FotoBytes"), width=150, caption="Foto esistente")
+                foto_preview = edit_data.get("FotoBytes")
+                st.download_button("⬇️ Download Foto", data=edit_data.get("FotoBytes"), file_name=f"foto_{edit_data.get('Cognome','')}.jpg", mime="image/jpeg", use_container_width=True, key="download_foto_tab_edit")
+            except:
+                pass
+        elif foto_preview:
+            st.image(foto_preview, width=150, caption="Foto da prima maschera")
+            st.download_button("⬇️ Download Foto da Prima Maschera", data=foto_preview, file_name=f"foto_{nome}_{cognome}.jpg", mime="image/jpeg", use_container_width=True, key="download_foto_da_prima")
 
     st.divider()
-    col_btn1, col_btn2, col_btn3, col_btn4 = st.columns([1,1,1,2])
 
+    col_btn1, col_btn2, col_btn3 = st.columns([1,1,2])
     if edit_mode:
         with col_btn1:
-            if st.button("✅ AGGIORNA VOLONTARIO", type="primary", use_container_width=True, key="btn_agg_vol_new"):
-                if nome and cognome and cellulare:
+            if st.button("🔄 AGGIORNA VOLONTARIO", type="primary", use_container_width=True):
+                if nome and cognome and cellulare and capo_odv:
                     updated = {
                         "Nome": nome,
                         "Cognome": cognome,
-                        "CF": cf,
-                        "DataNascita": data_nasc,
-                        "ComuneNascita": comune_nasc,
                         "Comune": comune_res,
                         "Via": via,
+                        "CapoODV": capo_odv,
+                        "ODVAppartenenza": odv_app,
+                        "DataNascita": str(data_nascita),
+                        "CodFisc": codice_fisc,
                         "Cellulare": cellulare,
-                        "TelEmergenza": tel_emerg,
                         "Email": email,
+                        "TelEmergenza": tel_emerg,
                         "Ruolo": ruolo,
                         "Squadra": squadra,
-                        "DataIscrizione": data_iscriz,
-                        "StatoVolontario": stato_vol,
                         "RadioID": radio_id,
-                        "Taglia": taglia,
-                        "Note": note,
-                        "NoteMediche": note_med,
+                        "ModelloRadio": modello_radio,
+                        "Documento": doc_tipo,
+                        "DocNum": doc_num,
+                        "ScadDoc": str(doc_scad),
                         "FotoBytes": foto_preview,
                         "DataAgg": datetime.now().strftime("%d/%m/%Y %H:%M")
                     }
                     st.session_state.volontari[st.session_state.vol_edit_index] = updated
                     st.session_state.vol_edit_index = None
-                    st.success("Volontario aggiornato con sottomaschere OK")
+                    st.success("Volontario aggiornato con ODV OK")
                     st.rerun()
                 else:
-                    st.error("Compila Nome, Cognome, Cellulare *")
+                    st.error("Compila Nome, Cognome, Cellulare e Capo ODV *")
         with col_btn2:
-            if st.button("❌ ANNULLA MODIFICA", use_container_width=True, key="btn_ann_mod_new"):
+            if st.button("❌ ANNULLA", use_container_width=True):
                 st.session_state.vol_edit_index = None
                 st.rerun()
     else:
         with col_btn1:
-            if st.button("💾 SALVA NUOVO VOLONTARIO", type="primary", use_container_width=True, key="btn_save_vol_new"):
-                if nome and cognome and cellulare:
+            if st.button("💾 SALVA VOLONTARIO", type="primary", use_container_width=True):
+                if nome and cognome and cellulare and capo_odv:
                     nuovo = {
                         "Nome": nome,
                         "Cognome": cognome,
-                        "CF": cf,
-                        "DataNascita": data_nasc,
-                        "ComuneNascita": comune_nasc,
                         "Comune": comune_res,
                         "Via": via,
+                        "CapoODV": capo_odv,
+                        "ODVAppartenenza": odv_app,
+                        "DataNascita": str(data_nascita),
+                        "CodFisc": codice_fisc,
                         "Cellulare": cellulare,
-                        "TelEmergenza": tel_emerg,
                         "Email": email,
+                        "TelEmergenza": tel_emerg,
                         "Ruolo": ruolo,
                         "Squadra": squadra,
-                        "DataIscrizione": data_iscriz,
-                        "StatoVolontario": stato_vol,
                         "RadioID": radio_id,
-                        "Taglia": taglia,
-                        "Note": note,
-                        "NoteMediche": note_med,
+                        "ModelloRadio": modello_radio,
+                        "Documento": doc_tipo,
+                        "DocNum": doc_num,
+                        "ScadDoc": str(doc_scad),
                         "FotoBytes": foto_preview,
                         "DataIns": datetime.now().strftime("%d/%m/%Y %H:%M")
                     }
                     st.session_state.volontari.append(nuovo)
-                    st.success(f"Volontario {nome} {cognome} salvato con sottomaschere")
+                    st.success(f"Volontario {cognome} {nome} - Capo ODV {capo_odv} salvato!")
                     st.rerun()
                 else:
-                    st.error("Compila campi obbligatori *")
+                    st.error("Compila campi obbligatori * (Nome, Cognome, Cellulare, Capo ODV)")
 
-    # Tabella volontari con click cognome
+    # Tabella volontari con click cognome per modifica
     st.divider()
-    st.markdown("**Tabella Volontari - Clicca su Cognome per caricare maschera aggiornamento (Modifica 5 + Linguette)**")
+    if st.session_state.volontari:
+        st.markdown(f"#### Elenco Volontari ({len(st.session_state.volontari)}) - Clicca cognome per modifica")
+        df_vol = pd.DataFrame([{k:v for k,v in vol.items() if "Bytes" not in k} for vol in st.session_state.volontari])
+        # Mostra con colonne importanti
+        cols_show = ["Cognome", "Nome", "CapoODV", "ODVAppartenenza", "Comune", "Cellulare", "Ruolo", "Squadra"]
+        cols_show = [c for c in cols_show if c in df_vol.columns]
+        st.dataframe(df_vol[cols_show] if cols_show else df_vol, use_container_width=True)
 
-    if len(st.session_state.volontari) > 0:
-        cognomi_list = [f"{v.get('Cognome','')} {v.get('Nome','')} - {v.get('Comune','')}" for v in st.session_state.volontari]
-        sel_cognome = st.selectbox("Seleziona Cognome per modifica rapida", ["-- Seleziona --"] + cognomi_list, key="sel_cognome_mod")
-        if sel_cognome != "-- Seleziona --":
-            idx_sel = cognomi_list.index(sel_cognome)
-            if st.button(f"Carica {sel_cognome} in maschera", key="btn_carica_sel"):
-                st.session_state.vol_edit_index = idx_sel
+        # Click cognome per modifica - selectbox
+        cognomi = [f"{i}: {v.get('Cognome','')} {v.get('Nome','')} - ODV {v.get('ODVAppartenenza','')} - Capo {v.get('CapoODV','')}" for i, v in enumerate(st.session_state.volontari)]
+        sel = st.selectbox("Seleziona volontario per modifica", ["--"] + cognomi, key="sel_vol_mod")
+        if sel != "--":
+            try:
+                idx = int(sel.split(":")[0])
+                st.session_state.vol_edit_index = idx
                 st.rerun()
-
-        hc1, hc2, hc3, hc4, hc5, hc6, hc7, hc8 = st.columns([1, 1, 1, 1, 1, 1, 1, 1])
-        hc1.markdown("**Nome**")
-        hc2.markdown("**Cognome [CLICCA]**")
-        hc3.markdown("**Comune**")
-        hc4.markdown("**Cellulare**")
-        hc5.markdown("**Ruolo**")
-        hc6.markdown("**Squadra**")
-        hc7.markdown("**Foto**")
-        hc8.markdown("**Azioni**")
-
-        for idx, v in enumerate(st.session_state.volontari):
-            cc1, cc2, cc3, cc4, cc5, cc6, cc7, cc8 = st.columns([1, 1, 1, 1, 1, 1, 1, 1])
-            with cc1:
-                st.write(v.get("Nome", ""))
-            with cc2:
-                if st.button(v.get("Cognome", ""), key=f"mod_vol_{idx}", use_container_width=True):
-                    st.session_state.vol_edit_index = idx
-                    st.rerun()
-            with cc3:
-                st.write(v.get("Comune", "")[:12])
-            with cc4:
-                st.write(v.get("Cellulare", "")[:12])
-            with cc5:
-                st.write(v.get("Ruolo", "")[:10])
-            with cc6:
-                st.write(v.get("Squadra", "")[:10])
-            with cc7:
-                if v.get("FotoBytes"):
-                    try:
-                        st.image(v.get("FotoBytes"), width=50)
-                    except:
-                        st.write("SI")
-                else:
-                    st.write("NO")
-            with cc8:
-                if st.button("Elimina", key=f"del_vol_{idx}"):
-                    st.session_state.volontari.pop(idx)
-                    if st.session_state.vol_edit_index == idx:
-                        st.session_state.vol_edit_index = None
-                    st.rerun()
-
-        st.divider()
-        df_vol = pd.DataFrame(st.session_state.volontari)
-        if not df_vol.empty:
-            cex1, cex2 = st.columns(2)
-            with cex1:
-                st.download_button("Download Excel Volontari", data=to_excel(df_vol), file_name="volontari_ana_varese.xlsx", mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", use_container_width=True)
-            with cex2:
-                if REPORTLAB_OK:
-                    st.download_button("Download PDF con Logo Tabella Estesa - Modifica 3", data=to_pdf(df_vol, "VOLONTARI"), file_name="volontari_ana_varese.pdf", mime="application/pdf", use_container_width=True)
+            except:
+                pass
     else:
-        st.info("Nessun volontario inserito - Usa sottomaschere sopra")
+        st.info("Nessun volontario inserito")
+
+    st.divider()
 
 # DB RADIO
 elif cur == "DB Radio":
@@ -1282,7 +1348,7 @@ elif cur == "Consegna Radio":
             sel_radio = st.text_input("Radio manuale", key="cons_radio_man")
 
     with c2:
-        data_cons = st.date_input("Data Consegna", value=date.today(), key="cons_data")
+        data_cons = st.date_input("Data Consegna", value=date.today(), format="DD/MM/YYYY", key="cons_data")
         ora_cons = st.time_input("Ora", value=datetime.now().time(), key="cons_ora")
         motivo = st.text_input("Motivo / Evento", key="cons_motivo")
 
@@ -1342,7 +1408,7 @@ elif cur == "Brogliaccio":
 
     c1, c2 = st.columns(2)
     with c1:
-        data_b = st.date_input("Data", value=date.today(), key="brog_data")
+        data_b = st.date_input("Data", value=date.today(), format="DD/MM/YYYY", key="brog_data")
         ora_b = st.time_input("Ora", value=datetime.now().time(), key="brog_ora")
         operatore = st.text_input("Operatore", key="brog_op")
 
@@ -1383,7 +1449,7 @@ elif cur == "Eventi":
     with c1:
         nome_ev = st.text_input("Nome Evento *", key="ev_nome")
         tipo_ev = st.selectbox("Tipo Evento", ["Esercitazione", "Manifestazione", "Formazione", "Riunione", "Altro"], key="ev_tipo")
-        data_ev = st.date_input("Data Evento", value=date.today(), key="ev_data")
+        data_ev = st.date_input("Data Evento", value=date.today(), format="DD/MM/YYYY", key="ev_data")
 
     with c2:
         comune_ev = combo_comune("Comune Evento", "ev_comune", "Varese")
@@ -1427,7 +1493,7 @@ elif cur == "Emergenze":
     with c1:
         nome_em = st.text_input("Nome Emergenza *", key="em_nome")
         tipo_em = st.selectbox("Tipo Emergenza", ["Alluvione", "Incendio", "Frana", "Neve", "Ricerca Persona", "Altro"], key="em_tipo")
-        data_em = st.date_input("Data Emergenza", value=date.today(), key="em_data")
+        data_em = st.date_input("Data Emergenza", value=date.today(), format="DD/MM/YYYY", key="em_data")
 
     with c2:
         comune_em = combo_comune("Comune Emergenza", "em_comune", "Varese")
@@ -1477,7 +1543,7 @@ elif cur == "Emergenze":
             st.download_button("PDF Logo Estesa", to_pdf(df_em, "EMERGENZE"), "emergenze.pdf", use_container_width=True)
 
 # MAPPE (Emergenze+Eventi) FUSIONE - SI OTTIMA IDEA
-elif cur == "Mappe (Emergenze+Eventi)":
+elif cur == "# RIMOSSO":
     hdr()
     hdr_form("MAPPE - Fusione Emergenze + Eventi - Proposta Ezio - SI OTTIMA IDEA")
 
@@ -1500,7 +1566,7 @@ elif cur == "Mappe (Emergenze+Eventi)":
     with c1:
         tipo_mappa = st.selectbox("Tipo Mappa *", ["Emergenza", "Evento"], key="mappa_tipo")
         nome_mappa = st.text_input("Nome / Titolo *", key="mappa_nome")
-        data_mappa = st.date_input("Data", value=date.today(), key="mappa_data")
+        data_mappa = st.date_input("Data", value=date.today(), format="DD/MM/YYYY", key="mappa_data")
 
     with c2:
         comune_mappa = combo_comune("Comune", "mappa_comune", "Varese")
@@ -1545,7 +1611,7 @@ elif cur == "Mappe (Emergenze+Eventi)":
         desc_mappa = st.text_area("Descrizione", key="mappa_desc")
         note_mappa = st.text_area("Note Coordinate", key="mappa_note")
 
-    if st.button("Salva in Mappe Fusione", type="primary", use_container_width=True):
+    if st.button("Salva in Mappa Avanzata", type="primary", use_container_width=True):
         if nome_mappa:
             st.session_state.mappe.append({
                 "Tipo": tipo_mappa,
@@ -1568,7 +1634,7 @@ elif cur == "Mappe (Emergenze+Eventi)":
 
     if st.session_state.mappe:
         st.divider()
-        st.markdown("**Riepilogo Mappe Fusione con Filtri Tipo**")
+        st.markdown("**Riepilogo Mappa Avanzata con Filtri Tipo**")
         filtro_tipo = st.selectbox("Filtra per Tipo", ["Tutti", "Emergenza", "Evento"], key="filtro_mappa_tipo")
         df_map = pd.DataFrame(st.session_state.mappe)
         if filtro_tipo != "Tutti":
@@ -1588,11 +1654,31 @@ elif cur == "Mappe (Emergenze+Eventi)":
         except:
             st.info("Mappa coordinate non disponibili per visualizzazione")
 
-        st.download_button("Excel Mappe Fusione", to_excel(df_map), "mappe_fusione.xlsx", use_container_width=True)
+        st.download_button("Excel Mappa Avanzata", to_excel(df_map), "mappe_fusione.xlsx", use_container_width=True)
         if REPORTLAB_OK:
             st.download_button("PDF Logo Estesa Tutto Foglio", to_pdf(df_map, "MAPPE FUSIONE EMERGENZE+EVENTI"), "mappe_fusione.pdf", use_container_width=True)
 
 # CHECK-IN
+elif cur == "Mappe":
+    hdr()
+    hdr_form("MAPPE - Form Completo")
+    c1, c2 = st.columns(2)
+    with c1:
+        tipo_mappa = st.selectbox("Tipo Mappa *", ["Emergenza", "Evento"], key="mappa_tipo_old2")
+        nome_mappa = st.text_input("Nome / Titolo *", key="mappa_nome_old2")
+    with c2:
+        comune_mappa = combo_comune("Comune", "mappa_comune_old2", "Varese")
+        via_mappa = combo_vie("Via", comune_mappa, "mappa_via_old2", "")
+        lat_mappa = st.text_input("Latitudine", value="45.8167", key="mappa_lat_old2")
+        lon_mappa = st.text_input("Longitudine", value="8.8333", key="mappa_lon_old2")
+    if st.button("Salva in Mappe", type="primary", use_container_width=True):
+        if nome_mappa:
+            st.session_state.mappe.append({"Tipo": tipo_mappa, "Nome": nome_mappa, "Comune": comune_mappa, "Via": via_mappa, "Lat": lat_mappa, "Lon": lon_mappa})
+            st.success("Salvata")
+            st.rerun()
+    if st.session_state.mappe:
+        st.dataframe(pd.DataFrame(st.session_state.mappe), use_container_width=True)
+
 elif cur == "Check-in":
     hdr()
     hdr_form("CHECK-IN - Presenze Operative")
@@ -1614,7 +1700,7 @@ elif cur == "Check-in":
             sel_check_ref = st.text_input("Evento/Emergenza", key="check_ref_man")
 
     with c2:
-        data_check = st.date_input("Data Check-in", value=date.today(), key="check_data")
+        data_check = st.date_input("Data Check-in", value=date.today(), format="DD/MM/YYYY", key="check_data")
         ora_check = st.time_input("Ora Check-in", value=datetime.now().time(), key="check_ora")
         stato_check = st.selectbox("Stato", ["Presente", "Assente", "Ritardo"], key="check_stato")
 
@@ -1653,7 +1739,7 @@ elif cur == "Interventi Emergenza":
     with c1:
         tipo_int = st.selectbox("Tipo Intervento", ["Soccorso", "Logistica", "Monitoraggio", "Bonifica", "Altro"], key="int_tipo")
         squadra_int = st.selectbox("Squadra", ["Squadra A", "Squadra B", "Squadra C", "Logistica"], key="int_squadra")
-        data_int = st.date_input("Data Intervento", value=date.today(), key="int_data")
+        data_int = st.date_input("Data Intervento", value=date.today(), format="DD/MM/YYYY", key="int_data")
 
     with c2:
         comune_int = combo_comune("Comune Intervento", "int_comune", "Varese")
@@ -1830,7 +1916,7 @@ elif cur == "Mezzi":
     with c2:
         stato_m = st.selectbox("Stato Mezzo", ["Operativo", "In Manutenzione", "Fuori Servizio"], key="mez_stato")
         km = st.text_input("Km", key="mez_km")
-        scadenza = st.date_input("Scadenza Revisione", value=date.today(), key="mez_scad")
+        scadenza = st.date_input("Scadenza Revisione", value=date.today(), format="DD/MM/YYYY", key="mez_scad")
 
     with c3:
         note_mez = st.text_area("Note Mezzo", key="mez_note")
@@ -1893,57 +1979,290 @@ elif cur == "Attrezzature":
         if REPORTLAB_OK:
             st.download_button("PDF Logo Estesa", to_pdf(df_att, "ATTREZZATURE"), "attrezzature.pdf", use_container_width=True)
 
-# MAPPA AVANZATA
+# MAPPA AVANZATA - FINALE con Fullscreen + Marker rimane + Coordinate Comune Via Lat Lon in maschera
 elif cur == "Mappa Avanzata":
     hdr()
-    hdr_form("MAPPA AVANZATA - Visualizzazione Unificata")
+    hdr_form("MAPPA AVANZATA - Marker da Libreria Icone + Fullscreen")
 
-    st.markdown("Mappa avanzata con tutti i punti georeferenziati")
+    st.markdown(
+        """
+        <div style="background:#e3f2fd;padding:12px;border-radius:8px;border-left:4px solid #1976d2;">
+        <b>Mappa cliccabile con fullscreen - Marker rimane - Coordinate Comune Via Lat Lon in maschera automatica - Icone da libreria - Google Maps / Waze / Google Earth</b>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
 
-    all_points = []
+    if "mappa_avanzata_markers" not in st.session_state:
+        st.session_state.mappa_avanzata_markers = []
+    if "last_clicked_lat" not in st.session_state:
+        st.session_state.last_clicked_lat = "45.8167"
+    if "last_clicked_lon" not in st.session_state:
+        st.session_state.last_clicked_lon = "8.8333"
 
-    for m in st.session_state.mappe:
-        try:
-            all_points.append({
-                "lat": float(m.get("Lat", 0)),
-                "lon": float(m.get("Lon", 0)),
-                "tipo": m.get("Tipo", ""),
-                "nome": m.get("Nome", "")
-            })
-        except:
-            pass
+    # Fullscreen mappa
+    c_fs1, c_fs2 = st.columns([1,3])
+    with c_fs1:
+        if st.button("⛶ Fullscreen Mappa", key="btn_fs_mappa", use_container_width=True, type="primary"):
+            st.session_state["fs_mappa_active"] = True
+    with c_fs2:
+        st.markdown('<span style="background:#1A5D1A;color:white;padding:6px 12px;border-radius:6px;font-weight:bold;">🗺️ Mappa con marker che rimane</span>', unsafe_allow_html=True)
 
-    for em in st.session_state.emergenze:
-        coord = em.get("Coordinate", "")
-        if coord and "," in coord:
-            try:
-                lat_s, lon_s = coord.split(",")
-                all_points.append({
-                    "lat": float(lat_s.strip()),
-                    "lon": float(lon_s.strip()),
-                    "tipo": "Emergenza",
-                    "nome": em.get("Nome", "")
-                })
-            except:
-                pass
+    if st.session_state.get("fs_mappa_active"):
+        st.components.v1.html(
+            """
+            <script>
+            (function(){
+                try {
+                    const el = window.parent.document.documentElement;
+                    if (el.requestFullscreen) el.requestFullscreen();
+                } catch(e){}
+            })();
+            </script>
+            <div style="background:#1A5D1A;color:white;padding:8px;border-radius:6px;text-align:center;font-weight:bold;">FULLSCREEN MAPPA ATTIVO - ESC per uscire</div>
+            """,
+            height=60
+        )
+        if st.button("❌ Esci Fullscreen Mappa", key="btn_exit_fs_mappa"):
+            st.components.v1.html("<script>try{document.exitFullscreen(); parent.document.exitFullscreen();}catch(e){}</script>", height=0)
+            st.session_state["fs_mappa_active"] = False
+            st.rerun()
 
-    if all_points:
-        df_points = pd.DataFrame(all_points)
-        st.map(df_points[["lat", "lon"]])
-        st.dataframe(df_points, use_container_width=True)
+    c_tipo1, c_tipo2 = st.columns([1,2])
+    with c_tipo1:
+        tipo_mappa_ext = st.selectbox("Tipo Mappa Esterna", ["Google Maps", "Waze", "Google Earth"], index=0, key="tipo_mappa_ext")
+    with c_tipo2:
+        st.caption("Marker da libreria icone - rimane sulla mappa - coordinate in maschera")
+
+    st.markdown("#### 📍 Aggiungi Marker - Coordinate da mappa in maschera automatica")
+
+    icone_disponibili = st.session_state.get("icone", [])
+    if not icone_disponibili:
+        icone_nomi = ["🚨 Emergenza", "📅 Evento", "🚐 Mezzo", "👤 Volontario", "📻 Radio", "🏥 Ospedale", "🔥 Incendio", "💧 Alluvione"]
     else:
-        st.info("Nessun punto georeferenziato - Inserisci in Mappe Fusione o Emergenze")
+        icone_nomi = [f"{ico.get('Nome','')} ({ico.get('Tipo','')})" for ico in icone_disponibili]
 
-        # Demo Varese
-        demo_map = pd.DataFrame([
-            {"lat": 45.8167, "lon": 8.8333},
-            {"lat": 45.82, "lon": 8.84},
-            {"lat": 45.81, "lon": 8.82}
-        ])
-        st.map(demo_map)
-        st.caption("Demo mappa Varese")
+    c1, c2, c3, c4 = st.columns(4)
+    with c1:
+        marker_nome = st.text_input("Nome Marker *", key="adv_marker_nome", placeholder="Es: Incidente Via Roma")
+        marker_lat = st.text_input("Latitudine *", value=st.session_state.last_clicked_lat, key="adv_marker_lat")
+    with c2:
+        marker_lon = st.text_input("Longitudine *", value=st.session_state.last_clicked_lon, key="adv_marker_lon")
+        marker_comune = st.text_input("Comune (da mappa)", value="Varese", key="adv_marker_comune")
+    with c3:
+        marker_via = st.text_input("Via (da mappa)", value="", key="adv_marker_via")
+        marker_icona = st.selectbox("Icona dalla Libreria", icone_nomi, key="adv_marker_icona")
+    with c4:
+        marker_tipo = st.selectbox("Tipo Marker", ["Emergenza", "Evento", "Mezzo", "Volontario", "Punto Interesse"], key="adv_marker_tipo")
+        marker_data = st.date_input("Data Evento", value=date.today(), format="DD/MM/YYYY", key="adv_marker_data")
+        marker_desc = st.text_input("Descrizione", key="adv_marker_desc")
+
+    if st.button("➕ Aggiungi Marker - Rimane su mappa", type="primary", use_container_width=True):
+        if marker_nome and marker_lat and marker_lon:
+            try:
+                lat_f = float(str(marker_lat).replace(",", "."))
+                lon_f = float(str(marker_lon).replace(",", "."))
+                nuovo_marker = {
+                    "Nome": marker_nome,
+                    "Lat": lat_f,
+                    "Lon": lon_f,
+                    "Comune": marker_comune,
+                    "Via": marker_via,
+                    "Icona": marker_icona,
+                    "Descrizione": marker_desc,
+                    "Tipo": marker_tipo,
+                    "Data": str(marker_data),
+                    "DataIns": datetime.now().strftime("%d/%m/%Y %H:%M")
+                }
+                st.session_state.mappa_avanzata_markers.append(nuovo_marker)
+                st.success(f"Marker {marker_nome} aggiunto - Rimane su mappa - Comune {marker_comune} Via {marker_via}")
+                st.rerun()
+            except Exception as e:
+                st.error(f"Coordinate non valide: {e}")
+        else:
+            st.error("Compila Nome, Lat, Lon")
+
+    st.divider()
+
+    all_markers = st.session_state.get("mappa_avanzata_markers", [])
+
+    import json as json_lib
+    markers_for_js = json_lib.dumps([{"lat": m["Lat"], "lon": m["Lon"], "nome": m["Nome"], "icona": m["Icona"], "tipo": m["Tipo"], "comune": m.get("Comune",""), "via": m.get("Via","")} for m in all_markers])
+
+    html_code = """
+    <div id="map-container" style="position:relative; background:white; border-radius:12px;">
+        <div id="map" style="height:700px; width:100%; border-radius:12px; border:3px solid #1A5D1A;"></div>
+    </div>
+    <div id="coords" style="background:#fffde7;padding:12px;border-radius:6px;margin-top:8px;font-weight:bold;border-left:4px solid #FFD700; font-family:Times New Roman; min-height:50px;">📍 Clicca sulla mappa - Il marker rimarrà - Coordinate in maschera automatica</div>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+    var markersData = MARKERS_JSON_PLACEHOLDER;
+    var map = L.map('map').setView([45.8167, 8.8333], 14);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {attribution: 'ANA Varese - OpenStreetMap'}).addTo(map);
+
+    // Fullscreen gestione
+    var fsBtn = document.getElementById('fs-btn');
+    var fsExitBtn = document.getElementById('fs-btn-exit');
+    var mapContainer = document.getElementById('map-container');
+    
+    fsBtn.addEventListener('click', function() {
+        if (mapContainer.requestFullscreen) mapContainer.requestFullscreen();
+        else if (mapContainer.webkitRequestFullscreen) mapContainer.webkitRequestFullscreen();
+        else if (mapContainer.msRequestFullscreen) mapContainer.msRequestFullscreen();
+    });
+    
+    document.addEventListener('fullscreenchange', function() {
+        if (document.fullscreenElement) {
+            fsBtn.style.display = 'none';
+            fsExitBtn.style.display = 'block';
+            setTimeout(function(){ map.invalidateSize(); }, 500);
+        } else {
+            fsBtn.style.display = 'block';
+            fsExitBtn.style.display = 'none';
+            setTimeout(function(){ map.invalidateSize(); }, 500);
+        }
+    });
+
+    fsExitBtn.addEventListener('click', function() {
+        if (document.exitFullscreen) document.exitFullscreen();
+    });
+
+    // Marker esistenti - RIMANGONO
+    var allMarkers = [];
+    markersData.forEach(function(m) {
+        var iconEmoji = "📍";
+        if (m.icona && m.icona.includes("Emergenza")) iconEmoji = "🚨";
+        else if (m.icona && m.icona.includes("Evento")) iconEmoji = "📅";
+        else if (m.tipo == "Emergenza") iconEmoji = "🚨";
+        else if (m.tipo == "Evento") iconEmoji = "📅";
+        
+        var marker = L.marker([m.lat, m.lon]).addTo(map)
+            .bindPopup("<b>" + m.nome + "</b><br>" + m.icona + "<br>" + m.tipo + "<br>" + m.comune + " - " + m.via + "<br>Lat: " + m.lat + "<br>Lon: " + m.lon);
+        allMarkers.push(marker);
+    });
+
+    // Fit bounds se ci sono marker
+    if (allMarkers.length > 0) {
+        var group = new L.featureGroup(allMarkers);
+        map.fitBounds(group.getBounds().pad(0.2));
+    }
+
+    // Marker cliccati - RIMANGONO tutti
+    var clickedMarkers = [];
+    map.on('click', function(e) {
+        var lat = e.latlng.lat.toFixed(6);
+        var lon = e.latlng.lng.toFixed(6);
+        
+        // Crea marker che RIMANE - non rimuove precedenti
+        var newMarker = L.marker([lat, lon], {
+            draggable:true,
+            icon: L.icon({
+                iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
+                shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
+                iconSize: [25, 41],
+                iconAnchor: [12, 41],
+                popupAnchor: [1, -34]
+            })
+        }).addTo(map)
+            .bindPopup("<b>Nuovo marker</b><br>Lat: " + lat + "<br>Lon: " + lon + "<br>Trascina per spostare<br><b>RIMANE sulla mappa</b>").openPopup();
+        
+        clickedMarkers.push(newMarker);
+        document.getElementById('coords').innerHTML = "📍 Marker aggiunto - RIMANE sulla mappa - Totale marker temporanei: " + clickedMarkers.length + "<br>Lat: " + lat + " - Lon: " + lon + "<br><b>Copia in maschera sopra e clicca Aggiungi Marker per salvare definitivamente</b><br>Reverse geocoding in corso...";
+
+        // Auto-compila maschera
+        try {
+            var parentDoc = window.parent.document;
+            var allInputs = parentDoc.querySelectorAll('input[type="text"]');
+            allInputs.forEach(function(inp) {
+                var label = inp.getAttribute('aria-label') || '';
+                if (label.includes('Latitudine') && label.includes('*')) {
+                    inp.focus();
+                    document.execCommand('selectAll', false, null);
+                    inp.value = lat;
+                    inp.dispatchEvent(new Event('input', {bubbles:true}));
+                    inp.dispatchEvent(new Event('change', {bubbles:true}));
+                    parentDoc.defaultView.localStorage.setItem('last_lat', lat);
+                }
+                if (label.includes('Longitudine') && label.includes('*')) {
+                    inp.value = lon;
+                    inp.dispatchEvent(new Event('input', {bubbles:true}));
+                    inp.dispatchEvent(new Event('change', {bubbles:true}));
+                    parentDoc.defaultView.localStorage.setItem('last_lon', lon);
+                }
+            });
+            fetch('https://nominatim.openstreetmap.org/reverse?format=json&lat=' + lat + '&lon=' + lon + '&zoom=18&addressdetails=1')
+                .then(response => response.json())
+                .then(data => {
+                    var comune = data.address.city || data.address.town || data.address.village || data.address.municipality || "";
+                    var via = data.address.road || data.address.street || "";
+                    document.getElementById('coords').innerHTML += "<br>📍 Comune: <b>" + comune + "</b> - Via: <b>" + via + "</b>";
+                    allInputs.forEach(function(inp) {
+                        var label = inp.getAttribute('aria-label') || '';
+                        if (label.includes('Comune (da mappa)')) {
+                            inp.value = comune;
+                            inp.dispatchEvent(new Event('input', {bubbles:true}));
+                            inp.dispatchEvent(new Event('change', {bubbles:true}));
+                        }
+                        if (label.includes('Via (da mappa)')) {
+                            inp.value = via;
+                            inp.dispatchEvent(new Event('input', {bubbles:true}));
+                            inp.dispatchEvent(new Event('change', {bubbles:true}));
+                        }
+                    });
+                });
+        } catch(err) {
+            console.log(err);
+        }
+
+        newMarker.on('dragend', function(event) {
+            var pos = event.target.getLatLng();
+            document.getElementById('coords').innerHTML = "📍 Marker trascinato - RIMANE<br>Lat: " + pos.lat.toFixed(6) + " Lon: " + pos.lng.toFixed(6);
+        });
+    });
+    </script>
+    """
+    html_code = html_code.replace("MARKERS_JSON_PLACEHOLDER", markers_for_js)
+    st.components.v1.html(html_code, height=700)
+
+    if all_markers:
+        st.markdown(f"#### Elenco {len(all_markers)} Marker - Rimangono su mappa")
+        for idx, m in enumerate(all_markers):
+            c1, c2, c3, c4 = st.columns([2,2,3,1])
+            with c1:
+                st.write(f"**{m['Nome']}**")
+                st.caption(f"{m['Icona']} - {m['Tipo']}")
+            with c2:
+                st.text(f"Lat: {m['Lat']} Lon: {m['Lon']}")
+                st.caption(f"{m.get('Comune','')} - {m.get('Via','')}")
+            with c3:
+                lat = m['Lat']
+                lon = m['Lon']
+                gmaps = f"https://www.google.com/maps?q={lat},{lon}"
+                waze = f"https://waze.com/ul?ll={lat},{lon}&navigate=yes"
+                gearth = f"https://earth.google.com/web/@{lat},{lon},500a,1000d"
+                st.markdown(f"[Google Maps]({gmaps}) | [Waze]({waze}) | [Earth]({gearth})")
+                if tipo_mappa_ext == "Google Maps":
+                    st.link_button(f"Apri {tipo_mappa_ext}", gmaps, use_container_width=True)
+                elif tipo_mappa_ext == "Waze":
+                    st.link_button(f"Apri {tipo_mappa_ext}", waze, use_container_width=True)
+                else:
+                    st.link_button(f"Apri {tipo_mappa_ext}", gearth, use_container_width=True)
+            with c4:
+                if st.button("🗑️", key=f"del_marker_{idx}"):
+                    st.session_state.mappa_avanzata_markers.pop(idx)
+                    st.rerun()
+            st.divider()
+        if st.button("⬇️ Export Marker Excel", use_container_width=True):
+            df_exp = pd.DataFrame(all_markers)
+            st.download_button("Download Excel", data=to_excel(df_exp), file_name="mappa_avanzata.xlsx", mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+    else:
+        st.info("Nessun marker - Clicca sulla mappa - Marker rimane - Coordinate Comune Via Lat Lon in maschera")
 
 # LIBRERIA ICONE
+
+
+
 elif cur == "Libreria Icone":
     hdr()
     hdr_form("LIBRERIA ICONE - Icone Personalizzate")
@@ -2087,35 +2406,30 @@ elif cur == "Geolocalizzazione Hytera + Anytone":
         ])
         st.map(demo_pos)
 
-# BACKUP
+# BACKUP - Import/Export singolo + totale - gg/mm/aaaa
 elif cur == "Backup":
     hdr()
-    hdr_form("BACKUP - Visualizza JSON + Esporta")
+    hdr_form("BACKUP - Import / Export Completo")
 
-    st.markdown("Backup completo dati gestionali")
-
-    backup_data = {
-        "volontari": st.session_state.volontari,
-        "radio_db": st.session_state.radio_db,
-        "consegna_radio": st.session_state.consegna_radio,
-        "alias_radio": st.session_state.alias_radio,
-        "brogliaccio": st.session_state.brogliaccio,
-        "eventi": st.session_state.eventi,
-        "emergenze": st.session_state.emergenze,
-        "mappe": st.session_state.mappe,
-        "checkin": st.session_state.checkin,
-        "interventi": st.session_state.interventi,
-        "mezzi": st.session_state.mezzi,
-        "attrezzature": st.session_state.attrezzature,
-        "icone": st.session_state.icone,
-        "chat": st.session_state.chat,
-        "posizioni_pd785": st.session_state.posizioni_pd785,
-        "posizioni_anytone": st.session_state.posizioni_anytone,
-        "data_backup": datetime.now().strftime("%d/%m/%Y %H:%M:%S"),
-        "versione": "950+ MODIFICHE 6 RICHIESTE FINALE - Fusione Mappe SI"
+    FORM_KEYS = {
+        "Volontari (con foto)": "volontari",
+        "DB Radio": "radio_db",
+        "Consegna Radio": "consegna_radio",
+        "Alias Radio": "alias_radio",
+        "Brogliaccio": "brogliaccio",
+        "Eventi": "eventi",
+        "Emergenze": "emergenze",
+        "# RIMOSSO": "mappe",
+        "Check-in": "checkin",
+        "Interventi Emergenza": "interventi",
+        "Mezzi": "mezzi",
+        "Attrezzature": "attrezzature",
+        "Libreria Icone": "icone",
+        "Chat": "chat",
+        "Posizioni PD785": "posizioni_pd785",
+        "Posizioni Anytone": "posizioni_anytone"
     }
 
-    # Rimuove bytes per JSON
     def clean_for_json(obj):
         if isinstance(obj, list):
             cleaned = []
@@ -2123,131 +2437,149 @@ elif cur == "Backup":
                 if isinstance(item, dict):
                     new_item = {}
                     for k, v in item.items():
-                        if "Bytes" not in k and "Foto" not in k:
-                            new_item[k] = v
+                        if "Bytes" not in k and "Foto" not in k and "File" not in k:
+                            try:
+                                json.dumps(v)
+                                new_item[k] = v
+                            except:
+                                new_item[k] = str(v)
                         else:
-                            new_item[k] = "BINARIO_OMESSO_PER_JSON"
+                            new_item[k] = "BINARIO_OMESSO"
                     cleaned.append(new_item)
                 else:
                     cleaned.append(item)
             return cleaned
         return obj
 
-    json_clean = {}
-    for k, v in backup_data.items():
-        if isinstance(v, list):
-            json_clean[k] = clean_for_json(v)
-        else:
-            json_clean[k] = v
+    tab_tot, tab_singolo, tab_import = st.tabs(["💾 Backup Totale", "📄 Singolo Form", "📥 Importa Backup"])
 
-    json_str = json.dumps(json_clean, indent=2, ensure_ascii=False)
-
-    st.markdown("**Visualizza JSON Backup**")
-    st.code(json_str[:5000] + ("... [troncato]" if len(json_str) > 5000 else ""), language="json")
-
-    st.divider()
-
-    c1, c2, c3 = st.columns(3)
-    with c1:
-        st.download_button(
-            "Download JSON Completo",
-            data=json_str.encode("utf-8"),
-            file_name=f"backup_ana_varese_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json",
-            mime="application/json",
-            use_container_width=True
-        )
-
-    with c2:
-        # Excel multi
-        try:
-            datasets = {}
-            if st.session_state.volontari:
-                datasets["Volontari"] = pd.DataFrame(st.session_state.volontari)
-            if st.session_state.radio_db:
-                datasets["RadioDB"] = pd.DataFrame(st.session_state.radio_db)
-            if st.session_state.emergenze:
-                datasets["Emergenze"] = pd.DataFrame(st.session_state.emergenze)
-            if st.session_state.eventi:
-                datasets["Eventi"] = pd.DataFrame(st.session_state.eventi)
-            if st.session_state.mappe:
-                datasets["MappeFusione"] = pd.DataFrame(st.session_state.mappe)
-            if st.session_state.interventi:
-                datasets["Interventi"] = pd.DataFrame(st.session_state.interventi)
-
-            if datasets:
-                excel_multi_data = to_excel_multi(datasets)
-                st.download_button(
-                    "Download Excel Multi Fogli",
-                    data=excel_multi_data,
-                    file_name="backup_multi_ana_varese.xlsx",
-                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                    use_container_width=True
-                )
-        except:
-            pass
-
-    with c3:
-        if REPORTLAB_OK:
+    with tab_tot:
+        st.markdown("#### Backup Totale")
+        backup_data = {k: st.session_state.get(k, []) for k in FORM_KEYS.values()}
+        backup_data["data_backup"] = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
+        backup_data["versione"] = "ANA Varese v2 - gg/mm/aaaa - ODV + linguette"
+        json_clean = {k: clean_for_json(v) if isinstance(v, list) else v for k,v in backup_data.items()}
+        json_str = json.dumps(json_clean, indent=2, ensure_ascii=False)
+        c1, c2, c3 = st.columns(3)
+        with c1:
+            st.download_button("⬇️ JSON Totale", data=json_str.encode("utf-8"), file_name=f"backup_totale_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json", mime="application/json", use_container_width=True, type="primary")
+        with c2:
             try:
-                df_summary = pd.DataFrame([
-                    {"Form": "Volontari", "Record": len(st.session_state.volontari)},
-                    {"Form": "Radio DB", "Record": len(st.session_state.radio_db)},
-                    {"Form": "Consegne", "Record": len(st.session_state.consegna_radio)},
-                    {"Form": "Eventi", "Record": len(st.session_state.eventi)},
-                    {"Form": "Emergenze", "Record": len(st.session_state.emergenze)},
-                    {"Form": "Mappe Fusione", "Record": len(st.session_state.mappe)},
-                    {"Form": "Interventi", "Record": len(st.session_state.interventi)},
-                    {"Form": "Mezzi", "Record": len(st.session_state.mezzi)},
-                    {"Form": "Attrezzature", "Record": len(st.session_state.attrezzature)},
-                ])
-                st.download_button(
-                    "PDF Riepilogo Logo Estesa",
-                    data=to_pdf(df_summary, "BACKUP RIEPILOGO"),
-                    file_name="backup_riepilogo.pdf",
-                    mime="application/pdf",
-                    use_container_width=True
-                )
-            except:
-                pass
+                datasets = {}
+                for label, key in FORM_KEYS.items():
+                    data = st.session_state.get(key, [])
+                    if data:
+                        clean = [{kk: vv for kk, vv in r.items() if "Bytes" not in kk and "Foto" not in kk} for r in data if isinstance(r, dict)]
+                        if clean:
+                            datasets[label[:31]] = pd.DataFrame(clean)
+                if datasets:
+                    st.download_button("⬇️ Excel Multi", data=to_excel_multi(datasets), file_name=f"backup_totale_{datetime.now().strftime('%Y%m%d')}.xlsx", mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", use_container_width=True)
+            except Exception as e:
+                st.error(f"Excel: {e}")
+        with c3:
+            if REPORTLAB_OK:
+                try:
+                    df_summary = pd.DataFrame([{"Form": label, "Record": len(st.session_state.get(key, []))} for label, key in FORM_KEYS.items()])
+                    st.download_button("⬇️ PDF", data=to_pdf(df_summary, "BACKUP TOTALE"), file_name="backup_riepilogo.pdf", mime="application/pdf", use_container_width=True)
+                except:
+                    pass
+        st.code(json_str[:4000] + ("..." if len(json_str)>4000 else ""), language="json")
 
-    st.divider()
-    st.markdown(
-        """
-        <div style="background:#fff3e0;padding:12px;border-radius:8px;
-        border-left:4px solid #ff9800;">
-        <strong>Istruzioni Ripristino Backup:</strong><br>
-        1. Scarica JSON backup<br>
-        2. In futuro: carica file in funzione di import (da implementare)<br>
-        3. Tutti i PDF ora hanno logo PC ANA in intestazione e tabella estesa tutto foglio - Modifica 3 OK
-        </div>
-        """,
-        unsafe_allow_html=True
-    )
+    with tab_singolo:
+        st.markdown("#### Export / Import Singolo Form")
+        sel_label = st.selectbox("Seleziona Form", list(FORM_KEYS.keys()), key="backup_sel_form")
+        sel_key = FORM_KEYS[sel_label]
+        sel_data = st.session_state.get(sel_key, [])
+        st.metric(f"Record in {sel_label}", len(sel_data))
+        if sel_data:
+            df_sel = pd.DataFrame([{k:v for k,v in r.items() if "Bytes" not in k} for r in sel_data if isinstance(r, dict)])
+            st.dataframe(df_sel.head(20), use_container_width=True)
+        c1, c2 = st.columns(2)
+        with c1:
+            st.markdown(f"**⬇️ EXPORT {sel_label}**")
+            if sel_data:
+                df_clean = pd.DataFrame([{k:v for k,v in r.items() if "Bytes" not in k and "Foto" not in k} for r in sel_data])
+                st.download_button(f"⬇️ Excel {sel_label}", data=to_excel(df_clean), file_name=f"{sel_key}_{datetime.now().strftime('%Y%m%d')}.xlsx", mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", use_container_width=True, key=f"exp_excel_{sel_key}")
+                st.download_button(f"⬇️ CSV {sel_label}", data=df_clean.to_csv(index=False).encode("utf-8"), file_name=f"{sel_key}.csv", mime="text/csv", use_container_width=True, key=f"exp_csv_{sel_key}")
+                st.download_button(f"⬇️ JSON {sel_label}", data=json.dumps(clean_for_json(sel_data), indent=2, ensure_ascii=False).encode("utf-8"), file_name=f"{sel_key}.json", mime="application/json", use_container_width=True, key=f"exp_json_{sel_key}")
+            else:
+                st.warning("Vuoto")
+        with c2:
+            st.markdown(f"**📥 IMPORT in {sel_label}**")
+            up_mode = st.radio("Modalità", ["Aggiungi", "Sostituisci"], key="up_mode_single", horizontal=True)
+            up_file = st.file_uploader(f"Carica per {sel_label}", type=["json", "xlsx", "csv"], key="up_single_form")
+            if up_file:
+                try:
+                    imported = []
+                    if up_file.name.endswith(".json"):
+                        raw = json.loads(up_file.read().decode("utf-8"))
+                        if isinstance(raw, dict):
+                            if sel_key in raw:
+                                imported = raw[sel_key]
+                            else:
+                                for v in raw.values():
+                                    if isinstance(v, list) and v and isinstance(v[0], dict):
+                                        imported = v
+                                        break
+                        elif isinstance(raw, list):
+                            imported = raw
+                    elif up_file.name.endswith(".xlsx"):
+                        imported = pd.read_excel(up_file).to_dict(orient="records")
+                    else:
+                        imported = pd.read_csv(up_file).to_dict(orient="records")
+                    st.success(f"{len(imported)} record")
+                    st.dataframe(pd.DataFrame(imported).head(10), use_container_width=True)
+                    if st.button(f"✅ Importa in {sel_label}", type="primary"):
+                        if up_mode == "Sostituisci":
+                            st.session_state[sel_key] = imported
+                        else:
+                            st.session_state[sel_key] = st.session_state.get(sel_key, []) + imported
+                        st.rerun()
+                except Exception as e:
+                    st.error(f"Errore: {e}")
 
-# Footer comune
+    with tab_import:
+        st.markdown("#### Importa Backup Totale")
+        up_total = st.file_uploader("JSON Totale", type=["json"], key="up_total_backup")
+        if up_total:
+            try:
+                data_total = json.loads(up_total.read().decode("utf-8"))
+                st.write(f"Backup del: {data_total.get('data_backup','?')}")
+                cols = st.columns(4)
+                for i, (label, key) in enumerate(FORM_KEYS.items()):
+                    if key in data_total:
+                        cols[i % 4].metric(label, f"{len(data_total.get(key, []))}")
+                mode_total = st.radio("Modalità", ["Aggiungi", "Sostituisci"], key="mode_total")
+                if st.button("✅ CONFERMA IMPORT TOTALE", type="primary", use_container_width=True):
+                    for label, key in FORM_KEYS.items():
+                        if key in data_total and isinstance(data_total[key], list):
+                            if mode_total.startswith("Sostituisci"):
+                                st.session_state[key] = data_total[key]
+                            else:
+                                st.session_state[key] = st.session_state.get(key, []) + data_total[key]
+                    st.success("Importato!")
+                    st.rerun()
+            except Exception as e:
+                st.error(f"Errore: {e}")
+        with st.expander("⚠️ Azzera"):
+            sel_zero = st.selectbox("Form da azzerare", ["--"] + list(FORM_KEYS.keys()), key="zero_sel")
+            if sel_zero != "--":
+                if st.button(f"🗑️ Azzera {sel_zero}"):
+                    st.session_state[FORM_KEYS[sel_zero]] = []
+                    st.rerun()
+            if st.button("🗑️ AZZERA TUTTO"):
+                for k in FORM_KEYS.values():
+                    st.session_state[k] = []
+                st.rerun()
+
+# Footer
 st.divider()
 st.markdown(
     """
-    <div style="text-align:center;padding:12px;
-    background:linear-gradient(135deg,#1A5D1A,#2e7d32);
-    border-radius:8px;color:white;font-size:12px;">
-    ANA Varese Protezione Civile - Gestionale 950+ Modifiche 6 Richieste Finali<br>
-    Dashboard solo menu + tasti form | PDF logo + tabella estesa | Stato colorato | Click cognome modifica | Login/Logout | Fusione Mappe SI<br>
-    Sviluppato per Ezio - Radio Hytera PD785 + Anytone 878
+    <div style="text-align:center;padding:12px;background:linear-gradient(135deg,#1A5D1A,#2e7d32);border-radius:8px;color:white;font-size:12px;">
+    ANA Varese - Dashboard rosso + bottoni OK | Volontari linguette + ODV | Date gg/mm/aaaa | Backup Import/Export<br>
+    Sviluppato per Ezio
     </div>
     """,
     unsafe_allow_html=True
 )
-
-# Note finali per conteggio righe e qualità
-# File completo 1600+ righe senza errori indentazione/sintassi
-# 4 spazi, nessun tab, nessun if inline, tutte parentesi chiuse
-# Funzioni: get_stato_color, get_comuni, get_vie, combo_comune, combo_vie, to_excel, to_pdf, to_excel_multi, hdr, hdr_form
-# Modifica 1 e 2: Dashboard solo menu e tasti form, niente rubrica colorata, tutti tasti form in griglia 3 colonne
-# Modifica 3: PDF logo pc ana intestazione e tabella estesa tutto foglio landscape A4 27cm
-# Modifica 4: Intervento emergenze maschera campo stato fondo colorato bg txt label
-# Modifica 5: Volontari tabella click cognome carica maschera per aggiornamento con tasto AGGIORNA
-# Modifica 6: Login e Logout ripristinati page entra/login/dashboard sidebar logout
-# Fusione Emergenze/Eventi in Mappe: SI ottima idea - form unico Mappe (Emergenze+Eventi) con Tipo + mappa
-# Backup con PDF logo tabella estesa
-# End file

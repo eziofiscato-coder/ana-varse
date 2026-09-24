@@ -961,27 +961,60 @@ if cur == "Dashboard":
         st.session_state.menu = form_name
         st.session_state["menu_radio"] = form_name
 
-    # CSS bottoni verde ANA
+    # CSS bottoni verde ANA - SFONDO PIENO VERDE - FIX DEFINITIVO
     st.markdown(
         """
         <style>
-        /* Bottoni dashboard verde ANA */
-        div[data-testid="column"] .stButton > button {
+        /* Reset e forza verde ANA su TUTTI i bottoni dashboard */
+        [data-testid="column"] .stButton > button,
+        [data-testid="stColumn"] .stButton > button,
+        div[data-testid="stVerticalBlock"] .stButton > button {
             background-color: #1A5D1A !important;
+            background-image: none !important;
+            background: #1A5D1A !important;
             color: white !important;
             border: 2px solid #1A5D1A !important;
             font-weight: bold !important;
             font-family: 'Times New Roman', serif !important;
+            border-radius: 8px !important;
         }
-        div[data-testid="column"] .stButton > button:hover {
+        [data-testid="column"] .stButton > button:hover {
             background-color: #2e7d32 !important;
+            background: #2e7d32 !important;
             border-color: #2e7d32 !important;
             color: white !important;
         }
-        /* Tasto fullscreen rosso */
-        button[kind="primary"].fullscreen-red {
+        [data-testid="column"] .stButton > button:active,
+        [data-testid="column"] .stButton > button:focus,
+        [data-testid="column"] .stButton > button:focus-visible {
+            background-color: #1A5D1A !important;
+            background: #1A5D1A !important;
+            color: white !important;
+            box-shadow: 0 0 0 2px rgba(26,93,26,0.3) !important;
+            outline: none !important;
+        }
+        /* Forza anche su kind secondary */
+        button[kind="secondary"] {
+            background-color: #1A5D1A !important;
+            background: #1A5D1A !important;
+            color: white !important;
+            border-color: #1A5D1A !important;
+        }
+        /* Solo i bottoni primary generici lasciali verdi, tranne fullscreen */
+        button[kind="primary"]:not([data-testid*="fullscreen"]) {
+            background-color: #1A5D1A !important;
+            background: #1A5D1A !important;
+            border-color: #1A5D1A !important;
+        }
+        /* Fullscreen dashboard rosso - specifico */
+        button[key="btn_fullscreen_dash"], button[key="btn_exit_fs"] {
             background-color: #ff0000 !important;
+            background: #ff0000 !important;
             border-color: #ff0000 !important;
+        }
+        /* Testo dentro bottone bianco */
+        .stButton > button div, .stButton > button p, .stButton > button span {
+            color: white !important;
         }
         </style>
         """,
@@ -2070,43 +2103,61 @@ elif cur == "Mappa Avanzata":
 
     html_code = """
     <div id="map-container" style="position:relative; background:white; border-radius:12px;">
-        <div id="map" style="height:650px; width:100%; border-radius:12px; border:3px solid #1A5D1A;"></div>
-        <button id="fs-btn" style="position:absolute; top:15px; right:15px; z-index:1000; background:#ff0000; color:white; border:2px solid white; padding:10px 16px; border-radius:8px; font-weight:bold; cursor:pointer; box-shadow:0 2px 6px rgba(0,0,0,0.3);">⛶ FULLSCREEN MAPPA</button>
-        <button id="fs-btn-exit" style="position:absolute; top:15px; left:15px; z-index:1000; background:#1A5D1A; color:white; border:2px solid white; padding:8px 12px; border-radius:6px; font-weight:bold; cursor:pointer; display:none;">❌ Esci Fullscreen</button>
+        <div id="map" style="height:700px; width:100%; border-radius:12px; border:3px solid #1A5D1A;"></div>
     </div>
     <div id="coords" style="background:#fffde7;padding:12px;border-radius:6px;margin-top:8px;font-weight:bold;border-left:4px solid #FFD700; font-family:Times New Roman; min-height:50px;">📍 Clicca sulla mappa - Il marker rimarrà - Coordinate in maschera automatica</div>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
     var markersData = MARKERS_JSON_PLACEHOLDER;
-    var map = L.map('map').setView([45.8167, 8.8333], 14);
+    var map = L.map('map', {zoomControl: false}).setView([45.8167, 8.8333], 14);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {attribution: 'ANA Varese - OpenStreetMap'}).addTo(map);
 
-    // Fullscreen gestione
-    var fsBtn = document.getElementById('fs-btn');
-    var fsExitBtn = document.getElementById('fs-btn-exit');
-    var mapContainer = document.getElementById('map-container');
-    
-    fsBtn.addEventListener('click', function() {
-        if (mapContainer.requestFullscreen) mapContainer.requestFullscreen();
-        else if (mapContainer.webkitRequestFullscreen) mapContainer.webkitRequestFullscreen();
-        else if (mapContainer.msRequestFullscreen) mapContainer.msRequestFullscreen();
-    });
-    
-    document.addEventListener('fullscreenchange', function() {
-        if (document.fullscreenElement) {
-            fsBtn.style.display = 'none';
-            fsExitBtn.style.display = 'block';
-            setTimeout(function(){ map.invalidateSize(); }, 500);
-        } else {
-            fsBtn.style.display = 'block';
-            fsExitBtn.style.display = 'none';
-            setTimeout(function(){ map.invalidateSize(); }, 500);
+    // Zoom control custom in alto a sx
+    L.control.zoom({position: 'topleft'}).addTo(map);
+
+    // Fullscreen quadratino sotto + e - come vecchia versione
+    var FullscreenControl = L.Control.extend({
+        onAdd: function(map) {
+            var container = L.DomUtil.create('div', 'leaflet-bar leaflet-control');
+            var btn = L.DomUtil.create('a', '', container);
+            btn.innerHTML = '⛶';
+            btn.title = 'Fullscreen Mappa';
+            btn.href = '#';
+            btn.style.width = '34px';
+            btn.style.height = '34px';
+            btn.style.lineHeight = '34px';
+            btn.style.fontSize = '20px';
+            btn.style.textAlign = 'center';
+            btn.style.backgroundColor = 'white';
+            btn.style.color = 'black';
+            btn.style.textDecoration = 'none';
+            btn.style.fontWeight = 'bold';
+            btn.style.display = 'block';
+            btn.style.cursor = 'pointer';
+            btn.style.borderTop = '1px solid #ccc';
+            
+            L.DomEvent.on(btn, 'click', function(e) {
+                L.DomEvent.stop(e);
+                var mapContainer = document.getElementById('map-container');
+                if (!document.fullscreenElement) {
+                    if (mapContainer.requestFullscreen) mapContainer.requestFullscreen();
+                    else if (mapContainer.webkitRequestFullscreen) mapContainer.webkitRequestFullscreen();
+                    else if (mapContainer.msRequestFullscreen) mapContainer.msRequestFullscreen();
+                } else {
+                    if (document.exitFullscreen) document.exitFullscreen();
+                }
+            });
+            
+            return container;
         }
     });
+    
+    map.addControl(new FullscreenControl({position: 'topleft'}));
 
-    fsExitBtn.addEventListener('click', function() {
-        if (document.exitFullscreen) document.exitFullscreen();
+    // Aggiorna icona quando entra/esce fullscreen
+    document.addEventListener('fullscreenchange', function() {
+        setTimeout(function(){ map.invalidateSize(); }, 300);
     });
 
     // Marker esistenti - RIMANGONO
