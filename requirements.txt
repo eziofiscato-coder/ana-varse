@@ -1,5 +1,7 @@
 streamlit
 pandas
-requests
-reportlab
 openpyxl
+reportlab
+requests
+folium
+streamlit-folium
