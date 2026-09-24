@@ -99,61 +99,6 @@ except:
 
 
 
-
-# FIX FULLSCREEN BUTTON SOTTO + - 100% TUTTO SCHERMO
-def add_fullscreen_button_to_map():
-    st.markdown('''
-    <style>
-    .leaflet-control-fullscreen-button {
-        background-color: white !important;
-        width: 34px !important;
-        height: 34px !important;
-        display: flex !important;
-        align-items: center !important;
-        justify-content: center !important;
-        font-size: 20px !important;
-        cursor: pointer !important;
-        border: 2px solid rgba(0,0,0,0.2) !important;
-        border-radius: 4px !important;
-    }
-    </style>
-    <script>
-    function makeMapsFullscreen() {
-        // Trova tutti i controlli zoom e aggiungi bottone fullscreen sotto
-        document.querySelectorAll('.leaflet-control-zoom').forEach(function(zoomCtrl) {
-            if (zoomCtrl.nextElementSibling && zoomCtrl.nextElementSibling.classList.contains('fullscreen-btn-custom')) return;
-            var btn = document.createElement('div');
-            btn.className = 'leaflet-control fullscreen-btn-custom';
-            btn.style.marginTop = '5px';
-            var a = document.createElement('a');
-            a.className = 'leaflet-control-fullscreen-button';
-            a.href = '#';
-            a.title = 'Schermo intero';
-            a.innerHTML = '⛶';
-            a.onclick = function(e) {
-                e.preventDefault();
-                var container = this.closest('.leaflet-container');
-                if (!container) container = document.querySelector('.leaflet-container');
-                if (container) {
-                    if (!document.fullscreenElement) {
-                        if (container.requestFullscreen) container.requestFullscreen();
-                        else if (container.webkitRequestFullscreen) container.webkitRequestFullscreen();
-                        else if (container.msRequestFullscreen) container.msRequestFullscreen();
-                    } else {
-                        if (document.exitFullscreen) document.exitFullscreen();
-                    }
-                }
-            };
-            btn.appendChild(a);
-            zoomCtrl.parentNode.insertBefore(btn, zoomCtrl.nextSibling);
-        });
-    }
-    // Esegui dopo 1 sec e ogni 2 sec per mappe dinamiche
-    setTimeout(makeMapsFullscreen, 1000);
-    setInterval(makeMapsFullscreen, 2000);
-    </script>
-    ''', unsafe_allow_html=True)
-
 COMUNI_ITALIA = [
     "Varese", "Busto Arsizio", "Gallarate", "Saronno", "Cassano Magnago",
     "Tradate", "Malnate", "Somma Lombardo", "Gavirate", "Laveno-Mombello",
@@ -2085,11 +2030,7 @@ elif cur == "Mappe Postazioni":
             st.session_state.map_focus = None
             st.rerun()
     with c4:
-        try:
-            add_fullscreen_button_to_map()
-        except Exception:
-            pass
-    st.markdown(f'<span style="background:#1A5D1A;color:white;padding:6px 12px;border-radius:6px;font-weight:bold;">🗺️ {len(st.session_state.mappa_avanzata_markers)} postazioni - Tutti rimangono</span>', unsafe_allow_html=True)
+        st.markdown(f'<span style="background:#1A5D1A;color:white;padding:6px 12px;border-radius:6px;font-weight:bold;">🗺️ {len(st.session_state.mappa_avanzata_markers)} postazioni - Tutti rimangono</span>', unsafe_allow_html=True)
 
     if st.session_state.get("fs_mappa_active"):
         st.components.v1.html("<div style='background:#1A5D1A;color:white;padding:8px;border-radius:6px;text-align:center;'>FULLSCREEN - ESC per uscire</div>", height=40)
@@ -2302,6 +2243,27 @@ elif cur == "Mappe Postazioni":
     html_code = """
     <div id="map-container" style="position:relative; background:white; border-radius:12px;">
         <div id="map" style="height:650px; width:100%; border-radius:12px; border:3px solid #1A5D1A;"></div>
+    <style>
+    /* FIX TASTO FULLSCREEN 100% SOTTO + - */
+    .leaflet-control-zoom { margin-bottom: 5px !important; }
+    .fullscreen-btn-map {
+        background: white !important;
+        width: 34px !important;
+        height: 34px !important;
+        line-height: 34px !important;
+        text-align: center !important;
+        font-size: 20px !important;
+        cursor: pointer !important;
+        border: 2px solid rgba(0,0,0,0.2) !important;
+        border-radius: 4px !important;
+        display: block !important;
+        margin-top: 5px !important;
+    }
+    .fullscreen-btn-map:hover { background: #f4f4f4 !important; }
+    #map:fullscreen { width: 100vw !important; height: 100vh !important; }
+    #map:-webkit-full-screen { width: 100vw !important; height: 100vh !important; }
+    #map:-moz-full-screen { width: 100vw !important; height: 100vh !important; }
+    </style>
     </div>
     <div id="coords" style="background:#fffde7;padding:8px;border-radius:6px;margin-top:8px;font-weight:bold;border-left:4px solid #FFD700;">📍 Clicca per aggiungere - Tutti rimangono</div>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
@@ -2485,6 +2447,103 @@ elif cur == "Mappe Postazioni":
 # LIBRERIA ICONE
 
 
+
+# TURNI - FORM RIPRISTINATO - RICHIESTO DA EZIO
+elif cur == "Turni":
+    hdr()
+    hdr_form("TURNI - Gestione Turni Volontari")
+
+    if "turni" not in st.session_state:
+        st.session_state.turni = []
+
+    # Fix fullscreen button helper
+    try:
+        add_fullscreen_button_to_map()
+    except:
+        pass
+
+    tab1, tab2 = st.tabs(["➕ Nuovo Turno", "📋 Elenco Turni"])
+
+    with tab1:
+        c1, c2, c3 = st.columns(3)
+        with c1:
+            data_turno = st.date_input("Data Turno *", value=date.today(), format="DD/MM/YYYY", key="turno_data")
+            ora_inizio = st.time_input("Ora Inizio *", value=time(8,0), key="turno_ora_in")
+            ora_fine = st.time_input("Ora Fine *", value=time(12,0), key="turno_ora_fine")
+        with c2:
+            volontari_list = st.session_state.get("volontari", [])
+            nomi_vol = [f"{v.get('Cognome','')} {v.get('Nome','')} - {v.get('Telefono','')}" for v in volontari_list] if volontari_list else ["-- Nessun volontario --"]
+            volontario_sel = st.selectbox("Volontario *", nomi_vol, key="turno_volontario")
+            tipo_turno = st.selectbox("Tipo Turno *", ["Mattina", "Pomeriggio", "Sera", "Notte", "Reperibilità", "Emergenza", "Evento", "Formazione", "Altro"], key="turno_tipo")
+            luogo_turno = combo_comune("Luogo / Comune", "turno_comune", "Varese")
+        with c3:
+            via_turno = combo_vie("Via", luogo_turno, "turno_via", "")
+            stato_turno = st.selectbox("Stato", ["Programmato", "Confermato", "In Corso", "Completato", "Annullato"], key="turno_stato")
+            note_turno = st.text_area("Note Turno", key="turno_note", placeholder="Note, dettagli turno...")
+            bg_t, txt_t, lab_t = get_stato_color(stato_turno)
+            st.markdown(f'<div style="background:{bg_t};color:{txt_t};padding:6px;border-radius:6px;text-align:center;">{lab_t}: {stato_turno}</div>', unsafe_allow_html=True)
+
+        if st.button("💾 Salva Turno", type="primary", use_container_width=True, key="btn_salva_turno"):
+            if volontario_sel and volontario_sel != "-- Nessun volontario --":
+                nuovo_turno = {
+                    "Data": str(data_turno),
+                    "OraInizio": str(ora_inizio),
+                    "OraFine": str(ora_fine),
+                    "Volontario": volontario_sel,
+                    "Tipo": tipo_turno,
+                    "Comune": luogo_turno,
+                    "Via": via_turno,
+                    "Stato": stato_turno,
+                    "Note": note_turno,
+                    "DataIns": datetime.now().strftime("%d/%m/%Y %H:%M")
+                }
+                st.session_state.turni.append(nuovo_turno)
+                st.success(f"✅ Turno salvato: {volontario_sel} - {data_turno} {ora_inizio}-{ora_fine}")
+                st.rerun()
+            else:
+                st.error("Seleziona volontario")
+
+    with tab2:
+        if st.session_state.turni:
+            df_turni = pd.DataFrame(st.session_state.turni)
+            # Filtro
+            col_f1, col_f2, col_f3 = st.columns(3)
+            with col_f1:
+                filtro_data = st.date_input("Filtra Data", value=None, key="filtro_turno_data")
+            with col_f2:
+                filtro_tipo = st.selectbox("Filtra Tipo", ["Tutti"] + ["Mattina","Pomeriggio","Sera","Notte","Reperibilità","Emergenza","Evento"], key="filtro_turno_tipo")
+            with col_f3:
+                filtro_stato = st.selectbox("Filtra Stato", ["Tutti","Programmato","Confermato","In Corso","Completato","Annullato"], key="filtro_turno_stato")
+
+            df_view = df_turni.copy()
+            if filtro_data:
+                df_view = df_view[df_view["Data"]==str(filtro_data)]
+            if filtro_tipo != "Tutti":
+                df_view = df_view[df_view["Tipo"]==filtro_tipo]
+            if filtro_stato != "Tutti":
+                df_view = df_view[df_view["Stato"]==filtro_stato]
+
+            st.dataframe(df_view, use_container_width=True)
+
+            for idx, row in df_view.iterrows():
+                c1, c2, c3, c4 = st.columns([3,2,1,1])
+                bg, txt, lab = get_stato_color(row.get("Stato","Programmato"))
+                c1.markdown(f"**{row.get('Data','')} {row.get('OraInizio','')}-{row.get('OraFine','')}** - {row.get('Volontario','')} - {row.get('Tipo','')} - {row.get('Comune','')} {row.get('Via','')}")
+                c2.markdown(f"<span style='background:{bg};color:{txt};padding:4px 8px;border-radius:4px;'>{row.get('Stato','')}</span>", unsafe_allow_html=True)
+                if c3.button("✏️", key=f"edit_turno_{idx}"):
+                    st.session_state.edit_turno_idx = idx
+                if c4.button("🗑️", key=f"del_turno_{idx}"):
+                    st.session_state.turni.pop(idx)
+                    st.rerun()
+
+            # Export
+            if REPORTLAB_OK:
+                st.download_button("📄 PDF Turni", data=to_pdf(df_view, "TURNI"), file_name="turni.pdf", mime="application/pdf", use_container_width=True)
+            st.download_button("📊 Excel Turni", data=to_excel(df_view), file_name="turni.xlsx", mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", use_container_width=True)
+        else:
+            st.info("Nessun turno salvato - Crea il primo turno sopra")
+
+
 elif cur == "Libreria Icone":
     hdr()
     hdr_form("LIBRERIA ICONE - Scegli tu il marker da usare su Mappe Postazioni")
@@ -2522,21 +2581,6 @@ elif cur == "Libreria Icone":
         st.markdown("**Anteprima**")
         preview_emoji = st.session_state.get("ico_emoji", "📍") if "ico_emoji" in st.session_state else emoji_icona
         st.markdown(f"<div style='font-size:40px;text-align:center;background:white;padding:10px;border-radius:8px;border:2px solid #1A5D1A;'>{preview_emoji}</div>", unsafe_allow_html=True)
-        # FIX immagine file upload libreria icone
-        if file_icona is not None:
-            try:
-                import base64
-                bytes_data = file_icona.getvalue()
-                b64 = base64.b64encode(bytes_data).decode()
-                ext = file_icona.type.split("/")[-1] if "/" in file_icona.type else "png"
-                st.markdown(f"<div style='text-align:center;margin-top:8px;'><img src='data:image/{ext};base64,{b64}' style='width:80px;height:80px;object-fit:contain;border:2px solid #1A5D1A;border-radius:8px;'/><br><small>{file_icona.name}</small></div>", unsafe_allow_html=True)
-                # Salva base64 in session per uso futuro
-                st.session_state['last_icon_b64'] = b64
-                st.session_state['last_icon_ext'] = ext
-            except Exception as e:
-                st.warning(f"Anteprima immagine non disponibile: {e}")
-        elif 'last_icon_b64' in st.session_state:
-            st.markdown(f"<div style='text-align:center;margin-top:8px;opacity:0.6;'><img src='data:image/{st.session_state.get('last_icon_ext','png')};base64,{st.session_state['last_icon_b64']}' style='width:60px;height:60px;object-fit:contain;border:1px dashed gray;border-radius:8px;'/><br><small>Ultima immagine</small></div>", unsafe_allow_html=True)
 
     if st.button("💾 Salva Icona in Libreria", type="primary", use_container_width=True):
         if nome_icona and emoji_icona:
@@ -2722,6 +2766,7 @@ elif cur == "Backup":
         "Mezzi": "mezzi",
         "Attrezzature": "attrezzature",
         "Libreria Icone": "icone",
+        "Turni": "turni",
         "Chat": "chat",
         "Posizioni PD785": "posizioni_pd785",
         "Posizioni Anytone": "posizioni_anytone"
