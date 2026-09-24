@@ -913,6 +913,7 @@ with st.sidebar:
         "Attrezzature",
         "Mappe Postazioni",
         "Libreria Icone",
+        "Turni",
         "Chat",
         "Geolocalizzazione Hytera + Anytone",
         "Backup"
@@ -2300,6 +2301,45 @@ elif cur == "Mappe Postazioni":
             L.marker([{p_lat}, {p_lon}], {{icon: pIcon}}).addTo(pMap).bindPopup("{sel_e} Anteprima").openPopup();
             </script>
             """
+
+            # FIX FULLSCREEN ANTEPRIMA - INIETTA DENTRO HTML
+            try:
+                fs_js_preview = """
+            try {
+                var fsCtrlPreview = L.control({position: 'topleft'});
+                fsCtrlPreview.onAdd = function(pMap) {
+                    var div = L.DomUtil.create('div', 'leaflet-bar leaflet-control');
+                    div.style.marginTop = '5px';
+                    var a = L.DomUtil.create('a', '', div);
+                    a.innerHTML = '⛶';
+                    a.href = '#';
+                    a.title = 'Espandi mappa';
+                    a.style.width = '34px'; a.style.height = '34px'; a.style.lineHeight = '34px';
+                    a.style.textAlign = 'center'; a.style.fontSize = '22px'; a.style.background = 'white';
+                    a.style.display = 'block'; a.style.textDecoration = 'none'; a.style.color = 'black';
+                    a.style.border = '2px solid rgba(0,0,0,0.2)'; a.style.borderRadius = '4px'; a.style.cursor = 'pointer';
+                    L.DomEvent.on(a, 'click', function(e){
+                        L.DomEvent.stop(e);
+                        var el = document.getElementById('preview_map_top');
+                        if (el) {
+                            if (!document.fullscreenElement) {
+                                if (el.requestFullscreen) el.requestFullscreen();
+                                else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();
+                            } else {
+                                if (document.exitFullscreen) document.exitFullscreen();
+                            }
+                            setTimeout(function(){ pMap.invalidateSize(); }, 600);
+                        }
+                    });
+                    return div;
+                };
+                fsCtrlPreview.addTo(pMap);
+            } catch(e){}
+            """
+                preview_html = preview_html.replace("</script>", fs_js_preview + "\n</script>")
+            except:
+                pass
+
             st.components.v1.html(preview_html, height=300)
         except:
             st.info("Anteprima non disponibile - clicca mappa grande")
@@ -2403,11 +2443,10 @@ elif cur == "Mappe Postazioni":
     html_code = html_code.replace("SELECTED_EMOJI_PLACEHOLDER", json_lib2.dumps(sel_e))
     html_code = html_code.replace("SELECTED_COLOR_PLACEHOLDER", json_lib2.dumps(sel_c))
 
-    # FIX DEFINITIVO FULLSCREEN SOTTO + - DENTRO MAPPA - INIETTA JS DENTRO HTML_CODE
+    # FIX DEFINITIVO FULLSCREEN 100% SOTTO + - DENTRO MAPPA - TUTTE LE MAPPE
     try:
-        # Inserisci bottone fullscreen dentro html_code prima di </script>
-        fs_js = """ 
-    // FIX FULLSCREEN 100% SOTTO + -
+        fs_js_big = """
+    // FIX FULLSCREEN 100% SOTTO + - PER MAPPA GRANDE
     try {
         var fsControl = L.control({position: 'topleft'});
         fsControl.onAdd = function(map) {
@@ -2416,7 +2455,7 @@ elif cur == "Mappe Postazioni":
             var btn = L.DomUtil.create('a', '', container);
             btn.innerHTML = '⛶';
             btn.href = '#';
-            btn.title = 'Schermo intero 100%';
+            btn.title = 'Espandi mappa tutto schermo';
             btn.style.width = '34px';
             btn.style.height = '34px';
             btn.style.lineHeight = '34px';
@@ -2429,25 +2468,28 @@ elif cur == "Mappe Postazioni":
             btn.style.fontWeight = 'bold';
             btn.style.border = '2px solid rgba(0,0,0,0.2)';
             btn.style.borderRadius = '4px';
+            btn.style.cursor = 'pointer';
             L.DomEvent.on(btn, 'click', function(e){
                 L.DomEvent.stop(e);
                 var mapContainer = document.getElementById('map');
-                if (!document.fullscreenElement) {
-                    if (mapContainer.requestFullscreen) mapContainer.requestFullscreen();
-                    else if (mapContainer.webkitRequestFullscreen) mapContainer.webkitRequestFullscreen();
-                    else if (mapContainer.msRequestFullscreen) mapContainer.msRequestFullscreen();
-                    setTimeout(function(){ map.invalidateSize(); }, 600);
-                } else {
-                    if (document.exitFullscreen) document.exitFullscreen();
-                    setTimeout(function(){ map.invalidateSize(); }, 600);
+                if (mapContainer) {
+                    if (!document.fullscreenElement) {
+                        if (mapContainer.requestFullscreen) mapContainer.requestFullscreen();
+                        else if (mapContainer.webkitRequestFullscreen) mapContainer.webkitRequestFullscreen();
+                        else if (mapContainer.msRequestFullscreen) mapContainer.msRequestFullscreen();
+                        setTimeout(function(){ map.invalidateSize(); }, 600);
+                    } else {
+                        if (document.exitFullscreen) document.exitFullscreen();
+                        setTimeout(function(){ map.invalidateSize(); }, 600);
+                    }
                 }
             });
             return container;
         };
         fsControl.addTo(map);
-    } catch(e){}
-    """
-        html_code = html_code.replace("</script>", fs_js + "\n</script>")
+    } catch(e){ console.log('fs big error', e); }
+"""
+        html_code = html_code.replace("</script>", fs_js_big + "\n</script>")
     except Exception as _e:
         pass
 
