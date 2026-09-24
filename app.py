@@ -846,7 +846,7 @@ with st.sidebar:
         "Tabella Interventi Emergenza",
         "Mezzi",
         "Attrezzature",
-        "Mappa Avanzata",
+        "Mappe Postazioni",
         "Libreria Icone",
         "Chat",
         "Geolocalizzazione Hytera + Anytone",
@@ -915,7 +915,7 @@ if cur == "Dashboard":
         ("Tabella Interventi Emergenza", "📋 Tabella Interventi"),
         ("Mezzi", "🚐 Mezzi"),
         ("Attrezzature", "🧰 Attrezzature"),
-        ("Mappa Avanzata", "🌍 Mappa Avanzata"),
+        ("Mappe Postazioni", "🌍 Mappe Postazioni"),
         ("Libreria Icone", "🎨 Libreria Icone"),
         ("Chat", "💬 Chat"),
         ("Geolocalizzazione Hytera + Anytone", "📡 Geoloc"),
@@ -1044,7 +1044,7 @@ if cur == "Dashboard":
         Fusione Emergenze+Eventi in Mappe: SI ottima idea - Ezio
         </h4>
         <p style="margin:8px 0 0 0;font-family:Times New Roman;font-weight:bold;color:black;">
-        Già creato form Mappa Avanzata OLD RIMOSSO con Tipo Emergenza/Evento + mappa unica.
+        Già creato form Mappe Postazioni OLD RIMOSSO con Tipo Emergenza/Evento + mappa unica.
         Unico form georeferenziato, filtri per Tipo, priorità e stato colorato.
         Soluzione ottimale per gestione unificata.
         </p>
@@ -1063,7 +1063,7 @@ if cur == "Dashboard":
     with c3:
         st.metric("Emergenze", len(st.session_state.emergenze))
     with c4:
-        st.metric("Mappa Avanzata", len(st.session_state.mappe))
+        st.metric("Mappe Postazioni", len(st.session_state.mappe))
 
 # VOLONTARI FORM CON SOTTOMASCHERE A LINGUETTE + CAMPO ODV - NUOVA VERSIONE FINALE
 elif cur == "Volontari (con foto)":
@@ -1623,7 +1623,7 @@ elif cur == "# RIMOSSO":
         desc_mappa = st.text_area("Descrizione", key="mappa_desc")
         note_mappa = st.text_area("Note Coordinate", key="mappa_note")
 
-    if st.button("Salva in Mappa Avanzata", type="primary", use_container_width=True):
+    if st.button("Salva in Mappe Postazioni", type="primary", use_container_width=True):
         if nome_mappa:
             st.session_state.mappe.append({
                 "Tipo": tipo_mappa,
@@ -1646,7 +1646,7 @@ elif cur == "# RIMOSSO":
 
     if st.session_state.mappe:
         st.divider()
-        st.markdown("**Riepilogo Mappa Avanzata con Filtri Tipo**")
+        st.markdown("**Riepilogo Mappe Postazioni con Filtri Tipo**")
         filtro_tipo = st.selectbox("Filtra per Tipo", ["Tutti", "Emergenza", "Evento"], key="filtro_mappa_tipo")
         df_map = pd.DataFrame(st.session_state.mappe)
         if filtro_tipo != "Tutti":
@@ -1666,7 +1666,7 @@ elif cur == "# RIMOSSO":
         except:
             st.info("Mappa coordinate non disponibili per visualizzazione")
 
-        st.download_button("Excel Mappa Avanzata", to_excel(df_map), "mappe_fusione.xlsx", use_container_width=True)
+        st.download_button("Excel Mappe Postazioni", to_excel(df_map), "mappe_fusione.xlsx", use_container_width=True)
         if REPORTLAB_OK:
             st.download_button("PDF Logo Estesa Tutto Foglio", to_pdf(df_map, "MAPPE FUSIONE EMERGENZE+EVENTI"), "mappe_fusione.pdf", use_container_width=True)
 
@@ -1991,15 +1991,15 @@ elif cur == "Attrezzature":
         if REPORTLAB_OK:
             st.download_button("PDF Logo Estesa", to_pdf(df_att, "ATTREZZATURE"), "attrezzature.pdf", use_container_width=True)
 
-# MAPPA AVANZATA - FINALE con Fullscreen + Marker rimane + Coordinate Comune Via Lat Lon in maschera
-elif cur == "Mappa Avanzata":
+# MAPPE POSTAZIONI - FINALE con Fullscreen + Marker rimane + Coordinate Comune Via Lat Lon in maschera
+elif cur == "Mappe Postazioni":
     hdr()
-    hdr_form("MAPPA AVANZATA - Marker da Libreria Icone + Fullscreen")
+    hdr_form("MAPPE POSTAZIONI - Postazioni + Marker")
 
     st.markdown(
         """
         <div style="background:#e3f2fd;padding:12px;border-radius:8px;border-left:4px solid #1976d2;">
-        <b>Mappa cliccabile con fullscreen - Marker rimane - Coordinate Comune Via Lat Lon in maschera automatica - Icone da libreria - Google Maps / Waze / Google Earth</b>
+        <b>MAPPE POSTAZIONI - Mappa cliccabile fullscreen - Tutti i marker RIMANGONO visibili - Coordinate automatiche - Libreria icone</b>
         </div>
         """,
         unsafe_allow_html=True
@@ -2018,7 +2018,7 @@ elif cur == "Mappa Avanzata":
         if st.button("⛶ Fullscreen Mappa", key="btn_fs_mappa", use_container_width=True, type="primary"):
             st.session_state["fs_mappa_active"] = True
     with c_fs2:
-        st.markdown('<span style="background:#1A5D1A;color:white;padding:6px 12px;border-radius:6px;font-weight:bold;">🗺️ Mappa con marker che rimane</span>', unsafe_allow_html=True)
+        st.markdown('<span style="background:#1A5D1A;color:white;padding:6px 12px;border-radius:6px;font-weight:bold;">🗺️ Mappe Postazioni - Tutti i marker rimangono</span>', unsafe_allow_html=True)
 
     if st.session_state.get("fs_mappa_active"):
         st.components.v1.html(
@@ -2044,50 +2044,100 @@ elif cur == "Mappa Avanzata":
     with c_tipo1:
         tipo_mappa_ext = st.selectbox("Tipo Mappa Esterna", ["Google Maps", "Waze", "Google Earth"], index=0, key="tipo_mappa_ext")
     with c_tipo2:
-        st.caption("Marker da libreria icone - rimane sulla mappa - coordinate in maschera")
+        st.caption("Marker da libreria icone - SALVATAGGIO AUTOMATICO al click - Tutti rimangono - Nessun marker di default")
+    if st.button("🧹 Pulisci localStorage temp (toglie marker arancioni di default)", key="clear_temp"):
+        st.components.v1.html("<script>localStorage.removeItem('temp_markers'); localStorage.removeItem('selected_icon_emoji'); localStorage.removeItem('selected_icon_color');</script>", height=0)
+        st.success("Pulito - Nessun marker di default")
 
-    st.markdown("#### 📍 Aggiungi Marker - Coordinate da mappa in maschera automatica")
+    st.markdown("#### 📍 Aggiungi Marker - Scegli icona dalla Libreria - Decidi tu che marker usare")
 
     icone_disponibili = st.session_state.get("icone", [])
     if not icone_disponibili:
-        icone_nomi = ["🚨 Emergenza", "📅 Evento", "🚐 Mezzo", "👤 Volontario", "📻 Radio", "🏥 Ospedale", "🔥 Incendio", "💧 Alluvione"]
-    else:
-        icone_nomi = [f"{ico.get('Nome','')} ({ico.get('Tipo','')})" for ico in icone_disponibili]
+        icone_disponibili = [
+            {"Nome": "Emergenza", "Emoji": "🚨", "Tipo": "Emergenza", "Colore": "red"},
+            {"Nome": "Evento", "Emoji": "📅", "Tipo": "Evento", "Colore": "blue"},
+            {"Nome": "Mezzo", "Emoji": "🚐", "Tipo": "Mezzo", "Colore": "green"},
+        ]
+    
+    # Prepara lista per selectbox con emoji + nome - TU DECIDI CHE MARKER USARE
+    icone_options = []
+    icone_map = {}
+    for ico in icone_disponibili:
+        label = f"{ico.get('Emoji','📍')} {ico.get('Nome','')} - {ico.get('Tipo','')} ({ico.get('Colore','')})"
+        icone_options.append(label)
+        icone_map[label] = ico
+
+    # Session per icona selezionata che rimane
+    if "selected_icon_label" not in st.session_state:
+        st.session_state.selected_icon_label = icone_options[0] if icone_options else ""
+
+    # Mostra libreria icone disponibili per scelta rapida
+    st.markdown("**Libreria Icone Disponibili - Clicca per selezionare - Tu decidi che marker usare:**")
+    cols_ico = st.columns(6)
+    for idx, ico in enumerate(icone_disponibili[:12]):
+        with cols_ico[idx % 6]:
+            label = f"{ico.get('Emoji','📍')} {ico.get('Nome','')}"
+            if st.button(label, key=f"sel_ico_{idx}", use_container_width=True):
+                # Trova label completo
+                for opt in icone_options:
+                    if ico.get('Nome','') in opt:
+                        st.session_state.selected_icon_label = opt
+                        break
+                st.rerun()
+
+    st.info(f"Icona selezionata: {st.session_state.selected_icon_label} - Questa icona verrà usata quando clicchi sulla mappa e quando salvi il marker - RIMANE")
+
+    # Selectbox principale
+    try:
+        default_idx = icone_options.index(st.session_state.selected_icon_label) if st.session_state.selected_icon_label in icone_options else 0
+    except:
+        default_idx = 0
+    
 
     c1, c2, c3, c4 = st.columns(4)
     with c1:
-        marker_nome = st.text_input("Nome Marker *", key="adv_marker_nome", placeholder="Es: Incidente Via Roma")
+        marker_nome = st.text_input("Nome Marker *", key="adv_marker_nome", placeholder="Es: Postazione 1 - Incidente Via Roma")
         marker_lat = st.text_input("Latitudine *", value=st.session_state.last_clicked_lat, key="adv_marker_lat")
     with c2:
         marker_lon = st.text_input("Longitudine *", value=st.session_state.last_clicked_lon, key="adv_marker_lon")
         marker_comune = st.text_input("Comune (da mappa)", value="Varese", key="adv_marker_comune")
     with c3:
         marker_via = st.text_input("Via (da mappa)", value="", key="adv_marker_via")
-        marker_icona = st.selectbox("Icona dalla Libreria", icone_nomi, key="adv_marker_icona")
+        # QUI DECIDI TU CHE MARKER USARE - DALLA LIBRERIA ICONE
+        marker_icona_label = st.selectbox("Icona dalla Libreria - TU DECIDI", icone_options, index=default_idx, key="adv_marker_icona_select")
+        st.session_state.selected_icon_label = marker_icona_label
+        selected_ico_obj = icone_map.get(marker_icona_label, {"Emoji":"📍","Nome":"Default","Colore":"red","Tipo":"Altro"})
+        st.markdown(f"<div style='font-size:28px;text-align:center;background:#e8f5e9;padding:6px;border-radius:6px;border:2px solid #1A5D1A;'>{selected_ico_obj.get('Emoji','📍')} {selected_ico_obj.get('Nome','')}</div>", unsafe_allow_html=True)
     with c4:
-        marker_tipo = st.selectbox("Tipo Marker", ["Emergenza", "Evento", "Mezzo", "Volontario", "Punto Interesse"], key="adv_marker_tipo")
+        marker_tipo = st.selectbox("Tipo Marker", ["Postazione", "Emergenza", "Evento", "Mezzo", "Volontario", "Punto Interesse"], key="adv_marker_tipo")
         marker_data = st.date_input("Data Evento", value=date.today(), format="DD/MM/YYYY", key="adv_marker_data")
         marker_desc = st.text_input("Descrizione", key="adv_marker_desc")
 
-    if st.button("➕ Aggiungi Marker - Rimane su mappa", type="primary", use_container_width=True):
+    if st.button("➕ Aggiungi Marker con icona scelta - RIMANE su mappa - Tutti visibili", type="primary", use_container_width=True):
         if marker_nome and marker_lat and marker_lon:
             try:
                 lat_f = float(str(marker_lat).replace(",", "."))
                 lon_f = float(str(marker_lon).replace(",", "."))
+                # Recupera icona scelta dalla libreria - TU HAI DECISO
+                sel_label = st.session_state.get("selected_icon_label", marker_icona_label)
+                sel_obj = icone_map.get(sel_label, {"Emoji":"📍","Nome":"Default","Colore":"red","Tipo":marker_tipo})
                 nuovo_marker = {
                     "Nome": marker_nome,
                     "Lat": lat_f,
                     "Lon": lon_f,
                     "Comune": marker_comune,
                     "Via": marker_via,
-                    "Icona": marker_icona,
+                    "Icona": sel_label,
+                    "Emoji": sel_obj.get("Emoji","📍"),
+                    "Colore": sel_obj.get("Colore","red"),
+                    "IconaNome": sel_obj.get("Nome","Default"),
                     "Descrizione": marker_desc,
                     "Tipo": marker_tipo,
                     "Data": str(marker_data),
                     "DataIns": datetime.now().strftime("%d/%m/%Y %H:%M")
                 }
                 st.session_state.mappa_avanzata_markers.append(nuovo_marker)
-                st.success(f"Marker {marker_nome} aggiunto - Rimane su mappa - Comune {marker_comune} Via {marker_via}")
+                st.success(f"Marker {sel_obj.get('Emoji','📍')} {marker_nome} con icona {sel_obj.get('Nome','')} aggiunto - RIMANE su mappa - Tutti i marker rimangono visibili")
                 st.rerun()
             except Exception as e:
                 st.error(f"Coordinate non valide: {e}")
@@ -2099,7 +2149,7 @@ elif cur == "Mappa Avanzata":
     all_markers = st.session_state.get("mappa_avanzata_markers", [])
 
     import json as json_lib
-    markers_for_js = json_lib.dumps([{"lat": m["Lat"], "lon": m["Lon"], "nome": m["Nome"], "icona": m["Icona"], "tipo": m["Tipo"], "comune": m.get("Comune",""), "via": m.get("Via","")} for m in all_markers])
+    markers_for_js = json_lib.dumps([{"lat": m["Lat"], "lon": m["Lon"], "nome": m["Nome"], "icona": m["Icona"], "emoji": m.get("Emoji","📍"), "colore": m.get("Colore","red"), "iconaNome": m.get("IconaNome", m.get("Icona","")), "tipo": m["Tipo"], "comune": m.get("Comune",""), "via": m.get("Via","")} for m in all_markers])
 
     html_code = """
     <style>
@@ -2128,11 +2178,14 @@ elif cur == "Mappa Avanzata":
     <div id="map-container" style="position:relative; background:white; border-radius:12px;">
         <div id="map" style="height:700px; width:100%; border-radius:12px; border:3px solid #1A5D1A;"></div>
     </div>
-    <div id="coords" style="background:#fffde7;padding:12px;border-radius:6px;margin-top:8px;font-weight:bold;border-left:4px solid #FFD700; font-family:Times New Roman; min-height:50px;">📍 Clicca sulla mappa - Il marker rimarrà - Coordinate in maschera automatica - Fullscreen espande tutto schermo</div>
+    <div id="coords" style="background:#fffde7;padding:12px;border-radius:6px;margin-top:8px;font-weight:bold;border-left:4px solid #FFD700; font-family:Times New Roman; min-height:50px;">📍 Clicca sulla mappa - TUTTI i marker RIMANGONO - Vedi tutti insieme - Coordinate in maschera automatica - Fullscreen espande tutto schermo</div>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
     var markersData = MARKERS_JSON_PLACEHOLDER;
+    var selectedIconEmoji = SELECTED_EMOJI_PLACEHOLDER;
+    var selectedIconColor = SELECTED_COLOR_PLACEHOLDER;
+    // Nessun marker di default arancione - solo libreria icone
     var map = L.map('map', {zoomControl: false}).setView([45.8167, 8.8333], 14);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {attribution: 'ANA Varese - OpenStreetMap'}).addTo(map);
 
@@ -2207,17 +2260,30 @@ elif cur == "Mappa Avanzata":
         setTimeout(function(){ map.invalidateSize(); }, 300);
     });
 
-    // Marker esistenti - RIMANGONO
+    // Marker esistenti - RIMANGONO - CON ICONA DALLA LIBRERIA - TU DECIDI CHE MARKER USARE
     var allMarkers = [];
+    // Icona selezionata corrente dalla libreria - passata da python
+    var currentSelectedEmoji = "📍";
+    try {
+        var selLabel = localStorage.getItem('selected_icon_label') || "";
+        // cerca emoji
+    } catch(e){}
+    
     markersData.forEach(function(m) {
-        var iconEmoji = "📍";
-        if (m.icona && m.icona.includes("Emergenza")) iconEmoji = "🚨";
-        else if (m.icona && m.icona.includes("Evento")) iconEmoji = "📅";
-        else if (m.tipo == "Emergenza") iconEmoji = "🚨";
-        else if (m.tipo == "Evento") iconEmoji = "📅";
+        var iconEmoji = m.emoji || "📍";
+        var colore = m.colore || "red";
         
-        var marker = L.marker([m.lat, m.lon]).addTo(map)
-            .bindPopup("<b>" + m.nome + "</b><br>" + m.icona + "<br>" + m.tipo + "<br>" + m.comune + " - " + m.via + "<br>Lat: " + m.lat + "<br>Lon: " + m.lon);
+        // Crea divIcon con emoji dalla libreria
+        var customIcon = L.divIcon({
+            className: 'custom-div-icon',
+            html: "<div style='background-color:white;border:3px solid " + (colore == 'red' ? '#d32f2f' : colore == 'blue' ? '#1976d2' : colore == 'green' ? '#388e3c' : '#FF9800') + ";width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:20px;box-shadow:0 2px 6px rgba(0,0,0,0.3);'>" + iconEmoji + "</div>",
+            iconSize: [36, 36],
+            iconAnchor: [18, 18],
+            popupAnchor: [0, -18]
+        });
+        
+        var marker = L.marker([m.lat, m.lon], {icon: customIcon}).addTo(map)
+            .bindPopup("<b>" + iconEmoji + " " + m.nome + "</b><br><b>Icona Libreria:</b> " + (m.iconaNome || m.icona) + "<br><b>Tipo:</b> " + m.tipo + "<br>" + m.comune + " - " + m.via + "<br>Lat: " + m.lat + "<br>Lon: " + m.lon + "<br><b>RIMANE sulla mappa - Tutti visibili</b>");
         allMarkers.push(marker);
     });
 
@@ -2227,32 +2293,46 @@ elif cur == "Mappa Avanzata":
         map.fitBounds(group.getBounds().pad(0.2));
     }
 
-    // Marker cliccati - RIMANGONO tutti
+    // NESSUN MARKER DI DEFAULT - solo quelli salvati
+    // Tutti i marker rimangono visibili - salvataggio automatico
     var clickedMarkers = [];
+    var totalMarkerCount = markersData.length;
+    // Pulisci vecchi temp arancioni - togli marker di default
+    try { localStorage.removeItem('temp_markers'); } catch(e){}
+    // Mostra contatore iniziale
+    document.getElementById('coords').innerHTML = '📍 Mappe Postazioni - ' + totalMarkerCount + ' marker salvati - Clicca sulla mappa per aggiungere - Tutti rimangono visibili - Icona da libreria: ' + selectedIconEmoji;
+
+    // CLICK SALVA DIRETTAMENTE SULLA MAPPA - TUTTI I MARKER RIMANGONO
     map.on('click', function(e) {
         var lat = e.latlng.lat.toFixed(6);
         var lon = e.latlng.lng.toFixed(6);
         
-        // Crea marker che RIMANE - non rimuove precedenti
+        // Icona scelta dalla libreria - usa quella selezionata
+        var tempCustomIcon = L.divIcon({
+            className: 'custom-div-icon-temp',
+            html: "<div style='background-color:white;border:3px solid " + (selectedIconColor == 'red' ? '#d32f2f' : selectedIconColor == 'blue' ? '#1976d2' : selectedIconColor == 'green' ? '#388e3c' : selectedIconColor == 'orange' ? '#f57c00' : '#7b1fa2') + ";width:42px;height:42px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:24px;box-shadow:0 3px 8px rgba(0,0,0,0.4);'>" + selectedIconEmoji + "</div>",
+            iconSize: [42, 42],
+            iconAnchor: [21, 21],
+            popupAnchor: [0, -21]
+        });
+        
         var newMarker = L.marker([lat, lon], {
             draggable:true,
-            icon: L.icon({
-                iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
-                shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
-                iconSize: [25, 41],
-                iconAnchor: [12, 41],
-                popupAnchor: [1, -34]
-            })
+            icon: tempCustomIcon
         }).addTo(map)
-            .bindPopup("<b>Nuovo marker</b><br>Lat: " + lat + "<br>Lon: " + lon + "<br>Trascina per spostare<br><b>RIMANE sulla mappa</b>").openPopup();
+            .bindPopup("<b>" + selectedIconEmoji + " Postazione</b><br>Lat: " + lat + "<br>Lon: " + lon + "<br>Trascina per spostare<br><b>RIMANE sulla mappa - Salvato automaticamente</b><br><b>Icona da libreria</b>").openPopup();
         
         clickedMarkers.push(newMarker);
-        document.getElementById('coords').innerHTML = "📍 Marker aggiunto - RIMANE sulla mappa - Totale marker temporanei: " + clickedMarkers.length + "<br>Lat: " + lat + " - Lon: " + lon + "<br><b>Copia in maschera sopra e clicca Aggiungi Marker per salvare definitivamente</b><br>Reverse geocoding in corso...";
+        // Aggiorna lista locale per visualizzazione
+        markersData.push({lat: parseFloat(lat), lon: parseFloat(lon), nome: "Postazione " + (markersData.length+1), emoji: selectedIconEmoji, colore: selectedIconColor});
+        
+        document.getElementById('coords').innerHTML = "📍 Marker " + selectedIconEmoji + " aggiunto e SALVATO - RIMANE sulla mappa - Totale visibili: " + (markersData.length) + "<br>Lat: " + lat + " - Lon: " + lon + "<br><b>Salvataggio automatico in corso...</b><br>Reverse geocoding in corso...";
 
-        // Auto-compila maschera
+        // Auto-compila maschera E SALVA AUTOMATICAMENTE SULLA MAPPA
         try {
             var parentDoc = window.parent.document;
             var allInputs = parentDoc.querySelectorAll('input[type="text"]');
+            var nomeInput = null;
             allInputs.forEach(function(inp) {
                 var label = inp.getAttribute('aria-label') || '';
                 if (label.includes('Latitudine') && label.includes('*')) {
@@ -2261,15 +2341,40 @@ elif cur == "Mappa Avanzata":
                     inp.value = lat;
                     inp.dispatchEvent(new Event('input', {bubbles:true}));
                     inp.dispatchEvent(new Event('change', {bubbles:true}));
-                    parentDoc.defaultView.localStorage.setItem('last_lat', lat);
+                    try { parentDoc.defaultView.localStorage.setItem('last_lat', lat); } catch(e){}
+                    // Salva anche coordinate per auto-save python
+                    try { parentDoc.defaultView.localStorage.setItem('auto_lat', lat); } catch(e){}
                 }
                 if (label.includes('Longitudine') && label.includes('*')) {
                     inp.value = lon;
                     inp.dispatchEvent(new Event('input', {bubbles:true}));
                     inp.dispatchEvent(new Event('change', {bubbles:true}));
-                    parentDoc.defaultView.localStorage.setItem('last_lon', lon);
+                    try { parentDoc.defaultView.localStorage.setItem('last_lon', lon); } catch(e){}
+                    try { parentDoc.defaultView.localStorage.setItem('auto_lon', lon); } catch(e){}
+                }
+                if (label.includes('Nome Marker')) {
+                    nomeInput = inp;
+                    if (!inp.value) {
+                        inp.value = "Postazione " + (markersData.length);
+                        inp.dispatchEvent(new Event('input', {bubbles:true}));
+                        inp.dispatchEvent(new Event('change', {bubbles:true}));
+                    }
+                    try { parentDoc.defaultView.localStorage.setItem('auto_nome', inp.value); } catch(e){}
+                    try { parentDoc.defaultView.localStorage.setItem('auto_emoji', selectedIconEmoji); } catch(e){}
+                    try { parentDoc.defaultView.localStorage.setItem('auto_colore', selectedIconColor); } catch(e){}
                 }
             });
+            // Trigger automatico salvataggio dopo 800ms - SALVA SULLA MAPPA
+            setTimeout(function(){
+                try {
+                    var btns = parentDoc.querySelectorAll('button');
+                    btns.forEach(function(b){
+                        if (b.innerText.includes('Aggiungi Marker con icona scelta') && b.innerText.includes('RIMANE')) {
+                            b.click();
+                        }
+                    });
+                } catch(e){}
+            }, 800);
             fetch('https://nominatim.openstreetmap.org/reverse?format=json&lat=' + lat + '&lon=' + lon + '&zoom=18&addressdetails=1')
                 .then(response => response.json())
                 .then(data => {
@@ -2301,7 +2406,16 @@ elif cur == "Mappa Avanzata":
     });
     </script>
     """
+    # Passa emoji e colore selezionato dalla libreria al JS - TU DECIDI CHE MARKER USARE
+    sel_emoji_for_js = selected_ico_obj.get('Emoji','📍')
+    sel_color_for_js = selected_ico_obj.get('Colore','red')
+    # JSON encode per sicurezza
+    import json as json_lib2
+    emoji_json = json_lib2.dumps(sel_emoji_for_js)
+    color_json = json_lib2.dumps(sel_color_for_js)
     html_code = html_code.replace("MARKERS_JSON_PLACEHOLDER", markers_for_js)
+    html_code = html_code.replace("SELECTED_EMOJI_PLACEHOLDER", emoji_json)
+    html_code = html_code.replace("SELECTED_COLOR_PLACEHOLDER", color_json)
     st.components.v1.html(html_code, height=700)
 
     if all_markers:
@@ -2309,8 +2423,8 @@ elif cur == "Mappa Avanzata":
         for idx, m in enumerate(all_markers):
             c1, c2, c3, c4 = st.columns([2,2,3,1])
             with c1:
-                st.write(f"**{m['Nome']}**")
-                st.caption(f"{m['Icona']} - {m['Tipo']}")
+                st.write(f"{m.get('Emoji','📍')} **{m['Nome']}**")
+                st.caption(f"Libreria: {m.get('IconaNome', m.get('Icona',''))} - {m['Tipo']} - {m.get('Colore','')}")
             with c2:
                 st.text(f"Lat: {m['Lat']} Lon: {m['Lon']}")
                 st.caption(f"{m.get('Comune','')} - {m.get('Via','')}")
@@ -2344,31 +2458,91 @@ elif cur == "Mappa Avanzata":
 
 elif cur == "Libreria Icone":
     hdr()
-    hdr_form("LIBRERIA ICONE - Icone Personalizzate")
+    hdr_form("LIBRERIA ICONE - Scegli tu il marker da usare su Mappe Postazioni")
 
-    c1, c2 = st.columns(2)
+    st.markdown("""
+    <div style="background:#e8f5e9;padding:12px;border-radius:8px;border-left:4px solid #1A5D1A;margin-bottom:12px;">
+    <b>Qui crei le icone che poi usi su Mappe Postazioni - Decidi tu che marker usare - Ogni icona ha Emoji + Colore + Nome</b>
+    </div>
+    """, unsafe_allow_html=True)
+
+    # Icone predefinite se vuoto
+    if not st.session_state.icone:
+        st.session_state.icone = [
+            {"Nome": "Emergenza", "Emoji": "🚨", "Tipo": "Emergenza", "Colore": "red", "Descrizione": "Emergenza", "Data": datetime.now().strftime("%d/%m/%Y")},
+            {"Nome": "Evento", "Emoji": "📅", "Tipo": "Evento", "Colore": "blue", "Descrizione": "Evento", "Data": datetime.now().strftime("%d/%m/%Y")},
+            {"Nome": "Mezzo", "Emoji": "🚐", "Tipo": "Mezzo", "Colore": "green", "Descrizione": "Mezzo", "Data": datetime.now().strftime("%d/%m/%Y")},
+            {"Nome": "Volontario", "Emoji": "👤", "Tipo": "Volontario", "Colore": "orange", "Descrizione": "Volontario", "Data": datetime.now().strftime("%d/%m/%Y")},
+            {"Nome": "Ospedale", "Emoji": "🏥", "Tipo": "Emergenza", "Colore": "red", "Descrizione": "Ospedale", "Data": datetime.now().strftime("%d/%m/%Y")},
+            {"Nome": "Incendio", "Emoji": "🔥", "Tipo": "Emergenza", "Colore": "red", "Descrizione": "Incendio", "Data": datetime.now().strftime("%d/%m/%Y")},
+            {"Nome": "Alluvione", "Emoji": "💧", "Tipo": "Emergenza", "Colore": "blue", "Descrizione": "Alluvione", "Data": datetime.now().strftime("%d/%m/%Y")},
+            {"Nome": "Radio", "Emoji": "📻", "Tipo": "Mezzo", "Colore": "purple", "Descrizione": "Radio", "Data": datetime.now().strftime("%d/%m/%Y")},
+        ]
+
+    c1, c2, c3, c4 = st.columns(4)
     with c1:
-        nome_icona = st.text_input("Nome Icona", key="ico_nome")
-        tipo_icona = st.selectbox("Tipo", ["Emergenza", "Evento", "Mezzo", "Volontario", "Altro"], key="ico_tipo")
-
+        nome_icona = st.text_input("Nome Icona *", key="ico_nome", placeholder="Es: Postazione 1")
+        emoji_icona = st.text_input("Emoji Icona *", value="📍", key="ico_emoji", help="Inserisci emoji: 🚨 📅 🚐 👤 🏥 🔥 💧 📻 ⛑️ 🚒 🚑")
     with c2:
-        file_icona = st.file_uploader("File Icona", type=["png", "jpg", "svg"], key="ico_file")
-        desc_icona = st.text_input("Descrizione Icona", key="ico_desc")
+        tipo_icona = st.selectbox("Tipo", ["Emergenza", "Evento", "Mezzo", "Volontario", "Postazione", "Punto Interesse", "Altro"], key="ico_tipo")
+        colore_icona = st.selectbox("Colore Marker", ["red", "blue", "green", "orange", "purple", "darkred", "darkblue", "cadetblue"], key="ico_colore")
+    with c3:
+        desc_icona = st.text_input("Descrizione Icona", key="ico_desc", placeholder="Descrizione")
+        file_icona = st.file_uploader("File Icona (opzionale)", type=["png", "jpg", "svg"], key="ico_file")
+    with c4:
+        st.markdown("**Anteprima**")
+        preview_emoji = st.session_state.get("ico_emoji", "📍") if "ico_emoji" in st.session_state else emoji_icona
+        st.markdown(f"<div style='font-size:40px;text-align:center;background:white;padding:10px;border-radius:8px;border:2px solid #1A5D1A;'>{preview_emoji}</div>", unsafe_allow_html=True)
 
-    if st.button("Salva Icona", type="primary", use_container_width=True):
-        if nome_icona:
-            st.session_state.icone.append({
-                "Nome": nome_icona,
-                "Tipo": tipo_icona,
-                "Descrizione": desc_icona,
-                "Data": datetime.now().strftime("%d/%m/%Y")
-            })
-            st.success("Icona salvata")
-            st.rerun()
+    if st.button("💾 Salva Icona in Libreria", type="primary", use_container_width=True):
+        if nome_icona and emoji_icona:
+            # Controlla se esiste già
+            exists = False
+            for ico in st.session_state.icone:
+                if ico.get("Nome") == nome_icona:
+                    exists = True
+                    break
+            if not exists:
+                st.session_state.icone.append({
+                    "Nome": nome_icona,
+                    "Emoji": emoji_icona,
+                    "Tipo": tipo_icona,
+                    "Colore": colore_icona,
+                    "Descrizione": desc_icona,
+                    "Data": datetime.now().strftime("%d/%m/%Y %H:%M")
+                })
+                st.success(f"Icona {emoji_icona} {nome_icona} salvata - Ora la puoi usare su Mappe Postazioni")
+                st.rerun()
+            else:
+                st.warning("Nome già esistente - cambia nome")
+        else:
+            st.error("Nome e Emoji obbligatori")
+
+    st.divider()
+    st.markdown(f"### Libreria Icone - {len(st.session_state.icone)} icone disponibili - Le usi su Mappe Postazioni")
 
     if st.session_state.icone:
+        cols = st.columns(4)
+        for idx, ico in enumerate(st.session_state.icone):
+            col = cols[idx % 4]
+            with col:
+                st.markdown(f"""
+                <div style="background:white;padding:12px;border-radius:8px;border:2px solid #1A5D1A;text-align:center;margin-bottom:8px;">
+                <div style="font-size:32px;">{ico.get('Emoji','📍')}</div>
+                <b>{ico.get('Nome','')}</b><br>
+                <small>{ico.get('Tipo','')} - {ico.get('Colore','')}</small><br>
+                <small>{ico.get('Descrizione','')}</small>
+                </div>
+                """, unsafe_allow_html=True)
+                if st.button(f"🗑️ Elimina", key=f"del_ico_{idx}"):
+                    st.session_state.icone.pop(idx)
+                    st.rerun()
+        st.divider()
         df_ico = pd.DataFrame(st.session_state.icone)
         st.dataframe(df_ico, use_container_width=True)
+        st.download_button("Excel Libreria Icone", to_excel(df_ico), "libreria_icone.xlsx", use_container_width=True)
+    else:
+        st.info("Nessuna icona - Crea la prima icona sopra")
 
 # CHAT
 elif cur == "Chat":
