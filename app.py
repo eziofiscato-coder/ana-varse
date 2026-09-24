@@ -637,7 +637,7 @@ def hdr():
             padding:18px 24px;border-radius:12px;color:white;
             border-left:6px solid #FFD700;">
                 <h1 style="margin:0;font-family:Times New Roman;
-                font-weight:bold;font-size:28px;color:white;">
+                font-weight:bold;font-size:18px;color:white;">
                 GESTIONALE 950+ MODIFICHE RICHIESTE - ANA Varese Protezione Civile
                 </h1>
                 <p style="margin:4px 0 0 0;font-size:14px;opacity:0.9;">
@@ -813,7 +813,7 @@ with st.sidebar:
                 """
                 <div style="width:120px;height:120px;background:#1A5D1A;
                 border-radius:12px;display:flex;align-items:center;
-                justify-content:center;color:white;font-weight:bold;font-size:28px;">
+                justify-content:center;color:white;font-weight:bold;font-size:18px;">
                 ANA
                 </div>
                 """,
@@ -873,7 +873,7 @@ with st.sidebar:
     st.divider()
     st.markdown(
         """
-        <div style="background:#e8f5e9;padding:12px;border-radius:8px;">
+        <div style="background:#e8f5e9;padding:8px;border-radius:8px;">
         <p style="font-size:12px;font-weight:bold;margin:0;">INFO RADIO HYTERA</p>
         <p style="font-size:11px;margin:4px 0 0 0;">
         PD785 - Anytone 878<br>
@@ -894,7 +894,7 @@ if cur == "Dashboard":
     st.markdown(
         """
         <p style="font-family:Times New Roman;font-weight:bold;color:black;
-        background:#fffde7;padding:12px;border-radius:8px;
+        background:#fffde7;padding:8px;border-radius:8px;
         border-left:4px solid #FFD700;">
         Clicca su un tasto per aprire il form - Fullscreen rosso - Date gg/mm/aaaa
         </p>
@@ -1594,7 +1594,7 @@ elif cur == "# RIMOSSO":
         bg_m, txt_m, lab_m = get_stato_color(stato_mappa)
         st.markdown(
             f"""
-            <div style="background:{bg_m};color:{txt_m};padding:12px;
+            <div style="background:{bg_m};color:{txt_m};padding:8px;
             border-radius:8px;text-align:center;font-weight:bold;
             border:3px solid black;margin-top:8px;">
             STATO SELEZIONATO: {lab_m} - Fondo campo colorato come richiesto Modifica 4
@@ -1997,7 +1997,7 @@ elif cur == "Mappe Postazioni":
     hdr_form("MAPPE POSTAZIONI - Postazioni + Marker")
 
     st.markdown("""
-    <div style="background:#e3f2fd;padding:12px;border-radius:8px;border-left:4px solid #1976d2;">
+    <div style="background:#e3f2fd;padding:8px;border-radius:8px;border-left:4px solid #1976d2;">
     <b>MAPPE POSTAZIONI - NESSUN marker di default - Clicca e lascia marker - Anteprima sotto maschera - Salva Postazione - Comune + Via in tabella</b>
     </div>
     """, unsafe_allow_html=True)
@@ -2099,7 +2099,7 @@ elif cur == "Mappe Postazioni":
         marker_icona_label = st.selectbox("Icona dalla Libreria - TU DECIDI", icone_options, index=default_idx, key="adv_marker_icona_select")
         st.session_state.selected_icon_label = marker_icona_label
         selected_ico_obj = icone_map.get(marker_icona_label, {"Emoji":"⛑️","Nome":"Postazione","Colore":"green","Tipo":"Postazione"})
-        st.markdown(f"<div style='font-size:28px;text-align:center;background:#e8f5e9;padding:6px;border-radius:6px;border:2px solid #1A5D1A;'>{selected_ico_obj.get('Emoji','⛑️')} {selected_ico_obj.get('Nome','')}</div>", unsafe_allow_html=True)
+        st.markdown(f"<div style='font-size:18px;text-align:center;background:#e8f5e9;padding:6px;border-radius:6px;border:2px solid #1A5D1A;'>{selected_ico_obj.get('Emoji','⛑️')} {selected_ico_obj.get('Nome','')}</div>", unsafe_allow_html=True)
     with c4:
         marker_tipo = st.selectbox("Tipo", ["Postazione", "Emergenza", "Evento", "Mezzo", "Volontario", "Punto Interesse"], key="adv_marker_tipo")
         marker_data = st.date_input("Data", value=date.today(), format="DD/MM/YYYY", key="adv_marker_data")
@@ -2148,7 +2148,7 @@ elif cur == "Mappe Postazioni":
                     "DataIns": datetime.now().strftime("%d/%m/%Y %H:%M")
                 }
                 st.session_state.mappa_avanzata_markers.append(nuovo_marker)
-                st.session_state.map_focus = nuovo_marker  # Vai subito alla nuova postazione, non a default
+                st.session_state.map_focus = nuovo_marker  # Focus su nuova, ma tutti rimangono
                 st.success(f"✅ Postazione {sel_obj.get('Emoji','⛑️')} {marker_nome} - {marker_comune} {marker_via} SALVATA - Totale {len(st.session_state.mappa_avanzata_markers)}")
                 st.rerun()
             except Exception as e:
@@ -2179,7 +2179,7 @@ elif cur == "Mappe Postazioni":
             var cCode = colMap['{sel_color_prev}'] || '#388e3c';
             var pIcon = L.divIcon({{
                 className: 'preview-icon',
-                html: "<div style='background:white;border:3px solid " + cCode + ";width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:22px;box-shadow:0 3px 8px rgba(0,0,0,0.4);'>{sel_emoji_prev}</div>",
+                html: "<div style='background:white;border:3px solid " + cCode + ";width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;box-shadow:0 3px 8px rgba(0,0,0,0.4);'>{sel_emoji_prev}</div>",
                 iconSize: [40,40],
                 iconAnchor: [20,20]
             }});
@@ -2211,7 +2211,7 @@ elif cur == "Mappe Postazioni":
     <div id="map-container" style="position:relative; background:white; border-radius:12px;">
         <div id="map" style="height:700px; width:100%; border-radius:12px; border:3px solid #1A5D1A;"></div>
     </div>
-    <div id="coords" style="background:#fffde7;padding:12px;border-radius:6px;margin-top:8px;font-weight:bold;border-left:4px solid #FFD700; font-family:Times New Roman; min-height:50px;">📍 NESSUN marker di default - Clicca per aggiungere - Tutti rimangono - Non torna a default</div>
+    <div id="coords" style="background:#fffde7;padding:8px;border-radius:6px;margin-top:8px;font-weight:bold;border-left:4px solid #FFD700; font-family:Times New Roman; min-height:50px;">📍 NESSUN marker di default - Clicca per aggiungere - Tutti rimangono - Non torna a default</div>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
@@ -2247,8 +2247,8 @@ elif cur == "Mappe Postazioni":
         var colorCode = getColorCode(colore);
         var customIcon = L.divIcon({
             className: 'custom-div-icon',
-            html: "<div style='background-color:white;border:3px solid " + colorCode + ";width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:22px;box-shadow:0 3px 8px rgba(0,0,0,0.4);cursor:pointer;'>" + iconEmoji + "</div>",
-            iconSize: [40, 40], iconAnchor: [20, 20], popupAnchor: [0, -20]
+            html: "<div style='background-color:white;border:3px solid " + colorCode + ";width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;box-shadow:0 3px 8px rgba(0,0,0,0.4);cursor:pointer;'>" + iconEmoji + "</div>",
+            iconSize: [28, 28], iconAnchor: [14, 14], popupAnchor: [0, -20]
         });
         var marker = L.marker([m.lat, m.lon], {icon: customIcon}).addTo(map)
             .bindPopup("<b>" + iconEmoji + " " + m.nome + "</b><br><b>Comune:</b> " + m.comune + "<br><b>Via:</b> " + m.via + "<br><b>Tipo:</b> " + m.tipo + "<br>Lat: " + m.lat + "<br>Lon: " + m.lon + "<br><b>" + (m.desc || '') + "</b><br><b>RIMANE</b>");
@@ -2256,7 +2256,7 @@ elif cur == "Mappe Postazioni":
         markersByName[m.nome + '_' + m.lat] = marker;
         markersByName[m.nome] = marker;
     });
-    // Se focus, vai su focus e NON fare fitBounds - NON TORNARE A DEFAULT
+    // Se focus, vai su focus MA TUTTI I MARKER RIMANGONO - NON TORNA A DEFAULT - MARKER PICCOLI
     if (focusMarker && focusMarker.Lat && focusMarker.Lon) {
         var fColor = getColorCode(focusMarker.Colore || 'green');
         map.setView([focusMarker.Lat, focusMarker.Lon], 17);
@@ -2283,8 +2283,8 @@ elif cur == "Mappe Postazioni":
         var lon = e.latlng.lng.toFixed(6);
         var tempCustomIcon = L.divIcon({
             className: 'custom-div-icon-temp',
-            html: "<div style='background-color:#e8f5e9;border:3px dashed " + getColorCode(selectedIconColor) + ";width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:24px;box-shadow:0 3px 10px rgba(0,0,0,0.5);'>" + selectedIconEmoji + "</div>",
-            iconSize: [44, 44], iconAnchor: [22, 22], popupAnchor: [0, -22]
+            html: "<div style='background-color:#e8f5e9;border:3px dashed " + getColorCode(selectedIconColor) + ";width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;box-shadow:0 3px 10px rgba(0,0,0,0.5);'>" + selectedIconEmoji + "</div>",
+            iconSize: [32, 32], iconAnchor: [16, 16], popupAnchor: [0, -22]
         });
         var newMarker = L.marker([lat, lon], {draggable:true, icon: tempCustomIcon}).addTo(map)
             .bindPopup("<b>" + selectedIconEmoji + " Nuova</b><br>Lat: " + lat + "<br>Lon: " + lon + "<br><b>RIMANE - Compila e salva</b>").openPopup();
@@ -2341,8 +2341,11 @@ elif cur == "Mappe Postazioni":
     except Exception as e:
         st.error(f"Errore mappa: {e}")
 
-    # TABELLA SOTTO - CON COMUNE + VIA VISIBILI + MARKER SX + CLICK -> MAPPA
+    # TABELLA SOTTO MAPPA COME PRIMA - MARKER PICCOLI - TUTTI RIMANGONO
+    st.divider()
+    st.markdown("### 📋 Postazioni Salvate - Tabella sotto mappa come prima")
     if all_markers:
+        st.success(f"✅ {len(all_markers)} postazioni salvate - Tutti i marker rimangono sulla mappa - Marker piccoli")
         st.markdown(f"#### 📋 Elenco {len(all_markers)} Postazioni - Comune + Via visibili - Marker SX - Click per mappa")
         
         for idx, m in enumerate(all_markers):
@@ -2354,8 +2357,8 @@ elif cur == "Mappe Postazioni":
             
             with c_left_marker:
                 st.markdown(f"""
-                <div style="background:{bg_color};padding:12px;border-radius:12px;border:3px solid {border_color};text-align:center;box-shadow:0 2px 6px rgba(0,0,0,0.1);">
-                <div style="font-size:36px;">{m.get('Emoji','⛑️')}</div>
+                <div style="background:{bg_color};padding:8px;border-radius:12px;border:3px solid {border_color};text-align:center;box-shadow:0 2px 6px rgba(0,0,0,0.1);">
+                <div style="font-size:24px;">{m.get('Emoji','⛑️')}</div>
                 <div style="font-weight:bold;font-size:12px;margin-top:4px;color:{border_color};">{m.get('IconaNome', m.get('Icona',''))}</div>
                 <div style="font-size:10px;background:{border_color};color:white;padding:2px 6px;border-radius:4px;margin-top:4px;">{m.get('Colore','')}</div>
                 </div>
@@ -2434,7 +2437,7 @@ elif cur == "Libreria Icone":
     hdr_form("LIBRERIA ICONE - Scegli tu il marker da usare su Mappe Postazioni")
 
     st.markdown("""
-    <div style="background:#e8f5e9;padding:12px;border-radius:8px;border-left:4px solid #1A5D1A;margin-bottom:12px;">
+    <div style="background:#e8f5e9;padding:8px;border-radius:8px;border-left:4px solid #1A5D1A;margin-bottom:12px;">
     <b>Qui crei le icone che poi usi su Mappe Postazioni - Decidi tu che marker usare - Ogni icona ha Emoji + Colore + Nome</b>
     </div>
     """, unsafe_allow_html=True)
@@ -2500,7 +2503,7 @@ elif cur == "Libreria Icone":
             col = cols[idx % 4]
             with col:
                 st.markdown(f"""
-                <div style="background:white;padding:12px;border-radius:8px;border:2px solid #1A5D1A;text-align:center;margin-bottom:8px;">
+                <div style="background:white;padding:8px;border-radius:8px;border:2px solid #1A5D1A;text-align:center;margin-bottom:8px;">
                 <div style="font-size:32px;">{ico.get('Emoji','📍')}</div>
                 <b>{ico.get('Nome','')}</b><br>
                 <small>{ico.get('Tipo','')} - {ico.get('Colore','')}</small><br>
@@ -2561,7 +2564,7 @@ elif cur == "Geolocalizzazione Hytera + Anytone":
 
     st.markdown(
         """
-        <div style="background:#e8f5e9;padding:12px;border-radius:8px;
+        <div style="background:#e8f5e9;padding:8px;border-radius:8px;
         border:1px solid #1A5D1A;margin-bottom:12px;">
         <strong>Hytera PD785 e Anytone 878 - Tracciamento GPS volontari in campo</strong>
         </div>
@@ -2802,7 +2805,7 @@ elif cur == "Backup":
 st.divider()
 st.markdown(
     """
-    <div style="text-align:center;padding:12px;background:linear-gradient(135deg,#1A5D1A,#2e7d32);border-radius:8px;color:white;font-size:12px;">
+    <div style="text-align:center;padding:8px;background:linear-gradient(135deg,#1A5D1A,#2e7d32);border-radius:8px;color:white;font-size:12px;">
     ANA Varese - Dashboard rosso + bottoni OK | Volontari linguette + ODV | Date gg/mm/aaaa | Backup Import/Export<br>
     Sviluppato per Ezio
     </div>
