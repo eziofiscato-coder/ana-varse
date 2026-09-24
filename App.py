@@ -2452,6 +2452,57 @@ elif cur == "Mappe Postazioni":
     except Exception as _e:
         pass
 
+
+    # FIX DEFINITIVO FULLSCREEN 100% SOTTO + - DENTRO MAPPA GRANDE
+    try:
+        fs_js_big = """
+    // FIX FULLSCREEN 100% SOTTO + - PER MAPPA GRANDE
+    try {
+        var fsControl = L.control({position: 'topleft'});
+        fsControl.onAdd = function(map) {
+            var container = L.DomUtil.create('div', 'leaflet-bar leaflet-control');
+            container.style.marginTop = '5px';
+            var btn = L.DomUtil.create('a', '', container);
+            btn.innerHTML = '⛶';
+            btn.href = '#';
+            btn.title = 'Espandi mappa tutto schermo';
+            btn.style.width = '34px';
+            btn.style.height = '34px';
+            btn.style.lineHeight = '34px';
+            btn.style.textAlign = 'center';
+            btn.style.fontSize = '22px';
+            btn.style.background = 'white';
+            btn.style.display = 'block';
+            btn.style.textDecoration = 'none';
+            btn.style.color = 'black';
+            btn.style.fontWeight = 'bold';
+            btn.style.border = '2px solid rgba(0,0,0,0.2)';
+            btn.style.borderRadius = '4px';
+            btn.style.cursor = 'pointer';
+            L.DomEvent.on(btn, 'click', function(e){
+                L.DomEvent.stop(e);
+                var mapContainer = document.getElementById('map');
+                if (mapContainer) {
+                    if (!document.fullscreenElement) {
+                        if (mapContainer.requestFullscreen) mapContainer.requestFullscreen();
+                        else if (mapContainer.webkitRequestFullscreen) mapContainer.webkitRequestFullscreen();
+                        else if (mapContainer.msRequestFullscreen) mapContainer.msRequestFullscreen();
+                        setTimeout(function(){ map.invalidateSize(); }, 600);
+                    } else {
+                        if (document.exitFullscreen) document.exitFullscreen();
+                        setTimeout(function(){ map.invalidateSize(); }, 600);
+                    }
+                }
+            });
+            return container;
+        };
+        fsControl.addTo(map);
+    } catch(e){ console.log('fs big error', e); }
+"""
+        html_code = html_code.replace("</script>", fs_js_big + "\n</script>")
+    except Exception as _e:
+        pass
+
     st.components.v1.html(html_code, height=700)
 
     # TABELLA SOTTO MAPPA COME PRIMA - CON COMUNE + VIA + EMERGENZA + EVENTO
