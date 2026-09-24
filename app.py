@@ -2086,9 +2086,9 @@ elif cur == "Mappe Postazioni":
             st.rerun()
     with c4:
         try:
-        add_fullscreen_button_to_map()
-    except:
-        pass
+            add_fullscreen_button_to_map()
+        except Exception:
+            pass
     st.markdown(f'<span style="background:#1A5D1A;color:white;padding:6px 12px;border-radius:6px;font-weight:bold;">🗺️ {len(st.session_state.mappa_avanzata_markers)} postazioni - Tutti rimangono</span>', unsafe_allow_html=True)
 
     if st.session_state.get("fs_mappa_active"):
