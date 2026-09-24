@@ -2102,10 +2102,33 @@ elif cur == "Mappa Avanzata":
     markers_for_js = json_lib.dumps([{"lat": m["Lat"], "lon": m["Lon"], "nome": m["Nome"], "icona": m["Icona"], "tipo": m["Tipo"], "comune": m.get("Comune",""), "via": m.get("Via","")} for m in all_markers])
 
     html_code = """
+    <style>
+    #map-container:fullscreen {
+        width: 100vw !important;
+        height: 100vh !important;
+        background: white !important;
+        padding: 0 !important;
+        border-radius: 0 !important;
+    }
+    #map-container:-webkit-full-screen {
+        width: 100vw !important;
+        height: 100vh !important;
+    }
+    #map-container:fullscreen #map {
+        height: 100vh !important;
+        width: 100vw !important;
+        border-radius: 0 !important;
+        border: none !important;
+    }
+    #map-container:-webkit-full-screen #map {
+        height: 100vh !important;
+        width: 100vw !important;
+    }
+    </style>
     <div id="map-container" style="position:relative; background:white; border-radius:12px;">
         <div id="map" style="height:700px; width:100%; border-radius:12px; border:3px solid #1A5D1A;"></div>
     </div>
-    <div id="coords" style="background:#fffde7;padding:12px;border-radius:6px;margin-top:8px;font-weight:bold;border-left:4px solid #FFD700; font-family:Times New Roman; min-height:50px;">📍 Clicca sulla mappa - Il marker rimarrà - Coordinate in maschera automatica</div>
+    <div id="coords" style="background:#fffde7;padding:12px;border-radius:6px;margin-top:8px;font-weight:bold;border-left:4px solid #FFD700; font-family:Times New Roman; min-height:50px;">📍 Clicca sulla mappa - Il marker rimarrà - Coordinate in maschera automatica - Fullscreen espande tutto schermo</div>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
@@ -2116,7 +2139,7 @@ elif cur == "Mappa Avanzata":
     // Zoom control custom in alto a sx
     L.control.zoom({position: 'topleft'}).addTo(map);
 
-    // Fullscreen quadratino sotto + e - come vecchia versione
+    // Fullscreen quadratino sotto + e - che espande mappa tutto schermo
     var FullscreenControl = L.Control.extend({
         onAdd: function(map) {
             var container = L.DomUtil.create('div', 'leaflet-bar leaflet-control');
@@ -2139,13 +2162,11 @@ elif cur == "Mappa Avanzata":
             
             L.DomEvent.on(btn, 'click', function(e) {
                 L.DomEvent.stop(e);
-                var mapContainer = document.getElementById('map-container');
                 if (!document.fullscreenElement) {
-                    if (mapContainer.requestFullscreen) mapContainer.requestFullscreen();
-                    else if (mapContainer.webkitRequestFullscreen) mapContainer.webkitRequestFullscreen();
-                    else if (mapContainer.msRequestFullscreen) mapContainer.msRequestFullscreen();
+                    enterFullscreen();
                 } else {
                     if (document.exitFullscreen) document.exitFullscreen();
+                    else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
                 }
             });
             
@@ -2156,6 +2177,32 @@ elif cur == "Mappa Avanzata":
     map.addControl(new FullscreenControl({position: 'topleft'}));
 
     // Aggiorna icona quando entra/esce fullscreen
+        // Gestione fullscreen che espande tutto schermo
+    function enterFullscreen() {
+        var container = document.getElementById('map-container');
+        var mapDiv = document.getElementById('map');
+        if (container.requestFullscreen) {
+            container.requestFullscreen().then(function() {
+                mapDiv.style.height = '100vh';
+                mapDiv.style.width = '100vw';
+                setTimeout(function(){ map.invalidateSize(); }, 300);
+            });
+        } else if (container.webkitRequestFullscreen) {
+            container.webkitRequestFullscreen();
+        } else if (container.msRequestFullscreen) {
+            container.msRequestFullscreen();
+        }
+        // Prova anche fullscreen su parent se in iframe
+        try {
+            if (window.parent && window.parent.document) {
+                var parentContainer = window.parent.document.getElementById('map-container');
+                if (parentContainer && parentContainer.requestFullscreen) {
+                    // fallback
+                }
+            }
+        } catch(e) {}
+    }
+
     document.addEventListener('fullscreenchange', function() {
         setTimeout(function(){ map.invalidateSize(); }, 300);
     });
