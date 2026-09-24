@@ -1991,17 +1991,12 @@ elif cur == "Attrezzature":
         if REPORTLAB_OK:
             st.download_button("PDF Logo Estesa", to_pdf(df_att, "ATTREZZATURE"), "attrezzature.pdf", use_container_width=True)
 
-# MAPPE POSTAZIONI - VERSIONE FINALE EZIO - NESSUN DEFAULT + ANTEPRIMA + SALVA + VIA VISIBILE
+# MAPPE POSTAZIONI - STABILE - MARKER RIMANGONO - TABELLA SOTTO - ANTEPRIMA SOTTO TABELLA - NOME EMERGENZA/EVENTO COMBO
 elif cur == "Mappe Postazioni":
     hdr()
-    hdr_form("MAPPE POSTAZIONI - Postazioni + Marker")
+    hdr_form("MAPPE POSTAZIONI - Postazioni + Marker - Stabile")
 
-    st.markdown("""
-    <div style="background:#e3f2fd;padding:8px;border-radius:8px;border-left:4px solid #1976d2;">
-    <b>MAPPE POSTAZIONI - NESSUN marker di default - Clicca e lascia marker - Anteprima sotto maschera - Salva Postazione - Comune + Via in tabella</b>
-    </div>
-    """, unsafe_allow_html=True)
-
+    # Init stabile
     if "mappa_avanzata_markers" not in st.session_state:
         st.session_state.mappa_avanzata_markers = []
     if "last_clicked_lat" not in st.session_state:
@@ -2013,40 +2008,43 @@ elif cur == "Mappe Postazioni":
     if "selected_icon_label" not in st.session_state:
         st.session_state.selected_icon_label = ""
 
-    # TOP BAR - pulizia + focus
-    c_fs1, c_fs2, c_fs3, c_fs4 = st.columns([1,1,1,2])
-    with c_fs1:
-        if st.button("⛶ Fullscreen Mappa", key="btn_fs_mappa", use_container_width=True, type="primary"):
+    # Recupera liste emergenze ed eventi per combo
+    emergenze_list = st.session_state.get("emergenze", [])
+    eventi_list = st.session_state.get("eventi", [])
+    nomi_emergenze = ["-- Nessuna --"] + [f"{e.get('Nome','')} - {e.get('Data','')}" for e in emergenze_list[-20:]] if emergenze_list else ["-- Nessuna --"]
+    nomi_eventi = ["-- Nessuno --"] + [f"{ev.get('Nome','')} - {ev.get('Data','')}" for ev in eventi_list[-20:]] if eventi_list else ["-- Nessuno --"]
+
+    # TOP BAR
+    c1, c2, c3, c4 = st.columns([1,1,1,2])
+    with c1:
+        if st.button("⛶ Fullscreen", key="btn_fs_mappa", use_container_width=True, type="primary"):
             st.session_state["fs_mappa_active"] = True
-    with c_fs2:
+    with c2:
         if st.button("🧹 Pulisci TUTTI", key="btn_clear_all_markers", use_container_width=True):
             st.session_state.mappa_avanzata_markers = []
             st.session_state.map_focus = None
-            st.success("Tutti i marker rimossi - Nessun default")
+            st.success("Tutti i marker rimossi")
             st.rerun()
-    with c_fs3:
+    with c3:
         if st.button("🎯 Mostra tutte", key="btn_fit_all", use_container_width=True):
             st.session_state.map_focus = None
             st.rerun()
-    with c_fs4:
-        count = len(st.session_state.mappa_avanzata_markers)
-        st.markdown(f'<span style="background:#1A5D1A;color:white;padding:6px 12px;border-radius:6px;font-weight:bold;">🗺️ {count} postazioni - 0 default - Tutti rimangono</span>', unsafe_allow_html=True)
+    with c4:
+        st.markdown(f'<span style="background:#1A5D1A;color:white;padding:6px 12px;border-radius:6px;font-weight:bold;">🗺️ {len(st.session_state.mappa_avanzata_markers)} postazioni - Tutti rimangono</span>', unsafe_allow_html=True)
 
     if st.session_state.get("fs_mappa_active"):
-        st.components.v1.html("<script>try{const el=window.parent.document.documentElement; if(el.requestFullscreen) el.requestFullscreen();}catch(e){}</script><div style='background:#1A5D1A;color:white;padding:8px;border-radius:6px;text-align:center;font-weight:bold;'>FULLSCREEN ATTIVO - ESC per uscire</div>", height=60)
-        if st.button("❌ Esci Fullscreen", key="btn_exit_fs_mappa"):
-            st.components.v1.html("<script>try{document.exitFullscreen(); parent.document.exitFullscreen();}catch(e){}</script>", height=0)
+        st.components.v1.html("<div style='background:#1A5D1A;color:white;padding:8px;border-radius:6px;text-align:center;'>FULLSCREEN - ESC per uscire</div>", height=40)
+        if st.button("❌ Esci Fullscreen", key="btn_exit_fs"):
             st.session_state["fs_mappa_active"] = False
             st.rerun()
 
-    # TIPO MAPPA ESTERNA
     c_tipo1, c_tipo2 = st.columns([1,2])
     with c_tipo1:
-        tipo_mappa_ext = st.selectbox("Tipo Mappa Esterna", ["Google Maps", "Waze", "Google Earth"], index=0, key="tipo_mappa_ext")
+        tipo_mappa_ext = st.selectbox("Apri con", ["Google Maps", "Waze", "Google Earth"], index=0, key="tipo_mappa_ext")
     with c_tipo2:
-        st.caption("NESSUN marker di default - Clicca per lasciare marker - Ogni click RIMANE - Non torna a default")
+        st.caption("NESSUN default - Click lascia marker - Tutti rimangono - Non si cancellano da soli")
 
-    # LIBRERIA ICONE - scelta
+    # LIBRERIA ICONE scelta rapida
     icone_disponibili = st.session_state.get("icone", [])
     if not icone_disponibili:
         icone_disponibili = [
@@ -2054,26 +2052,22 @@ elif cur == "Mappe Postazioni":
             {"Nome": "Emergenza", "Emoji": "🚨", "Tipo": "Emergenza", "Colore": "red"},
             {"Nome": "Evento", "Emoji": "📅", "Tipo": "Evento", "Colore": "blue"},
             {"Nome": "Mezzo", "Emoji": "🚐", "Tipo": "Mezzo", "Colore": "green"},
-            {"Nome": "Volontario", "Emoji": "👤", "Tipo": "Volontario", "Colore": "orange"},
         ]
-    
     icone_options = []
     icone_map = {}
     for ico in icone_disponibili:
         label = f"{ico.get('Emoji','📍')} {ico.get('Nome','')} - {ico.get('Tipo','')} ({ico.get('Colore','')})"
         icone_options.append(label)
         icone_map[label] = ico
-
     if not st.session_state.selected_icon_label and icone_options:
         st.session_state.selected_icon_label = icone_options[0]
 
-    st.markdown("**Libreria Icone - Scegli marker - Decidi tu:**")
+    st.markdown("**Scegli icona dalla Libreria:**")
     cols_ico = st.columns(6)
-    for idx, ico in enumerate(icone_disponibili[:18]):
+    for idx, ico in enumerate(icone_disponibili[:12]):
         with cols_ico[idx % 6]:
-            label_btn = f"{ico.get('Emoji','📍')} {ico.get('Nome','')}"
-            is_sel = st.session_state.selected_icon_label and ico.get('Nome','') in st.session_state.selected_icon_label and ico.get('Emoji','') in st.session_state.selected_icon_label
-            if st.button(label_btn, key=f"sel_ico_{idx}", use_container_width=True, type="primary" if is_sel else "secondary"):
+            is_sel = st.session_state.selected_icon_label and ico.get('Nome','') in st.session_state.selected_icon_label
+            if st.button(f"{ico.get('Emoji','📍')} {ico.get('Nome','')}", key=f"sel_ico_{idx}", use_container_width=True, type="primary" if is_sel else "secondary"):
                 for opt in icone_options:
                     if ico.get('Nome','') in opt and ico.get('Emoji','') in opt:
                         st.session_state.selected_icon_label = opt
@@ -2085,31 +2079,31 @@ elif cur == "Mappe Postazioni":
     except:
         default_idx = 0
 
-    # MASCHERA
-    st.markdown("#### 📍 Maschera Postazione - Compila e Salva")
-    c1, c2, c3, c4 = st.columns(4)
+    # MASCHERA con NOME EMERGENZA e NOME EVENTO COMBO
+    st.markdown("#### 📍 Maschera Postazione")
+    c1, c2, c3 = st.columns(3)
     with c1:
         marker_nome = st.text_input("Nome Postazione *", key="adv_marker_nome", placeholder="Es: Postazione 1")
         marker_lat = st.text_input("Latitudine *", value=st.session_state.last_clicked_lat, key="adv_marker_lat", placeholder="Clicca mappa")
-    with c2:
         marker_lon = st.text_input("Longitudine *", value=st.session_state.last_clicked_lon, key="adv_marker_lon", placeholder="Clicca mappa")
-        marker_comune = st.text_input("Comune *", value="Varese", key="adv_marker_comune", placeholder="Comune")
-    with c3:
+    with c2:
+        marker_comune = st.text_input("Comune *", value="Varese", key="adv_marker_comune")
         marker_via = st.text_input("Via *", value="", key="adv_marker_via", placeholder="Via + civico")
-        marker_icona_label = st.selectbox("Icona dalla Libreria - TU DECIDI", icone_options, index=default_idx, key="adv_marker_icona_select")
+        # CAMPI COMBO RICHIESTI
+        nome_emergenza = st.selectbox("Nome Emergenza (combo)", nomi_emergenze, index=0, key="nome_emergenza_combo")
+        nome_evento = st.selectbox("Nome Evento (combo)", nomi_eventi, index=0, key="nome_evento_combo")
+    with c3:
+        marker_icona_label = st.selectbox("Icona Libreria", icone_options, index=default_idx, key="adv_marker_icona_select")
         st.session_state.selected_icon_label = marker_icona_label
         selected_ico_obj = icone_map.get(marker_icona_label, {"Emoji":"⛑️","Nome":"Postazione","Colore":"green","Tipo":"Postazione"})
-        st.markdown(f"<div style='font-size:18px;text-align:center;background:#e8f5e9;padding:6px;border-radius:6px;border:2px solid #1A5D1A;'>{selected_ico_obj.get('Emoji','⛑️')} {selected_ico_obj.get('Nome','')}</div>", unsafe_allow_html=True)
-    with c4:
-        marker_tipo = st.selectbox("Tipo", ["Postazione", "Emergenza", "Evento", "Mezzo", "Volontario", "Punto Interesse"], key="adv_marker_tipo")
-        marker_data = st.date_input("Data", value=date.today(), format="DD/MM/YYYY", key="adv_marker_data")
-        marker_desc = st.text_input("Descrizione", key="adv_marker_desc", placeholder="Note")
+        st.markdown(f"<div style='font-size:24px;text-align:center;background:#e8f5e9;padding:8px;border-radius:8px;border:2px solid #1A5D1A;'>{selected_ico_obj.get('Emoji','⛑️')} {selected_ico_obj.get('Nome','')}</div>", unsafe_allow_html=True)
+        marker_tipo = st.selectbox("Tipo", ["Postazione", "Emergenza", "Evento", "Mezzo", "Volontario"], key="adv_marker_tipo")
+        marker_desc = st.text_input("Descrizione", key="adv_marker_desc")
 
-    # TASTO SALVA POSTAZIONE - BEN VISIBILE - RICHIESTO DA EZIO
-    st.markdown("### 💾 Salva Postazione")
-    col_save1, col_save2 = st.columns([2,1])
+    # SALVA
+    col_save1, col_save2 = st.columns([3,1])
     with col_save1:
-        save_clicked = st.button("💾 SALVA POSTAZIONE - RIMANE su mappa - Nessun default", type="primary", use_container_width=True, key="btn_salva_postazione")
+        save_clicked = st.button("💾 SALVA POSTAZIONE - RIMANE su mappa", type="primary", use_container_width=True, key="btn_salva_postazione")
     with col_save2:
         if st.button("🔄 Pulisci campi", use_container_width=True, key="btn_pulisci_campi"):
             st.session_state.last_clicked_lat = ""
@@ -2118,100 +2112,90 @@ elif cur == "Mappe Postazioni":
             st.rerun()
 
     if save_clicked:
-        effective_lat = marker_lat or st.session_state.get("last_clicked_lat") or ""
-        effective_lon = marker_lon or st.session_state.get("last_clicked_lon") or ""
+        eff_lat = marker_lat or st.session_state.last_clicked_lat
+        eff_lon = marker_lon or st.session_state.last_clicked_lon
         if not marker_nome:
-            st.warning("⚠️ Inserisci Nome Postazione")
-        elif not effective_lat or not effective_lon:
-            st.warning("⚠️ Clicca sulla mappa per Lat/Lon")
-        elif not marker_comune or not marker_via:
-            st.warning("⚠️ Inserisci Comune e Via - richiesti per tabella")
+            st.error("Inserisci Nome Postazione")
+        elif not eff_lat or not eff_lon:
+            st.error("Clicca sulla mappa per coordinate")
         else:
             try:
-                lat_f = float(str(effective_lat).replace(",", "."))
-                lon_f = float(str(effective_lon).replace(",", "."))
-                sel_label = st.session_state.get("selected_icon_label", marker_icona_label)
-                sel_obj = icone_map.get(sel_label, {"Emoji":"⛑️","Nome":"Postazione","Colore":"green","Tipo":marker_tipo})
-                nuovo_marker = {
+                lat_f = float(str(eff_lat).replace(",", "."))
+                lon_f = float(str(eff_lon).replace(",", "."))
+                sel_obj = icone_map.get(st.session_state.selected_icon_label, selected_ico_obj)
+                nuovo = {
                     "Nome": marker_nome,
                     "Lat": lat_f,
                     "Lon": lon_f,
                     "Comune": marker_comune,
                     "Via": marker_via,
-                    "Icona": sel_label,
+                    "NomeEmergenza": nome_emergenza,
+                    "NomeEvento": nome_evento,
                     "Emoji": sel_obj.get("Emoji","⛑️"),
                     "Colore": sel_obj.get("Colore","green"),
                     "IconaNome": sel_obj.get("Nome","Postazione"),
-                    "Descrizione": marker_desc,
+                    "Icona": st.session_state.selected_icon_label,
                     "Tipo": marker_tipo,
-                    "Data": str(marker_data),
+                    "Descrizione": marker_desc,
                     "DataIns": datetime.now().strftime("%d/%m/%Y %H:%M")
                 }
-                st.session_state.mappa_avanzata_markers.append(nuovo_marker)
-                st.session_state.map_focus = nuovo_marker  # Focus su nuova, ma tutti rimangono
-                st.success(f"✅ Postazione {sel_obj.get('Emoji','⛑️')} {marker_nome} - {marker_comune} {marker_via} SALVATA - Totale {len(st.session_state.mappa_avanzata_markers)}")
+                st.session_state.mappa_avanzata_markers.append(nuovo)
+                st.session_state.map_focus = nuovo
+                st.session_state.last_clicked_lat = str(lat_f)
+                st.session_state.last_clicked_lon = str(lon_f)
+                st.success(f"Salvata {sel_obj.get('Emoji','⛑️')} {marker_nome} - {marker_comune} {marker_via} - Emergenza: {nome_emergenza} Evento: {nome_evento} - Totale {len(st.session_state.mappa_avanzata_markers)}")
                 st.rerun()
             except Exception as e:
-                st.error(f"Coordinate non valide: {e}")
+                st.error(f"Errore: {e}")
 
-    # ANTEPRIMA MAPPA SOTTO MASCHERA - RICHIESTA EZIO - TIPO ANTEPRIMA
+    # ANTEPRIMA SOPRA MAPPA GRANDE
     st.divider()
-    st.markdown("#### 🗺️ Anteprima Postazione - Mappa piccola sotto maschera")
+    st.markdown("#### 🗺️ Anteprima - Mappa piccola sopra mappa grande")
     preview_lat = marker_lat or st.session_state.last_clicked_lat
     preview_lon = marker_lon or st.session_state.last_clicked_lon
     if preview_lat and preview_lon:
         try:
             p_lat = float(str(preview_lat).replace(",", "."))
             p_lon = float(str(preview_lon).replace(",", "."))
-            sel_emoji_prev = selected_ico_obj.get('Emoji','⛑️')
-            sel_color_prev = selected_ico_obj.get('Colore','green')
+            sel_e = selected_ico_obj.get('Emoji','⛑️')
+            sel_c = selected_ico_obj.get('Colore','green')
             preview_html = f"""
             <div style="border:2px solid #1A5D1A;border-radius:8px;overflow:hidden;">
-            <div style="background:#1A5D1A;color:white;padding:6px;font-weight:bold;text-align:center;">Anteprima: {sel_emoji_prev} {marker_nome or 'Nuova Postazione'} - {marker_comune} {marker_via} - {p_lat}, {p_lon}</div>
-            <div id="preview_map" style="height:300px;width:100%;"></div>
+            <div style="background:#1A5D1A;color:white;padding:6px;text-align:center;">Anteprima: {sel_e} {marker_nome or 'Nuova'} - {marker_comune} {marker_via} - Emergenza: {nome_emergenza} - Evento: {nome_evento}</div>
+            <div id="preview_map_top" style="height:250px;width:100%;"></div>
             </div>
             <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
             <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
             <script>
-            var pMap = L.map('preview_map').setView([{p_lat}, {p_lon}], 16);
+            var pMap = L.map('preview_map_top').setView([{p_lat}, {p_lon}], 15);
             L.tileLayer('https://{{s}}.tile.openstreetmap.org/{{z}}/{{x}}/{{y}}.png').addTo(pMap);
-            var colMap = {{'red':'#d32f2f','blue':'#1976d2','green':'#388e3c','orange':'#f57c00','purple':'#7b1fa2','darkred':'#b71c1c','darkblue':'#0d47a1','cadetblue':'#5f9ea0'}};
-            var cCode = colMap['{sel_color_prev}'] || '#388e3c';
-            var pIcon = L.divIcon({{
-                className: 'preview-icon',
-                html: "<div style='background:white;border:3px solid " + cCode + ";width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;box-shadow:0 3px 8px rgba(0,0,0,0.4);'>{sel_emoji_prev}</div>",
-                iconSize: [40,40],
-                iconAnchor: [20,20]
-            }});
-            L.marker([{p_lat}, {p_lon}], {{icon: pIcon}}).addTo(pMap).bindPopup("<b>{sel_emoji_prev} {marker_nome or 'Anteprima'}</b><br>{marker_comune} {marker_via}<br>{p_lat}, {p_lon}").openPopup();
+            var colMap = {{'red':'#d32f2f','blue':'#1976d2','green':'#388e3c','orange':'#f57c00','purple':'#7b1fa2'}};
+            var cCode = colMap['{sel_c}'] || '#388e3c';
+            var pIcon = L.divIcon({{html: "<div style='background:white;border:2px solid " + cCode + ";width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;'>"+ "{sel_e}" + "</div>", iconSize: [26,26], iconAnchor: [13,13]}});
+            L.marker([{p_lat}, {p_lon}], {{icon: pIcon}}).addTo(pMap).bindPopup("{sel_e} Anteprima").openPopup();
             </script>
             """
-            st.components.v1.html(preview_html, height=350)
+            st.components.v1.html(preview_html, height=300)
         except:
-            st.info("Inserisci Lat/Lon validi per vedere anteprima - Clicca sulla mappa grande sotto")
+            st.info("Anteprima non disponibile - clicca mappa grande")
     else:
-        st.info("👆 Clicca sulla mappa grande sotto per vedere anteprima qui - Nessun marker di default")
+        st.info("Clicca mappa grande per anteprima qui")
 
+    # MAPPA GRANDE - NESSUN DEFAULT - MARKER RIMANGONO
     st.divider()
-
     all_markers = st.session_state.get("mappa_avanzata_markers", [])
     focus_marker = st.session_state.get("map_focus")
 
     import json as json_lib
-    markers_for_js = json_lib.dumps([{"lat": m["Lat"], "lon": m["Lon"], "nome": m["Nome"], "icona": m["Icona"], "emoji": m.get("Emoji","⛑️"), "colore": m.get("Colore","green"), "iconaNome": m.get("IconaNome", m.get("Icona","")), "tipo": m["Tipo"], "comune": m.get("Comune",""), "via": m.get("Via",""), "desc": m.get("Descrizione","")} for m in all_markers])
+    markers_for_js = json_lib.dumps([{"lat": m["Lat"], "lon": m["Lon"], "nome": m["Nome"], "emoji": m.get("Emoji","⛑️"), "colore": m.get("Colore","green"), "iconaNome": m.get("IconaNome",""), "comune": m.get("Comune",""), "via": m.get("Via",""), "emergenza": m.get("NomeEmergenza",""), "evento": m.get("NomeEvento","")} for m in all_markers])
     focus_for_js = json_lib.dumps(focus_marker) if focus_marker else "null"
 
-    # MAPPA GRANDE - NESSUN MARKER DEFAULT
-    st.markdown("#### 🌍 Mappa Grande - Clicca per aggiungere - Tutti rimangono - Non torna a default")
+    st.markdown("#### 🌍 Mappa Grande - Tutti i marker rimangono - Non si cancellano")
     html_code = """
-    <style>
-    #map-container:fullscreen {width:100vw !important;height:100vh !important;background:white !important;padding:0 !important;border-radius:0 !important;}
-    #map-container:fullscreen #map {height:100vh !important;width:100vw !important;border-radius:0 !important;border:none !important;}
-    </style>
     <div id="map-container" style="position:relative; background:white; border-radius:12px;">
-        <div id="map" style="height:700px; width:100%; border-radius:12px; border:3px solid #1A5D1A;"></div>
+        <div id="map" style="height:650px; width:100%; border-radius:12px; border:3px solid #1A5D1A;"></div>
     </div>
-    <div id="coords" style="background:#fffde7;padding:8px;border-radius:6px;margin-top:8px;font-weight:bold;border-left:4px solid #FFD700; font-family:Times New Roman; min-height:50px;">📍 NESSUN marker di default - Clicca per aggiungere - Tutti rimangono - Non torna a default</div>
+    <div id="coords" style="background:#fffde7;padding:8px;border-radius:6px;margin-top:8px;font-weight:bold;border-left:4px solid #FFD700;">📍 Clicca per aggiungere - Tutti rimangono</div>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
@@ -2220,216 +2204,169 @@ elif cur == "Mappe Postazioni":
     var selectedIconEmoji = SELECTED_EMOJI_PLACEHOLDER;
     var selectedIconColor = SELECTED_COLOR_PLACEHOLDER;
     var map = L.map('map', {zoomControl: false}).setView([45.8167, 8.8333], 13);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {attribution: 'ANA Varese - Nessun default'}).addTo(map);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {attribution: 'ANA Varese'}).addTo(map);
     L.control.zoom({position: 'topleft'}).addTo(map);
-    var FullscreenControl = L.Control.extend({
-        onAdd: function(map) {
-            var container = L.DomUtil.create('div', 'leaflet-bar leaflet-control');
-            var btn = L.DomUtil.create('a', '', container);
-            btn.innerHTML = '⛶'; btn.title = 'Fullscreen'; btn.href = '#';
-            btn.style.width = '34px'; btn.style.height = '34px'; btn.style.lineHeight = '34px'; btn.style.fontSize = '20px';
-            btn.style.textAlign = 'center'; btn.style.backgroundColor = 'white'; btn.style.color = 'black';
-            btn.style.textDecoration = 'none'; btn.style.fontWeight = 'bold'; btn.style.display = 'block'; btn.style.cursor = 'pointer'; btn.style.borderTop = '1px solid #ccc';
-            L.DomEvent.on(btn, 'click', function(e){ L.DomEvent.stop(e); var cont=document.getElementById('map-container'); if(!document.fullscreenElement){ if(cont.requestFullscreen) cont.requestFullscreen(); } else { if(document.exitFullscreen) document.exitFullscreen(); } });
-            return container;
-        }
-    });
-    map.addControl(new FullscreenControl({position: 'topleft'}));
+    function getColorCode(c){ var m={'red':'#d32f2f','blue':'#1976d2','green':'#388e3c','orange':'#f57c00','purple':'#7b1fa2'}; return m[c]||'#388e3c'; }
     var allMarkers = [];
-    var markersByName = {};
-    function getColorCode(colore){
-        var mapCol={'red':'#d32f2f','blue':'#1976d2','green':'#388e3c','orange':'#f57c00','purple':'#7b1fa2','darkred':'#b71c1c','darkblue':'#0d47a1','cadetblue':'#5f9ea0'};
-        return mapCol[colore] || '#388e3c';
-    }
-    markersData.forEach(function(m, idx){
-        var iconEmoji = m.emoji || "⛑️";
-        var colore = m.colore || "green";
-        var colorCode = getColorCode(colore);
-        var customIcon = L.divIcon({
-            className: 'custom-div-icon',
-            html: "<div style='background-color:white;border:3px solid " + colorCode + ";width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;box-shadow:0 3px 8px rgba(0,0,0,0.4);cursor:pointer;'>" + iconEmoji + "</div>",
-            iconSize: [28, 28], iconAnchor: [14, 14], popupAnchor: [0, -20]
-        });
-        var marker = L.marker([m.lat, m.lon], {icon: customIcon}).addTo(map)
-            .bindPopup("<b>" + iconEmoji + " " + m.nome + "</b><br><b>Comune:</b> " + m.comune + "<br><b>Via:</b> " + m.via + "<br><b>Tipo:</b> " + m.tipo + "<br>Lat: " + m.lat + "<br>Lon: " + m.lon + "<br><b>" + (m.desc || '') + "</b><br><b>RIMANE</b>");
-        allMarkers.push(marker);
-        markersByName[m.nome + '_' + m.lat] = marker;
-        markersByName[m.nome] = marker;
+    // MARKER SALVATI - RIMANGONO - PICCOLI
+    markersData.forEach(function(md){
+        var icon = L.divIcon({html: "<div style='background:white;border:2px solid " + getColorCode(md.colore) + ";width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;box-shadow:0 2px 4px rgba(0,0,0,0.3);'>" + md.emoji + "</div>", iconSize: [26,26], iconAnchor: [13,13]});
+        var mk = L.marker([md.lat, md.lon], {icon: icon}).addTo(map).bindPopup("<b>" + md.emoji + " " + md.nome + "</b><br>Comune: " + md.comune + "<br>Via: " + md.via + "<br>Emergenza: " + md.emergenza + "<br>Evento: " + md.evento);
+        allMarkers.push(mk);
     });
-    // Se focus, vai su focus MA TUTTI I MARKER RIMANGONO - NON TORNA A DEFAULT - MARKER PICCOLI
-    if (focusMarker && focusMarker.Lat && focusMarker.Lon) {
-        var fColor = getColorCode(focusMarker.Colore || 'green');
-        map.setView([focusMarker.Lat, focusMarker.Lon], 17);
-        // Trova marker corrispondente e apri popup
-        var found = null;
-        markersData.forEach(function(md, i){
-            if (md.lat == focusMarker.Lat && md.lon == focusMarker.Lon) {
-                found = allMarkers[i];
+    if (focusMarker && focusMarker.Lat){
+        map.setView([focusMarker.Lat, focusMarker.Lon], 16);
+        // Apri popup del focus
+        for(var i=0;i<markersData.length;i++){
+            if(markersData[i].lat==focusMarker.Lat && markersData[i].lon==focusMarker.Lon){
+                allMarkers[i].openPopup();
+                break;
             }
-        });
-        if (found) { found.openPopup(); }
-        document.getElementById('coords').innerHTML = "📍 Focus su: " + (focusMarker.Emoji || '⛑️') + " <b>" + focusMarker.Nome + "</b><br>Comune: <b>" + focusMarker.Comune + "</b> Via: <b>" + focusMarker.Via + "</b><br>Lat: " + focusMarker.Lat + " Lon: " + focusMarker.Lon + " - NON torna a default";
+        }
+        document.getElementById('coords').innerHTML = "📍 Focus: " + focusMarker.Emoji + " " + focusMarker.Nome + " - " + focusMarker.Comune + " " + focusMarker.Via;
     } else {
-        if (allMarkers.length > 0) {
-            var group = new L.featureGroup(allMarkers);
-            map.fitBounds(group.getBounds().pad(0.3));
-            document.getElementById('coords').innerHTML = "📍 " + markersData.length + " postazioni - NESSUN default - Fit su tutte - Clicca tabella per focus - Non torna a default";
+        if(allMarkers.length>0){
+            var g = new L.featureGroup(allMarkers);
+            map.fitBounds(g.getBounds().pad(0.3));
+            document.getElementById('coords').innerHTML = "📍 " + markersData.length + " postazioni - Tutti rimangono - Clicca tabella per focus";
         } else {
-            document.getElementById('coords').innerHTML = "📍 NESSUN marker di default - Mappa vuota - Clicca per aggiungere - Non torna a default";
+            document.getElementById('coords').innerHTML = "📍 Nessun marker - Mappa vuota - Clicca per aggiungere - Tutti rimangono quando salvati";
         }
     }
     map.on('click', function(e){
         var lat = e.latlng.lat.toFixed(6);
         var lon = e.latlng.lng.toFixed(6);
-        var tempCustomIcon = L.divIcon({
-            className: 'custom-div-icon-temp',
-            html: "<div style='background-color:#e8f5e9;border:3px dashed " + getColorCode(selectedIconColor) + ";width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;box-shadow:0 3px 10px rgba(0,0,0,0.5);'>" + selectedIconEmoji + "</div>",
-            iconSize: [32, 32], iconAnchor: [16, 16], popupAnchor: [0, -22]
-        });
-        var newMarker = L.marker([lat, lon], {draggable:true, icon: tempCustomIcon}).addTo(map)
-            .bindPopup("<b>" + selectedIconEmoji + " Nuova</b><br>Lat: " + lat + "<br>Lon: " + lon + "<br><b>RIMANE - Compila e salva</b>").openPopup();
-        document.getElementById('coords').innerHTML = "📍 Nuovo " + selectedIconEmoji + " Lat: " + lat + " Lon: " + lon + " - RIMANE - Compila maschera sopra e clicca SALVA POSTAZIONE - Non torna a default";
+        var tmpIcon = L.divIcon({html: "<div style='background:#e8f5e9;border:2px dashed " + getColorCode(selectedIconColor) + ";width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;'>" + selectedIconEmoji + "</div>", iconSize: [30,30], iconAnchor: [15,15]});
+        var nm = L.marker([lat, lon], {draggable:true, icon: tmpIcon}).addTo(map).bindPopup("Nuova - " + selectedIconEmoji + "<br>" + lat + "," + lon).openPopup();
+        document.getElementById('coords').innerHTML = "📍 Nuovo " + selectedIconEmoji + " " + lat + "," + lon + " - Compila e salva - Rimane dopo salvataggio";
         try{
-            var parentDoc = window.parent.document;
-            var allInputs = parentDoc.querySelectorAll('input[type="text"]');
-            allInputs.forEach(function(inp){
-                var label = inp.getAttribute('aria-label') || '';
-                if (label.includes('Latitudine') && label.includes('*')) { inp.value = lat; inp.dispatchEvent(new Event('input', {bubbles:true})); inp.dispatchEvent(new Event('change', {bubbles:true})); }
-                if (label.includes('Longitudine') && label.includes('*')) { inp.value = lon; inp.dispatchEvent(new Event('input', {bubbles:true})); inp.dispatchEvent(new Event('change', {bubbles:true})); }
-                if (label.includes('Nome Postazione')) { if (!inp.value || inp.value.startsWith('Postazione')) { inp.value = "Postazione " + (markersData.length + 1); inp.dispatchEvent(new Event('input', {bubbles:true})); inp.dispatchEvent(new Event('change', {bubbles:true})); } }
+            var pd = window.parent.document;
+            var inputs = pd.querySelectorAll('input[type="text"]');
+            inputs.forEach(function(inp){
+                var lb = inp.getAttribute('aria-label')||'';
+                if(lb.includes('Latitudine')){ inp.value=lat; inp.dispatchEvent(new Event('input',{bubbles:true})); }
+                if(lb.includes('Longitudine')){ inp.value=lon; inp.dispatchEvent(new Event('input',{bubbles:true})); }
             });
-            fetch('https://nominatim.openstreetmap.org/reverse?format=json&lat=' + lat + '&lon=' + lon + '&zoom=18&addressdetails=1')
-                .then(response => response.json())
-                .then(data => {
-                    var comune = data.address.city || data.address.town || data.address.village || data.address.municipality || "";
-                    var via = data.address.road || data.address.street || "";
-                    document.getElementById('coords').innerHTML += "<br>📍 Comune: <b>" + comune + "</b> - Via: <b>" + via + "</b>";
-                    allInputs.forEach(function(inp){
-                        var label = inp.getAttribute('aria-label') || '';
-                        if (label.includes('Comune *')) { inp.value = comune; inp.dispatchEvent(new Event('input', {bubbles:true})); inp.dispatchEvent(new Event('change', {bubbles:true})); }
-                        if (label.includes('Via *')) { inp.value = via; inp.dispatchEvent(new Event('input', {bubbles:true})); inp.dispatchEvent(new Event('change', {bubbles:true})); }
+            fetch('https://nominatim.openstreetmap.org/reverse?format=json&lat='+lat+'&lon='+lon)
+                .then(r=>r.json()).then(d=>{
+                    var com = d.address.city||d.address.town||d.address.village||"";
+                    var via = d.address.road||"";
+                    document.getElementById('coords').innerHTML += "<br>Comune: "+com+" Via: "+via;
+                    inputs.forEach(function(inp){
+                        var lb = inp.getAttribute('aria-label')||'';
+                        if(lb.includes('Comune *')){ inp.value=com; inp.dispatchEvent(new Event('input',{bubbles:true})); }
+                        if(lb.includes('Via *')){ inp.value=via; inp.dispatchEvent(new Event('input',{bubbles:true})); }
                     });
                 });
-        } catch(err){ console.log(err); }
-        newMarker.on('dragend', function(event){
-            var pos = event.target.getLatLng();
-            document.getElementById('coords').innerHTML = "📍 Trascinato - Lat: " + pos.lat.toFixed(6) + " Lon: " + pos.lng.toFixed(6);
-            try{
-                var parentDoc = window.parent.document;
-                var allInputs = parentDoc.querySelectorAll('input[type="text"]');
-                allInputs.forEach(function(inp){
-                    var label = inp.getAttribute('aria-label') || '';
-                    if (label.includes('Latitudine')) { inp.value = pos.lat.toFixed(6); inp.dispatchEvent(new Event('input', {bubbles:true})); }
-                    if (label.includes('Longitudine')) { inp.value = pos.lng.toFixed(6); inp.dispatchEvent(new Event('input', {bubbles:true})); }
-                });
-            } catch(e){}
-        });
+        }catch(err){ console.log(err); }
     });
     </script>
     """
-    sel_emoji_for_js = selected_ico_obj.get('Emoji','⛑️')
-    sel_color_for_js = selected_ico_obj.get('Colore','green')
     import json as json_lib2
-    emoji_json = json_lib2.dumps(sel_emoji_for_js)
-    color_json = json_lib2.dumps(sel_color_for_js)
+    sel_e = selected_ico_obj.get('Emoji','⛑️')
+    sel_c = selected_ico_obj.get('Colore','green')
     html_code = html_code.replace("MARKERS_JSON_PLACEHOLDER", markers_for_js)
     html_code = html_code.replace("FOCUS_JSON_PLACEHOLDER", focus_for_js)
-    html_code = html_code.replace("SELECTED_EMOJI_PLACEHOLDER", emoji_json)
-    html_code = html_code.replace("SELECTED_COLOR_PLACEHOLDER", color_json)
-    try:
-        st.components.v1.html(html_code, height=720)
-    except Exception as e:
-        st.error(f"Errore mappa: {e}")
+    html_code = html_code.replace("SELECTED_EMOJI_PLACEHOLDER", json_lib2.dumps(sel_e))
+    html_code = html_code.replace("SELECTED_COLOR_PLACEHOLDER", json_lib2.dumps(sel_c))
+    st.components.v1.html(html_code, height=700)
 
-    # TABELLA SOTTO MAPPA COME PRIMA - MARKER PICCOLI - TUTTI RIMANGONO
+    # TABELLA SOTTO MAPPA COME PRIMA - CON COMUNE + VIA + EMERGENZA + EVENTO
     st.divider()
-    st.markdown("### 📋 Postazioni Salvate - Tabella sotto mappa come prima")
+    st.markdown(f"### 📋 Tabella Postazioni - {len(all_markers)} salvate - Sotto mappa come prima")
     if all_markers:
-        st.success(f"✅ {len(all_markers)} postazioni salvate - Tutti i marker rimangono sulla mappa - Marker piccoli")
-        st.markdown(f"#### 📋 Elenco {len(all_markers)} Postazioni - Comune + Via visibili - Marker SX - Click per mappa")
-        
+        st.success(f"✅ {len(all_markers)} postazioni - Marker rimangono sulla mappa - Piccoli")
         for idx, m in enumerate(all_markers):
-            is_focus = focus_marker and focus_marker.get('Nome') == m['Nome'] and str(focus_marker.get('Lat')) == str(m['Lat'])
-            bg_color = "#fffde7" if is_focus else "white"
-            border_color = "#FFD700" if is_focus else "#1A5D1A"
-            
-            c_left_marker, c_info, c_comune_via, c_actions = st.columns([1, 2, 2, 2])
-            
-            with c_left_marker:
-                st.markdown(f"""
-                <div style="background:{bg_color};padding:8px;border-radius:12px;border:3px solid {border_color};text-align:center;box-shadow:0 2px 6px rgba(0,0,0,0.1);">
-                <div style="font-size:24px;">{m.get('Emoji','⛑️')}</div>
-                <div style="font-weight:bold;font-size:12px;margin-top:4px;color:{border_color};">{m.get('IconaNome', m.get('Icona',''))}</div>
-                <div style="font-size:10px;background:{border_color};color:white;padding:2px 6px;border-radius:4px;margin-top:4px;">{m.get('Colore','')}</div>
-                </div>
-                """, unsafe_allow_html=True)
+            is_focus = focus_marker and str(focus_marker.get('Lat')) == str(m['Lat']) and focus_marker.get('Nome')==m['Nome']
+            bg = "#fffde7" if is_focus else "white"
+            border = "#FFD700" if is_focus else "#1A5D1A"
+            c1, c2, c3, c4 = st.columns([1,2,2,2])
+            with c1:
+                st.markdown(f"<div style='background:{bg};padding:6px;border-radius:8px;border:2px solid {border};text-align:center;'><div style='font-size:22px;'>{m.get('Emoji','⛑️')}</div><div style='font-size:10px;'>{m.get('IconaNome','')}</div></div>", unsafe_allow_html=True)
                 if is_focus:
-                    st.markdown("**👆 IN VISTA**")
-            
-            with c_info:
+                    st.caption("👆 IN VISTA")
+            with c2:
                 st.write(f"**{m['Nome']}**")
-                st.caption(f"Tipo: {m['Tipo']} | {m.get('IconaNome','')} {m.get('Emoji','')}")
-                if m.get('Descrizione'):
-                    st.caption(f"Note: {m.get('Descrizione')}")
-                st.caption(f"Data: {m.get('DataIns','')}")
-            
-            with c_comune_via:
-                # COMUNE + VIA BEN VISIBILI - RICHIESTO
+                st.caption(f"Tipo: {m.get('Tipo','')}")
+                st.caption(f"Emergenza: {m.get('NomeEmergenza','--')}")
+                st.caption(f"Evento: {m.get('NomeEvento','--')}")
+            with c3:
                 st.markdown(f"**Comune:** {m.get('Comune','')}")
                 st.markdown(f"**Via:** {m.get('Via','')}")
-                st.text(f"Lat: {m['Lat']}")
-                st.text(f"Lon: {m['Lon']}")
-                lat = m['Lat']
-                lon = m['Lon']
-                gmaps = f"https://www.google.com/maps?q={lat},{lon}"
-                waze = f"https://waze.com/ul?ll={lat},{lon}&navigate=yes"
-                st.markdown(f"[Google]({gmaps}) | [Waze]({waze})")
-            
-            with c_actions:
-                if st.button(f"📍 Vedi su mappa", key=f"focus_{idx}", use_container_width=True, type="primary" if is_focus else "secondary"):
+                st.caption(f"Lat: {m['Lat']} Lon: {m['Lon']}")
+            with c4:
+                if st.button("📍 Vedi su mappa", key=f"focus_{idx}", use_container_width=True, type="primary" if is_focus else "secondary"):
                     st.session_state.map_focus = m
                     st.rerun()
-                
-                c_del1, c_del2 = st.columns(2)
-                with c_del1:
-                    if st.button("🗑️", key=f"del_marker_{idx}", use_container_width=True):
+                col_del, col_dup = st.columns(2)
+                with col_del:
+                    if st.button("🗑️", key=f"del_{idx}", use_container_width=True):
                         st.session_state.mappa_avanzata_markers.pop(idx)
                         if is_focus:
                             st.session_state.map_focus = None
                         st.rerun()
-                with c_del2:
-                    if st.button("📋 Duplica", key=f"dup_{idx}", use_container_width=True):
-                        new_m = m.copy()
-                        new_m["Nome"] = m["Nome"] + " copia"
-                        new_m["DataIns"] = datetime.now().strftime("%d/%m/%Y %H:%M")
-                        st.session_state.mappa_avanzata_markers.append(new_m)
+                with col_dup:
+                    if st.button("📋", key=f"dup_{idx}", use_container_width=True):
+                        nm = m.copy()
+                        nm["Nome"] = m["Nome"] + " copia"
+                        st.session_state.mappa_avanzata_markers.append(nm)
                         st.rerun()
-            
             st.divider()
-        
-        c_exp1, c_exp2, c_exp3 = st.columns(3)
+
+        # Export e pulizia
+        c_exp1, c_exp2 = st.columns(2)
         with c_exp1:
             df_exp = pd.DataFrame(all_markers)
-            st.download_button("⬇️ Excel", data=to_excel(df_exp), file_name="mappe_postazioni.xlsx", mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", use_container_width=True)
+            st.download_button("⬇️ Excel Postazioni", data=to_excel(df_exp), file_name="postazioni.xlsx", use_container_width=True)
         with c_exp2:
-            if st.button("🧹 Pulisci TUTTI", use_container_width=True, type="primary", key="clear_bottom"):
+            if st.button("🧹 Pulisci TUTTI", key="clear_bottom", use_container_width=True):
                 st.session_state.mappa_avanzata_markers = []
                 st.session_state.map_focus = None
                 st.rerun()
-        with c_exp3:
-            st.metric("Totale", len(all_markers))
-    
+
+        # MAPPA ANTEPRIMA SOTTO TABELLA - RICHIESTA EZIO
+        st.divider()
+        st.markdown("#### 🗺️ Anteprima sotto tabella - Mappa con tutte le postazioni")
+        try:
+            # Crea mappa anteprima con tutte le postazioni
+            preview_all_html = """
+            <div style="border:2px solid #1A5D1A;border-radius:8px;overflow:hidden;">
+            <div style="background:#1A5D1A;color:white;padding:6px;text-align:center;">Anteprima sotto tabella - Tutte le postazioni - """ + str(len(all_markers)) + """ marker - Piccoli</div>
+            <div id="preview_bottom" style="height:400px;width:100%;"></div>
+            </div>
+            <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+            <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+            <script>
+            var markersDataBottom = """ + markers_for_js + """;
+            var mapB = L.map('preview_bottom').setView([45.8167, 8.8333], 12);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(mapB);
+            function getColorCodeB(c){ var m={'red':'#d32f2f','blue':'#1976d2','green':'#388e3c','orange':'#f57c00','purple':'#7b1fa2'}; return m[c]||'#388e3c'; }
+            var allB = [];
+            markersDataBottom.forEach(function(md){
+                var ic = L.divIcon({html: "<div style='background:white;border:2px solid " + getColorCodeB(md.colore) + ";width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;'>" + md.emoji + "</div>", iconSize: [22,22], iconAnchor: [11,11]});
+                var mk = L.marker([md.lat, md.lon], {icon: ic}).addTo(mapB).bindPopup(md.emoji + " " + md.nome + "<br>" + md.comune + " " + md.via);
+                allB.push(mk);
+            });
+            if(allB.length>0){
+                var gB = new L.featureGroup(allB);
+                mapB.fitBounds(gB.getBounds().pad(0.3));
+            }
+            </script>
+            """
+            st.components.v1.html(preview_all_html, height=450)
+        except Exception as e:
+            st.error(f"Errore anteprima: {e}")
+
     else:
-        st.info("📍 NESSUN marker di default - Mappa vuota - Clicca per aggiungere - Tabella apparirà qui con Comune + Via")
+        st.info("📍 Nessuna postazione salvata - Tabella apparirà qui dopo salvataggio - Clicca mappa grande sopra per aggiungere - Marker rimarranno")
+        st.markdown("""
+        <div style="background:#fffde7;padding:12px;border-radius:8px;text-align:center;">
+        <b>Mappa anteprima sotto tabella apparirà quando salvi la prima postazione</b><br>
+        1. Clicca mappa grande<br>2. Compila maschera (Comune, Via, Emergenza, Evento)<br>3. Salva - Tabella sotto mappa + anteprima sotto tabella
+        </div>
+        """, unsafe_allow_html=True)
 
 # LIBRERIA ICONE
-
-
-# LIBRERIA ICONE
-
-
-# LIBRERIA ICONE
-
 
 
 elif cur == "Libreria Icone":
