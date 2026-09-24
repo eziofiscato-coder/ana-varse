@@ -24,6 +24,54 @@ try:
 except:
     OPENPYXL_OK = False
 
+# FIX 1 - ModuleNotFoundError streamlit_folium riga 16 - base 2032 come ieri
+try:
+    import folium
+    from streamlit_folium import st_folium
+    from folium.plugins import Fullscreen
+    FOLIUM_OK = True
+except Exception:
+    FOLIUM_OK = False
+    folium = None
+    st_folium = None
+    Fullscreen = None
+
+# FIX 3 - CSV comune,via - base 2032
+CSV_VIE_FILE = "vie_italia.csv"
+def get_comuni_from_csv():
+    if os.path.exists(CSV_VIE_FILE):
+        try:
+            df = pd.read_csv(CSV_VIE_FILE, dtype=str, keep_default_na=False)
+            df.columns = [c.strip().lower() for c in df.columns]
+            if 'comune' in df.columns and len(df)>0:
+                return sorted(df['comune'].dropna().unique().tolist())
+        except:
+            pass
+    return None
+
+def get_vie_from_csv(comune):
+    if os.path.exists(CSV_VIE_FILE):
+        try:
+            df = pd.read_csv(CSV_VIE_FILE, dtype=str, keep_default_na=False)
+            df.columns = [c.strip().lower() for c in df.columns]
+            if 'comune' in df.columns and 'via' in df.columns:
+                filt = df[df['comune'].astype(str).str.lower()==str(comune).lower()]
+                vie = filt['via'].dropna().unique().tolist()
+                if vie:
+                    return sorted(vie)
+        except:
+            pass
+    return None
+
+# FIX 2 - session state map center
+if "map_center" not in st.session_state:
+    st.session_state.map_center = {"lat": 45.8167, "lon": 8.8333}
+if "map_zoom" not in st.session_state:
+    st.session_state.map_zoom = 15
+if "map_focus_idx" not in st.session_state:
+    st.session_state.map_focus_idx = None
+
+
 st.set_page_config(
     page_title="ANA Varese 950+ Modifiche Richieste",
     page_icon="🛡️",
@@ -75,6 +123,11 @@ st.markdown(
     button[kind="primary"]:hover {
         background-color: #2e7d32 !important;
     }
+    /* FIX 2 - Fullscreen 100% mappe - base 2032 come ieri */
+    [data-testid="stMap"] { height: 100vh !important; width:100% !important; }
+    iframe[title="streamlit_folium.st_folium"] { height: 100vh !important; width:100% !important; }
+    .leaflet-control-fullscreen a { background-color: white !important; font-size: 18px !important; }
+    .leaflet-container:fullscreen { width: 100vw !important; height: 100vh !important; }
     /* Fullscreen rosso */
     button#fs-btn, button[key="btn_fullscreen_dash"], button[key="btn_fs_mappa"] {
         background-color: #ff0000 !important;
@@ -2352,7 +2405,7 @@ elif cur == "Mappe Postazioni":
                 st.markdown(f"**Via:** {m.get('Via','')}")
                 st.caption(f"Lat: {m['Lat']} Lon: {m['Lon']}")
             with c4:
-                if st.button("📍 Vedi su mappa", key=f"focus_{idx}", use_container_width=True, type="primary" if is_focus else "secondary"):
+                if st.button("📍 Vedi su mappa", key=f"vedi_{idx}_{id(m) if "m" in locals() else idx}_{datetime.now().strftime("%f")}", use_container_width=True, type="primary" if is_focus else "secondary"):
                     st.session_state.map_focus = m
                     st.rerun()
                 col_del, col_dup = st.columns(2)
