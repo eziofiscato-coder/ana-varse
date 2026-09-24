@@ -31,6 +31,66 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
+# CSS Globale - Times New Roman grassetto per tutti + Verde ANA
+st.markdown(
+    """
+    <style>
+    * {
+        font-family: 'Times New Roman', Times, serif !important;
+    }
+    html, body, [class*="css"] {
+        font-family: 'Times New Roman', Times, serif !important;
+    }
+    p, div, span, label, input, select, textarea, button {
+        font-family: 'Times New Roman', Times, serif !important;
+        font-weight: bold !important;
+    }
+    .stTextInput label, .stSelectbox label, .stDateInput label, .stTimeInput label, .stTextArea label {
+        font-family: 'Times New Roman', Times, serif !important;
+        font-weight: bold !important;
+        font-size: 14px !important;
+        color: black !important;
+    }
+    /* Bottoni dashboard verde ANA */
+    div[data-testid="column"] .stButton > button {
+        background-color: #1A5D1A !important;
+        color: white !important;
+        border: 2px solid #1A5D1A !important;
+        font-weight: bold !important;
+        font-family: 'Times New Roman', serif !important;
+        font-size: 13px !important;
+    }
+    div[data-testid="column"] .stButton > button:hover {
+        background-color: #2e7d32 !important;
+        border-color: #2e7d32 !important;
+        color: white !important;
+    }
+    /* Bottoni primary verde ANA (tranne fullscreen) */
+    button[kind="primary"] {
+        background-color: #1A5D1A !important;
+        border-color: #1A5D1A !important;
+        font-family: 'Times New Roman', serif !important;
+        font-weight: bold !important;
+    }
+    button[kind="primary"]:hover {
+        background-color: #2e7d32 !important;
+    }
+    /* Fullscreen rosso */
+    button#fs-btn, button[key="btn_fullscreen_dash"], button[key="btn_fs_mappa"] {
+        background-color: #ff0000 !important;
+        border-color: #ff0000 !important;
+    }
+    /* Tab linguette Times New Roman bold */
+    .stTabs [data-baseweb="tab-list"] button {
+        font-family: 'Times New Roman', serif !important;
+        font-weight: bold !important;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True
+)
+
+
 # Auto-inietta UI PATCH nella sidebar se disponibile
 try:
     ui_patch_loader_sidebar()
@@ -919,7 +979,7 @@ if cur == "Dashboard":
             color: white !important;
         }
         /* Tasto fullscreen rosso */
-        button[kind="primary"] {
+        button[kind="primary"].fullscreen-red {
             background-color: #ff0000 !important;
             border-color: #ff0000 !important;
         }
@@ -1019,13 +1079,41 @@ elif cur == "Volontari (con foto)":
             via = combo_vie("Via", comune_res, "vol_via_tab", via_def)
         with c2:
             capo_odv = st.text_input("Capo ODV *", value=capo_odv_def, key="vol_capo_odv", help="Nome del Capo ODV di riferimento")
-            odv_app = st.selectbox("ODV Associazione di Appartenenza *", ["ANA Varese", "ANA Milano", "ANA Como", "Protezione Civile Varese", "Altro"], index=0, key="vol_odv_app")
+            # CASELLA COMBO PER SCEGLIERE LE ODV - lista completa
+            odv_lista = [
+                "ANA Varese", "ANA Milano", "ANA Como", "ANA Bergamo", "ANA Brescia", "ANA Torino", "ANA Sezione Varese",
+                "Protezione Civile Varese", "Protezione Civile Lombardia", "Protezione Civile Nazionale",
+                "Croce Rossa Italiana - Varese", "Croce Rossa Italiana - Milano", "Misericordia", "ANPAS",
+                "Associazione Nazionale Alpini", "Gruppo Comunale Volontari", "AIB - Antincendio Boschivo",
+                "Altro"
+            ]
+            # Se valore esistente non in lista, aggiungilo
+            if odv_app_def and odv_app_def not in odv_lista:
+                odv_lista = [odv_app_def] + odv_lista
+            
+            odv_app = st.selectbox("ODV Associazione di Appartenenza *", odv_lista, index=odv_lista.index(odv_app_def) if odv_app_def in odv_lista else 0, key="vol_odv_app")
             if odv_app == "Altro":
-                odv_app_custom = st.text_input("Specifica ODV", value=odv_app_def if odv_app_def not in ["ANA Varese", "ANA Milano", "ANA Como", "Protezione Civile Varese"] else "", key="vol_odv_custom")
+                odv_app_custom = st.text_input("Specifica ODV - Inserisci nome", value="" if odv_app_def in odv_lista else odv_app_def, key="vol_odv_custom", placeholder="Es: Protezione Civile Busto Arsizio")
                 if odv_app_custom:
                     odv_app = odv_app_custom
             data_nascita = st.date_input("Data Nascita", value=date(1990,1,1), format="DD/MM/YYYY", key="vol_data_nasc")
             codice_fisc = st.text_input("Codice Fiscale", value=edit_data.get("CodFisc",""), key="vol_cf")
+            
+            # FOTO NELLA PRIMA MASCHERA + DOWNLOAD
+            st.markdown("**📸 Foto Volontario - Prima Maschera**")
+            foto_file_prima = st.file_uploader("Carica foto (prima maschera)", type=["jpg", "jpeg", "png"], key="vol_foto_prima")
+            if foto_file_prima:
+                foto_bytes_prima = foto_file_prima.getvalue()
+                st.image(foto_bytes_prima, width=120, caption="Preview prima maschera")
+                # Salva in session per uso globale
+                st.session_state["foto_temp_prima"] = foto_bytes_prima
+                st.download_button("⬇️ Download Foto", data=foto_bytes_prima, file_name=f"foto_{nome}_{cognome}.jpg", mime="image/jpeg", use_container_width=True, key="download_foto_prima")
+            elif edit_mode and edit_data.get("FotoBytes"):
+                try:
+                    st.image(edit_data.get("FotoBytes"), width=120, caption="Foto esistente")
+                    st.download_button("⬇️ Download Foto Esistente", data=edit_data.get("FotoBytes"), file_name=f"foto_{edit_data.get('Cognome','')}_{edit_data.get('Nome','')}.jpg", mime="image/jpeg", use_container_width=True, key="download_foto_esistente_prima")
+                except:
+                    pass
 
     with tab2:
         st.markdown("#### 📞 Contatti")
@@ -1063,17 +1151,22 @@ elif cur == "Volontari (con foto)":
     with tab6:
         st.markdown("#### 📸 Foto Volontario")
         foto_file = st.file_uploader("Carica foto", type=["jpg", "jpeg", "png"], key="vol_foto_tab")
-        foto_preview = None
+        foto_preview = st.session_state.get("foto_temp_prima", None)
         if foto_file:
             foto_bytes = foto_file.getvalue()
             st.image(foto_bytes, width=150, caption="Preview")
             foto_preview = foto_bytes
+            st.download_button("⬇️ Download Foto Volontario", data=foto_bytes, file_name=f"foto_{nome}_{cognome}.jpg", mime="image/jpeg", use_container_width=True, key="download_foto_tab")
         elif edit_mode and edit_data.get("FotoBytes"):
             try:
                 st.image(edit_data.get("FotoBytes"), width=150, caption="Foto esistente")
                 foto_preview = edit_data.get("FotoBytes")
+                st.download_button("⬇️ Download Foto", data=edit_data.get("FotoBytes"), file_name=f"foto_{edit_data.get('Cognome','')}.jpg", mime="image/jpeg", use_container_width=True, key="download_foto_tab_edit")
             except:
                 pass
+        elif foto_preview:
+            st.image(foto_preview, width=150, caption="Foto da prima maschera")
+            st.download_button("⬇️ Download Foto da Prima Maschera", data=foto_preview, file_name=f"foto_{nome}_{cognome}.jpg", mime="image/jpeg", use_container_width=True, key="download_foto_da_prima")
 
     st.divider()
 
