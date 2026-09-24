@@ -582,16 +582,46 @@ def to_pdf(df, tit):
         styles = getSampleStyleSheet()
         story = []
 
+        # LOGO ANA PC VA - da session_state o da file logo.png
         try:
-            if os.path.exists("logo.png"):
+            logo_added = False
+            # Prova da session_state (caricato da sidebar)
+            if st.session_state.get("app_logo_bytes"):
+                try:
+                    logo_buf = BytesIO(st.session_state.app_logo_bytes)
+                    # Prova a creare immagine reportlab da BytesIO
+                    logo_img = Image(logo_buf, width=80, height=80)
+                    logo_img.hAlign = 'LEFT'
+                    story.append(logo_img)
+                    story.append(Spacer(1, 6))
+                    # Nome logo se presente
+                    if st.session_state.get("app_logo_name"):
+                        story.append(Paragraph(f"<i>Logo: {st.session_state.app_logo_name} - ANA Varese Protezione Civile</i>", styles["Normal"]))
+                        story.append(Spacer(1, 6))
+                    logo_added = True
+                except Exception as e_logo:
+                    # Fallback: prova a salvare su disco temporaneo
+                    try:
+                        tmp_path = "/tmp/ana_logo_tmp.png"
+                        with open(tmp_path, "wb") as f_tmp:
+                            f_tmp.write(st.session_state.app_logo_bytes)
+                        logo_img = Image(tmp_path, width=80, height=80)
+                        story.append(logo_img)
+                        story.append(Spacer(1, 12))
+                        logo_added = True
+                    except:
+                        pass
+            # Se non c'è in session, prova logo.png file
+            if not logo_added and os.path.exists("logo.png"):
                 logo_img = Image("logo.png", width=80, height=80)
+                logo_img.hAlign = 'LEFT'
                 story.append(logo_img)
                 story.append(Spacer(1, 12))
-        except:
+        except Exception:
             pass
 
         title_para = Paragraph(
-            f"<b>{tit} - ANA Varese Protezione Civile</b>",
+            f"<b>{tit} - ANA Varese - Protezione Civile - Sezione Varese 950+</b>",
             styles["Title"]
         )
         story.append(title_para)
@@ -673,12 +703,14 @@ def to_pdf(df, tit):
 
 def hdr():
     """
-    columns 1,5 con logo.png 110 e div verde titolo GESTIONALE 950+ MODIFICHE RICHIESTE
+    Header con logo personalizzato + titolo
     """
     c1, c2 = st.columns([1, 5])
     with c1:
         try:
-            if os.path.exists("logo.png"):
+            if st.session_state.get("app_logo_bytes"):
+                st.image(st.session_state.app_logo_bytes, width=110)
+            elif os.path.exists("logo.png"):
                 st.image("logo.png", width=110)
             else:
                 st.markdown(
@@ -868,24 +900,48 @@ if not st.session_state.logged:
     st.session_state.page = "login"
     st.rerun()
 
-# SIDEBAR - MENU
+# SIDEBAR - MENU CON LOGO
 with st.sidebar:
+    # LOGO - gestito da session_state
+    if "app_logo_bytes" not in st.session_state:
+        st.session_state.app_logo_bytes = None
+    if "app_logo_name" not in st.session_state:
+        st.session_state.app_logo_name = ""
+
     try:
-        if os.path.exists("logo.png"):
-            st.image("logo.png", width=120)
+        if st.session_state.app_logo_bytes:
+            st.image(st.session_state.app_logo_bytes, use_container_width=True)
+            st.caption(f"Logo: {st.session_state.app_logo_name}")
+        elif os.path.exists("logo.png"):
+            st.image("logo.png", use_container_width=True)
         else:
             st.markdown(
                 """
-                <div style="width:120px;height:120px;background:#1A5D1A;
-                border-radius:12px;display:flex;align-items:center;
-                justify-content:center;color:white;font-weight:bold;font-size:18px;">
-                ANA
+                <div style="width:100%;background:#1A5D1A;padding:16px;
+                border-radius:12px;display:flex;flex-direction:column;align-items:center;
+                justify-content:center;color:white;font-weight:bold;">
+                <div style="font-size:32px;">🛡️</div>
+                <div style="font-size:18px;">ANA</div>
+                <div style="font-size:12px;">VARESE 950+</div>
                 </div>
                 """,
                 unsafe_allow_html=True
             )
     except:
-        st.write("ANA")
+        st.write("ANA VARESE")
+
+    with st.expander("🖼️ Cambia Logo", expanded=False):
+        up_logo = st.file_uploader("Carica logo (png/jpg)", type=["png","jpg","jpeg"], key="up_logo_sidebar")
+        if up_logo:
+            st.session_state.app_logo_bytes = up_logo.read()
+            st.session_state.app_logo_name = up_logo.name
+            st.success(f"Logo {up_logo.name} caricato - ora visibile")
+            st.rerun()
+        if st.session_state.app_logo_bytes:
+            if st.button("🗑️ Rimuovi logo", key="del_logo", use_container_width=True):
+                st.session_state.app_logo_bytes = None
+                st.session_state.app_logo_name = ""
+                st.rerun()
 
     st.markdown(
         """
@@ -918,6 +974,8 @@ with st.sidebar:
         "Geolocalizzazione Hytera + Anytone",
         "Backup"
     ]
+
+
 
     cur = st.radio(
         "Seleziona form",
@@ -2541,9 +2599,13 @@ elif cur == "Mappe Postazioni":
             border = "#FFD700" if is_focus else "#1A5D1A"
             c1, c2, c3, c4 = st.columns([1,2,2,2])
             with c1:
-                st.markdown(f"<div style='background:{bg};padding:6px;border-radius:8px;border:2px solid {border};text-align:center;'><div style='font-size:22px;'>{m.get('Emoji','⛑️')}</div><div style='font-size:10px;'>{m.get('IconaNome','')}</div></div>", unsafe_allow_html=True)
+                # Marker cliccabile - clicca icona per vedere su mappa
+                if st.button(f"{m.get('Emoji','⛑️')} {m.get('IconaNome','')}", key=f"icon_click_{idx}", use_container_width=True, help="Clicca per vedere su mappa"):
+                    st.session_state.map_focus = m
+                    st.rerun()
+                st.markdown(f"<div style='background:{bg};padding:4px;border-radius:6px;border:2px solid {border};text-align:center;font-size:10px;'>Icona libreria: {m.get('IconaNome','')} - {m.get('Emoji','⛑️')}</div>", unsafe_allow_html=True)
                 if is_focus:
-                    st.caption("👆 IN VISTA")
+                    st.caption("👆 IN VISTA SULLA MAPPA")
             with c2:
                 st.write(f"**{m['Nome']}**")
                 st.caption(f"Tipo: {m.get('Tipo','')}")
@@ -2702,16 +2764,20 @@ elif cur == "Libreria Icone":
     </div>
     """, unsafe_allow_html=True)
 
-    # Icone predefinite se vuoto
+    # Icone predefinite se vuoto - con ambulanza, polizia, etc.
     if not st.session_state.icone:
         st.session_state.icone = [
-            {"Nome": "Emergenza", "Emoji": "🚨", "Tipo": "Emergenza", "Colore": "red", "Descrizione": "Emergenza", "Data": datetime.now().strftime("%d/%m/%Y")},
+            {"Nome": "Ambulanza", "Emoji": "🚑", "Tipo": "Emergenza", "Colore": "red", "Descrizione": "Ambulanza 118", "Data": datetime.now().strftime("%d/%m/%Y")},
+            {"Nome": "Polizia", "Emoji": "🚓", "Tipo": "Emergenza", "Colore": "blue", "Descrizione": "Polizia", "Data": datetime.now().strftime("%d/%m/%Y")},
+            {"Nome": "Carabinieri", "Emoji": "🚔", "Tipo": "Emergenza", "Colore": "darkblue", "Descrizione": "Carabinieri", "Data": datetime.now().strftime("%d/%m/%Y")},
+            {"Nome": "Vigili del Fuoco", "Emoji": "🚒", "Tipo": "Emergenza", "Colore": "red", "Descrizione": "Vigili del Fuoco", "Data": datetime.now().strftime("%d/%m/%Y")},
+            {"Nome": "Protezione Civile", "Emoji": "⛑️", "Tipo": "Postazione", "Colore": "orange", "Descrizione": "Protezione Civile ANA", "Data": datetime.now().strftime("%d/%m/%Y")},
+            {"Nome": "Emergenza", "Emoji": "🚨", "Tipo": "Emergenza", "Colore": "red", "Descrizione": "Emergenza generica", "Data": datetime.now().strftime("%d/%m/%Y")},
             {"Nome": "Evento", "Emoji": "📅", "Tipo": "Evento", "Colore": "blue", "Descrizione": "Evento", "Data": datetime.now().strftime("%d/%m/%Y")},
+            {"Nome": "Postazione", "Emoji": "📍", "Tipo": "Postazione", "Colore": "green", "Descrizione": "Postazione generica", "Data": datetime.now().strftime("%d/%m/%Y")},
             {"Nome": "Mezzo", "Emoji": "🚐", "Tipo": "Mezzo", "Colore": "green", "Descrizione": "Mezzo", "Data": datetime.now().strftime("%d/%m/%Y")},
-            {"Nome": "Volontario", "Emoji": "👤", "Tipo": "Volontario", "Colore": "orange", "Descrizione": "Volontario", "Data": datetime.now().strftime("%d/%m/%Y")},
             {"Nome": "Ospedale", "Emoji": "🏥", "Tipo": "Emergenza", "Colore": "red", "Descrizione": "Ospedale", "Data": datetime.now().strftime("%d/%m/%Y")},
-            {"Nome": "Incendio", "Emoji": "🔥", "Tipo": "Emergenza", "Colore": "red", "Descrizione": "Incendio", "Data": datetime.now().strftime("%d/%m/%Y")},
-            {"Nome": "Alluvione", "Emoji": "💧", "Tipo": "Emergenza", "Colore": "blue", "Descrizione": "Alluvione", "Data": datetime.now().strftime("%d/%m/%Y")},
+            {"Nome": "Elicottero", "Emoji": "🚁", "Tipo": "Emergenza", "Colore": "red", "Descrizione": "Elisoccorso", "Data": datetime.now().strftime("%d/%m/%Y")},
             {"Nome": "Radio", "Emoji": "📻", "Tipo": "Mezzo", "Colore": "purple", "Descrizione": "Radio", "Data": datetime.now().strftime("%d/%m/%Y")},
         ]
 
