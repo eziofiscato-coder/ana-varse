@@ -24,54 +24,6 @@ try:
 except:
     OPENPYXL_OK = False
 
-# FIX 1 - ModuleNotFoundError streamlit_folium riga 16 - base 2032 come ieri
-try:
-    import folium
-    from streamlit_folium import st_folium
-    from folium.plugins import Fullscreen
-    FOLIUM_OK = True
-except Exception:
-    FOLIUM_OK = False
-    folium = None
-    st_folium = None
-    Fullscreen = None
-
-# FIX 3 - CSV comune,via - base 2032
-CSV_VIE_FILE = "vie_italia.csv"
-def get_comuni_from_csv():
-    if os.path.exists(CSV_VIE_FILE):
-        try:
-            df = pd.read_csv(CSV_VIE_FILE, dtype=str, keep_default_na=False)
-            df.columns = [c.strip().lower() for c in df.columns]
-            if 'comune' in df.columns and len(df)>0:
-                return sorted(df['comune'].dropna().unique().tolist())
-        except:
-            pass
-    return None
-
-def get_vie_from_csv(comune):
-    if os.path.exists(CSV_VIE_FILE):
-        try:
-            df = pd.read_csv(CSV_VIE_FILE, dtype=str, keep_default_na=False)
-            df.columns = [c.strip().lower() for c in df.columns]
-            if 'comune' in df.columns and 'via' in df.columns:
-                filt = df[df['comune'].astype(str).str.lower()==str(comune).lower()]
-                vie = filt['via'].dropna().unique().tolist()
-                if vie:
-                    return sorted(vie)
-        except:
-            pass
-    return None
-
-# FIX 2 - session state map center
-if "map_center" not in st.session_state:
-    st.session_state.map_center = {"lat": 45.8167, "lon": 8.8333}
-if "map_zoom" not in st.session_state:
-    st.session_state.map_zoom = 15
-if "map_focus_idx" not in st.session_state:
-    st.session_state.map_focus_idx = None
-
-
 st.set_page_config(
     page_title="ANA Varese 950+ Modifiche Richieste",
     page_icon="🛡️",
@@ -123,11 +75,6 @@ st.markdown(
     button[kind="primary"]:hover {
         background-color: #2e7d32 !important;
     }
-    /* FIX 2 - Fullscreen 100% mappe - base 2032 come ieri */
-    [data-testid="stMap"] { height: 100vh !important; width:100% !important; }
-    iframe[title="streamlit_folium.st_folium"] { height: 100vh !important; width:100% !important; }
-    .leaflet-control-fullscreen a { background-color: white !important; font-size: 18px !important; }
-    .leaflet-container:fullscreen { width: 100vw !important; height: 100vh !important; }
     /* Fullscreen rosso */
     button#fs-btn, button[key="btn_fullscreen_dash"], button[key="btn_fs_mappa"] {
         background-color: #ff0000 !important;
@@ -151,6 +98,61 @@ except:
     pass
 
 
+
+
+# FIX FULLSCREEN BUTTON SOTTO + - 100% TUTTO SCHERMO
+def add_fullscreen_button_to_map():
+    st.markdown('''
+    <style>
+    .leaflet-control-fullscreen-button {
+        background-color: white !important;
+        width: 34px !important;
+        height: 34px !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        font-size: 20px !important;
+        cursor: pointer !important;
+        border: 2px solid rgba(0,0,0,0.2) !important;
+        border-radius: 4px !important;
+    }
+    </style>
+    <script>
+    function makeMapsFullscreen() {
+        // Trova tutti i controlli zoom e aggiungi bottone fullscreen sotto
+        document.querySelectorAll('.leaflet-control-zoom').forEach(function(zoomCtrl) {
+            if (zoomCtrl.nextElementSibling && zoomCtrl.nextElementSibling.classList.contains('fullscreen-btn-custom')) return;
+            var btn = document.createElement('div');
+            btn.className = 'leaflet-control fullscreen-btn-custom';
+            btn.style.marginTop = '5px';
+            var a = document.createElement('a');
+            a.className = 'leaflet-control-fullscreen-button';
+            a.href = '#';
+            a.title = 'Schermo intero';
+            a.innerHTML = '⛶';
+            a.onclick = function(e) {
+                e.preventDefault();
+                var container = this.closest('.leaflet-container');
+                if (!container) container = document.querySelector('.leaflet-container');
+                if (container) {
+                    if (!document.fullscreenElement) {
+                        if (container.requestFullscreen) container.requestFullscreen();
+                        else if (container.webkitRequestFullscreen) container.webkitRequestFullscreen();
+                        else if (container.msRequestFullscreen) container.msRequestFullscreen();
+                    } else {
+                        if (document.exitFullscreen) document.exitFullscreen();
+                    }
+                }
+            };
+            btn.appendChild(a);
+            zoomCtrl.parentNode.insertBefore(btn, zoomCtrl.nextSibling);
+        });
+    }
+    // Esegui dopo 1 sec e ogni 2 sec per mappe dinamiche
+    setTimeout(makeMapsFullscreen, 1000);
+    setInterval(makeMapsFullscreen, 2000);
+    </script>
+    ''', unsafe_allow_html=True)
 
 COMUNI_ITALIA = [
     "Varese", "Busto Arsizio", "Gallarate", "Saronno", "Cassano Magnago",
@@ -2083,7 +2085,11 @@ elif cur == "Mappe Postazioni":
             st.session_state.map_focus = None
             st.rerun()
     with c4:
-        st.markdown(f'<span style="background:#1A5D1A;color:white;padding:6px 12px;border-radius:6px;font-weight:bold;">🗺️ {len(st.session_state.mappa_avanzata_markers)} postazioni - Tutti rimangono</span>', unsafe_allow_html=True)
+        try:
+        add_fullscreen_button_to_map()
+    except:
+        pass
+    st.markdown(f'<span style="background:#1A5D1A;color:white;padding:6px 12px;border-radius:6px;font-weight:bold;">🗺️ {len(st.session_state.mappa_avanzata_markers)} postazioni - Tutti rimangono</span>', unsafe_allow_html=True)
 
     if st.session_state.get("fs_mappa_active"):
         st.components.v1.html("<div style='background:#1A5D1A;color:white;padding:8px;border-radius:6px;text-align:center;'>FULLSCREEN - ESC per uscire</div>", height=40)
@@ -2405,7 +2411,7 @@ elif cur == "Mappe Postazioni":
                 st.markdown(f"**Via:** {m.get('Via','')}")
                 st.caption(f"Lat: {m['Lat']} Lon: {m['Lon']}")
             with c4:
-                if st.button("📍 Vedi su mappa", key=f"vedi_{idx}_{id(m) if "m" in locals() else idx}_{datetime.now().strftime("%f")}", use_container_width=True, type="primary" if is_focus else "secondary"):
+                if st.button("📍 Vedi su mappa", key=f"focus_{idx}", use_container_width=True, type="primary" if is_focus else "secondary"):
                     st.session_state.map_focus = m
                     st.rerun()
                 col_del, col_dup = st.columns(2)
@@ -2516,6 +2522,21 @@ elif cur == "Libreria Icone":
         st.markdown("**Anteprima**")
         preview_emoji = st.session_state.get("ico_emoji", "📍") if "ico_emoji" in st.session_state else emoji_icona
         st.markdown(f"<div style='font-size:40px;text-align:center;background:white;padding:10px;border-radius:8px;border:2px solid #1A5D1A;'>{preview_emoji}</div>", unsafe_allow_html=True)
+        # FIX immagine file upload libreria icone
+        if file_icona is not None:
+            try:
+                import base64
+                bytes_data = file_icona.getvalue()
+                b64 = base64.b64encode(bytes_data).decode()
+                ext = file_icona.type.split("/")[-1] if "/" in file_icona.type else "png"
+                st.markdown(f"<div style='text-align:center;margin-top:8px;'><img src='data:image/{ext};base64,{b64}' style='width:80px;height:80px;object-fit:contain;border:2px solid #1A5D1A;border-radius:8px;'/><br><small>{file_icona.name}</small></div>", unsafe_allow_html=True)
+                # Salva base64 in session per uso futuro
+                st.session_state['last_icon_b64'] = b64
+                st.session_state['last_icon_ext'] = ext
+            except Exception as e:
+                st.warning(f"Anteprima immagine non disponibile: {e}")
+        elif 'last_icon_b64' in st.session_state:
+            st.markdown(f"<div style='text-align:center;margin-top:8px;opacity:0.6;'><img src='data:image/{st.session_state.get('last_icon_ext','png')};base64,{st.session_state['last_icon_b64']}' style='width:60px;height:60px;object-fit:contain;border:1px dashed gray;border-radius:8px;'/><br><small>Ultima immagine</small></div>", unsafe_allow_html=True)
 
     if st.button("💾 Salva Icona in Libreria", type="primary", use_container_width=True):
         if nome_icona and emoji_icona:
