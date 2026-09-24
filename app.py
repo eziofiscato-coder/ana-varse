@@ -1187,7 +1187,7 @@ if cur == "Dashboard":
         unsafe_allow_html=True
     )
 
-    # Statistiche semplici
+    # Statistiche semplici + PDF CON LOGO PER TUTTI I FORM
     st.write("")
     c1, c2, c3, c4 = st.columns(4)
     with c1:
@@ -1198,6 +1198,23 @@ if cur == "Dashboard":
         st.metric("Emergenze", len(st.session_state.emergenze))
     with c4:
         st.metric("Mappe Postazioni", len(st.session_state.mappe))
+    st.divider()
+    if REPORTLAB_OK:
+        try:
+            df_dash = pd.DataFrame([
+                {"Form": "Volontari", "Record": len(st.session_state.volontari)},
+                {"Form": "Radio DB", "Record": len(st.session_state.radio_db)},
+                {"Form": "Emergenze", "Record": len(st.session_state.emergenze)},
+                {"Form": "Eventi", "Record": len(st.session_state.eventi)},
+                {"Form": "Mappe Postazioni", "Record": len(st.session_state.get("mappa_avanzata_markers", []))},
+                {"Form": "Turni", "Record": len(st.session_state.get("turni", []))},
+                {"Form": "Interventi", "Record": len(st.session_state.get("interventi", []))},
+                {"Form": "Check-in", "Record": len(st.session_state.get("checkin", []))},
+                {"Form": "Mezzi", "Record": len(st.session_state.get("mezzi", []))},
+            ])
+            st.download_button("📄 PDF Riepilogo Dashboard con Logo ANA PC VA", data=to_pdf(df_dash, "DASHBOARD RIEPILOGO - ANA PC VA - 950+ - Tutti i Form"), file_name="dashboard_ana_pc_va.pdf", mime="application/pdf", use_container_width=True, key="pdf_dashboard_final_v2")
+        except Exception as e:
+            st.error(f"PDF dashboard errore: {e}")
 
 # VOLONTARI FORM CON SOTTOMASCHERE A LINGUETTE + CAMPO ODV - NUOVA VERSIONE FINALE
 elif cur == "Volontari (con foto)":
@@ -1429,6 +1446,18 @@ elif cur == "Volontari (con foto)":
     else:
         st.info("Nessun volontario inserito")
 
+    # PDF VOLONTARI - CON LOGO ANA PC VA
+    if st.session_state.volontari and REPORTLAB_OK:
+        try:
+            df_vol_pdf = pd.DataFrame([{k:v for k,v in vol.items() if "Bytes" not in k} for vol in st.session_state.volontari])
+            c_pdf1, c_pdf2 = st.columns(2)
+            with c_pdf1:
+                st.download_button("📄 PDF Volontari con Logo ANA PC VA", data=to_pdf(df_vol_pdf, "VOLONTARI - ANA PC VA - Protezione Civile Varese"), file_name="volontari_ana_pc_va.pdf", mime="application/pdf", use_container_width=True, key="pdf_volontari_final")
+            with c_pdf2:
+                st.download_button("⬇️ Excel Volontari", data=to_excel(df_vol_pdf), file_name="volontari_ana.xlsx", mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", use_container_width=True, key="excel_vol_final")
+        except Exception as e:
+            st.error(f"PDF volontari errore: {e}")
+
     st.divider()
 
 # DB RADIO
@@ -1545,7 +1574,12 @@ elif cur == "Alias Radio":
     if st.session_state.alias_radio:
         df_al = pd.DataFrame(st.session_state.alias_radio)
         st.dataframe(df_al, use_container_width=True)
-        st.download_button("Excel Alias", to_excel(df_al), "alias.xlsx", use_container_width=True)
+        c_al1, c_al2 = st.columns(2)
+        with c_al1:
+            st.download_button("Excel Alias", to_excel(df_al), "alias.xlsx", use_container_width=True)
+        with c_al2:
+            if REPORTLAB_OK:
+                st.download_button("📄 PDF Alias con Logo ANA PC VA", data=to_pdf(df_al, "ALIAS RADIO - ANA PC VA"), file_name="alias_ana_pc_va.pdf", mime="application/pdf", use_container_width=True, key="pdf_alias_final_v3")
 
 # BROGLIACCIO
 elif cur == "Brogliaccio":
@@ -1823,7 +1857,14 @@ elif cur == "Mappe":
             st.success("Salvata")
             st.rerun()
     if st.session_state.mappe:
-        st.dataframe(pd.DataFrame(st.session_state.mappe), use_container_width=True)
+        df_map_old = pd.DataFrame(st.session_state.mappe)
+        st.dataframe(df_map_old, use_container_width=True)
+        c_map_old1, c_map_old2 = st.columns(2)
+        with c_map_old1:
+            st.download_button("Excel Mappe", to_excel(df_map_old), "mappe.xlsx", use_container_width=True, key="excel_map_old")
+        with c_map_old2:
+            if REPORTLAB_OK:
+                st.download_button("📄 PDF Mappe con Logo ANA PC VA", data=to_pdf(df_map_old, "MAPPE - ANA PC VA"), file_name="mappe_ana_pc_va.pdf", mime="application/pdf", use_container_width=True, key="pdf_map_old")
 
 elif cur == "Check-in":
     hdr()
@@ -1864,7 +1905,12 @@ elif cur == "Check-in":
     if st.session_state.checkin:
         df_ch = pd.DataFrame(st.session_state.checkin)
         st.dataframe(df_ch, use_container_width=True)
-        st.download_button("Excel Check-in", to_excel(df_ch), "checkin.xlsx", use_container_width=True)
+        c_ch1, c_ch2 = st.columns(2)
+        with c_ch1:
+            st.download_button("Excel Check-in", to_excel(df_ch), "checkin.xlsx", use_container_width=True)
+        with c_ch2:
+            if REPORTLAB_OK:
+                st.download_button("📄 PDF Check-in con Logo ANA PC VA", data=to_pdf(df_ch, "CHECK-IN - ANA PC VA - Presenze Operative"), file_name="checkin_ana_pc_va.pdf", mime="application/pdf", use_container_width=True, key="pdf_checkin_final_v3")
 
 # INTERVENTI EMERGENZA - MODIFICA 4 STATO COLORE FONDO CAMPO
 elif cur == "Interventi Emergenza":
@@ -2041,12 +2087,23 @@ elif cur == "Tabella Interventi Emergenza":
             use_container_width=True
         )
         if REPORTLAB_OK:
-            st.download_button(
-                "PDF Logo Tabella Estesa Tutto Foglio - Modifica 3",
-                to_pdf(df_filtrato, "TABELLA INTERVENTI FILTRATA"),
-                "tabella_interventi.pdf",
-                use_container_width=True
-            )
+            c_pdf_tab1, c_pdf_tab2 = st.columns(2)
+            with c_pdf_tab1:
+                st.download_button(
+                    "PDF Logo Tabella Estesa Tutto Foglio - Modifica 3",
+                    to_pdf(df_filtrato, "TABELLA INTERVENTI FILTRATA"),
+                    "tabella_interventi.pdf",
+                    use_container_width=True
+                )
+            with c_pdf_tab2:
+                st.download_button(
+                    "📄 PDF con Logo ANA PC VA",
+                    to_pdf(df_filtrato, "TABELLA INTERVENTI - ANA PC VA - Protezione Civile Varese"),
+                    "tabella_interventi_ana_pc_va.pdf",
+                    mime="application/pdf",
+                    use_container_width=True,
+                    key="pdf_tab_ana_pc_va"
+                )
 
 # MEZZI
 elif cur == "Mezzi":
@@ -2634,12 +2691,16 @@ elif cur == "Mappe Postazioni":
                         st.rerun()
             st.divider()
 
-        # Export e pulizia
-        c_exp1, c_exp2 = st.columns(2)
+        # Export e pulizia - PDF CON LOGO AGGIUNTO
+        c_exp1, c_exp2, c_exp3 = st.columns(3)
         with c_exp1:
             df_exp = pd.DataFrame(all_markers)
             st.download_button("⬇️ Excel Postazioni", data=to_excel(df_exp), file_name="postazioni.xlsx", use_container_width=True)
         with c_exp2:
+            if REPORTLAB_OK and all_markers:
+                df_exp_pdf = pd.DataFrame(all_markers)
+                st.download_button("📄 PDF Postazioni con Logo ANA PC VA", data=to_pdf(df_exp_pdf, "MAPPE POSTAZIONI - ANA PC VA - Postazioni + Marker Icona Libreria"), file_name="postazioni_ana_pc_va.pdf", mime="application/pdf", use_container_width=True, key="pdf_postazioni")
+        with c_exp3:
             if st.button("🧹 Pulisci TUTTI", key="clear_bottom", use_container_width=True):
                 st.session_state.mappa_avanzata_markers = []
                 st.session_state.map_focus = None
@@ -2842,7 +2903,12 @@ elif cur == "Libreria Icone":
         st.divider()
         df_ico = pd.DataFrame(st.session_state.icone)
         st.dataframe(df_ico, use_container_width=True)
-        st.download_button("Excel Libreria Icone", to_excel(df_ico), "libreria_icone.xlsx", use_container_width=True)
+        c_lib1, c_lib2 = st.columns(2)
+        with c_lib1:
+            st.download_button("Excel Libreria Icone", to_excel(df_ico), "libreria_icone.xlsx", use_container_width=True)
+        with c_lib2:
+            if REPORTLAB_OK:
+                st.download_button("📄 PDF Libreria Icone con Logo ANA PC VA", data=to_pdf(df_ico, "LIBRERIA ICONE - ANA PC VA - Marker Ambulanza Polizia etc"), file_name="libreria_icone_ana_pc_va.pdf", mime="application/pdf", use_container_width=True, key="pdf_libreria_icone")
     else:
         st.info("Nessuna icona - Crea la prima icona sopra")
 
@@ -2869,6 +2935,13 @@ elif cur == "Chat":
     st.divider()
 
     if st.session_state.chat:
+        df_chat = pd.DataFrame(st.session_state.chat)
+        c_chat1, c_chat2 = st.columns(2)
+        with c_chat1:
+            st.download_button("Excel Chat", to_excel(df_chat), "chat.xlsx", use_container_width=True)
+        with c_chat2:
+            if REPORTLAB_OK:
+                st.download_button("📄 PDF Chat con Logo ANA PC VA", data=to_pdf(df_chat, "CHAT - ANA PC VA"), file_name="chat_ana_pc_va.pdf", mime="application/pdf", use_container_width=True, key="pdf_chat")
         for chat_msg in reversed(st.session_state.chat[-20:]):
             st.markdown(
                 f"""
@@ -2951,7 +3024,12 @@ elif cur == "Geolocalizzazione Hytera + Anytone":
         except:
             pass
 
-        st.download_button("Excel Posizioni", to_excel(df_pos), "posizioni_hytera_anytone.xlsx", use_container_width=True)
+        c_geo1, c_geo2 = st.columns(2)
+        with c_geo1:
+            st.download_button("Excel Posizioni", to_excel(df_pos), "posizioni_hytera_anytone.xlsx", use_container_width=True)
+        with c_geo2:
+            if REPORTLAB_OK:
+                st.download_button("📄 PDF Posizioni con Logo ANA PC VA", data=to_pdf(df_pos, "GEOLOCALIZZAZIONE HYTERA ANYTONE - ANA PC VA"), file_name="posizioni_ana_pc_va.pdf", mime="application/pdf", use_container_width=True, key="pdf_geo")
     else:
         st.info("Nessuna posizione registrata")
 
