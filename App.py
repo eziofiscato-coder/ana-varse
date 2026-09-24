@@ -846,7 +846,7 @@ with st.sidebar:
         "Tabella Interventi Emergenza",
         "Mezzi",
         "Attrezzature",
-        "Mappa Avanzata",
+        "Mappe Postazioni",
         "Libreria Icone",
         "Chat",
         "Geolocalizzazione Hytera + Anytone",
@@ -915,7 +915,7 @@ if cur == "Dashboard":
         ("Tabella Interventi Emergenza", "📋 Tabella Interventi"),
         ("Mezzi", "🚐 Mezzi"),
         ("Attrezzature", "🧰 Attrezzature"),
-        ("Mappa Avanzata", "🌍 Mappa Avanzata"),
+        ("Mappe Postazioni", "🌍 Mappe Postazioni"),
         ("Libreria Icone", "🎨 Libreria Icone"),
         ("Chat", "💬 Chat"),
         ("Geolocalizzazione Hytera + Anytone", "📡 Geoloc"),
@@ -961,47 +961,59 @@ if cur == "Dashboard":
         st.session_state.menu = form_name
         st.session_state["menu_radio"] = form_name
 
-    # CSS bottoni verde ANA - FONDO PIENO
+    # CSS bottoni verde ANA - SFONDO PIENO VERDE - FIX DEFINITIVO
     st.markdown(
         """
         <style>
-        /* Forza fondo pieno verde ANA su tutti i bottoni dashboard */
-        div[data-testid="column"] .stButton > button,
-        div[data-testid="stColumn"] .stButton > button,
-        .stButton > button {
+        /* Reset e forza verde ANA su TUTTI i bottoni dashboard */
+        [data-testid="column"] .stButton > button,
+        [data-testid="stColumn"] .stButton > button,
+        div[data-testid="stVerticalBlock"] .stButton > button {
             background-color: #1A5D1A !important;
+            background-image: none !important;
             background: #1A5D1A !important;
             color: white !important;
             border: 2px solid #1A5D1A !important;
             font-weight: bold !important;
             font-family: 'Times New Roman', serif !important;
+            border-radius: 8px !important;
         }
-        div[data-testid="column"] .stButton > button:hover,
-        div[data-testid="stColumn"] .stButton > button:hover {
+        [data-testid="column"] .stButton > button:hover {
             background-color: #2e7d32 !important;
             background: #2e7d32 !important;
             border-color: #2e7d32 !important;
             color: white !important;
         }
-        div[data-testid="column"] .stButton > button:active,
-        div[data-testid="column"] .stButton > button:focus {
+        [data-testid="column"] .stButton > button:active,
+        [data-testid="column"] .stButton > button:focus,
+        [data-testid="column"] .stButton > button:focus-visible {
             background-color: #1A5D1A !important;
+            background: #1A5D1A !important;
             color: white !important;
-            box-shadow: none !important;
+            box-shadow: 0 0 0 2px rgba(26,93,26,0.3) !important;
+            outline: none !important;
         }
-        /* Tasto fullscreen rosso - solo quelli con primary e fullscreen */
-        button[kind="primary"] {
+        /* Forza anche su kind secondary */
+        button[kind="secondary"] {
+            background-color: #1A5D1A !important;
+            background: #1A5D1A !important;
+            color: white !important;
+            border-color: #1A5D1A !important;
+        }
+        /* Solo i bottoni primary generici lasciali verdi, tranne fullscreen */
+        button[kind="primary"]:not([data-testid*="fullscreen"]) {
+            background-color: #1A5D1A !important;
+            background: #1A5D1A !important;
+            border-color: #1A5D1A !important;
+        }
+        /* Fullscreen dashboard rosso - specifico */
+        button[key="btn_fullscreen_dash"], button[key="btn_exit_fs"] {
             background-color: #ff0000 !important;
             background: #ff0000 !important;
             border-color: #ff0000 !important;
-            color: white !important;
         }
-        /* Bottoni dashboard specifici - key dash_btn */
-        button[data-testid*="dash_btn"] {
-            background-color: #1A5D1A !important;
-        }
-        /* Assicura che il testo sia bianco su verde */
-        .stButton > button p, .stButton > button span {
+        /* Testo dentro bottone bianco */
+        .stButton > button div, .stButton > button p, .stButton > button span {
             color: white !important;
         }
         </style>
@@ -1032,7 +1044,7 @@ if cur == "Dashboard":
         Fusione Emergenze+Eventi in Mappe: SI ottima idea - Ezio
         </h4>
         <p style="margin:8px 0 0 0;font-family:Times New Roman;font-weight:bold;color:black;">
-        Già creato form Mappa Avanzata OLD RIMOSSO con Tipo Emergenza/Evento + mappa unica.
+        Già creato form Mappe Postazioni OLD RIMOSSO con Tipo Emergenza/Evento + mappa unica.
         Unico form georeferenziato, filtri per Tipo, priorità e stato colorato.
         Soluzione ottimale per gestione unificata.
         </p>
@@ -1051,7 +1063,7 @@ if cur == "Dashboard":
     with c3:
         st.metric("Emergenze", len(st.session_state.emergenze))
     with c4:
-        st.metric("Mappa Avanzata", len(st.session_state.mappe))
+        st.metric("Mappe Postazioni", len(st.session_state.mappe))
 
 # VOLONTARI FORM CON SOTTOMASCHERE A LINGUETTE + CAMPO ODV - NUOVA VERSIONE FINALE
 elif cur == "Volontari (con foto)":
@@ -1611,7 +1623,7 @@ elif cur == "# RIMOSSO":
         desc_mappa = st.text_area("Descrizione", key="mappa_desc")
         note_mappa = st.text_area("Note Coordinate", key="mappa_note")
 
-    if st.button("Salva in Mappa Avanzata", type="primary", use_container_width=True):
+    if st.button("Salva in Mappe Postazioni", type="primary", use_container_width=True):
         if nome_mappa:
             st.session_state.mappe.append({
                 "Tipo": tipo_mappa,
@@ -1634,7 +1646,7 @@ elif cur == "# RIMOSSO":
 
     if st.session_state.mappe:
         st.divider()
-        st.markdown("**Riepilogo Mappa Avanzata con Filtri Tipo**")
+        st.markdown("**Riepilogo Mappe Postazioni con Filtri Tipo**")
         filtro_tipo = st.selectbox("Filtra per Tipo", ["Tutti", "Emergenza", "Evento"], key="filtro_mappa_tipo")
         df_map = pd.DataFrame(st.session_state.mappe)
         if filtro_tipo != "Tutti":
@@ -1654,7 +1666,7 @@ elif cur == "# RIMOSSO":
         except:
             st.info("Mappa coordinate non disponibili per visualizzazione")
 
-        st.download_button("Excel Mappa Avanzata", to_excel(df_map), "mappe_fusione.xlsx", use_container_width=True)
+        st.download_button("Excel Mappe Postazioni", to_excel(df_map), "mappe_fusione.xlsx", use_container_width=True)
         if REPORTLAB_OK:
             st.download_button("PDF Logo Estesa Tutto Foglio", to_pdf(df_map, "MAPPE FUSIONE EMERGENZE+EVENTI"), "mappe_fusione.pdf", use_container_width=True)
 
@@ -1979,15 +1991,15 @@ elif cur == "Attrezzature":
         if REPORTLAB_OK:
             st.download_button("PDF Logo Estesa", to_pdf(df_att, "ATTREZZATURE"), "attrezzature.pdf", use_container_width=True)
 
-# MAPPA AVANZATA - FINALE con Fullscreen + Marker rimane + Coordinate Comune Via Lat Lon in maschera
-elif cur == "Mappa Avanzata":
+# MAPPE POSTAZIONI - FINALE con Fullscreen + Marker rimane + Coordinate Comune Via Lat Lon in maschera
+elif cur == "Mappe Postazioni":
     hdr()
-    hdr_form("MAPPA AVANZATA - Marker da Libreria Icone + Fullscreen")
+    hdr_form("MAPPE POSTAZIONI - Postazioni + Marker")
 
     st.markdown(
         """
         <div style="background:#e3f2fd;padding:12px;border-radius:8px;border-left:4px solid #1976d2;">
-        <b>Mappa cliccabile con fullscreen - Marker rimane - Coordinate Comune Via Lat Lon in maschera automatica - Icone da libreria - Google Maps / Waze / Google Earth</b>
+        <b>MAPPE POSTAZIONI - Mappa cliccabile fullscreen - Tutti i marker RIMANGONO visibili - Coordinate automatiche - Libreria icone</b>
         </div>
         """,
         unsafe_allow_html=True
@@ -2006,7 +2018,7 @@ elif cur == "Mappa Avanzata":
         if st.button("⛶ Fullscreen Mappa", key="btn_fs_mappa", use_container_width=True, type="primary"):
             st.session_state["fs_mappa_active"] = True
     with c_fs2:
-        st.markdown('<span style="background:#1A5D1A;color:white;padding:6px 12px;border-radius:6px;font-weight:bold;">🗺️ Mappa con marker che rimane</span>', unsafe_allow_html=True)
+        st.markdown('<span style="background:#1A5D1A;color:white;padding:6px 12px;border-radius:6px;font-weight:bold;">🗺️ Mappe Postazioni - Tutti i marker rimangono</span>', unsafe_allow_html=True)
 
     if st.session_state.get("fs_mappa_active"):
         st.components.v1.html(
@@ -2090,42 +2102,109 @@ elif cur == "Mappa Avanzata":
     markers_for_js = json_lib.dumps([{"lat": m["Lat"], "lon": m["Lon"], "nome": m["Nome"], "icona": m["Icona"], "tipo": m["Tipo"], "comune": m.get("Comune",""), "via": m.get("Via","")} for m in all_markers])
 
     html_code = """
+    <style>
+    #map-container:fullscreen {
+        width: 100vw !important;
+        height: 100vh !important;
+        background: white !important;
+        padding: 0 !important;
+        border-radius: 0 !important;
+    }
+    #map-container:-webkit-full-screen {
+        width: 100vw !important;
+        height: 100vh !important;
+    }
+    #map-container:fullscreen #map {
+        height: 100vh !important;
+        width: 100vw !important;
+        border-radius: 0 !important;
+        border: none !important;
+    }
+    #map-container:-webkit-full-screen #map {
+        height: 100vh !important;
+        width: 100vw !important;
+    }
+    </style>
     <div id="map-container" style="position:relative; background:white; border-radius:12px;">
         <div id="map" style="height:700px; width:100%; border-radius:12px; border:3px solid #1A5D1A;"></div>
     </div>
-    <div id="coords" style="background:#fffde7;padding:12px;border-radius:6px;margin-top:8px;font-weight:bold;border-left:4px solid #FFD700; font-family:Times New Roman; min-height:50px;">📍 Clicca sulla mappa - Il marker rimarrà - Coordinate in maschera automatica</div>
+    <div id="coords" style="background:#fffde7;padding:12px;border-radius:6px;margin-top:8px;font-weight:bold;border-left:4px solid #FFD700; font-family:Times New Roman; min-height:50px;">📍 Clicca sulla mappa - TUTTI i marker RIMANGONO - Vedi tutti insieme - Coordinate in maschera automatica - Fullscreen espande tutto schermo</div>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
     var markersData = MARKERS_JSON_PLACEHOLDER;
-    var map = L.map('map').setView([45.8167, 8.8333], 14);
+    var map = L.map('map', {zoomControl: false}).setView([45.8167, 8.8333], 14);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {attribution: 'ANA Varese - OpenStreetMap'}).addTo(map);
 
-    // Fullscreen gestione
-    var fsBtn = document.getElementById('fs-btn');
-    var fsExitBtn = document.getElementById('fs-btn-exit');
-    var mapContainer = document.getElementById('map-container');
-    
-    fsBtn.addEventListener('click', function() {
-        if (mapContainer.requestFullscreen) mapContainer.requestFullscreen();
-        else if (mapContainer.webkitRequestFullscreen) mapContainer.webkitRequestFullscreen();
-        else if (mapContainer.msRequestFullscreen) mapContainer.msRequestFullscreen();
-    });
-    
-    document.addEventListener('fullscreenchange', function() {
-        if (document.fullscreenElement) {
-            fsBtn.style.display = 'none';
-            fsExitBtn.style.display = 'block';
-            setTimeout(function(){ map.invalidateSize(); }, 500);
-        } else {
-            fsBtn.style.display = 'block';
-            fsExitBtn.style.display = 'none';
-            setTimeout(function(){ map.invalidateSize(); }, 500);
+    // Zoom control custom in alto a sx
+    L.control.zoom({position: 'topleft'}).addTo(map);
+
+    // Fullscreen quadratino sotto + e - che espande mappa tutto schermo
+    var FullscreenControl = L.Control.extend({
+        onAdd: function(map) {
+            var container = L.DomUtil.create('div', 'leaflet-bar leaflet-control');
+            var btn = L.DomUtil.create('a', '', container);
+            btn.innerHTML = '⛶';
+            btn.title = 'Fullscreen Mappa';
+            btn.href = '#';
+            btn.style.width = '34px';
+            btn.style.height = '34px';
+            btn.style.lineHeight = '34px';
+            btn.style.fontSize = '20px';
+            btn.style.textAlign = 'center';
+            btn.style.backgroundColor = 'white';
+            btn.style.color = 'black';
+            btn.style.textDecoration = 'none';
+            btn.style.fontWeight = 'bold';
+            btn.style.display = 'block';
+            btn.style.cursor = 'pointer';
+            btn.style.borderTop = '1px solid #ccc';
+            
+            L.DomEvent.on(btn, 'click', function(e) {
+                L.DomEvent.stop(e);
+                if (!document.fullscreenElement) {
+                    enterFullscreen();
+                } else {
+                    if (document.exitFullscreen) document.exitFullscreen();
+                    else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
+                }
+            });
+            
+            return container;
         }
     });
+    
+    map.addControl(new FullscreenControl({position: 'topleft'}));
 
-    fsExitBtn.addEventListener('click', function() {
-        if (document.exitFullscreen) document.exitFullscreen();
+    // Aggiorna icona quando entra/esce fullscreen
+        // Gestione fullscreen che espande tutto schermo
+    function enterFullscreen() {
+        var container = document.getElementById('map-container');
+        var mapDiv = document.getElementById('map');
+        if (container.requestFullscreen) {
+            container.requestFullscreen().then(function() {
+                mapDiv.style.height = '100vh';
+                mapDiv.style.width = '100vw';
+                setTimeout(function(){ map.invalidateSize(); }, 300);
+            });
+        } else if (container.webkitRequestFullscreen) {
+            container.webkitRequestFullscreen();
+        } else if (container.msRequestFullscreen) {
+            container.msRequestFullscreen();
+        }
+        // Prova anche fullscreen su parent se in iframe
+        try {
+            if (window.parent && window.parent.document) {
+                var parentContainer = window.parent.document.getElementById('map-container');
+                if (parentContainer && parentContainer.requestFullscreen) {
+                    // fallback
+                }
+            }
+        } catch(e) {}
+    }
+
+    document.addEventListener('fullscreenchange', function() {
+        setTimeout(function(){ map.invalidateSize(); }, 300);
     });
 
     // Marker esistenti - RIMANGONO
@@ -2148,8 +2227,28 @@ elif cur == "Mappa Avanzata":
         map.fitBounds(group.getBounds().pad(0.2));
     }
 
-    // Marker cliccati - RIMANGONO tutti
+    // Marker cliccati - RIMANGONO TUTTI - tutti visibili contemporaneamente
     var clickedMarkers = [];
+    var totalMarkerCount = markersData.length;
+    // Carica anche marker temporanei da localStorage se presenti
+    try {
+        var savedTemp = JSON.parse(localStorage.getItem('temp_markers') || '[]');
+        savedTemp.forEach(function(m) {
+            var tempM = L.marker([m.lat, m.lon], {
+                icon: L.icon({
+                    iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-orange.png',
+                    shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
+                    iconSize: [25, 41],
+                    iconAnchor: [12, 41]
+                })
+            }).addTo(map).bindPopup('<b>Temp: ' + m.nome + '</b><br>Lat: ' + m.lat + '<br>Lon: ' + m.lon + '<br>RIMANE sulla mappa');
+            clickedMarkers.push(tempM);
+        });
+        if (clickedMarkers.length > 0) {
+            document.getElementById('coords').innerHTML = '📍 Totale marker visibili: ' + (totalMarkerCount + clickedMarkers.length) + ' - ' + clickedMarkers.length + ' temporanei che RIMANGONO';
+        }
+    } catch(e){}
+
     map.on('click', function(e) {
         var lat = e.latlng.lat.toFixed(6);
         var lon = e.latlng.lng.toFixed(6);
@@ -2168,7 +2267,14 @@ elif cur == "Mappa Avanzata":
             .bindPopup("<b>Nuovo marker</b><br>Lat: " + lat + "<br>Lon: " + lon + "<br>Trascina per spostare<br><b>RIMANE sulla mappa</b>").openPopup();
         
         clickedMarkers.push(newMarker);
-        document.getElementById('coords').innerHTML = "📍 Marker aggiunto - RIMANE sulla mappa - Totale marker temporanei: " + clickedMarkers.length + "<br>Lat: " + lat + " - Lon: " + lon + "<br><b>Copia in maschera sopra e clicca Aggiungi Marker per salvare definitivamente</b><br>Reverse geocoding in corso...";
+        totalMarkerCount = markersData.length;
+        // Salva in localStorage così rimane anche dopo refresh
+        try {
+            var toSave = JSON.parse(localStorage.getItem('temp_markers') || '[]');
+            toSave.push({lat: parseFloat(lat), lon: parseFloat(lon), nome: 'Click ' + (toSave.length+1)});
+            localStorage.setItem('temp_markers', JSON.stringify(toSave));
+        } catch(e){}
+        document.getElementById('coords').innerHTML = "📍 Marker aggiunto - RIMANE sulla mappa - VEDI TUTTI I MARKER - Totale: " + (totalMarkerCount + clickedMarkers.length) + " (" + clickedMarkers.length + " temporanei + " + totalMarkerCount + " salvati)<br>Lat: " + lat + " - Lon: " + lon + "<br><b>Copia in maschera sopra e clicca Aggiungi Marker per salvare definitivamente - Tutti rimangono visibili</b><br>Reverse geocoding in corso...";
 
         // Auto-compila maschera
         try {
