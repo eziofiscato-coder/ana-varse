@@ -24,52 +24,6 @@ try:
 except:
     OPENPYXL_OK = False
 
-# FIX 1 - ModuleNotFoundError streamlit_folium riga 16 - base 2032 come ieri
-try:
-    import folium
-    from streamlit_folium import st_folium
-    FOLIUM_OK = True
-except Exception:
-    FOLIUM_OK = False
-    folium = None
-    st_folium = None
-
-# FIX 3 - CSV comune,via - base 2032
-CSV_VIE_FILE = "vie_italia.csv"
-def get_comuni_from_csv():
-    if os.path.exists(CSV_VIE_FILE):
-        try:
-            df = pd.read_csv(CSV_VIE_FILE, dtype=str, keep_default_na=False)
-            df.columns = [c.strip().lower() for c in df.columns]
-            if 'comune' in df.columns and len(df)>0:
-                return sorted(df['comune'].dropna().unique().tolist())
-        except:
-            pass
-    return None
-
-def get_vie_from_csv(comune):
-    if os.path.exists(CSV_VIE_FILE):
-        try:
-            df = pd.read_csv(CSV_VIE_FILE, dtype=str, keep_default_na=False)
-            df.columns = [c.strip().lower() for c in df.columns]
-            if 'comune' in df.columns and 'via' in df.columns:
-                filt = df[df['comune'].astype(str).str.lower()==str(comune).lower()]
-                vie = filt['via'].dropna().unique().tolist()
-                if vie:
-                    return sorted(vie)
-        except:
-            pass
-    return None
-
-# FIX 2 - session state map center
-if "map_center" not in st.session_state:
-    st.session_state.map_center = {"lat": 45.8167, "lon": 8.8333}
-if "map_zoom" not in st.session_state:
-    st.session_state.map_zoom = 15
-if "map_focus_idx" not in st.session_state:
-    st.session_state.map_focus_idx = None
-
-
 st.set_page_config(
     page_title="ANA Varese 950+ Modifiche Richieste",
     page_icon="🛡️",
@@ -121,9 +75,6 @@ st.markdown(
     button[kind="primary"]:hover {
         background-color: #2e7d32 !important;
     }
-    /* FIX 2 - Fullscreen 100% mappe - base 2032 come ieri */
-    [data-testid="stMap"] { height: 100vh !important; width:100% !important; }
-    iframe[title="streamlit_folium.st_folium"] { height: 100vh !important; width:100% !important; }
     /* Fullscreen rosso */
     button#fs-btn, button[key="btn_fullscreen_dash"], button[key="btn_fs_mappa"] {
         background-color: #ff0000 !important;
@@ -966,6 +917,7 @@ if cur == "Dashboard":
         ("Attrezzature", "🧰 Attrezzature"),
         ("Mappe Postazioni", "🌍 Mappe Postazioni"),
         ("Libreria Icone", "🎨 Libreria Icone"),
+        ("Turni", "🕐 Turni"),
         ("Chat", "💬 Chat"),
         ("Geolocalizzazione Hytera + Anytone", "📡 Geoloc"),
         ("Backup", "💾 Backup")
@@ -2292,6 +2244,28 @@ elif cur == "Mappe Postazioni":
     html_code = """
     <div id="map-container" style="position:relative; background:white; border-radius:12px;">
         <div id="map" style="height:650px; width:100%; border-radius:12px; border:3px solid #1A5D1A;"></div>
+    <style>
+    /* FIX TASTO FULLSCREEN 100% SOTTO + - COME IERI */
+    .fullscreen-btn-custom {
+        background: white !important;
+        width: 34px !important;
+        height: 34px !important;
+        line-height: 34px !important;
+        text-align: center !important;
+        font-size: 20px !important;
+        cursor: pointer !important;
+        border: 2px solid rgba(0,0,0,0.2) !important;
+        border-radius: 4px !important;
+        display: block !important;
+        margin-top: 5px !important;
+        color: black !important;
+        font-weight: bold !important;
+    }
+    .fullscreen-btn-custom:hover { background: #f4f4f4 !important; }
+    #map:fullscreen { width: 100vw !important; height: 100vh !important; border: none !important; border-radius: 0 !important; }
+    #map:-webkit-full-screen { width: 100vw !important; height: 100vh !important; }
+    #map:-moz-full-screen { width: 100vw !important; height: 100vh !important; }
+    </style>
     </div>
     <div id="coords" style="background:#fffde7;padding:8px;border-radius:6px;margin-top:8px;font-weight:bold;border-left:4px solid #FFD700;">📍 Clicca per aggiungere - Tutti rimangono</div>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
@@ -2303,6 +2277,35 @@ elif cur == "Mappe Postazioni":
     var selectedIconColor = SELECTED_COLOR_PLACEHOLDER;
     var map = L.map('map', {zoomControl: false}).setView([45.8167, 8.8333], 13);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {attribution: 'ANA Varese'}).addTo(map);
+    // FIX DEFINITIVO TASTO FULLSCREEN 100% SOTTO + - 
+    try {
+        var fsControl = L.control({position: 'topleft'});
+        fsControl.onAdd = function(m) {
+            var container = L.DomUtil.create('div', 'leaflet-bar leaflet-control');
+            var btn = L.DomUtil.create('a', 'fullscreen-btn-custom', container);
+            btn.innerHTML = '⛶';
+            btn.href = '#';
+            btn.title = 'Schermo intero 100%';
+            btn.style.textDecoration = 'none';
+            L.DomEvent.on(btn, 'click', function(e){
+                L.DomEvent.stop(e);
+                var mapContainer = document.getElementById('map');
+                if (!document.fullscreenElement) {
+                    if (mapContainer.requestFullscreen) mapContainer.requestFullscreen();
+                    else if (mapContainer.webkitRequestFullscreen) mapContainer.webkitRequestFullscreen();
+                    else if (mapContainer.msRequestFullscreen) mapContainer.msRequestFullscreen();
+                    setTimeout(function(){ map.invalidateSize(); }, 500);
+                } else {
+                    if (document.exitFullscreen) document.exitFullscreen();
+                    setTimeout(function(){ map.invalidateSize(); }, 500);
+                }
+            });
+            return container;
+        };
+        fsControl.addTo(map);
+    } catch(e) {}
+    document.addEventListener('fullscreenchange', function(){ setTimeout(function(){ if (typeof map !== 'undefined') map.invalidateSize(); }, 300); });
+
     L.control.zoom({position: 'topleft'}).addTo(map);
     function getColorCode(c){ var m={'red':'#d32f2f','blue':'#1976d2','green':'#388e3c','orange':'#f57c00','purple':'#7b1fa2'}; return m[c]||'#388e3c'; }
     var allMarkers = [];
@@ -2401,7 +2404,7 @@ elif cur == "Mappe Postazioni":
                 st.markdown(f"**Via:** {m.get('Via','')}")
                 st.caption(f"Lat: {m['Lat']} Lon: {m['Lon']}")
             with c4:
-                if st.button("📍 Vedi su mappa", key=f"vedi_{idx}_{id(m) if "m" in locals() else idx}_{datetime.now().strftime("%f")}", use_container_width=True, type="primary" if is_focus else "secondary"):
+                if st.button("📍 Vedi su mappa", key=f"focus_{idx}", use_container_width=True, type="primary" if is_focus else "secondary"):
                     st.session_state.map_focus = m
                     st.rerun()
                 col_del, col_dup = st.columns(2)
@@ -2473,6 +2476,95 @@ elif cur == "Mappe Postazioni":
         """, unsafe_allow_html=True)
 
 # LIBRERIA ICONE
+
+
+
+# TURNI - FORM RIPRISTINATO - BASE 2032 COME IERI
+elif cur == "Turni":
+    hdr()
+    hdr_form("TURNI - Gestione Turni Volontari")
+
+    if "turni" not in st.session_state:
+        st.session_state.turni = []
+
+    tab1, tab2 = st.tabs(["➕ Nuovo Turno", "📋 Elenco Turni"])
+
+    with tab1:
+        c1, c2, c3 = st.columns(3)
+        with c1:
+            data_turno = st.date_input("Data Turno *", value=date.today(), format="DD/MM/YYYY", key="turno_data")
+            ora_inizio = st.time_input("Ora Inizio *", value=time(8,0), key="turno_ora_in")
+            ora_fine = st.time_input("Ora Fine *", value=time(12,0), key="turno_ora_fine")
+        with c2:
+            volontari_list = st.session_state.get("volontari", [])
+            nomi_vol = [f"{v.get('Cognome','')} {v.get('Nome','')} - {v.get('Telefono','')}" for v in volontari_list] if volontari_list else ["-- Nessun volontario --"]
+            volontario_sel = st.selectbox("Volontario *", nomi_vol, key="turno_volontario")
+            tipo_turno = st.selectbox("Tipo Turno *", ["Mattina", "Pomeriggio", "Sera", "Notte", "Reperibilità", "Emergenza", "Evento", "Formazione", "Altro"], key="turno_tipo")
+            luogo_turno = combo_comune("Luogo / Comune", "turno_comune", "Varese")
+        with c3:
+            via_turno = combo_vie("Via", luogo_turno, "turno_via", "")
+            stato_turno = st.selectbox("Stato", ["Programmato", "Confermato", "In Corso", "Completato", "Annullato"], key="turno_stato")
+            note_turno = st.text_area("Note Turno", key="turno_note", placeholder="Note dettagli turno...")
+            bg_t, txt_t, lab_t = get_stato_color(stato_turno)
+            st.markdown(f'<div style="background:{bg_t};color:{txt_t};padding:6px;border-radius:6px;text-align:center;">{lab_t}: {stato_turno}</div>', unsafe_allow_html=True)
+
+        if st.button("💾 Salva Turno", type="primary", use_container_width=True, key="btn_salva_turno"):
+            if volontario_sel and volontario_sel != "-- Nessun volontario --":
+                nuovo_turno = {
+                    "Data": str(data_turno),
+                    "OraInizio": str(ora_inizio),
+                    "OraFine": str(ora_fine),
+                    "Volontario": volontario_sel,
+                    "Tipo": tipo_turno,
+                    "Comune": luogo_turno,
+                    "Via": via_turno,
+                    "Stato": stato_turno,
+                    "Note": note_turno,
+                    "DataIns": datetime.now().strftime("%d/%m/%Y %H:%M")
+                }
+                st.session_state.turni.append(nuovo_turno)
+                st.success(f"✅ Turno salvato: {volontario_sel} - {data_turno} {ora_inizio}-{ora_fine}")
+                st.rerun()
+            else:
+                st.error("Seleziona volontario")
+
+    with tab2:
+        if st.session_state.turni:
+            df_turni = pd.DataFrame(st.session_state.turni)
+            col_f1, col_f2, col_f3 = st.columns(3)
+            with col_f1:
+                filtro_data = st.date_input("Filtra Data", value=None, key="filtro_turno_data")
+            with col_f2:
+                filtro_tipo = st.selectbox("Filtra Tipo", ["Tutti"] + ["Mattina","Pomeriggio","Sera","Notte","Reperibilità","Emergenza","Evento"], key="filtro_turno_tipo")
+            with col_f3:
+                filtro_stato = st.selectbox("Filtra Stato", ["Tutti","Programmato","Confermato","In Corso","Completato","Annullato"], key="filtro_turno_stato")
+
+            df_view = df_turni.copy()
+            if filtro_data:
+                df_view = df_view[df_view["Data"]==str(filtro_data)]
+            if filtro_tipo != "Tutti":
+                df_view = df_view[df_view["Tipo"]==filtro_tipo]
+            if filtro_stato != "Tutti":
+                df_view = df_view[df_view["Stato"]==filtro_stato]
+
+            st.dataframe(df_view, use_container_width=True)
+
+            for idx, row in df_view.iterrows():
+                c1, c2, c3, c4 = st.columns([3,2,1,1])
+                bg, txt, lab = get_stato_color(row.get("Stato","Programmato"))
+                c1.markdown(f"**{row.get('Data','')} {row.get('OraInizio','')}-{row.get('OraFine','')}** - {row.get('Volontario','')} - {row.get('Tipo','')} - {row.get('Comune','')} {row.get('Via','')}")
+                c2.markdown(f"<span style='background:{bg};color:{txt};padding:4px 8px;border-radius:4px;'>{row.get('Stato','')}</span>", unsafe_allow_html=True)
+                if c3.button("✏️", key=f"edit_turno_{idx}"):
+                    st.session_state.edit_turno_idx = idx
+                if c4.button("🗑️", key=f"del_turno_{idx}"):
+                    st.session_state.turni.pop(idx)
+                    st.rerun()
+
+            if REPORTLAB_OK:
+                st.download_button("📄 PDF Turni", data=to_pdf(df_view, "TURNI"), file_name="turni.pdf", mime="application/pdf", use_container_width=True, key="pdf_turni")
+            st.download_button("📊 Excel Turni", data=to_excel(df_view), file_name="turni.xlsx", mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", use_container_width=True, key="excel_turni")
+        else:
+            st.info("Nessun turno salvato - Crea il primo turno sopra")
 
 
 elif cur == "Libreria Icone":
@@ -2697,6 +2789,7 @@ elif cur == "Backup":
         "Mezzi": "mezzi",
         "Attrezzature": "attrezzature",
         "Libreria Icone": "icone",
+        "Turni": "turni",
         "Chat": "chat",
         "Posizioni PD785": "posizioni_pd785",
         "Posizioni Anytone": "posizioni_anytone"
