@@ -2119,10 +2119,17 @@ elif cur == "Mappe Postazioni":
         marker_desc = st.text_input("Descrizione", key="adv_marker_desc")
 
     if st.button("➕ Aggiungi Postazione con icona scelta - RIMANE su mappa", type="primary", use_container_width=True):
-        if marker_nome and marker_lat and marker_lon:
+        # Fallback se marker_lat/lon vuoti ma last_clicked ha valori (fix per tabella non visibile)
+        effective_lat = marker_lat or st.session_state.get("last_clicked_lat") or st.session_state.get("adv_marker_lat") or ""
+        effective_lon = marker_lon or st.session_state.get("last_clicked_lon") or st.session_state.get("adv_marker_lon") or ""
+        if not marker_nome:
+            st.warning("⚠️ Inserisci Nome Postazione")
+        if not effective_lat or not effective_lon:
+            st.warning("⚠️ Clicca sulla mappa per Lat/Lon o inseriscile manualmente")
+        if marker_nome and effective_lat and effective_lon:
             try:
-                lat_f = float(str(marker_lat).replace(",", "."))
-                lon_f = float(str(marker_lon).replace(",", "."))
+                lat_f = float(str(effective_lat).replace(",", "."))
+                lon_f = float(str(effective_lon).replace(",", "."))
                 sel_label = st.session_state.get("selected_icon_label", marker_icona_label)
                 sel_obj = icone_map.get(sel_label, {"Emoji":"⛑️","Nome":"Postazione","Colore":"green","Tipo":marker_tipo})
                 nuovo_marker = {
@@ -2141,8 +2148,9 @@ elif cur == "Mappe Postazioni":
                     "DataIns": datetime.now().strftime("%d/%m/%Y %H:%M")
                 }
                 st.session_state.mappa_avanzata_markers.append(nuovo_marker)
-                st.session_state.last_clicked_lat = ""
-                st.session_state.last_clicked_lon = ""
+                # NON resettare subito last_clicked per debug tabella
+                st.session_state.last_clicked_lat = str(lat_f)
+                st.session_state.last_clicked_lon = str(lon_f)
                 st.success(f"Postazione {sel_obj.get('Emoji','⛑️')} {marker_nome} salvata - RIMANE su mappa - Totale {len(st.session_state.mappa_avanzata_markers)}")
                 st.rerun()
             except Exception as e:
@@ -2154,6 +2162,32 @@ elif cur == "Mappe Postazioni":
 
     all_markers = st.session_state.get("mappa_avanzata_markers", [])
     focus_marker = st.session_state.get("map_focus")
+
+    # DEBUG - per capire perche non vedi tabella
+    st.markdown(f"**DEBUG POSTAZIONI:** {len(all_markers)} salvate in sessione")
+    if all_markers:
+        st.success(f"✅ Hai {len(all_markers)} postazioni salvate - Se non vedi tabella sotto, scorri giù dopo la mappa")
+    else:
+        st.warning("⚠️ Nessuna postazione salvata ancora - Clicca sulla mappa, compila Nome e clicca Aggiungi")
+        # Bottone test per verificare tabella
+        if st.button("🧪 Aggiungi postazione TEST per verificare tabella", key="test_add"):
+            test_marker = {
+                "Nome": f"Postazione TEST {len(all_markers)+1}",
+                "Lat": 45.8167 + (len(all_markers)*0.001),
+                "Lon": 8.8333 + (len(all_markers)*0.001),
+                "Comune": "Varese",
+                "Via": "Via Roma TEST",
+                "Icona": "⛑️ Postazione - Postazione (green)",
+                "Emoji": "⛑️",
+                "Colore": "green",
+                "IconaNome": "Postazione",
+                "Descrizione": "Test",
+                "Tipo": "Postazione",
+                "Data": "oggi",
+                "DataIns": "ora"
+            }
+            st.session_state.mappa_avanzata_markers.append(test_marker)
+            st.rerun()
 
     import json as json_lib
     markers_for_js = json_lib.dumps([{"lat": m["Lat"], "lon": m["Lon"], "nome": m["Nome"], "icona": m["Icona"], "emoji": m.get("Emoji","⛑️"), "colore": m.get("Colore","green"), "iconaNome": m.get("IconaNome", m.get("Icona","")), "tipo": m["Tipo"], "comune": m.get("Comune",""), "via": m.get("Via",""), "desc": m.get("Descrizione","")} for m in all_markers])
@@ -2393,7 +2427,11 @@ elif cur == "Mappe Postazioni":
     html_code = html_code.replace("FOCUS_JSON_PLACEHOLDER", focus_for_js)
     html_code = html_code.replace("SELECTED_EMOJI_PLACEHOLDER", emoji_json)
     html_code = html_code.replace("SELECTED_COLOR_PLACEHOLDER", color_json)
-    st.components.v1.html(html_code, height=720)
+    try:
+        st.components.v1.html(html_code, height=720)
+    except Exception as e:
+        st.error(f"Errore mappa: {e}")
+        st.code(markers_for_js[:500])
 
     # SOTTO LA MAPPA - PER OGNI POSTAZIONE FARE VEDERE AL LATO SX IL MARKER ASSEGNATO + CLICK PER VISUALIZZARE SU MAPPA
     if all_markers:
