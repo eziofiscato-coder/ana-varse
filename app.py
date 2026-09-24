@@ -2079,8 +2079,25 @@ elif cur == "Mappe Postazioni":
     except:
         default_idx = 0
 
+    # PROCEDURA VISIBILE PER EZIO
+    st.markdown("""
+    <div style="background:#fffde7;padding:12px;border-radius:8px;border-left:4px solid #FFD700;margin-bottom:12px;">
+    <b>📋 PROCEDURA PER SALVARE POSIZIONE:</b><br>
+    1. <b>Scegli icona</b> dalla libreria sopra (es: ⛑️ Postazione)<br>
+    2. <b>Clicca sulla mappa grande</b> dove vuoi la postazione - vedi marker temporaneo + coordinate in giallo<br>
+    3. <b>Controlla maschera</b>: Lat/Lon si compilano da soli, Comune/Via da Nominatim<br>
+    4. <b>Scrivi Nome Postazione</b> * obbligatorio (es: Postazione 1 Varese)<br>
+    5. <b>Verifica Comune * e Via *</b> - se vuoti scrivili tu<br>
+    6. <b>Scegli Emergenza e Evento</b> dalle combo se servono<br>
+    7. <b>Clicca 💾 SALVA POSTAZIONE</b> - vedi messaggio verde ✅ SALVATA<br>
+    8. <b>Scorri sotto</b>: tabella sotto mappa con tutte le postazioni + anteprima sotto tabella<br>
+    9. Tutti i marker rimangono sulla mappa - piccoli - non si cancellano
+    </div>
+    """, unsafe_allow_html=True)
+
     # MASCHERA con NOME EMERGENZA e NOME EVENTO COMBO
     st.markdown("#### 📍 Maschera Postazione")
+
     c1, c2, c3 = st.columns(3)
     with c1:
         marker_nome = st.text_input("Nome Postazione *", key="adv_marker_nome", placeholder="Es: Postazione 1")
@@ -2111,13 +2128,39 @@ elif cur == "Mappe Postazioni":
             st.session_state.map_focus = None
             st.rerun()
 
+    # Recupera coordinate da query params se presenti (fix per salvataggio)
+    try:
+        q_params = st.query_params
+        qp_lat = q_params.get("lat", "")
+        qp_lon = q_params.get("lon", "")
+        if qp_lat and qp_lon:
+            st.session_state.last_clicked_lat = str(qp_lat)
+            st.session_state.last_clicked_lon = str(qp_lon)
+            # Pulisci query params dopo lettura
+            # st.query_params.clear()  # lascia per debug
+    except:
+        pass
+
     if save_clicked:
-        eff_lat = marker_lat or st.session_state.last_clicked_lat
-        eff_lon = marker_lon or st.session_state.last_clicked_lon
+        # Procedura robusta: prova tutte le fonti possibili per lat/lon
+        eff_lat = marker_lat or st.session_state.get("last_clicked_lat") or st.session_state.get("adv_marker_lat") or ""
+        eff_lon = marker_lon or st.session_state.get("last_clicked_lon") or st.session_state.get("adv_marker_lon") or ""
+        # Prova anche da query params
+        try:
+            if not eff_lat:
+                eff_lat = st.query_params.get("lat", "")
+            if not eff_lon:
+                eff_lon = st.query_params.get("lon", "")
+        except:
+            pass
+
         if not marker_nome:
-            st.error("Inserisci Nome Postazione")
+            st.error("❌ Inserisci Nome Postazione")
+            st.info("Procedura: 1) Clicca mappa 2) Scrivi Nome Postazione 3) Verifica Comune/Via 4) Clicca SALVA")
         elif not eff_lat or not eff_lon:
-            st.error("Clicca sulla mappa per coordinate")
+            st.error("❌ Manca Latitudine o Longitudine")
+            st.warning("Procedura corretta: Clicca sulla mappa grande → vedi coordinate in giallo → compila Nome → SALVA")
+            st.info(f"Debug - Lat: '{eff_lat}' Lon: '{eff_lon}' - last_clicked_lat: '{st.session_state.get('last_clicked_lat')}'")
         else:
             try:
                 lat_f = float(str(eff_lat).replace(",", "."))
@@ -2143,10 +2186,16 @@ elif cur == "Mappe Postazioni":
                 st.session_state.map_focus = nuovo
                 st.session_state.last_clicked_lat = str(lat_f)
                 st.session_state.last_clicked_lon = str(lon_f)
-                st.success(f"Salvata {sel_obj.get('Emoji','⛑️')} {marker_nome} - {marker_comune} {marker_via} - Emergenza: {nome_emergenza} Evento: {nome_evento} - Totale {len(st.session_state.mappa_avanzata_markers)}")
+                st.success(f"✅ SALVATA {sel_obj.get('Emoji','⛑️')} {marker_nome} - {marker_comune} {marker_via} - Emergenza: {nome_emergenza} Evento: {nome_evento} - Totale {len(st.session_state.mappa_avanzata_markers)} - Ora vedi tabella sotto mappa")
+                # Pulisci query params
+                try:
+                    st.query_params.clear()
+                except:
+                    pass
                 st.rerun()
             except Exception as e:
-                st.error(f"Errore: {e}")
+                st.error(f"❌ Errore coordinate: {e}")
+                st.info(f"Hai inserito Lat: '{eff_lat}' Lon: '{eff_lon}' - Usa formato 45.8167 8.8333 con punto")
 
     # ANTEPRIMA SOPRA MAPPA GRANDE
     st.divider()
@@ -2236,6 +2285,14 @@ elif cur == "Mappe Postazioni":
     map.on('click', function(e){
         var lat = e.latlng.lat.toFixed(6);
         var lon = e.latlng.lng.toFixed(6);
+        // Sincronizza con Python via query params - per salvataggio robusto
+        try {
+            var url = new URL(window.parent.location.href);
+            url.searchParams.set('lat', lat);
+            url.searchParams.set('lon', lon);
+            window.parent.history.replaceState(null, '', url.toString());
+        } catch(err) { console.log(err); }
+
         var tmpIcon = L.divIcon({html: "<div style='background:#e8f5e9;border:2px dashed " + getColorCode(selectedIconColor) + ";width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;'>" + selectedIconEmoji + "</div>", iconSize: [30,30], iconAnchor: [15,15]});
         var nm = L.marker([lat, lon], {draggable:true, icon: tmpIcon}).addTo(map).bindPopup("Nuova - " + selectedIconEmoji + "<br>" + lat + "," + lon).openPopup();
         document.getElementById('coords').innerHTML = "📍 Nuovo " + selectedIconEmoji + " " + lat + "," + lon + " - Compila e salva - Rimane dopo salvataggio";
