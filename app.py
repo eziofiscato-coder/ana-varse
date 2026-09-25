@@ -1358,14 +1358,6 @@ elif cur == "Volontari (con foto)":
                 st.rerun()
             except:
                 pass
-
-        st.divider()
-        c_exp1, c_exp2 = st.columns(2)
-        with c_exp1:
-            st.download_button("📊 Excel Volontari", data=to_excel(df_vol), file_name="volontari.xlsx", mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", use_container_width=True, key="excel_vol")
-        with c_exp2:
-            if REPORTLAB_OK:
-                st.download_button("📄 PDF Volontari con Logo Estesa", data=to_pdf(df_vol, "VOLONTARI"), file_name="volontari.pdf", mime="application/pdf", use_container_width=True, key="pdf_vol")
     else:
         st.info("Nessun volontario inserito")
 
@@ -1485,228 +1477,46 @@ elif cur == "Alias Radio":
     if st.session_state.alias_radio:
         df_al = pd.DataFrame(st.session_state.alias_radio)
         st.dataframe(df_al, use_container_width=True)
-        c1,c2 = st.columns(2)
-        with c1:
-            st.download_button("📊 Excel Alias", to_excel(df_al), "alias.xlsx", use_container_width=True, key="excel_alias")
-        with c2:
-            if REPORTLAB_OK:
-                st.download_button("📄 PDF Alias con Logo Estesa", data=to_pdf(df_al, "ALIAS RADIO"), file_name="alias.pdf", mime="application/pdf", use_container_width=True, key="pdf_alias")
+        st.download_button("Excel Alias", to_excel(df_al), "alias.xlsx", use_container_width=True)
 
 # BROGLIACCIO
 elif cur == "Brogliaccio":
     hdr()
-    hdr_form("BROGLIACCIO - Registro Operativo per Evento/Emergenza Blindato + Alias ALIA")
+    hdr_form("BROGLIACCIO - Registro Operativo")
 
-    # Init blindati
-    if "brog_evento_blindato" not in st.session_state:
-        st.session_state.brog_evento_blindato = None
-    if "brog_emergenza_blindata" not in st.session_state:
-        st.session_state.brog_emergenza_blindata = None
-    if "brog_blindato" not in st.session_state:
-        st.session_state.brog_blindato = False
-    if "brog_tipo_blindato" not in st.session_state:
-        st.session_state.brog_tipo_blindato = None  # "evento" o "emergenza"
-
-    # Recupera liste
-    alias_list = st.session_state.get("alias_radio", [])
-    alias_nomi = [a.get("Alias","") for a in alias_list if a.get("Alias")] if alias_list else []
-    if not alias_nomi:
-        alias_nomi = ["-- Nessun Alias --", "Centrale", "Squadra A", "Squadra B", "COC", "SOU"]
-
-    eventi_list = st.session_state.get("eventi", [])
-    emergenze_list = st.session_state.get("emergenze", [])
-    nomi_eventi_brog = ["-- Nessuno --"] + [f"{ev.get('Nome','')} - {ev.get('Data','')} - {ev.get('Comune','')}" for ev in eventi_list] if eventi_list else ["-- Nessuno --"]
-    nomi_emergenze_brog = ["-- Nessuna --"] + [f"{em.get('Nome','')} - {em.get('Data','')} - {em.get('Comune','')} [{em.get('Stato','')}]" for em in emergenze_list] if emergenze_list else ["-- Nessuna --"]
-
-    # Mostra stato blindato
-    if st.session_state.brog_blindato:
-        if st.session_state.brog_tipo_blindato == "evento" and st.session_state.brog_evento_blindato:
-            st.warning(f"🔒 BROGLIACCIO BLINDATO SU EVENTO: {st.session_state.brog_evento_blindato} - Tutti i nuovi brogliacci saranno per questo evento")
-        elif st.session_state.brog_tipo_blindato == "emergenza" and st.session_state.brog_emergenza_blindata:
-            st.error(f"🔒 BROGLIACCIO BLINDATO SU EMERGENZA: {st.session_state.brog_emergenza_blindata} - Tutti i nuovi brogliacci saranno per questa emergenza")
-        if st.button("🔓 Sblocca Brogliaccio - Torna libero", use_container_width=True):
-            st.session_state.brog_blindato = False
-            st.session_state.brog_evento_blindato = None
-            st.session_state.brog_emergenza_blindata = None
-            st.session_state.brog_tipo_blindato = None
-            st.success("Brogliaccio sbloccato")
-            st.rerun()
-
-    st.divider()
-
-    # Form brogliaccio
-    c1, c2, c3 = st.columns(3)
+    c1, c2 = st.columns(2)
     with c1:
         data_b = st.date_input("Data", value=date.today(), format="DD/MM/YYYY", key="brog_data")
         ora_b = st.time_input("Ora", value=datetime.now().time(), key="brog_ora")
-        operatore = st.text_input("Operatore *", key="brog_op", placeholder="Nome operatore")
+        operatore = st.text_input("Operatore", key="brog_op")
 
     with c2:
-        # COMBO CHI RICEVE - agganciata a ALIA Alias
-        riceve = st.selectbox("Chi Riceve * - da Alias Radio ALIA", alias_nomi, index=0, key="brog_riceve", help="Combo agganciata al form Alias Radio campo Alias - chi riceve il messaggio")
-        trasmette = st.selectbox("Chi Trasmette * - da Alias Radio ALIA", alias_nomi, index=0, key="brog_trasmette", help="Combo agganciata al form Alias Radio campo Alias - chi trasmette il messaggio")
-        if riceve == "-- Nessun Alias --" or trasmette == "-- Nessun Alias --":
-            st.info("💡 Vai su Alias Radio e crea alias per vedere qui in combo")
+        evento_b = st.text_input("Evento Riferimento", key="brog_evento")
+        emerg_b = st.text_input("Emergenza Riferimento", key="brog_emerg")
+        blindato = st.checkbox("Blinda Evento/Emergenza", key="brog_blind")
 
-    with c3:
-        # Se blindato, mostra bloccato, altrimenti combo normali
-        if st.session_state.brog_blindato:
-            if st.session_state.brog_tipo_blindato == "evento":
-                st.text_input("Evento Riferimento - BLINDATO", value=st.session_state.brog_evento_blindato, disabled=True, key="brog_evento_blindato_view")
-                evento_b = st.session_state.brog_evento_blindato
-                emerg_b = "-- Nessuna --"
-                st.text_input("Emergenza Riferimento - disabilitato", value="-- Bloccato su Evento --", disabled=True, key="brog_emerg_disabled1")
-            else:
-                st.text_input("Emergenza Riferimento - BLINDATA", value=st.session_state.brog_emergenza_blindata, disabled=True, key="brog_emerg_blindata_view")
-                emerg_b = st.session_state.brog_emergenza_blindata
-                evento_b = "-- Nessuno --"
-                st.text_input("Evento Riferimento - disabilitato", value="-- Bloccato su Emergenza --", disabled=True, key="brog_evento_disabled1")
-        else:
-            evento_b = st.selectbox("Evento Riferimento", nomi_eventi_brog, index=0, key="brog_evento")
-            emerg_b = st.selectbox("Emergenza Riferimento", nomi_emergenze_brog, index=0, key="brog_emerg")
+    testo_b = st.text_area("Testo Brogliaccio *", height=150, key="brog_testo")
 
-        # Tasti per blindare evento oppure emergenza - richiesta Ezio
-        st.markdown("**🔒 Blinda Brogliaccio su Evento/Emergenza**")
-        col_blind1, col_blind2 = st.columns(2)
-        with col_blind1:
-            if st.button("🔒 Blinda su Evento selezionato", use_container_width=True, key="btn_blinda_evento", help="Brogliaccio sarà fatto per quel evento"):
-                if evento_b and evento_b != "-- Nessuno --":
-                    st.session_state.brog_evento_blindato = evento_b
-                    st.session_state.brog_emergenza_blindata = None
-                    st.session_state.brog_blindato = True
-                    st.session_state.brog_tipo_blindato = "evento"
-                    st.success(f"🔒 Blindato su Evento: {evento_b}")
-                    st.rerun()
-                else:
-                    st.warning("Seleziona un Evento prima di blindare")
-        with col_blind2:
-            if st.button("🔒 Blinda su Emergenza selezionata", use_container_width=True, key="btn_blinda_emerg", help="Brogliaccio sarà fatto per quella emergenza"):
-                if emerg_b and emerg_b != "-- Nessuna --":
-                    st.session_state.brog_emergenza_blindata = emerg_b
-                    st.session_state.brog_evento_blindato = None
-                    st.session_state.brog_blindato = True
-                    st.session_state.brog_tipo_blindato = "emergenza"
-                    st.success(f"🔒 Blindato su Emergenza: {emerg_b}")
-                    st.rerun()
-                else:
-                    st.warning("Seleziona una Emergenza prima di blindare")
-
-    testo_b = st.text_area("Testo Brogliaccio * - Comunicazione", height=150, key="brog_testo", placeholder="Es: Richiesta intervento ambulanza in Via... - Risposta...")
-
-    # Validazione: brogliaccio deve essere per evento o emergenza blindata
-    if st.session_state.brog_blindato:
-        st.info(f"📝 Brogliaccio sarà salvato per: {st.session_state.brog_evento_blindato or st.session_state.brog_emergenza_blindata} - Tipo: {st.session_state.brog_tipo_blindato}")
-
-    if st.button("💾 Salva Brogliaccio per Evento/Emergenza Blindato", type="primary", use_container_width=True, key="btn_salva_brog"):
-        if not operatore:
-            st.error("❌ Inserisci Operatore")
-        elif riceve == "-- Nessun Alias --" or trasmette == "-- Nessun Alias --":
-            st.error("❌ Seleziona Chi Riceve e Chi Trasmette da Alias ALIA")
-        elif riceve == trasmette and riceve != "-- Nessun Alias --":
-            st.warning("⚠️ Chi Riceve e Chi Trasmette sono uguali - va bene se è auto-comunicazione?")
-        elif not testo_b:
-            st.error("❌ Inserisci Testo Brogliaccio")
-        elif st.session_state.brog_blindato:
-            # Se blindato, deve essere per evento/emergenza blindato
-            if st.session_state.brog_tipo_blindato == "evento" and not st.session_state.brog_evento_blindato:
-                st.error("❌ Errore blindatura evento")
-            elif st.session_state.brog_tipo_blindato == "emergenza" and not st.session_state.brog_emergenza_blindata:
-                st.error("❌ Errore blindatura emergenza")
-            else:
-                nuovo_brog = {
-                    "Data": str(data_b),
-                    "Ora": str(ora_b),
-                    "Operatore": operatore,
-                    "ChiRiceve": riceve,
-                    "ChiTrasmette": trasmette,
-                    "Evento": st.session_state.brog_evento_blindato if st.session_state.brog_tipo_blindato=="evento" else "-- Nessuno --",
-                    "Emergenza": st.session_state.brog_emergenza_blindata if st.session_state.brog_tipo_blindato=="emergenza" else "-- Nessuna --",
-                    "TipoBlindato": st.session_state.brog_tipo_blindato,
-                    "EventoBlindato": st.session_state.brog_evento_blindato,
-                    "EmergenzaBlindata": st.session_state.brog_emergenza_blindata,
-                    "Testo": testo_b,
-                    "Blindato": True,
-                    "DataIns": datetime.now().strftime("%d/%m/%Y %H:%M")
-                }
-                st.session_state.brogliaccio.append(nuovo_brog)
-                st.success(f"✅ Brogliaccio salvato per {st.session_state.brog_evento_blindato or st.session_state.brog_emergenza_blindata} - {riceve} <- {trasmette}")
-                st.rerun()
-        else:
-            # Non blindato - salva libero ma deve avere almeno evento o emergenza
-            if (evento_b == "-- Nessuno --" and emerg_b == "-- Nessuna --"):
-                st.warning("⚠️ Brogliaccio senza Evento/Emergenza - consigliato blindare su uno dei due")
-            nuovo_brog = {
+    if st.button("Salva Brogliaccio", type="primary", use_container_width=True):
+        if testo_b:
+            st.session_state.brogliaccio.append({
                 "Data": str(data_b),
                 "Ora": str(ora_b),
                 "Operatore": operatore,
-                "ChiRiceve": riceve,
-                "ChiTrasmette": trasmette,
                 "Evento": evento_b,
                 "Emergenza": emerg_b,
-                "TipoBlindato": "libero",
-                "EventoBlindato": evento_b if evento_b != "-- Nessuno --" else "",
-                "EmergenzaBlindata": emerg_b if emerg_b != "-- Nessuna --" else "",
                 "Testo": testo_b,
-                "Blindato": False,
-                "DataIns": datetime.now().strftime("%d/%m/%Y %H:%M")
-            }
-            st.session_state.brogliaccio.append(nuovo_brog)
-            st.success(f"✅ Brogliaccio salvato - {riceve} <- {trasmette} - Evento: {evento_b} - Emergenza: {emerg_b}")
+                "Blindato": blindato
+            })
+            st.success("Brogliaccio salvato")
             st.rerun()
 
-    st.divider()
     if st.session_state.brogliaccio:
-        # Filtra per blindato se attivo
-        if st.session_state.brog_blindato:
-            if st.session_state.brog_tipo_blindato == "evento":
-                filtrati = [b for b in st.session_state.brogliaccio if b.get("Evento")==st.session_state.brog_evento_blindato or b.get("EventoBlindato")==st.session_state.brog_evento_blindato]
-                st.markdown(f"### 📓 Brogliacci per Evento Blindato: {st.session_state.brog_evento_blindato} - {len(filtrati)} record")
-                df_br = pd.DataFrame(filtrati) if filtrati else pd.DataFrame(st.session_state.brogliaccio)
-            else:
-                filtrati = [b for b in st.session_state.brogliaccio if b.get("Emergenza")==st.session_state.brog_emergenza_blindata or b.get("EmergenzaBlindata")==st.session_state.brog_emergenza_blindata]
-                st.markdown(f"### 📓 Brogliacci per Emergenza Blindata: {st.session_state.brog_emergenza_blindata} - {len(filtrati)} record")
-                df_br = pd.DataFrame(filtrati) if filtrati else pd.DataFrame(st.session_state.brogliaccio)
-        else:
-            st.markdown(f"### 📓 Tutti i Brogliacci - {len(st.session_state.brogliaccio)} record")
-            df_br = pd.DataFrame(st.session_state.brogliaccio)
-
+        df_br = pd.DataFrame(st.session_state.brogliaccio)
         st.dataframe(df_br, use_container_width=True)
-
-        # Mostra dettaglio con chi riceve / trasmette
-        for idx, brog in enumerate(st.session_state.brogliaccio[-10:][::-1]):
-            actual_idx = len(st.session_state.brogliaccio)-1 - idx
-            if st.session_state.brog_blindato:
-                # Se blindato, mostra solo quelli del blindato
-                if st.session_state.brog_tipo_blindato == "evento":
-                    if brog.get("Evento") != st.session_state.brog_evento_blindato and brog.get("EventoBlindato") != st.session_state.brog_evento_blindato:
-                        continue
-                else:
-                    if brog.get("Emergenza") != st.session_state.brog_emergenza_blindata and brog.get("EmergenzaBlindata") != st.session_state.brog_emergenza_blindata:
-                        continue
-
-            with st.expander(f"📄 {brog.get('Data','')} {brog.get('Ora','')} - {brog.get('ChiTrasmette','')} -> {brog.get('ChiRiceve','')} - {brog.get('Evento','')[:20] or brog.get('Emergenza','')[:20]} - {brog.get('Testo','')[:50]}"):
-                st.write(f"**Operatore:** {brog.get('Operatore','')}")
-                st.write(f"**Chi Trasmette:** {brog.get('ChiTrasmette','')} (da ALIA Alias)")
-                st.write(f"**Chi Riceve:** {brog.get('ChiRiceve','')} (da ALIA Alias)")
-                st.write(f"**Evento:** {brog.get('Evento','')}")
-                st.write(f"**Emergenza:** {brog.get('Emergenza','')}")
-                st.write(f"**Blindato:** {brog.get('Blindato','')} - Tipo: {brog.get('TipoBlindato','')}")
-                st.write(f"**Testo:** {brog.get('Testo','')}")
-                if st.button(f"🗑️ Elimina", key=f"del_brog_{actual_idx}"):
-                    st.session_state.brogliaccio.pop(actual_idx)
-                    st.rerun()
-
-        c_exp1, c_exp2 = st.columns(2)
-        with c_exp1:
-            st.download_button("⬇️ Excel Brogliaccio", data=to_excel(df_br), file_name="brogliaccio.xlsx", use_container_width=True)
-        with c_exp2:
-            if REPORTLAB_OK:
-                st.download_button("📄 PDF Brogliaccio con Logo", data=to_pdf(df_br, f"BROGLIACCIO - {st.session_state.brog_evento_blindato or st.session_state.brog_emergenza_blindata or 'TUTTI'} - Riceve/Trasmette ALIA"), file_name="brogliaccio_ana.pdf", mime="application/pdf", use_container_width=True, key="pdf_brog")
-    else:
-        st.info("📓 Nessun brogliaccio - Crea alias su Alias Radio, blinda su Evento/Emergenza e salva")
-
-# EVENTI
-
+        st.download_button("Excel Brogliaccio", to_excel(df_br), "brogliaccio.xlsx", use_container_width=True)
+        if REPORTLAB_OK:
+            st.download_button("PDF Logo Estesa", to_pdf(df_br, "BROGLIACCIO"), "brogliaccio.pdf", use_container_width=True)
 
 # EVENTI
 elif cur == "Eventi":
@@ -1986,12 +1796,7 @@ elif cur == "Check-in":
     if st.session_state.checkin:
         df_ch = pd.DataFrame(st.session_state.checkin)
         st.dataframe(df_ch, use_container_width=True)
-        c1,c2 = st.columns(2)
-        with c1:
-            st.download_button("📊 Excel Check-in", to_excel(df_ch), "checkin.xlsx", use_container_width=True, key="excel_checkin")
-        with c2:
-            if REPORTLAB_OK:
-                st.download_button("📄 PDF Check-in con Logo Estesa", data=to_pdf(df_ch, "CHECK-IN"), file_name="checkin.pdf", mime="application/pdf", use_container_width=True, key="pdf_checkin")
+        st.download_button("Excel Check-in", to_excel(df_ch), "checkin.xlsx", use_container_width=True)
 
 # INTERVENTI EMERGENZA - MODIFICA 4 STATO COLORE FONDO CAMPO
 elif cur == "Interventi Emergenza":
@@ -2255,28 +2060,27 @@ elif cur == "Attrezzature":
 # MAPPE POSTAZIONI - STABILE - MARKER RIMANGONO - TABELLA SOTTO - ANTEPRIMA SOTTO TABELLA - NOME EMERGENZA/EVENTO COMBO
 elif cur == "Mappe Postazioni":
     hdr()
-    hdr_form("MAPPE POSTAZIONI - Mappa grande + 2 mappe sotto con fullscreen 100% + quadratino icona")
+    hdr_form("MAPPE POSTAZIONI - Postazioni + Marker - Stabile")
 
+    # Init stabile
     if "mappa_avanzata_markers" not in st.session_state:
         st.session_state.mappa_avanzata_markers = []
     if "last_clicked_lat" not in st.session_state:
         st.session_state.last_clicked_lat = ""
     if "last_clicked_lon" not in st.session_state:
         st.session_state.last_clicked_lon = ""
-    if "last_clicked_via" not in st.session_state:
-        st.session_state.last_clicked_via = ""
-    if "last_clicked_comune" not in st.session_state:
-        st.session_state.last_clicked_comune = ""
     if "map_focus" not in st.session_state:
         st.session_state.map_focus = None
     if "selected_icon_label" not in st.session_state:
         st.session_state.selected_icon_label = ""
 
+    # Recupera liste emergenze ed eventi per combo
     emergenze_list = st.session_state.get("emergenze", [])
     eventi_list = st.session_state.get("eventi", [])
     nomi_emergenze = ["-- Nessuna --"] + [f"{e.get('Nome','')} - {e.get('Data','')}" for e in emergenze_list[-20:]] if emergenze_list else ["-- Nessuna --"]
     nomi_eventi = ["-- Nessuno --"] + [f"{ev.get('Nome','')} - {ev.get('Data','')}" for ev in eventi_list[-20:]] if eventi_list else ["-- Nessuno --"]
 
+    # TOP BAR
     c1, c2, c3, c4 = st.columns([1,1,1,2])
     with c1:
         if st.button("⛶ Fullscreen", key="btn_fs_mappa", use_container_width=True, type="primary"):
@@ -2292,7 +2096,11 @@ elif cur == "Mappe Postazioni":
             st.session_state.map_focus = None
             st.rerun()
     with c4:
-        st.markdown(f'<span style="background:#1A5D1A;color:white;padding:6px 12px;border-radius:6px;font-weight:bold;">🗺️ {len(st.session_state.mappa_avanzata_markers)} postazioni</span>', unsafe_allow_html=True)
+        st.markdown(f'<span style="background:#1A5D1A;color:white;padding:6px 12px;border-radius:6px;font-weight:bold;">🗺️ {len(st.session_state.mappa_avanzata_markers)} postazioni - Tutti rimangono</span>', unsafe_allow_html=True)
+    try:
+        inject_fullscreen_all_maps()
+    except:
+        pass
 
     if st.session_state.get("fs_mappa_active"):
         st.components.v1.html("<div style='background:#1A5D1A;color:white;padding:8px;border-radius:6px;text-align:center;'>FULLSCREEN - ESC per uscire</div>", height=40)
@@ -2300,210 +2108,97 @@ elif cur == "Mappe Postazioni":
             st.session_state["fs_mappa_active"] = False
             st.rerun()
 
+    c_tipo1, c_tipo2 = st.columns([1,2])
+    with c_tipo1:
+        tipo_mappa_ext = st.selectbox("Apri con", ["Google Maps", "Waze", "Google Earth"], index=0, key="tipo_mappa_ext")
+    with c_tipo2:
+        st.caption("NESSUN default - Click lascia marker - Tutti rimangono - Non si cancellano da soli")
+
+    # LIBRERIA ICONE scelta rapida
     icone_disponibili = st.session_state.get("icone", [])
     if not icone_disponibili:
         icone_disponibili = [
-            {"Nome": "Ambulanza", "Emoji": "🚑", "Tipo": "Emergenza", "Colore": "red"},
-            {"Nome": "Polizia", "Emoji": "🚓", "Tipo": "Emergenza", "Colore": "blue"},
-            {"Nome": "Postazione", "Emoji": "📍", "Tipo": "Postazione", "Colore": "green"},
+            {"Nome": "Postazione", "Emoji": "⛑️", "Tipo": "Postazione", "Colore": "green"},
+            {"Nome": "Emergenza", "Emoji": "🚨", "Tipo": "Emergenza", "Colore": "red"},
+            {"Nome": "Evento", "Emoji": "📅", "Tipo": "Evento", "Colore": "blue"},
+            {"Nome": "Mezzo", "Emoji": "🚐", "Tipo": "Mezzo", "Colore": "green"},
         ]
     icone_options = []
     icone_map = {}
     for ico in icone_disponibili:
-        has_file = "✅" if ico.get("FileBytes") else ico.get("Emoji","📍")
-        label = f"{has_file} {ico.get('Nome','')} - {ico.get('Tipo','')}"
+        label = f"{ico.get('Emoji','📍')} {ico.get('Nome','')} - {ico.get('Tipo','')} ({ico.get('Colore','')})"
         icone_options.append(label)
         icone_map[label] = ico
     if not st.session_state.selected_icon_label and icone_options:
         st.session_state.selected_icon_label = icone_options[0]
+
+    st.markdown("**Scegli icona dalla Libreria:**")
+    cols_ico = st.columns(6)
+    for idx, ico in enumerate(icone_disponibili[:12]):
+        with cols_ico[idx % 6]:
+            is_sel = st.session_state.selected_icon_label and ico.get('Nome','') in st.session_state.selected_icon_label
+            if st.button(f"{ico.get('Emoji','📍')} {ico.get('Nome','')}", key=f"sel_ico_{idx}", use_container_width=True, type="primary" if is_sel else "secondary"):
+                for opt in icone_options:
+                    if ico.get('Nome','') in opt and ico.get('Emoji','') in opt:
+                        st.session_state.selected_icon_label = opt
+                        break
+                st.rerun()
+
     try:
         default_idx = icone_options.index(st.session_state.selected_icon_label) if st.session_state.selected_icon_label in icone_options else 0
     except:
         default_idx = 0
 
-    st.markdown("### 🎨 Scegli Icona per Marker - Anteprima vera solo icona")
-    c_ico1, c_ico2 = st.columns([3,1])
-    with c_ico1:
+    # PROCEDURA VISIBILE PER EZIO
+    st.markdown("""
+    <div style="background:#fffde7;padding:12px;border-radius:8px;border-left:4px solid #FFD700;margin-bottom:12px;">
+    <b>📋 PROCEDURA PER SALVARE POSIZIONE:</b><br>
+    1. <b>Scegli icona</b> dalla libreria sopra (es: ⛑️ Postazione)<br>
+    2. <b>Clicca sulla mappa grande</b> dove vuoi la postazione - vedi marker temporaneo + coordinate in giallo<br>
+    3. <b>Controlla maschera</b>: Lat/Lon si compilano da soli, Comune/Via da Nominatim<br>
+    4. <b>Scrivi Nome Postazione</b> * obbligatorio (es: Postazione 1 Varese)<br>
+    5. <b>Verifica Comune * e Via *</b> - se vuoti scrivili tu<br>
+    6. <b>Scegli Emergenza e Evento</b> dalle combo se servono<br>
+    7. <b>Clicca 💾 SALVA POSTAZIONE</b> - vedi messaggio verde ✅ SALVATA<br>
+    8. <b>Scorri sotto</b>: tabella sotto mappa con tutte le postazioni + anteprima sotto tabella<br>
+    9. Tutti i marker rimangono sulla mappa - piccoli - non si cancellano
+    </div>
+    """, unsafe_allow_html=True)
+
+    # MASCHERA con NOME EMERGENZA e NOME EVENTO COMBO
+    st.markdown("#### 📍 Maschera Postazione")
+
+    c1, c2, c3 = st.columns(3)
+    with c1:
+        marker_nome = st.text_input("Nome Postazione *", key="adv_marker_nome", placeholder="Es: Postazione 1")
+        marker_lat = st.text_input("Latitudine *", value=st.session_state.last_clicked_lat, key="adv_marker_lat", placeholder="Clicca mappa")
+        marker_lon = st.text_input("Longitudine *", value=st.session_state.last_clicked_lon, key="adv_marker_lon", placeholder="Clicca mappa")
+    with c2:
+        marker_comune = st.text_input("Comune *", value="Varese", key="adv_marker_comune")
+        marker_via = st.text_input("Via *", value="", key="adv_marker_via", placeholder="Via + civico")
+        # CAMPI COMBO RICHIESTI
+        nome_emergenza = st.selectbox("Nome Emergenza (combo)", nomi_emergenze, index=0, key="nome_emergenza_combo")
+        nome_evento = st.selectbox("Nome Evento (combo)", nomi_eventi, index=0, key="nome_evento_combo")
+    with c3:
         marker_icona_label = st.selectbox("Icona Libreria", icone_options, index=default_idx, key="adv_marker_icona_select")
         st.session_state.selected_icon_label = marker_icona_label
         selected_ico_obj = icone_map.get(marker_icona_label, {"Emoji":"⛑️","Nome":"Postazione","Colore":"green","Tipo":"Postazione"})
-    with c_ico2:
-        if selected_ico_obj.get("FileBytes"):
-            st.image(selected_ico_obj.get("FileBytes"), width=80)
-            st.caption(f"✅ {selected_ico_obj.get('Nome','')} - Marker = questa icona")
-        else:
-            st.markdown(f"<div style='font-size:32px;text-align:center;background:#e8f5e9;padding:12px;border-radius:8px;border:2px solid #1A5D1A;'>{selected_ico_obj.get('Emoji','⛑️')}<br><small>{selected_ico_obj.get('Nome','')}</small></div>", unsafe_allow_html=True)
+        st.markdown(f"<div style='font-size:24px;text-align:center;background:#e8f5e9;padding:8px;border-radius:8px;border:2px solid #1A5D1A;'>{selected_ico_obj.get('Emoji','⛑️')} {selected_ico_obj.get('Nome','')}</div>", unsafe_allow_html=True)
+        marker_tipo = st.selectbox("Tipo", ["Postazione", "Emergenza", "Evento", "Mezzo", "Volontario"], key="adv_marker_tipo")
+        marker_desc = st.text_input("Descrizione", key="adv_marker_desc")
 
-    st.divider()
-    all_markers = st.session_state.get("mappa_avanzata_markers", [])
-    focus_marker = st.session_state.get("map_focus")
+    # SALVA
+    col_save1, col_save2 = st.columns([3,1])
+    with col_save1:
+        save_clicked = st.button("💾 SALVA POSTAZIONE - RIMANE su mappa", type="primary", use_container_width=True, key="btn_salva_postazione")
+    with col_save2:
+        if st.button("🔄 Pulisci campi", use_container_width=True, key="btn_pulisci_campi"):
+            st.session_state.last_clicked_lat = ""
+            st.session_state.last_clicked_lon = ""
+            st.session_state.map_focus = None
+            st.rerun()
 
-    import json as json_lib
-    import base64 as b64lib
-    markers_for_js_list = []
-    for m in all_markers:
-        item = {"lat": m["Lat"], "lon": m["Lon"], "nome": m["Nome"], "emoji": m.get("Emoji","⛑️"), "colore": m.get("Colore","green"), "iconaNome": m.get("IconaNome",""), "comune": m.get("Comune",""), "via": m.get("Via",""), "emergenza": m.get("NomeEmergenza",""), "evento": m.get("NomeEvento",""), "hasImage": False, "imgB64": ""}
-        icona_nome = m.get("IconaNome","")
-        for ico_lib in icone_disponibili:
-            if ico_lib.get("Nome")==icona_nome and ico_lib.get("FileBytes"):
-                try:
-                    b64 = b64lib.b64encode(ico_lib.get("FileBytes")).decode()
-                    mime = "image/png"
-                    fname = ico_lib.get("FileName","").lower()
-                    if fname.endswith(".jpg") or fname.endswith(".jpeg"): mime="image/jpeg"
-                    elif fname.endswith(".svg"): mime="image/svg+xml"
-                    item["imgB64"] = f"data:{mime};base64,{b64}"
-                    item["hasImage"] = True
-                except:
-                    pass
-                break
-        markers_for_js_list.append(item)
-    markers_for_js = json_lib.dumps(markers_for_js_list)
-    focus_for_js = json_lib.dumps(focus_marker) if focus_marker else "null"
-
-    sel_has_image = False
-    sel_img_b64 = ""
-    if selected_ico_obj.get("FileBytes"):
-        try:
-            b64_sel = b64lib.b64encode(selected_ico_obj.get("FileBytes")).decode()
-            mime_sel = "image/png"
-            fname_sel = selected_ico_obj.get("FileName","").lower()
-            if fname_sel.endswith(".jpg") or fname_sel.endswith(".jpeg"): mime_sel="image/jpeg"
-            elif fname_sel.endswith(".svg"): mime_sel="image/svg+xml"
-            sel_img_b64 = f"data:{mime_sel};base64,{b64_sel}"
-            sel_has_image = True
-        except:
-            pass
-
-    st.markdown("#### 🌍 Mappa Grande - Clicca per aggiungere - Fullscreen 100%")
-    html_main = """
-    <div id="map-container" style="position:relative; background:white; border-radius:12px;">
-        <div id="map" style="height:650px; width:100%; border-radius:12px; border:3px solid #1A5D1A;"></div>
-    </div>
-    <div id="coords" style="background:#fffde7;padding:8px;border-radius:6px;margin-top:8px;font-weight:bold;border-left:4px solid #FFD700;">📍 Clicca sulla mappa per aggiungere</div>
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script>
-    var markersData = MARKERS_JSON_PLACEHOLDER;
-    var focusMarker = FOCUS_JSON_PLACEHOLDER;
-    var selectedIconEmoji = SELECTED_EMOJI_PLACEHOLDER;
-    var selectedIconColor = SELECTED_COLOR_PLACEHOLDER;
-    var selectedHasImage = SELECTED_HAS_IMAGE_PLACEHOLDER;
-    var selectedImgB64 = SELECTED_IMG_B64_PLACEHOLDER;
-    var map = L.map('map', {zoomControl: false}).setView([45.8167, 8.8333], 13);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {attribution: 'ANA Varese'}).addTo(map);
-    L.control.zoom({position: 'topleft'}).addTo(map);
-    // FULLSCREEN 100%
-    try {
-        var fsControl = L.control({position: 'topleft'});
-        fsControl.onAdd = function(map) {
-            var container = L.DomUtil.create('div', 'leaflet-bar leaflet-control');
-            container.style.marginTop = '5px';
-            var btn = L.DomUtil.create('a', '', container);
-            btn.innerHTML = '⛶';
-            btn.href = '#';
-            btn.title = 'Fullscreen 100%';
-            btn.style.width = '34px'; btn.style.height = '34px'; btn.style.lineHeight = '34px';
-            btn.style.textAlign = 'center'; btn.style.fontSize = '22px'; btn.style.background = 'white';
-            btn.style.display = 'block'; btn.style.textDecoration = 'none'; btn.style.color = 'black';
-            btn.style.fontWeight = 'bold'; btn.style.border = '2px solid rgba(0,0,0,0.2)'; btn.style.borderRadius = '4px'; btn.style.cursor = 'pointer';
-            L.DomEvent.on(btn, 'click', function(e){
-                L.DomEvent.stop(e);
-                var mapContainer = document.getElementById('map');
-                if (mapContainer) {
-                    if (!document.fullscreenElement) {
-                        if (mapContainer.requestFullscreen) mapContainer.requestFullscreen();
-                        else if (mapContainer.webkitRequestFullscreen) mapContainer.webkitRequestFullscreen();
-                        else if (mapContainer.msRequestFullscreen) mapContainer.msRequestFullscreen();
-                        setTimeout(function(){ map.invalidateSize(); }, 600);
-                    } else {
-                        if (document.exitFullscreen) document.exitFullscreen();
-                        setTimeout(function(){ map.invalidateSize(); }, 600);
-                    }
-                }
-            });
-            return container;
-        };
-        fsControl.addTo(map);
-    } catch(e){ console.log('fs error', e); }
-    function getColorCode(c){ var m={'red':'#d32f2f','blue':'#1976d2','green':'#388e3c','orange':'#f57c00','purple':'#7b1fa2','darkblue':'#0d47a1','darkred':'#b71c1c','cadetblue':'#5f9ea0'}; return m[c]||'#388e3c'; }
-    var allMarkers = [];
-    markersData.forEach(function(md){
-        var icon;
-        if(md.hasImage && md.imgB64){
-            // QUADRATINO con icona dentro, tolto cerchio - richiesta Ezio
-            icon = L.divIcon({html: "<div style='background:white;border:2px solid " + getColorCode(md.colore) + ";width:36px;height:36px;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 4px rgba(0,0,0,0.3);overflow:hidden;padding:3px;border-radius:4px;'><img src='" + md.imgB64 + "' style='width:28px;height:28px;object-fit:contain;'></div>", iconSize: [36,36], iconAnchor: [18,18]});
-        } else {
-            icon = L.divIcon({html: "<div style='background:white;border:2px solid " + getColorCode(md.colore) + ";width:32px;height:32px;display:flex;align-items:center;justify-content:center;font-size:14px;box-shadow:0 2px 4px rgba(0,0,0,0.3);border-radius:4px;'>" + md.emoji + "</div>", iconSize: [32,32], iconAnchor: [16,16]});
-        }
-        var mk = L.marker([md.lat, md.lon], {icon: icon}).addTo(map).bindPopup("<b>" + md.emoji + " " + md.nome + "</b><br>Comune: " + md.comune + "<br>Via: " + md.via);
-        allMarkers.push(mk);
-    });
-    if (focusMarker && focusMarker.Lat){
-        map.setView([focusMarker.Lat, focusMarker.Lon], 16);
-        for(var i=0;i<markersData.length;i++){
-            if(markersData[i].lat==focusMarker.Lat && markersData[i].lon==focusMarker.Lon){
-                allMarkers[i].openPopup(); break;
-            }
-        }
-        document.getElementById('coords').innerHTML = "📍 Focus: " + focusMarker.Emoji + " " + focusMarker.Nome + " - " + focusMarker.Comune + " " + focusMarker.Via;
-    } else {
-        if(allMarkers.length>0){
-            var g = new L.featureGroup(allMarkers);
-            map.fitBounds(g.getBounds().pad(0.3));
-            document.getElementById('coords').innerHTML = "📍 " + markersData.length + " postazioni";
-        } else {
-            document.getElementById('coords').innerHTML = "📍 Nessun marker - Clicca per aggiungere";
-        }
-    }
-    map.on('click', function(e){
-        var lat = e.latlng.lat.toFixed(6);
-        var lon = e.latlng.lng.toFixed(6);
-        try {
-            var url = new URL(window.parent.location.href);
-            url.searchParams.set('lat', lat);
-            url.searchParams.set('lon', lon);
-            window.parent.history.replaceState(null, '', url.toString());
-        } catch(err) { console.log(err); }
-        var tmpIcon;
-        if(selectedHasImage && selectedImgB64){
-            // QUADRATINO temporaneo con icona scelta dentro
-            tmpIcon = L.divIcon({html: "<div style='background:#e8f5e9;border:2px dashed " + getColorCode(selectedIconColor) + ";width:40px;height:40px;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 4px rgba(0,0,0,0.3);overflow:hidden;padding:3px;border-radius:4px;'><img src='" + selectedImgB64 + "' style='width:30px;height:30px;object-fit:contain;'></div>", iconSize: [40,40], iconAnchor: [20,20]});
-        } else {
-            tmpIcon = L.divIcon({html: "<div style='background:#e8f5e9;border:2px dashed " + getColorCode(selectedIconColor) + ";width:36px;height:36px;display:flex;align-items:center;justify-content:center;font-size:16px;border-radius:4px;'>" + selectedIconEmoji + "</div>", iconSize: [36,36], iconAnchor: [18,18]});
-        }
-        var nm = L.marker([lat, lon], {draggable:true, icon: tmpIcon}).addTo(map).bindPopup("Nuova - " + selectedIconEmoji + "<br>" + lat + "," + lon).openPopup();
-        document.getElementById('coords').innerHTML = "📍 Nuovo " + lat + "," + lon + " - Recupero via...";
-        fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&zoom=18&addressdetails=1`)
-            .then(r => r.json())
-            .then(data => {
-                try {
-                    var addr = data.address || {};
-                    var via = addr.road || addr.pedestrian || "";
-                    if(addr.house_number) via = via + " " + addr.house_number;
-                    var comune = addr.city || addr.town || addr.village || "";
-                    document.getElementById('coords').innerHTML = "📍 " + lat + "," + lon + " - " + (comune||"") + " " + (via||"");
-                    try{
-                        var pd = window.parent.document;
-                        var latInput = pd.querySelector('input[aria-label="Latitudine *"]');
-                        var lonInput = pd.querySelector('input[aria-label="Longitudine *"]');
-                        var comuneInput = pd.querySelector('input[aria-label="Comune *"]');
-                        var viaInput = pd.querySelector('input[aria-label="Via *"]');
-                        if(latInput){ latInput.value = lat; latInput.dispatchEvent(new Event('input', {bubbles:true})); latInput.dispatchEvent(new Event('change', {bubbles:true})); }
-                        if(lonInput){ lonInput.value = lon; lonInput.dispatchEvent(new Event('input', {bubbles:true})); lonInput.dispatchEvent(new Event('change', {bubbles:true})); }
-                        if(comune && comuneInput){ comuneInput.value = comune; comuneInput.dispatchEvent(new Event('input', {bubbles:true})); comuneInput.dispatchEvent(new Event('change', {bubbles:true})); }
-                        if(via && viaInput){ viaInput.value = via; viaInput.dispatchEvent(new Event('input', {bubbles:true})); viaInput.dispatchEvent(new Event('change', {bubbles:true})); }
-                    } catch(e){ console.log('dom error', e); }
-                } catch(e){ console.log(e); }
-            });
-    });
-    </script>
-    """
-    html_main = html_main.replace("MARKERS_JSON_PLACEHOLDER", markers_for_js).replace("FOCUS_JSON_PLACEHOLDER", focus_for_js).replace("SELECTED_EMOJI_PLACEHOLDER", json_lib.dumps(selected_ico_obj.get("Emoji","⛑️"))).replace("SELECTED_COLOR_PLACEHOLDER", json_lib.dumps(selected_ico_obj.get("Colore","green"))).replace("SELECTED_HAS_IMAGE_PLACEHOLDER", json_lib.dumps(sel_has_image)).replace("SELECTED_IMG_B64_PLACEHOLDER", json_lib.dumps(sel_img_b64))
-    st.components.v1.html(html_main, height=700)
-
-    st.divider()
-    st.markdown("#### 📍 Maschera Postazione - Sotto mappa - Via auto")
+    # Recupera coordinate da query params se presenti (fix per salvataggio)
     try:
         q_params = st.query_params
         qp_lat = q_params.get("lat", "")
@@ -2511,68 +2206,16 @@ elif cur == "Mappe Postazioni":
         if qp_lat and qp_lon:
             st.session_state.last_clicked_lat = str(qp_lat)
             st.session_state.last_clicked_lon = str(qp_lon)
+            # Pulisci query params dopo lettura
+            # st.query_params.clear()  # lascia per debug
     except:
         pass
 
-    auto_via = st.session_state.get("last_clicked_via", "")
-    auto_comune = st.session_state.get("last_clicked_comune", "")
-    if st.session_state.last_clicked_lat and st.session_state.last_clicked_lon:
-        if not auto_via or not auto_comune:
-            try:
-                import requests as req_lib
-                lat_r = st.session_state.last_clicked_lat
-                lon_r = st.session_state.last_clicked_lon
-                resp = req_lib.get(f"https://nominatim.openstreetmap.org/reverse?format=json&lat={lat_r}&lon={lon_r}&zoom=18&addressdetails=1", headers={"User-Agent":"ANA-Varese-App"}, timeout=5)
-                if resp.status_code==200:
-                    data = resp.json()
-                    addr = data.get("address",{})
-                    via_tmp = addr.get("road","") or addr.get("pedestrian","") or ""
-                    if addr.get("house_number"):
-                        via_tmp = f"{via_tmp} {addr.get('house_number')}".strip()
-                    comune_tmp = addr.get("city","") or addr.get("town","") or addr.get("village","") or ""
-                    if via_tmp:
-                        st.session_state.last_clicked_via = via_tmp
-                        auto_via = via_tmp
-                    if comune_tmp:
-                        st.session_state.last_clicked_comune = comune_tmp
-                        auto_comune = comune_tmp
-            except:
-                pass
-
-    c1, c2, c3 = st.columns(3)
-    with c1:
-        marker_nome = st.text_input("Nome Postazione *", key="adv_marker_nome", placeholder="Es: Postazione 1")
-        marker_lat = st.text_input("Latitudine *", value=st.session_state.last_clicked_lat, key="adv_marker_lat")
-        marker_lon = st.text_input("Longitudine *", value=st.session_state.last_clicked_lon, key="adv_marker_lon")
-    with c2:
-        marker_comune = st.text_input("Comune *", value=auto_comune or st.session_state.get("last_clicked_comune","") or "Varese", key="adv_marker_comune")
-        marker_via = st.text_input("Via *", value=auto_via or st.session_state.get("last_clicked_via",""), key="adv_marker_via", placeholder="Via + civico - auto")
-        nome_emergenza = st.selectbox("Nome Emergenza (combo)", nomi_emergenze, index=0, key="nome_emergenza_combo")
-        nome_evento = st.selectbox("Nome Evento (combo)", nomi_eventi, index=0, key="nome_evento_combo")
-    with c3:
-        if selected_ico_obj.get("FileBytes"):
-            st.image(selected_ico_obj.get("FileBytes"), width=60)
-            st.caption(f"Marker: {selected_ico_obj.get('Nome','')}")
-        else:
-            st.markdown(f"<div style='font-size:24px;text-align:center;background:#e8f5e9;padding:8px;border-radius:8px;border:2px solid #1A5D1A;'>{selected_ico_obj.get('Emoji','⛑️')} {selected_ico_obj.get('Nome','')}</div>", unsafe_allow_html=True)
-        marker_tipo = st.selectbox("Tipo", ["Postazione", "Emergenza", "Evento", "Mezzo", "Volontario"], key="adv_marker_tipo")
-        marker_desc = st.text_input("Descrizione", key="adv_marker_desc")
-
-    col_save1, col_save2 = st.columns([3,1])
-    with col_save1:
-        save_clicked = st.button("💾 SALVA POSTAZIONE", type="primary", use_container_width=True, key="btn_salva_postazione")
-    with col_save2:
-        if st.button("🔄 Pulisci campi", use_container_width=True, key="btn_pulisci_campi"):
-            st.session_state.last_clicked_lat = ""
-            st.session_state.last_clicked_lon = ""
-            st.session_state.last_clicked_via = ""
-            st.session_state.last_clicked_comune = ""
-            st.session_state.map_focus = None
-            st.rerun()
-
     if save_clicked:
-        eff_lat = marker_lat or st.session_state.get("last_clicked_lat") or ""
-        eff_lon = marker_lon or st.session_state.get("last_clicked_lon") or ""
+        # Procedura robusta: prova tutte le fonti possibili per lat/lon
+        eff_lat = marker_lat or st.session_state.get("last_clicked_lat") or st.session_state.get("adv_marker_lat") or ""
+        eff_lon = marker_lon or st.session_state.get("last_clicked_lon") or st.session_state.get("adv_marker_lon") or ""
+        # Prova anche da query params
         try:
             if not eff_lat:
                 eff_lat = st.query_params.get("lat", "")
@@ -2580,10 +2223,14 @@ elif cur == "Mappe Postazioni":
                 eff_lon = st.query_params.get("lon", "")
         except:
             pass
+
         if not marker_nome:
-            st.error("❌ Nome Postazione")
+            st.error("❌ Inserisci Nome Postazione")
+            st.info("Procedura: 1) Clicca mappa 2) Scrivi Nome Postazione 3) Verifica Comune/Via 4) Clicca SALVA")
         elif not eff_lat or not eff_lon:
-            st.error("❌ Manca Lat/Lon - Clicca mappa")
+            st.error("❌ Manca Latitudine o Longitudine")
+            st.warning("Procedura corretta: Clicca sulla mappa grande → vedi coordinate in giallo → compila Nome → SALVA")
+            st.info(f"Debug - Lat: '{eff_lat}' Lon: '{eff_lon}' - last_clicked_lat: '{st.session_state.get('last_clicked_lat')}'")
         else:
             try:
                 lat_f = float(str(eff_lat).replace(",", "."))
@@ -2609,37 +2256,162 @@ elif cur == "Mappe Postazioni":
                 st.session_state.map_focus = nuovo
                 st.session_state.last_clicked_lat = str(lat_f)
                 st.session_state.last_clicked_lon = str(lon_f)
-                st.session_state.last_clicked_via = marker_via
-                st.session_state.last_clicked_comune = marker_comune
-                st.success(f"✅ SALVATA {marker_nome} - {marker_comune} {marker_via}")
+                st.success(f"✅ SALVATA {sel_obj.get('Emoji','⛑️')} {marker_nome} - {marker_comune} {marker_via} - Emergenza: {nome_emergenza} Evento: {nome_evento} - Totale {len(st.session_state.mappa_avanzata_markers)} - Ora vedi tabella sotto mappa")
+                # Pulisci query params
                 try:
                     st.query_params.clear()
                 except:
                     pass
                 st.rerun()
             except Exception as e:
-                st.error(f"❌ Errore: {e}")
+                st.error(f"❌ Errore coordinate: {e}")
+                st.info(f"Hai inserito Lat: '{eff_lat}' Lon: '{eff_lon}' - Usa formato 45.8167 8.8333 con punto")
 
+    # ANTEPRIMA SOPRA MAPPA GRANDE
     st.divider()
-    st.markdown(f"### 📋 Tabella Postazioni - {len(all_markers)} salvate - Solo icona, no quadratino")
+    st.markdown("#### 🗺️ Anteprima - Mappa piccola sopra mappa grande")
+    preview_lat = marker_lat or st.session_state.last_clicked_lat
+    preview_lon = marker_lon or st.session_state.last_clicked_lon
+    if preview_lat and preview_lon:
+        try:
+            p_lat = float(str(preview_lat).replace(",", "."))
+            p_lon = float(str(preview_lon).replace(",", "."))
+            sel_e = selected_ico_obj.get('Emoji','⛑️')
+            sel_c = selected_ico_obj.get('Colore','green')
+            preview_html = f"""
+            <div style="border:2px solid #1A5D1A;border-radius:8px;overflow:hidden;">
+            <div style="background:#1A5D1A;color:white;padding:6px;text-align:center;">Anteprima: {sel_e} {marker_nome or 'Nuova'} - {marker_comune} {marker_via} - Emergenza: {nome_emergenza} - Evento: {nome_evento}</div>
+            <div id="preview_map_top" style="height:250px;width:100%;"></div>
+            </div>
+            <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+            <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+            <script>
+            var pMap = L.map('preview_map_top').setView([{p_lat}, {p_lon}], 15);
+            L.tileLayer('https://{{s}}.tile.openstreetmap.org/{{z}}/{{x}}/{{y}}.png').addTo(pMap);
+            var colMap = {{'red':'#d32f2f','blue':'#1976d2','green':'#388e3c','orange':'#f57c00','purple':'#7b1fa2'}};
+            var cCode = colMap['{sel_c}'] || '#388e3c';
+            var pIcon = L.divIcon({{html: "<div style='background:white;border:2px solid " + cCode + ";width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;'>"+ "{sel_e}" + "</div>", iconSize: [26,26], iconAnchor: [13,13]}});
+            L.marker([{p_lat}, {p_lon}], {{icon: pIcon}}).addTo(pMap).bindPopup("{sel_e} Anteprima").openPopup();
+            </script>
+            """
+            st.components.v1.html(preview_html, height=300)
+        except:
+            st.info("Anteprima non disponibile - clicca mappa grande")
+    else:
+        st.info("Clicca mappa grande per anteprima qui")
+
+    # MAPPA GRANDE - NESSUN DEFAULT - MARKER RIMANGONO
+    st.divider()
+    all_markers = st.session_state.get("mappa_avanzata_markers", [])
+    focus_marker = st.session_state.get("map_focus")
+
+    import json as json_lib
+    markers_for_js = json_lib.dumps([{"lat": m["Lat"], "lon": m["Lon"], "nome": m["Nome"], "emoji": m.get("Emoji","⛑️"), "colore": m.get("Colore","green"), "iconaNome": m.get("IconaNome",""), "comune": m.get("Comune",""), "via": m.get("Via",""), "emergenza": m.get("NomeEmergenza",""), "evento": m.get("NomeEvento","")} for m in all_markers])
+    focus_for_js = json_lib.dumps(focus_marker) if focus_marker else "null"
+
+    st.markdown("#### 🌍 Mappa Grande - Tutti i marker rimangono - Non si cancellano")
+    html_code = """
+    <div id="map-container" style="position:relative; background:white; border-radius:12px;">
+        <div id="map" style="height:650px; width:100%; border-radius:12px; border:3px solid #1A5D1A;"></div>
+    </div>
+    <div id="coords" style="background:#fffde7;padding:8px;border-radius:6px;margin-top:8px;font-weight:bold;border-left:4px solid #FFD700;">📍 Clicca per aggiungere - Tutti rimangono</div>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+    var markersData = MARKERS_JSON_PLACEHOLDER;
+    var focusMarker = FOCUS_JSON_PLACEHOLDER;
+    var selectedIconEmoji = SELECTED_EMOJI_PLACEHOLDER;
+    var selectedIconColor = SELECTED_COLOR_PLACEHOLDER;
+    var map = L.map('map', {zoomControl: false}).setView([45.8167, 8.8333], 13);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {attribution: 'ANA Varese'}).addTo(map);
+    L.control.zoom({position: 'topleft'}).addTo(map);
+    function getColorCode(c){ var m={'red':'#d32f2f','blue':'#1976d2','green':'#388e3c','orange':'#f57c00','purple':'#7b1fa2'}; return m[c]||'#388e3c'; }
+    var allMarkers = [];
+    // MARKER SALVATI - RIMANGONO - PICCOLI
+    markersData.forEach(function(md){
+        var icon = L.divIcon({html: "<div style='background:white;border:2px solid " + getColorCode(md.colore) + ";width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;box-shadow:0 2px 4px rgba(0,0,0,0.3);'>" + md.emoji + "</div>", iconSize: [26,26], iconAnchor: [13,13]});
+        var mk = L.marker([md.lat, md.lon], {icon: icon}).addTo(map).bindPopup("<b>" + md.emoji + " " + md.nome + "</b><br>Comune: " + md.comune + "<br>Via: " + md.via + "<br>Emergenza: " + md.emergenza + "<br>Evento: " + md.evento);
+        allMarkers.push(mk);
+    });
+    if (focusMarker && focusMarker.Lat){
+        map.setView([focusMarker.Lat, focusMarker.Lon], 16);
+        // Apri popup del focus
+        for(var i=0;i<markersData.length;i++){
+            if(markersData[i].lat==focusMarker.Lat && markersData[i].lon==focusMarker.Lon){
+                allMarkers[i].openPopup();
+                break;
+            }
+        }
+        document.getElementById('coords').innerHTML = "📍 Focus: " + focusMarker.Emoji + " " + focusMarker.Nome + " - " + focusMarker.Comune + " " + focusMarker.Via;
+    } else {
+        if(allMarkers.length>0){
+            var g = new L.featureGroup(allMarkers);
+            map.fitBounds(g.getBounds().pad(0.3));
+            document.getElementById('coords').innerHTML = "📍 " + markersData.length + " postazioni - Tutti rimangono - Clicca tabella per focus";
+        } else {
+            document.getElementById('coords').innerHTML = "📍 Nessun marker - Mappa vuota - Clicca per aggiungere - Tutti rimangono quando salvati";
+        }
+    }
+    map.on('click', function(e){
+        var lat = e.latlng.lat.toFixed(6);
+        var lon = e.latlng.lng.toFixed(6);
+        // Sincronizza con Python via query params - per salvataggio robusto
+        try {
+            var url = new URL(window.parent.location.href);
+            url.searchParams.set('lat', lat);
+            url.searchParams.set('lon', lon);
+            window.parent.history.replaceState(null, '', url.toString());
+        } catch(err) { console.log(err); }
+
+        var tmpIcon = L.divIcon({html: "<div style='background:#e8f5e9;border:2px dashed " + getColorCode(selectedIconColor) + ";width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;'>" + selectedIconEmoji + "</div>", iconSize: [30,30], iconAnchor: [15,15]});
+        var nm = L.marker([lat, lon], {draggable:true, icon: tmpIcon}).addTo(map).bindPopup("Nuova - " + selectedIconEmoji + "<br>" + lat + "," + lon).openPopup();
+        document.getElementById('coords').innerHTML = "📍 Nuovo " + selectedIconEmoji + " " + lat + "," + lon + " - Compila e salva - Rimane dopo salvataggio";
+        try{
+            var pd = window.parent.document;
+            var inputs = pd.querySelectorAll('input[type="text"]');
+            inputs.forEach(function(inp){
+                var lb = inp.getAttribute('aria-label')||'';
+                if(lb.includes('Latitudine')){ inp.value=lat; inp.dispatchEvent(new Event('input',{bubbles:true})); }
+                if(lb.includes('Longitudine')){ inp.value=lon; inp.dispatchEvent(new Event('input',{bubbles:true})); }
+            });
+            fetch('https://nominatim.openstreetmap.org/reverse?format=json&lat='+lat+'&lon='+lon)
+                .then(r=>r.json()).then(d=>{
+                    var com = d.address.city||d.address.town||d.address.village||"";
+                    var via = d.address.road||"";
+                    document.getElementById('coords').innerHTML += "<br>Comune: "+com+" Via: "+via;
+                    inputs.forEach(function(inp){
+                        var lb = inp.getAttribute('aria-label')||'';
+                        if(lb.includes('Comune *')){ inp.value=com; inp.dispatchEvent(new Event('input',{bubbles:true})); }
+                        if(lb.includes('Via *')){ inp.value=via; inp.dispatchEvent(new Event('input',{bubbles:true})); }
+                    });
+                });
+        }catch(err){ console.log(err); }
+    });
+    </script>
+    """
+    import json as json_lib2
+    sel_e = selected_ico_obj.get('Emoji','⛑️')
+    sel_c = selected_ico_obj.get('Colore','green')
+    html_code = html_code.replace("MARKERS_JSON_PLACEHOLDER", markers_for_js)
+    html_code = html_code.replace("FOCUS_JSON_PLACEHOLDER", focus_for_js)
+    html_code = html_code.replace("SELECTED_EMOJI_PLACEHOLDER", json_lib2.dumps(sel_e))
+    html_code = html_code.replace("SELECTED_COLOR_PLACEHOLDER", json_lib2.dumps(sel_c))
+    st.components.v1.html(html_code, height=700)
+
+    # TABELLA SOTTO MAPPA COME PRIMA - CON COMUNE + VIA + EMERGENZA + EVENTO
+    st.divider()
+    st.markdown(f"### 📋 Tabella Postazioni - {len(all_markers)} salvate - Sotto mappa come prima")
     if all_markers:
+        st.success(f"✅ {len(all_markers)} postazioni - Marker rimangono sulla mappa - Piccoli")
         for idx, m in enumerate(all_markers):
             is_focus = focus_marker and str(focus_marker.get('Lat')) == str(m['Lat']) and focus_marker.get('Nome')==m['Nome']
             bg = "#fffde7" if is_focus else "white"
             border = "#FFD700" if is_focus else "#1A5D1A"
             c1, c2, c3, c4 = st.columns([1,2,2,2])
             with c1:
-                icona_nome_tab = m.get('IconaNome','')
-                ico_match = None
-                for ico_lib in icone_disponibili:
-                    if ico_lib.get("Nome")==icona_nome_tab:
-                        ico_match = ico_lib
-                        break
-                if ico_match and ico_match.get("FileBytes"):
-                    st.image(ico_match.get("FileBytes"), width=60)
-                else:
-                    st.markdown(f"<div style='font-size:28px;text-align:center;'>{m.get('Emoji','⛑️')}</div>", unsafe_allow_html=True)
-                st.markdown(f"<div style='background:{bg};padding:4px;border-radius:6px;border:2px solid {border};text-align:center;font-size:10px;'>Icona: {m.get('IconaNome','')}</div>", unsafe_allow_html=True)
+                st.markdown(f"<div style='background:{bg};padding:6px;border-radius:8px;border:2px solid {border};text-align:center;'><div style='font-size:22px;'>{m.get('Emoji','⛑️')}</div><div style='font-size:10px;'>{m.get('IconaNome','')}</div></div>", unsafe_allow_html=True)
+                if is_focus:
+                    st.caption("👆 IN VISTA")
             with c2:
                 st.write(f"**{m['Nome']}**")
                 st.caption(f"Tipo: {m.get('Tipo','')}")
@@ -2650,7 +2422,7 @@ elif cur == "Mappe Postazioni":
                 st.markdown(f"**Via:** {m.get('Via','')}")
                 st.caption(f"Lat: {m['Lat']} Lon: {m['Lon']}")
             with c4:
-                if st.button("📍 Vedi su mappa sotto", key=f"focus_{idx}", use_container_width=True, type="primary" if is_focus else "secondary"):
+                if st.button("📍 Vedi su mappa", key=f"focus_{idx}", use_container_width=True, type="primary" if is_focus else "secondary"):
                     st.session_state.map_focus = m
                     st.rerun()
                 col_del, col_dup = st.columns(2)
@@ -2668,161 +2440,38 @@ elif cur == "Mappe Postazioni":
                         st.rerun()
             st.divider()
 
-        c_exp1, c_exp2, c_exp3 = st.columns(3)
+        # Export e pulizia
+        c_exp1, c_exp2 = st.columns(2)
         with c_exp1:
-            df_exp = pd.DataFrame([{k:v for k,v in mm.items() if k not in ["FileBytes"]} for mm in all_markers])
+            df_exp = pd.DataFrame(all_markers)
             st.download_button("⬇️ Excel Postazioni", data=to_excel(df_exp), file_name="postazioni.xlsx", use_container_width=True)
         with c_exp2:
-            if REPORTLAB_OK and all_markers:
-                df_exp_pdf = pd.DataFrame([{k:v for k,v in mm.items() if k not in ["FileBytes"]} for mm in all_markers])
-                st.download_button("📄 PDF Postazioni", data=to_pdf(df_exp_pdf, "MAPPE POSTAZIONI"), file_name="postazioni_ana_pc_va.pdf", mime="application/pdf", use_container_width=True, key="pdf_postazioni")
-        with c_exp3:
             if st.button("🧹 Pulisci TUTTI", key="clear_bottom", use_container_width=True):
                 st.session_state.mappa_avanzata_markers = []
                 st.session_state.map_focus = None
                 st.rerun()
 
+        # MAPPA ANTEPRIMA SOTTO TABELLA - RICHIESTA EZIO
         st.divider()
-        st.markdown("## 🗺️ Mappe sotto elenco postazioni - Tutte con fullscreen 100% + quadratino icona")
-
-        if focus_marker:
-            st.markdown(f"### 📍 Mappa Posizione Selezionata: {focus_marker.get('Nome','')} - {focus_marker.get('Comune','')} {focus_marker.get('Via','')}")
-            try:
-                focus_has_img=False
-                focus_img_b64=""
-                for ico_lib in icone_disponibili:
-                    if ico_lib.get("Nome")==focus_marker.get("IconaNome","") and ico_lib.get("FileBytes"):
-                        try:
-                            b64_f = b64lib.b64encode(ico_lib.get("FileBytes")).decode()
-                            mime_f="image/png"
-                            fn_f=ico_lib.get("FileName","").lower()
-                            if fn_f.endswith(".jpg") or fn_f.endswith(".jpeg"): mime_f="image/jpeg"
-                            elif fn_f.endswith(".svg"): mime_f="image/svg+xml"
-                            focus_img_b64=f"data:{mime_f};base64,{b64_f}"
-                            focus_has_img=True
-                        except:
-                            pass
-                        break
-                single_html = f"""
-                <div style="border:3px solid #FFD700;border-radius:8px;overflow:hidden;">
-                <div style="background:#FFD700;color:black;padding:8px;text-align:center;font-weight:bold;">📍 {focus_marker.get('Nome','')} - {focus_marker.get('Comune','')} {focus_marker.get('Via','')}</div>
-                <div id="map_single" style="height:400px;width:100%;"></div>
-                </div>
-                <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
-                <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-                <script>
-                var mapS = L.map('map_single', {{zoomControl: false}}).setView([{focus_marker.get('Lat',45.8167)}, {focus_marker.get('Lon',8.8333)}], 16);
-                L.tileLayer('https://{{s}}.tile.openstreetmap.org/{{z}}/{{x}}/{{y}}.png').addTo(mapS);
-                L.control.zoom({{position: 'topleft'}}).addTo(mapS);
-                try {{
-                    var fsControlS = L.control({{position: 'topleft'}});
-                    fsControlS.onAdd = function(map) {{
-                        var container = L.DomUtil.create('div', 'leaflet-bar leaflet-control');
-                        container.style.marginTop = '5px';
-                        var btn = L.DomUtil.create('a', '', container);
-                        btn.innerHTML = '⛶';
-                        btn.href = '#';
-                        btn.title = 'Fullscreen 100%';
-                        btn.style.width = '34px'; btn.style.height = '34px'; btn.style.lineHeight = '34px';
-                        btn.style.textAlign = 'center'; btn.style.fontSize = '22px'; btn.style.background = 'white';
-                        btn.style.display = 'block'; btn.style.textDecoration = 'none'; btn.style.color = 'black';
-                        btn.style.fontWeight = 'bold'; btn.style.border = '2px solid rgba(0,0,0,0.2)'; btn.style.borderRadius = '4px'; btn.style.cursor = 'pointer';
-                        L.DomEvent.on(btn, 'click', function(e){{
-                            L.DomEvent.stop(e);
-                            var mapContainer = document.getElementById('map_single');
-                            if (mapContainer) {{
-                                if (!document.fullscreenElement) {{
-                                    if (mapContainer.requestFullscreen) mapContainer.requestFullscreen();
-                                    else if (mapContainer.webkitRequestFullscreen) mapContainer.webkitRequestFullscreen();
-                                    else if (mapContainer.msRequestFullscreen) mapContainer.msRequestFullscreen();
-                                    setTimeout(function(){{ mapS.invalidateSize(); }}, 600);
-                                }} else {{
-                                    if (document.exitFullscreen) document.exitFullscreen();
-                                    setTimeout(function(){{ mapS.invalidateSize(); }}, 600);
-                                }}
-                            }}
-                        }});
-                        return container;
-                    }};
-                    fsControlS.addTo(mapS);
-                }} catch(e){{}}
-                var hasImg = {str(focus_has_img).lower()};
-                var imgB64 = "{focus_img_b64}";
-                var emoji = "{focus_marker.get('Emoji','📍')}";
-                var colore = "{focus_marker.get('Colore','green')}";
-                function getCol(c){{ var m={{'red':'#d32f2f','blue':'#1976d2','green':'#388e3c','orange':'#f57c00','purple':'#7b1fa2','darkblue':'#0d47a1'}}; return m[c]||'#388e3c'; }}
-                var iconS;
-                if(hasImg && imgB64){{
-                    iconS = L.divIcon({{html: "<div style='background:white;border:2px solid " + getCol(colore) + ";width:48px;height:48px;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 8px rgba(0,0,0,0.4);overflow:hidden;padding:4px;border-radius:4px;'><img src='" + imgB64 + "' style='width:36px;height:36px;object-fit:contain;'></div>", iconSize: [48,48], iconAnchor: [24,24]}});
-                }} else {{
-                    iconS = L.divIcon({{html: "<div style='background:white;border:2px solid " + getCol(colore) + ";width:44px;height:44px;display:flex;align-items:center;justify-content:center;font-size:22px;box-shadow:0 4px 8px rgba(0,0,0,0.4);border-radius:4px;'>" + emoji + "</div>", iconSize: [44,44], iconAnchor: [22,22]}});
-                }}
-                L.marker([{focus_marker.get('Lat',45.8167)}, {focus_marker.get('Lon',8.8333)}], {{icon: iconS}}).addTo(mapS).bindPopup("<b>{focus_marker.get('Nome','')}</b><br>{focus_marker.get('Comune','')} {focus_marker.get('Via','')}").openPopup();
-                </script>
-                """
-                st.components.v1.html(single_html, height=450)
-            except Exception as e:
-                st.error(f"Errore mappa singola: {e}")
-        else:
-            st.info("👆 Clicca 📍 Vedi su mappa sotto per vedere posizione singola qui con fullscreen")
-
-        st.divider()
-        st.markdown(f"### 🌍 Mappa con TUTTE le postazioni - {len(all_markers)} marker - Fullscreen 100% - Quadratino icona")
+        st.markdown("#### 🗺️ Anteprima sotto tabella - Mappa con tutte le postazioni")
         try:
+            # Crea mappa anteprima con tutte le postazioni
             preview_all_html = """
-            <div style="border:3px solid #1A5D1A;border-radius:8px;overflow:hidden;">
-            <div style="background:#1A5D1A;color:white;padding:8px;text-align:center;font-weight:bold;">🌍 Tutte le postazioni: """ + str(len(all_markers)) + """ marker - Fullscreen 100% - Quadratino</div>
-            <div id="preview_bottom" style="height:500px;width:100%;"></div>
+            <div style="border:2px solid #1A5D1A;border-radius:8px;overflow:hidden;">
+            <div style="background:#1A5D1A;color:white;padding:6px;text-align:center;">Anteprima sotto tabella - Tutte le postazioni - """ + str(len(all_markers)) + """ marker - Piccoli</div>
+            <div id="preview_bottom" style="height:400px;width:100%;"></div>
             </div>
             <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
             <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
             <script>
             var markersDataBottom = """ + markers_for_js + """;
-            var mapB = L.map('preview_bottom', {zoomControl: false}).setView([45.8167, 8.8333], 12);
+            var mapB = L.map('preview_bottom').setView([45.8167, 8.8333], 12);
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(mapB);
-            L.control.zoom({position: 'topleft'}).addTo(mapB);
-            try {
-                var fsControlB = L.control({position: 'topleft'});
-                fsControlB.onAdd = function(map) {
-                    var container = L.DomUtil.create('div', 'leaflet-bar leaflet-control');
-                    container.style.marginTop = '5px';
-                    var btn = L.DomUtil.create('a', '', container);
-                    btn.innerHTML = '⛶';
-                    btn.href = '#';
-                    btn.title = 'Fullscreen 100%';
-                    btn.style.width = '34px'; btn.style.height = '34px'; btn.style.lineHeight = '34px';
-                    btn.style.textAlign = 'center'; btn.style.fontSize = '22px'; btn.style.background = 'white';
-                    btn.style.display = 'block'; btn.style.textDecoration = 'none'; btn.style.color = 'black';
-                    btn.style.fontWeight = 'bold'; btn.style.border = '2px solid rgba(0,0,0,0.2)'; btn.style.borderRadius = '4px'; btn.style.cursor = 'pointer';
-                    L.DomEvent.on(btn, 'click', function(e){
-                        L.DomEvent.stop(e);
-                        var mapContainer = document.getElementById('preview_bottom');
-                        if (mapContainer) {
-                            if (!document.fullscreenElement) {
-                                if (mapContainer.requestFullscreen) mapContainer.requestFullscreen();
-                                else if (mapContainer.webkitRequestFullscreen) mapContainer.webkitRequestFullscreen();
-                                else if (mapContainer.msRequestFullscreen) mapContainer.msRequestFullscreen();
-                                setTimeout(function(){ mapB.invalidateSize(); }, 600);
-                            } else {
-                                if (document.exitFullscreen) document.exitFullscreen();
-                                setTimeout(function(){ mapB.invalidateSize(); }, 600);
-                            }
-                        }
-                    });
-                    return container;
-                };
-                fsControlB.addTo(mapB);
-            } catch(e){}
-            function getColorCodeB(c){ var m={'red':'#d32f2f','blue':'#1976d2','green':'#388e3c','orange':'#f57c00','purple':'#7b1fa2','darkblue':'#0d47a1','darkred':'#b71c1c','cadetblue':'#5f9ea0'}; return m[c]||'#388e3c'; }
+            function getColorCodeB(c){ var m={'red':'#d32f2f','blue':'#1976d2','green':'#388e3c','orange':'#f57c00','purple':'#7b1fa2'}; return m[c]||'#388e3c'; }
             var allB = [];
             markersDataBottom.forEach(function(md){
-                var ic;
-                if(md.hasImage && md.imgB64){
-                    ic = L.divIcon({html: "<div style='background:white;border:2px solid " + getColorCodeB(md.colore) + ";width:36px;height:36px;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 4px rgba(0,0,0,0.3);overflow:hidden;padding:3px;border-radius:4px;'><img src='" + md.imgB64 + "' style='width:28px;height:28px;object-fit:contain;'></div>", iconSize: [36,36], iconAnchor: [18,18]});
-                } else {
-                    ic = L.divIcon({html: "<div style='background:white;border:2px solid " + getColorCodeB(md.colore) + ";width:32px;height:32px;display:flex;align-items:center;justify-content:center;font-size:14px;box-shadow:0 2px 4px rgba(0,0,0,0.3);border-radius:4px;'>" + md.emoji + "</div>", iconSize: [32,32], iconAnchor: [16,16]});
-                }
-                var mk = L.marker([md.lat, md.lon], {icon: ic}).addTo(mapB).bindPopup("<b>" + md.emoji + " " + md.nome + "</b><br>Comune: " + md.comune + "<br>Via: " + md.via);
+                var ic = L.divIcon({html: "<div style='background:white;border:2px solid " + getColorCodeB(md.colore) + ";width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;'>" + md.emoji + "</div>", iconSize: [22,22], iconAnchor: [11,11]});
+                var mk = L.marker([md.lat, md.lon], {icon: ic}).addTo(mapB).bindPopup(md.emoji + " " + md.nome + "<br>" + md.comune + " " + md.via);
                 allB.push(mk);
             });
             if(allB.length>0){
@@ -2831,20 +2480,24 @@ elif cur == "Mappe Postazioni":
             }
             </script>
             """
-            st.components.v1.html(preview_all_html, height=550)
+            st.components.v1.html(preview_all_html, height=450)
         except Exception as e:
-            st.error(f"Errore mappa tutte: {e}")
+            st.error(f"Errore anteprima: {e}")
 
     else:
-        st.info("📍 Nessuna postazione - Salva prima postazione per vedere tabelle e 2 mappe con fullscreen 100% e quadratino")
-        demo_pos = pd.DataFrame([
-            {"lat": 45.8167, "lon": 8.8333},
-            {"lat": 45.82, "lon": 8.84}
-        ])
-        st.map(demo_pos)
+        st.info("📍 Nessuna postazione salvata - Tabella apparirà qui dopo salvataggio - Clicca mappa grande sopra per aggiungere - Marker rimarranno")
+        st.markdown("""
+        <div style="background:#fffde7;padding:12px;border-radius:8px;text-align:center;">
+        <b>Mappa anteprima sotto tabella apparirà quando salvi la prima postazione</b><br>
+        1. Clicca mappa grande<br>2. Compila maschera (Comune, Via, Emergenza, Evento)<br>3. Salva - Tabella sotto mappa + anteprima sotto tabella
+        </div>
+        """, unsafe_allow_html=True)
+
+# LIBRERIA ICONE
 
 
 
+# TURNI - RIPRISTINATO DEFINITIVO
 elif cur == "Turni":
     hdr()
     hdr_form("TURNI - Gestione Turni Volontari")
@@ -2909,137 +2562,93 @@ elif cur == "Turni":
 
 elif cur == "Libreria Icone":
     hdr()
-    hdr_form("LIBRERIA ICONE - Icone per Mappe Postazioni - Anteprima + Quadratino")
+    hdr_form("LIBRERIA ICONE - Scegli tu il marker da usare su Mappe Postazioni")
 
     st.markdown("""
     <div style="background:#e8f5e9;padding:8px;border-radius:8px;border-left:4px solid #1A5D1A;margin-bottom:12px;">
-    <b>Carica icona personalizzata - Anteprima con quadratino come su mappa</b><br>
-    <small>Es: ambulanza.png - Formati: png, jpg, svg - File singolo, no doppia scritta</small>
+    <b>Qui crei le icone che poi usi su Mappe Postazioni - Decidi tu che marker usare - Ogni icona ha Emoji + Colore + Nome</b>
     </div>
     """, unsafe_allow_html=True)
 
+    # Icone predefinite se vuoto
     if not st.session_state.icone:
         st.session_state.icone = [
-            {"Nome": "Postazione", "Emoji": "📍", "Tipo": "Postazione", "Colore": "green", "Descrizione": "Postazione generica", "Data": datetime.now().strftime("%d/%m/%Y")},
+            {"Nome": "Emergenza", "Emoji": "🚨", "Tipo": "Emergenza", "Colore": "red", "Descrizione": "Emergenza", "Data": datetime.now().strftime("%d/%m/%Y")},
+            {"Nome": "Evento", "Emoji": "📅", "Tipo": "Evento", "Colore": "blue", "Descrizione": "Evento", "Data": datetime.now().strftime("%d/%m/%Y")},
+            {"Nome": "Mezzo", "Emoji": "🚐", "Tipo": "Mezzo", "Colore": "green", "Descrizione": "Mezzo", "Data": datetime.now().strftime("%d/%m/%Y")},
+            {"Nome": "Volontario", "Emoji": "👤", "Tipo": "Volontario", "Colore": "orange", "Descrizione": "Volontario", "Data": datetime.now().strftime("%d/%m/%Y")},
+            {"Nome": "Ospedale", "Emoji": "🏥", "Tipo": "Emergenza", "Colore": "red", "Descrizione": "Ospedale", "Data": datetime.now().strftime("%d/%m/%Y")},
+            {"Nome": "Incendio", "Emoji": "🔥", "Tipo": "Emergenza", "Colore": "red", "Descrizione": "Incendio", "Data": datetime.now().strftime("%d/%m/%Y")},
+            {"Nome": "Alluvione", "Emoji": "💧", "Tipo": "Emergenza", "Colore": "blue", "Descrizione": "Alluvione", "Data": datetime.now().strftime("%d/%m/%Y")},
+            {"Nome": "Radio", "Emoji": "📻", "Tipo": "Mezzo", "Colore": "purple", "Descrizione": "Radio", "Data": datetime.now().strftime("%d/%m/%Y")},
         ]
 
-    c1, c2, c3, c4 = st.columns([1,1,1,1])
+    c1, c2, c3, c4 = st.columns(4)
     with c1:
-        nome_icona = st.text_input("Nome Icona *", key="ico_nome", placeholder="Es: Ambulanza")
-        tipo_icona = st.selectbox("Tipo", ["Emergenza", "Evento", "Mezzo", "Volontario", "Postazione", "Punto Interesse", "Altro"], key="ico_tipo")
+        nome_icona = st.text_input("Nome Icona *", key="ico_nome", placeholder="Es: Postazione 1")
+        emoji_icona = st.text_input("Emoji Icona *", value="📍", key="ico_emoji", help="Inserisci emoji: 🚨 📅 🚐 👤 🏥 🔥 💧 📻 ⛑️ 🚒 🚑")
     with c2:
-        desc_icona = st.text_input("Descrizione", key="ico_desc", placeholder="Es: Ambulanza 118")
+        tipo_icona = st.selectbox("Tipo", ["Emergenza", "Evento", "Mezzo", "Volontario", "Postazione", "Punto Interesse", "Altro"], key="ico_tipo")
+        colore_icona = st.selectbox("Colore Marker", ["red", "blue", "green", "orange", "purple", "darkred", "darkblue", "cadetblue"], key="ico_colore")
     with c3:
-        file_icona = st.file_uploader("Carica icona", type=["png", "jpg", "jpeg", "svg"], key="ico_file")
-        if file_icona:
-            st.session_state["ico_file_bytes"] = file_icona.getvalue()
-            st.session_state["ico_file_name"] = file_icona.name
-            st.success(f"✅ {file_icona.name}")
+        desc_icona = st.text_input("Descrizione Icona", key="ico_desc", placeholder="Descrizione")
+        file_icona = st.file_uploader("File Icona (opzionale)", type=["png", "jpg", "svg"], key="ico_file")
     with c4:
-        st.markdown("**Anteprima icona caricata**")
-        if st.session_state.get("ico_file_bytes"):
-            try:
-                import base64 as b64lib
-                fb = st.session_state["ico_file_bytes"]
-                fname = st.session_state.get("ico_file_name","icona.png").lower()
-                mime = "image/png"
-                if fname.endswith(".jpg") or fname.endswith(".jpeg"): mime="image/jpeg"
-                elif fname.endswith(".svg"): mime="image/svg+xml"
-                b64 = b64lib.b64encode(fb).decode()
-                src = f"data:{mime};base64,{b64}"
-                st.markdown(f"""
-                <div style='background:white;padding:10px;border-radius:8px;border:2px solid #1A5D1A;text-align:center;'>
-                <div style='background:white;border:2px solid #1A5D1A;width:64px;height:64px;display:flex;align-items:center;justify-content:center;margin:0 auto 6px auto;overflow:hidden;padding:4px;border-radius:4px;'>
-                <img src="{src}" style="width:52px;height:52px;object-fit:contain;">
-                </div>
-                <b>{st.session_state.get('ico_nome','') or nome_icona or 'Nuova'}</b><br>
-                <small style='color:#1A5D1A;'>✅ Quadratino con icona</small>
-                </div>
-                """, unsafe_allow_html=True)
-                st.image(fb, width=100)
-                if st.button("🗑️ Rimuovi file", key="del_ico_file_preview"):
-                    st.session_state["ico_file_bytes"]=None
-                    st.session_state["ico_file_name"]=""
-                    st.rerun()
-            except Exception as e:
-                st.error(f"Errore: {e}")
-        else:
-            st.info("⬆️ Carica icona per anteprima")
-            st.markdown("<div style='background:#f5f5f5;border:2px dashed #1A5D1A;width:64px;height:64px;display:flex;align-items:center;justify-content:center;margin:0 auto;border-radius:4px;'><span style='font-size:28px;'>📷</span></div>", unsafe_allow_html=True)
+        st.markdown("**Anteprima**")
+        preview_emoji = st.session_state.get("ico_emoji", "📍") if "ico_emoji" in st.session_state else emoji_icona
+        st.markdown(f"<div style='font-size:40px;text-align:center;background:white;padding:10px;border-radius:8px;border:2px solid #1A5D1A;'>{preview_emoji}</div>", unsafe_allow_html=True)
 
     if st.button("💾 Salva Icona in Libreria", type="primary", use_container_width=True):
-        if nome_icona and st.session_state.get("ico_file_bytes"):
-            exists=False
+        if nome_icona and emoji_icona:
+            # Controlla se esiste già
+            exists = False
             for ico in st.session_state.icone:
-                if ico.get("Nome")==nome_icona:
-                    exists=True
+                if ico.get("Nome") == nome_icona:
+                    exists = True
                     break
             if not exists:
-                emoji_fallback="📍"
-                nl=nome_icona.lower()
-                if "ambulanza" in nl: emoji_fallback="🚑"
-                elif "polizia" in nl: emoji_fallback="🚓"
-                elif "vigili" in nl: emoji_fallback="🚒"
-                nuova={
+                st.session_state.icone.append({
                     "Nome": nome_icona,
-                    "Emoji": emoji_fallback,
+                    "Emoji": emoji_icona,
                     "Tipo": tipo_icona,
-                    "Colore": "green",
+                    "Colore": colore_icona,
                     "Descrizione": desc_icona,
-                    "Data": datetime.now().strftime("%d/%m/%Y %H:%M"),
-                    "FileBytes": st.session_state["ico_file_bytes"],
-                    "FileName": st.session_state.get("ico_file_name","")
-                }
-                st.session_state.icone.append(nuova)
-                st.success(f"✅ {nome_icona} salvata")
-                st.session_state["ico_file_bytes"]=None
-                st.session_state["ico_file_name"]=""
+                    "Data": datetime.now().strftime("%d/%m/%Y %H:%M")
+                })
+                st.success(f"Icona {emoji_icona} {nome_icona} salvata - Ora la puoi usare su Mappe Postazioni")
                 st.rerun()
             else:
-                st.warning("Nome già esistente")
+                st.warning("Nome già esistente - cambia nome")
         else:
-            if not nome_icona:
-                st.error("❌ Nome Icona")
-            else:
-                st.error("❌ Carica icona")
+            st.error("Nome e Emoji obbligatori")
 
     st.divider()
-    st.markdown(f"### Libreria Icone - {len(st.session_state.icone)} icone - Solo icona, no quadratino vecchio")
+    st.markdown(f"### Libreria Icone - {len(st.session_state.icone)} icone disponibili - Le usi su Mappe Postazioni")
 
     if st.session_state.icone:
         cols = st.columns(4)
         for idx, ico in enumerate(st.session_state.icone):
             col = cols[idx % 4]
             with col:
-                if ico.get("FileBytes"):
-                    try:
-                        st.image(ico.get("FileBytes"), width=90)
-                    except:
-                        st.markdown(f"<div style='font-size:32px;text-align:center;'>{ico.get('Emoji','📍')}</div>", unsafe_allow_html=True)
-                else:
-                    st.markdown(f"<div style='font-size:32px;text-align:center;'>{ico.get('Emoji','📍')}</div>", unsafe_allow_html=True)
                 st.markdown(f"""
                 <div style="background:white;padding:8px;border-radius:8px;border:2px solid #1A5D1A;text-align:center;margin-bottom:8px;">
+                <div style="font-size:32px;">{ico.get('Emoji','📍')}</div>
                 <b>{ico.get('Nome','')}</b><br>
-                <small>{ico.get('Tipo','')}</small>
+                <small>{ico.get('Tipo','')} - {ico.get('Colore','')}</small><br>
+                <small>{ico.get('Descrizione','')}</small>
                 </div>
                 """, unsafe_allow_html=True)
-                if st.button(f"🗑️ Elimina {ico.get('Nome','')}", key=f"del_ico_{idx}"):
+                if st.button(f"🗑️ Elimina", key=f"del_ico_{idx}"):
                     st.session_state.icone.pop(idx)
                     st.rerun()
         st.divider()
-        df_ico = pd.DataFrame([{k:v for k,v in ico.items() if k not in ["FileBytes"]} for ico in st.session_state.icone])
+        df_ico = pd.DataFrame(st.session_state.icone)
         st.dataframe(df_ico, use_container_width=True)
-        c1,c2 = st.columns(2)
-        with c1:
-            st.download_button("📊 Excel Libreria Icone", to_excel(df_ico), "libreria_icone.xlsx", use_container_width=True, key="excel_icone")
-        with c2:
-            if REPORTLAB_OK:
-                st.download_button("📄 PDF Libreria Icone con Logo Estesa", data=to_pdf(df_ico, "LIBRERIA ICONE"), file_name="libreria_icone.pdf", mime="application/pdf", use_container_width=True, key="pdf_icone")
+        st.download_button("Excel Libreria Icone", to_excel(df_ico), "libreria_icone.xlsx", use_container_width=True)
     else:
-        st.info("Nessuna icona")
+        st.info("Nessuna icona - Crea la prima icona sopra")
 
-
+# CHAT
 elif cur == "Chat":
     hdr()
     hdr_form("CHAT - Comunicazioni Squadra")
@@ -3073,15 +2682,6 @@ elif cur == "Chat":
                 """,
                 unsafe_allow_html=True
             )
-        c1,c2 = st.columns(2)
-        with c1:
-            if st.session_state.chat:
-                df_chat = pd.DataFrame(st.session_state.chat)
-                st.download_button("📊 Excel Chat", data=to_excel(df_chat), file_name="chat.xlsx", use_container_width=True, key="excel_chat")
-        with c2:
-            if REPORTLAB_OK and st.session_state.chat:
-                df_chat = pd.DataFrame(st.session_state.chat)
-                st.download_button("📄 PDF Chat con Logo Estesa", data=to_pdf(df_chat, "CHAT"), file_name="chat.pdf", mime="application/pdf", use_container_width=True, key="pdf_chat")
     else:
         st.info("Nessun messaggio - Inizia conversazione")
 
@@ -3163,20 +2763,10 @@ elif cur == "Geolocalizzazione Hytera + Anytone":
         ])
         st.map(demo_pos)
 
-    # PDF per geoloc - ogni form file PDF
-    if st.session_state.posizioni_pd785:
-        df_pd = pd.DataFrame(st.session_state.posizioni_pd785)
-        if REPORTLAB_OK:
-            st.download_button("📄 PDF PD785 con Logo Estesa", data=to_pdf(df_pd, "GEOLOC PD785"), file_name="pd785.pdf", mime="application/pdf", use_container_width=True, key="pdf_pd785_final")
-    if st.session_state.posizioni_anytone:
-        df_any2 = pd.DataFrame(st.session_state.posizioni_anytone)
-        if REPORTLAB_OK:
-            st.download_button("📄 PDF Anytone con Logo Estesa", data=to_pdf(df_any2, "GEOLOC ANYTONE"), file_name="anytone.pdf", mime="application/pdf", use_container_width=True, key="pdf_anytone_final")
-
 # BACKUP - Import/Export singolo + totale - gg/mm/aaaa
 elif cur == "Backup":
     hdr()
-    hdr_form("BACKUP - Import / Export Completo")
+    hdr_form("BACKUP - Backup Export Import su Unica Scheda - Solo Excel")
 
     FORM_KEYS = {
         "Volontari (con foto)": "volontari",
@@ -3186,11 +2776,12 @@ elif cur == "Backup":
         "Brogliaccio": "brogliaccio",
         "Eventi": "eventi",
         "Emergenze": "emergenze",
-        "# RIMOSSO": "mappe",
         "Check-in": "checkin",
         "Interventi Emergenza": "interventi",
+        "Tabella Interventi Emergenza": "tabella_interventi",
         "Mezzi": "mezzi",
         "Attrezzature": "attrezzature",
+        "Mappe Postazioni": "mappa_avanzata_markers",
         "Libreria Icone": "icone",
         "Turni": "turni",
         "Chat": "chat",
@@ -3198,146 +2789,138 @@ elif cur == "Backup":
         "Posizioni Anytone": "posizioni_anytone"
     }
 
-    def clean_for_json(obj):
-        if isinstance(obj, list):
-            cleaned = []
-            for item in obj:
-                if isinstance(item, dict):
-                    new_item = {}
-                    for k, v in item.items():
-                        if "Bytes" not in k and "Foto" not in k and "File" not in k:
-                            try:
-                                json.dumps(v)
-                                new_item[k] = v
-                            except:
-                                new_item[k] = str(v)
-                        else:
-                            new_item[k] = "BINARIO_OMESSO"
-                    cleaned.append(new_item)
-                else:
-                    cleaned.append(item)
-            return cleaned
-        return obj
+    # Unica scheda - richiesta Ezio - backup + export + import tutti insieme
+    st.markdown("""
+    <div style="background:#e8f5e9;padding:10px;border-radius:8px;border-left:4px solid #1A5D1A;margin-bottom:12px;">
+    <b>Backup completo su unica scheda - Solo Excel (no JSON) - Import Excel</b><br>
+    <small>Backup, Export singolo, Import singolo e Import totale tutto in questa scheda</small>
+    </div>
+    """, unsafe_allow_html=True)
 
-    tab_tot, tab_singolo, tab_import = st.tabs(["💾 Backup Totale", "📄 Singolo Form", "📥 Importa Backup"])
+    # Riepilogo senza elenco form lungo - solo metriche compatte
+    cols = st.columns(4)
+    tot_records = 0
+    for i, (label, key) in enumerate(FORM_KEYS.items()):
+        cnt = len(st.session_state.get(key, []))
+        tot_records += cnt
+        cols[i % 4].metric(label[:18], cnt)
 
-    with tab_tot:
-        st.markdown("#### Backup Totale")
-        backup_data = {k: st.session_state.get(k, []) for k in FORM_KEYS.values()}
-        backup_data["data_backup"] = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
-        backup_data["versione"] = "ANA Varese v2 - gg/mm/aaaa - ODV + linguette"
-        json_clean = {k: clean_for_json(v) if isinstance(v, list) else v for k,v in backup_data.items()}
-        json_str = json.dumps(json_clean, indent=2, ensure_ascii=False)
-        c1, c2, c3 = st.columns(3)
-        with c1:
-            st.download_button("⬇️ JSON Totale", data=json_str.encode("utf-8"), file_name=f"backup_totale_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json", mime="application/json", use_container_width=True, type="primary")
-        with c2:
+    st.metric("Totale Record Tutti i Form", tot_records)
+
+    st.divider()
+
+    # Sezione 1: Backup Totale Excel
+    st.markdown("### 💾 Backup Totale - Solo Excel")
+    c1, c2, c3 = st.columns(3)
+    with c1:
+        try:
+            datasets = {}
+            for label, key in FORM_KEYS.items():
+                data = st.session_state.get(key, [])
+                if data:
+                    clean = [{kk: vv for kk, vv in r.items() if "Bytes" not in kk and "Foto" not in kk and "File" not in kk} for r in data if isinstance(r, dict)]
+                    if clean:
+                        datasets[label[:31]] = pd.DataFrame(clean)
+            if datasets:
+                st.download_button("⬇️ Backup Totale Excel", data=to_excel_multi(datasets), file_name=f"backup_totale_{datetime.now().strftime('%Y%m%d')}.xlsx", mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", use_container_width=True, type="primary", key="backup_tot_excel")
+            else:
+                st.info("Nessun dato per backup")
+        except Exception as e:
+            st.error(f"Excel: {e}")
+    with c2:
+        if REPORTLAB_OK:
             try:
-                datasets = {}
-                for label, key in FORM_KEYS.items():
-                    data = st.session_state.get(key, [])
-                    if data:
-                        clean = [{kk: vv for kk, vv in r.items() if "Bytes" not in kk and "Foto" not in kk} for r in data if isinstance(r, dict)]
-                        if clean:
-                            datasets[label[:31]] = pd.DataFrame(clean)
-                if datasets:
-                    st.download_button("⬇️ Excel Multi", data=to_excel_multi(datasets), file_name=f"backup_totale_{datetime.now().strftime('%Y%m%d')}.xlsx", mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", use_container_width=True)
-            except Exception as e:
-                st.error(f"Excel: {e}")
-        with c3:
-            if REPORTLAB_OK:
-                try:
-                    df_summary = pd.DataFrame([{"Form": label, "Record": len(st.session_state.get(key, []))} for label, key in FORM_KEYS.items()])
-                    st.download_button("⬇️ PDF", data=to_pdf(df_summary, "BACKUP TOTALE"), file_name="backup_riepilogo.pdf", mime="application/pdf", use_container_width=True)
-                except:
-                    pass
-        st.code(json_str[:4000] + ("..." if len(json_str)>4000 else ""), language="json")
+                df_summary = pd.DataFrame([{"Form": label, "Record": len(st.session_state.get(key, []))} for label, key in FORM_KEYS.items()])
+                st.download_button("⬇️ Backup PDF Riepilogo", data=to_pdf(df_summary, "BACKUP TOTALE"), file_name="backup_riepilogo.pdf", mime="application/pdf", use_container_width=True, key="backup_pdf")
+            except:
+                pass
+    with c3:
+        if st.button("🗑️ Azzera Tutto - Backup", use_container_width=True, key="azzera_backup_unico"):
+            for k in FORM_KEYS.values():
+                st.session_state[k] = []
+            st.success("Tutti i form azzerati")
+            st.rerun()
 
-    with tab_singolo:
-        st.markdown("#### Export / Import Singolo Form")
-        sel_label = st.selectbox("Seleziona Form", list(FORM_KEYS.keys()), key="backup_sel_form")
-        sel_key = FORM_KEYS[sel_label]
-        sel_data = st.session_state.get(sel_key, [])
-        st.metric(f"Record in {sel_label}", len(sel_data))
-        if sel_data:
-            df_sel = pd.DataFrame([{k:v for k,v in r.items() if "Bytes" not in k} for r in sel_data if isinstance(r, dict)])
-            st.dataframe(df_sel.head(20), use_container_width=True)
+    st.divider()
+
+    # Sezione 2: Export Singolo Form Excel
+    st.markdown("### 📄 Export Singolo Form - Solo Excel")
+    sel_label = st.selectbox("Seleziona Form per Export", list(FORM_KEYS.keys()), key="backup_sel_form_unico")
+    sel_key = FORM_KEYS[sel_label]
+    sel_data = st.session_state.get(sel_key, [])
+    st.metric(f"Record in {sel_label}", len(sel_data))
+    if sel_data:
+        df_sel = pd.DataFrame([{k:v for k,v in r.items() if "Bytes" not in k and "Foto" not in k and "File" not in k} for r in sel_data if isinstance(r, dict)])
+        st.dataframe(df_sel.head(20), use_container_width=True)
         c1, c2 = st.columns(2)
         with c1:
-            st.markdown(f"**⬇️ EXPORT {sel_label}**")
-            if sel_data:
-                df_clean = pd.DataFrame([{k:v for k,v in r.items() if "Bytes" not in k and "Foto" not in k} for r in sel_data])
-                st.download_button(f"⬇️ Excel {sel_label}", data=to_excel(df_clean), file_name=f"{sel_key}_{datetime.now().strftime('%Y%m%d')}.xlsx", mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", use_container_width=True, key=f"exp_excel_{sel_key}")
-                st.download_button(f"⬇️ CSV {sel_label}", data=df_clean.to_csv(index=False).encode("utf-8"), file_name=f"{sel_key}.csv", mime="text/csv", use_container_width=True, key=f"exp_csv_{sel_key}")
-                st.download_button(f"⬇️ JSON {sel_label}", data=json.dumps(clean_for_json(sel_data), indent=2, ensure_ascii=False).encode("utf-8"), file_name=f"{sel_key}.json", mime="application/json", use_container_width=True, key=f"exp_json_{sel_key}")
-            else:
-                st.warning("Vuoto")
+            st.download_button(f"⬇️ Excel {sel_label}", data=to_excel(df_sel), file_name=f"{sel_key}_{datetime.now().strftime('%Y%m%d')}.xlsx", mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", use_container_width=True, key=f"exp_excel_{sel_key}_unico")
         with c2:
-            st.markdown(f"**📥 IMPORT in {sel_label}**")
-            up_mode = st.radio("Modalità", ["Aggiungi", "Sostituisci"], key="up_mode_single", horizontal=True)
-            up_file = st.file_uploader(f"Carica per {sel_label}", type=["json", "xlsx", "csv"], key="up_single_form")
-            if up_file:
-                try:
-                    imported = []
-                    if up_file.name.endswith(".json"):
-                        raw = json.loads(up_file.read().decode("utf-8"))
-                        if isinstance(raw, dict):
-                            if sel_key in raw:
-                                imported = raw[sel_key]
-                            else:
-                                for v in raw.values():
-                                    if isinstance(v, list) and v and isinstance(v[0], dict):
-                                        imported = v
-                                        break
-                        elif isinstance(raw, list):
-                            imported = raw
-                    elif up_file.name.endswith(".xlsx"):
-                        imported = pd.read_excel(up_file).to_dict(orient="records")
-                    else:
-                        imported = pd.read_csv(up_file).to_dict(orient="records")
-                    st.success(f"{len(imported)} record")
-                    st.dataframe(pd.DataFrame(imported).head(10), use_container_width=True)
-                    if st.button(f"✅ Importa in {sel_label}", type="primary"):
-                        if up_mode == "Sostituisci":
-                            st.session_state[sel_key] = imported
-                        else:
-                            st.session_state[sel_key] = st.session_state.get(sel_key, []) + imported
-                        st.rerun()
-                except Exception as e:
-                    st.error(f"Errore: {e}")
+            if REPORTLAB_OK:
+                st.download_button(f"📄 PDF {sel_label}", data=to_pdf(df_sel, sel_label.upper()), file_name=f"{sel_key}.pdf", mime="application/pdf", use_container_width=True, key=f"exp_pdf_{sel_key}_unico")
+    else:
+        st.warning(f"{sel_label} vuoto")
 
-    with tab_import:
-        st.markdown("#### Importa Backup Totale")
-        up_total = st.file_uploader("JSON Totale", type=["json"], key="up_total_backup")
-        if up_total:
-            try:
-                data_total = json.loads(up_total.read().decode("utf-8"))
-                st.write(f"Backup del: {data_total.get('data_backup','?')}")
-                cols = st.columns(4)
-                for i, (label, key) in enumerate(FORM_KEYS.items()):
-                    if key in data_total:
-                        cols[i % 4].metric(label, f"{len(data_total.get(key, []))}")
-                mode_total = st.radio("Modalità", ["Aggiungi", "Sostituisci"], key="mode_total")
-                if st.button("✅ CONFERMA IMPORT TOTALE", type="primary", use_container_width=True):
+    st.divider()
+
+    # Sezione 3: Import Singolo Form - Solo Excel (no JSON) - richiesta Ezio
+    st.markdown("### 📥 Import Singolo Form - Solo Excel (no JSON)")
+    sel_label_imp = st.selectbox("Seleziona Form per Import Excel", list(FORM_KEYS.keys()), key="import_sel_form_excel")
+    sel_key_imp = FORM_KEYS[sel_label_imp]
+    up_mode_single = st.radio("Modalità Import Singolo", ["Aggiungi", "Sostituisci"], key="up_mode_single_excel", horizontal=True)
+    up_file_single = st.file_uploader(f"Carica Excel per {sel_label_imp} - Solo Excel", type=["xlsx", "xls"], key="up_single_excel")
+    if up_file_single:
+        try:
+            imported = pd.read_excel(up_file_single).to_dict(orient="records")
+            st.success(f"{len(imported)} record letti da Excel")
+            st.dataframe(pd.DataFrame(imported).head(10), use_container_width=True)
+            if st.button(f"✅ Importa Excel in {sel_label_imp}", type="primary", use_container_width=True, key=f"btn_import_excel_{sel_key_imp}"):
+                if up_mode_single == "Sostituisci":
+                    st.session_state[sel_key_imp] = imported
+                else:
+                    st.session_state[sel_key_imp] = st.session_state.get(sel_key_imp, []) + imported
+                st.success(f"Importato {len(imported)} record in {sel_label_imp}")
+                st.rerun()
+        except Exception as e:
+            st.error(f"Errore import Excel: {e}")
+
+    st.divider()
+
+    # Sezione 4: Import Backup Totale - Solo Excel Multi-scheda
+    st.markdown("### 📥 Import Backup Totale - Solo Excel Multi-scheda")
+    up_total_excel = st.file_uploader("Carica Backup Totale Excel - Multi fogli - Solo Excel", type=["xlsx", "xls"], key="up_total_excel")
+    if up_total_excel:
+        try:
+            xls = pd.ExcelFile(up_total_excel)
+            st.write(f"Fogli trovati: {xls.sheet_names}")
+            mode_total = st.radio("Modalità Import Totale Excel", ["Aggiungi", "Sostituisci"], key="mode_total_excel", horizontal=True)
+            if st.button("✅ CONFERMA IMPORT TOTALE EXCEL", type="primary", use_container_width=True, key="btn_import_tot_excel"):
+                for sheet in xls.sheet_names:
+                    # Cerca FORM_KEYS corrispondente
                     for label, key in FORM_KEYS.items():
-                        if key in data_total and isinstance(data_total[key], list):
+                        if label[:31].lower() in sheet.lower() or key.lower() in sheet.lower() or label.lower() in sheet.lower():
+                            df_sheet = pd.read_excel(xls, sheet_name=sheet)
+                            imported_sheet = df_sheet.to_dict(orient="records")
                             if mode_total.startswith("Sostituisci"):
-                                st.session_state[key] = data_total[key]
+                                st.session_state[key] = imported_sheet
                             else:
-                                st.session_state[key] = st.session_state.get(key, []) + data_total[key]
-                    st.success("Importato!")
-                    st.rerun()
-            except Exception as e:
-                st.error(f"Errore: {e}")
-        with st.expander("⚠️ Azzera"):
-            sel_zero = st.selectbox("Form da azzerare", ["--"] + list(FORM_KEYS.keys()), key="zero_sel")
-            if sel_zero != "--":
-                if st.button(f"🗑️ Azzera {sel_zero}"):
-                    st.session_state[FORM_KEYS[sel_zero]] = []
-                    st.rerun()
-            if st.button("🗑️ AZZERA TUTTO"):
-                for k in FORM_KEYS.values():
-                    st.session_state[k] = []
+                                st.session_state[key] = st.session_state.get(key, []) + imported_sheet
+                            st.success(f"Importato {len(imported_sheet)} in {label}")
+                            break
+                st.success("Import totale Excel completato!")
+                st.rerun()
+        except Exception as e:
+            st.error(f"Errore import totale Excel: {e}")
+
+    st.divider()
+
+    # Azzera singolo form
+    with st.expander("⚠️ Azzera Singolo Form"):
+        sel_zero = st.selectbox("Form da azzerare", ["--"] + list(FORM_KEYS.keys()), key="zero_sel_unico")
+        if sel_zero != "--":
+            if st.button(f"🗑️ Azzera {sel_zero}", key=f"btn_zero_{sel_zero}"):
+                st.session_state[FORM_KEYS[sel_zero]] = []
+                st.success(f"{sel_zero} azzerato")
                 st.rerun()
 
 # Footer
