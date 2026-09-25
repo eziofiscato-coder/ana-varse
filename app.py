@@ -2634,105 +2634,112 @@ elif cur == "Libreria Icone":
             {"Nome": "Radio", "Emoji": "📻", "Tipo": "Mezzo", "Colore": "purple", "Descrizione": "Radio", "Data": datetime.now().strftime("%d/%m/%Y")},
         ]
 
-    # Form icone - MIGLIORATO con spiegazione emoji e anteprima file caricato
+    # Form icone - MODIFICATO EZIO: tolto emoji, solo file icona + anteprima con icona caricata
     st.markdown("""
-    <div style="background:#fffde7;padding:10px;border-radius:8px;border-left:4px solid #FFD700;margin-bottom:10px;">
-    <b>📝 Cosa mettere in Emoji Icona:</b><br>
-    • Copia-incolla un emoji dalla tastiera: <b>🚑</b> ambulanza, <b>🚓</b> polizia, <b>🚒</b> vigili del fuoco, <b>⛑️</b> protezione civile, <b>📍</b> postazione, <b>🚨</b> emergenza, <b>📅</b> evento, <b>🚐</b> mezzo, <b>🏥</b> ospedale, <b>🚁</b> elicottero, <b>📻</b> radio<br>
-    • Oppure scrivi lettera: <b>A</b> per Ambulanza, <b>P</b> per Polizia<br>
-    • Windows: premi <b>WIN + . (punto)</b> per aprire tastiera emoji
+    <div style="background:#e8f5e9;padding:8px;border-radius:8px;border-left:4px solid #1A5D1A;margin-bottom:12px;">
+    <b>Carica icona personalizzata per i marker - L'icona che carichi appare direttamente nella mappa</b><br>
+    <small>Es: carica ambulanza.png, polizia.png, protezione civile.png - Formati: png, jpg, svg</small>
     </div>
     """, unsafe_allow_html=True)
 
-    c1, c2, c3, c4 = st.columns(4)
+    c1, c2, c3, c4 = st.columns([1,1,1,1])
     with c1:
         nome_icona = st.text_input("Nome Icona *", key="ico_nome", placeholder="Es: Ambulanza, Polizia, Postazione 1")
-        emoji_icona = st.text_input("Emoji Icona *", value="📍", key="ico_emoji", help="Metti un emoji: 🚑 🚓 🚒 ⛑️ 📍 🚨 📅 🚐 🏥 🚁 📻 - WIN+. per tastiera emoji su Windows")
-        # Lista rapida emoji cliccabili
-        st.caption("Clicca emoji rapida:")
-        emojis_rapidi = ["🚑", "🚓", "🚔", "🚒", "⛑️", "📍", "🚨", "📅", "🚐", "🏥", "🚁", "📻", "🔥", "💧", "👤"]
-        cols_em = st.columns(5)
-        for i, em in enumerate(emojis_rapidi):
-            if cols_em[i % 5].button(em, key=f"em_rapid_{i}", use_container_width=True):
-                st.session_state.ico_emoji = em
-                st.rerun()
-    with c2:
         tipo_icona = st.selectbox("Tipo", ["Emergenza", "Evento", "Mezzo", "Volontario", "Postazione", "Punto Interesse", "Altro"], key="ico_tipo")
+    with c2:
         colore_icona = st.selectbox("Colore Marker", ["red", "blue", "green", "orange", "purple", "darkred", "darkblue", "cadetblue"], key="ico_colore")
-        st.markdown(f"<div style='background:white;padding:6px;border-radius:6px;border:1px solid #1A5D1A;text-align:center;'><small>Colore bordo marker sulla mappa</small><br><div style='width:20px;height:20px;background:{colore_icona};border-radius:50%;margin:4px auto;'></div>{colore_icona}</div>", unsafe_allow_html=True)
+        desc_icona = st.text_input("Descrizione Icona", key="ico_desc", placeholder="Es: Ambulanza 118")
     with c3:
-        desc_icona = st.text_input("Descrizione Icona", key="ico_desc", placeholder="Es: Ambulanza 118 - Emergenza sanitaria")
-        file_icona = st.file_uploader("File Icona (opzionale) - png/jpg/svg", type=["png", "jpg", "jpeg", "svg"], key="ico_file", help="Carica immagine personalizzata per icona - vedrai anteprima a destra")
+        file_icona = st.file_uploader("File Icona * - png/jpg/svg", type=["png", "jpg", "jpeg", "svg"], key="ico_file", help="Carica immagine icona - appare subito in anteprima a destra come marker su mappa")
         if file_icona:
-            st.success(f"File caricato: {file_icona.name}")
-            # Salva bytes in session per anteprima
+            st.success(f"✅ Caricato: {file_icona.name}")
             st.session_state["ico_file_bytes"] = file_icona.getvalue()
             st.session_state["ico_file_name"] = file_icona.name
     with c4:
-        st.markdown("**Anteprima Icona - Come appare su mappa**")
-        # Anteprima emoji live
-        preview_emoji = st.session_state.get("ico_emoji", emoji_icona) if st.session_state.get("ico_emoji") else emoji_icona
-        # Mappa il nome colore a codice hex per anteprima
+        st.markdown("**Anteprima Marker - Icona caricata**")
         col_map_preview = {'red':'#d32f2f','blue':'#1976d2','green':'#388e3c','orange':'#f57c00','purple':'#7b1fa2','darkred':'#b71c1c','darkblue':'#0d47a1','cadetblue':'#5f9ea0'}
         col_hex = col_map_preview.get(colore_icona, '#388e3c')
-        # Anteprima marker come su mappa
-        st.markdown(f"""
-        <div style='background:white;padding:12px;border-radius:8px;border:2px solid #1A5D1A;text-align:center;'>
-        <div style='background:white;border:2px solid {col_hex};width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:20px;margin:0 auto 8px auto;box-shadow:0 2px 4px rgba(0,0,0,0.3);'>{preview_emoji}</div>
-        <b>{st.session_state.get('ico_nome','Nuova icona')}</b><br>
-        <small>{tipo_icona} - {colore_icona}</small><br>
-        <small style='color:#666;'>Marker su mappa: {preview_emoji} + bordo {colore_icona}</small>
-        </div>
-        """, unsafe_allow_html=True)
-        # Anteprima file caricato
+        # Anteprima con icona caricata
         if st.session_state.get("ico_file_bytes"):
             try:
-                st.markdown("**File caricato - Anteprima:**")
-                st.image(st.session_state["ico_file_bytes"], width=100, caption=f"{st.session_state.get('ico_file_name','icona')}")
-                if st.button("🗑️ Rimuovi file", key="del_ico_file_preview"):
+                # Mostra anteprima come marker mappa con icona caricata dentro
+                st.markdown(f"""
+                <div style='background:white;padding:12px;border-radius:8px;border:2px solid #1A5D1A;text-align:center;'>
+                <div style='background:white;border:3px solid {col_hex};width:60px;height:60px;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 8px auto;box-shadow:0 3px 6px rgba(0,0,0,0.3);overflow:hidden;'>
+                <img src="data:image/png;base64,PLACEHOLDER" style="width:40px;height:40px;object-fit:contain;" id="preview_img_marker">
+                </div>
+                <b>{st.session_state.get('ico_nome','Nuova icona') or nome_icona or 'Nuova'}</b><br>
+                <small>{tipo_icona} - bordo {colore_icona}</small><br>
+                <small style='color:#1A5D1A;font-weight:bold;'>Marker su mappa</small>
+                </div>
+                """, unsafe_allow_html=True)
+                # Immagine reale sotto
+                st.image(st.session_state["ico_file_bytes"], width=120, caption=f"Icona: {st.session_state.get('ico_file_name','')}")
+                if st.button("🗑️ Rimuovi", key="del_ico_file_preview"):
                     st.session_state["ico_file_bytes"] = None
                     st.session_state["ico_file_name"] = ""
                     st.rerun()
             except Exception as e:
-                st.error(f"Errore anteprima file: {e}")
+                st.error(f"Errore anteprima: {e}")
+                st.image(st.session_state.get("ico_file_bytes"), width=120)
         else:
-            st.caption("Nessun file caricato - usa emoji sopra")
-            # Mostra esempio icone disponibili
-            st.markdown("<small>Esempi: 🚑=Ambulanza<br>🚓=Polizia<br>🚒=VVF<br>⛑️=PC</small>", unsafe_allow_html=True)
+            st.info("⬆️ Carica file icona per vedere anteprima qui")
+            st.markdown(f"""
+            <div style='background:white;padding:12px;border-radius:8px;border:2px dashed #1A5D1A;text-align:center;'>
+            <div style='background:#f5f5f5;border:2px dashed {col_hex};width:60px;height:60px;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 8px auto;'>
+            <span style='font-size:24px;'>📷</span>
+            </div>
+            <small>Nessuna icona caricata</small><br>
+            <small>Carica png/jpg/svg</small>
+            </div>
+            """, unsafe_allow_html=True)
 
     if st.button("💾 Salva Icona in Libreria", type="primary", use_container_width=True):
-        if nome_icona and emoji_icona:
-            # Controlla se esiste già
+        if nome_icona and st.session_state.get("ico_file_bytes"):
             exists = False
             for ico in st.session_state.icone:
                 if ico.get("Nome") == nome_icona:
                     exists = True
                     break
             if not exists:
-                # Usa emoji da session_state se presente (da click rapido)
-                final_emoji = st.session_state.get("ico_emoji", emoji_icona) if st.session_state.get("ico_emoji") else emoji_icona
+                # Genera emoji fallback dal nome per compatibilità mappe
+                emoji_fallback = "📍"
+                nome_lower = nome_icona.lower()
+                if "ambulanza" in nome_lower: emoji_fallback = "🚑"
+                elif "polizia" in nome_lower: emoji_fallback = "🚓"
+                elif "carabinieri" in nome_lower: emoji_fallback = "🚔"
+                elif "vigili" in nome_lower or "fuoco" in nome_lower: emoji_fallback = "🚒"
+                elif "protezione" in nome_lower: emoji_fallback = "⛑️"
+                elif "ospedale" in nome_lower: emoji_fallback = "🏥"
+                elif "elicottero" in nome_lower: emoji_fallback = "🚁"
+                elif "evento" in nome_lower: emoji_fallback = "📅"
+                elif "emergenza" in nome_lower: emoji_fallback = "🚨"
+                elif "mezzo" in nome_lower: emoji_fallback = "🚐"
+                elif "radio" in nome_lower: emoji_fallback = "📻"
+
                 nuova_icona = {
                     "Nome": nome_icona,
-                    "Emoji": final_emoji,
+                    "Emoji": emoji_fallback,
                     "Tipo": tipo_icona,
                     "Colore": colore_icona,
                     "Descrizione": desc_icona,
-                    "Data": datetime.now().strftime("%d/%m/%Y %H:%M")
+                    "Data": datetime.now().strftime("%d/%m/%Y %H:%M"),
+                    "FileBytes": st.session_state["ico_file_bytes"],
+                    "FileName": st.session_state.get("ico_file_name", "")
                 }
-                # Salva anche file se caricato
-                if st.session_state.get("ico_file_bytes"):
-                    nuova_icona["FileBytes"] = st.session_state["ico_file_bytes"]
-                    nuova_icona["FileName"] = st.session_state.get("ico_file_name", "")
                 st.session_state.icone.append(nuova_icona)
-                st.success(f"Icona {final_emoji} {nome_icona} salvata - Ora la puoi usare su Mappe Postazioni in combo")
-                # Pulisci temp file
+                st.success(f"✅ Icona {nome_icona} salvata con file {st.session_state.get('ico_file_name','')} - Ora in Mappe Postazioni")
                 st.session_state["ico_file_bytes"] = None
                 st.session_state["ico_file_name"] = ""
                 st.rerun()
             else:
                 st.warning("Nome già esistente - cambia nome")
         else:
-            st.error("Nome e Emoji obbligatori - Inserisci Nome e Emoji (es: 🚑)")
+            if not nome_icona:
+                st.error("❌ Inserisci Nome Icona")
+            elif not st.session_state.get("ico_file_bytes"):
+                st.error("❌ Carica File Icona - png/jpg/svg obbligatorio")
+                st.info("Clicca su 'Browse files' sopra per caricare icona")
 
     st.divider()
     st.markdown(f"### Libreria Icone - {len(st.session_state.icone)} icone disponibili - Le usi su Mappe Postazioni")
@@ -2742,12 +2749,20 @@ elif cur == "Libreria Icone":
         for idx, ico in enumerate(st.session_state.icone):
             col = cols[idx % 4]
             with col:
+                # Mostra icona caricata se presente, altrimenti emoji
+                if ico.get("FileBytes"):
+                    try:
+                        st.image(ico.get("FileBytes"), width=80, caption=f"{ico.get('Nome','')}")
+                    except:
+                        st.markdown(f"<div style='font-size:32px;text-align:center;'>{ico.get('Emoji','📍')}</div>", unsafe_allow_html=True)
+                else:
+                    st.markdown(f"<div style='font-size:32px;text-align:center;'>{ico.get('Emoji','📍')}</div>", unsafe_allow_html=True)
                 st.markdown(f"""
                 <div style="background:white;padding:8px;border-radius:8px;border:2px solid #1A5D1A;text-align:center;margin-bottom:8px;">
-                <div style="font-size:32px;">{ico.get('Emoji','📍')}</div>
                 <b>{ico.get('Nome','')}</b><br>
                 <small>{ico.get('Tipo','')} - {ico.get('Colore','')}</small><br>
-                <small>{ico.get('Descrizione','')}</small>
+                <small>{ico.get('Descrizione','')}</small><br>
+                <small style="color:#1A5D1A;">{"✅ Con file: " + ico.get('FileName','') if ico.get('FileBytes') else "📍 Emoji: " + ico.get('Emoji','')}</small>
                 </div>
                 """, unsafe_allow_html=True)
                 if st.button(f"🗑️ Elimina", key=f"del_ico_{idx}"):
