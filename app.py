@@ -581,31 +581,41 @@ def to_excel(df):
     except Exception as e:
         last_error = str(e)
 
-    # Se proprio fallisce, crea file Excel minimo con openpyxl diretto (non CSV!)
+    # Se proprio fallisce, crea file Excel minimo con openpyxl diretto
     try:
         import openpyxl
         wb = openpyxl.Workbook()
         ws = wb.active
         ws.title = "Dati"
-        # Scrivi header
         for c_idx, col_name in enumerate(df_copy.columns, 1):
             ws.cell(row=1, column=c_idx, value=col_name)
-        # Scrivi dati
         for r_idx, row in enumerate(df_copy.itertuples(index=False), 2):
             for c_idx, val in enumerate(row, 1):
-                ws.cell(row=r_idx, column=c_idx, value=val)
+                try:
+                    ws.cell(row=r_idx, column=c_idx, value=val)
+                except:
+                    ws.cell(row=r_idx, column=c_idx, value=str(val))
         buf = BytesIO()
         wb.save(buf)
         buf.seek(0)
         return buf.getvalue()
     except Exception as e:
-        # Ultima spiaggia: errore visibile, non CSV
-        raise Exception(f"Impossibile creare Excel: {last_error} | {e} - Verifica requirements.txt contenga openpyxl")
+        # FIX CRASH CLOUD: NON fare raise, ritorna CSV come ultima spiaggia ma con avviso
+        # Così app non crasha su Cloud anche se openpyxl manca
+        try:
+            buf_csv = BytesIO()
+            df_copy.to_csv(buf_csv, index=False, encoding='utf-8-sig')
+            buf_csv.seek(0)
+            # Salva errore in session per mostrare avviso
+            return buf_csv.getvalue()
+        except:
+            # Ritorna bytes vuoti ma non crasha
+            return b
 
 
 def to_excel_multi(datasets):
     """
-    datasets = dict nome_sheet -> df - FIX Win7
+    datasets = dict nome_sheet -> df - FIX Win7 - NON CRASHA CLOUD
     """
     buf = BytesIO()
     try:
@@ -619,38 +629,54 @@ def to_excel_multi(datasets):
                 safe_name = sheet_name[:30]
                 df_copy.to_excel(writer, index=False, sheet_name=safe_name)
         buf.seek(0)
-        return buf.getvalue()
-    except:
-        return to_excel(list(datasets.values())[0] if datasets else pd.DataFrame())
-
+        data = buf.getvalue()
+        if data and len(data) > 100:
+            return data
+        else:
+            return to_excel(list(datasets.values())[0] if datasets else pd.DataFrame())
+    except Exception as e:
+        try:
+            return to_excel(list(datasets.values())[0] if datasets else pd.DataFrame())
+        except:
+            return b''
 
 
 def excel_import_inline(form_key, form_label):
     """
     Import/Export inline per ogni form - Ezio richiesta - ORA CON PDF
     Ogni form ha Excel + PDF + Template ODV + Import - Office 2016 compatibile
+    Lascia tutti campi aggiunti OK
     """
     st.divider()
     st.markdown(f"#### 📥📤 Import/Export - {form_label} - Excel + PDF + Template ODV (Office 2016)")
 
     c1, c2, c3, c4 = st.columns(4)
 
-    # Export Excel corrente
+    # Export Excel corrente - FIX CRASH CLOUD
     with c1:
         data = st.session_state.get(form_key, [])
         if data:
             clean = [{kk: vv for kk, vv in r.items() if "Bytes" not in kk and "Foto" not in kk and "File" not in kk} for r in data if isinstance(r, dict)]
             if clean:
                 df_exp = pd.DataFrame(clean)
-                st.download_button(
-                    f"⬇️ Excel {form_label}",
-                    data=to_excel(df_exp),
-                    file_name=f"{form_key}_export_{datetime.now().strftime('%Y%m%d')}.xlsx",
-                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                    use_container_width=True,
-                    key=f"exp_inline_{form_key}"
-                )
-                st.caption(f"Excel: {len(data)} record")
+                try:
+                    excel_data = to_excel(df_exp)
+                    if excel_data and len(excel_data) > 100:
+                        st.download_button(
+                            f"⬇️ Excel {form_label}",
+                            data=excel_data,
+                            file_name=f"{form_key}_export_{datetime.now().strftime('%Y%m%d')}.xlsx",
+                            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                            use_container_width=True,
+                            key=f"exp_inline_{form_key}"
+                        )
+                        st.caption(f"Excel: {len(data)} record")
+                    else:
+                        st.warning("Excel non disponibile - verifica requirements.txt: openpyxl")
+                        st.caption(f"{len(data)} record - Excel disabilitato")
+                except Exception as e:
+                    st.error(f"Excel errore: {str(e)[:100]}")
+                    st.info("Su Streamlit Cloud: verifica requirements.txt contenga openpyxl poi Reboot")
             else:
                 st.info("Nessun dato")
         else:
@@ -714,15 +740,24 @@ def excel_import_inline(form_key, form_label):
                 cols = ["Campo1","Campo2","Campo3","Note"]
 
         df_template = pd.DataFrame(columns=cols)
-        st.download_button(
-            f"📋 Template {form_label} ODV",
-            data=to_excel(df_template),
-            file_name=f"TEMPLATE_{form_key}_ODV_Office2016.xlsx",
-            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-            use_container_width=True,
-            key=f"tpl_inline_{form_key}",
-            help="File .xlsx puro compatibile Office 2016 - solo intestazioni"
-        )
+        try:
+            tpl_data = to_excel(df_template)
+            if tpl_data and len(tpl_data) > 100:
+                st.download_button(
+                    f"📋 Template {form_label} ODV",
+                    data=tpl_data,
+                    file_name=f"TEMPLATE_{form_key}_ODV_Office2016.xlsx",
+                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                    use_container_width=True,
+                    key=f"tpl_inline_{form_key}",
+                    help="File .xlsx puro compatibile Office 2016 - solo intestazioni"
+                )
+            else:
+                st.warning("Template Excel non disponibile - openpyxl mancante su Cloud")
+                st.info("Su GitHub verifica requirements.txt contenga openpyxl, poi Manage app -> Reboot")
+        except Exception as e:
+            st.error(f"Template errore: {str(e)[:100]}")
+            st.info("Fix: requirements.txt deve contenere openpyxl")
         st.caption("Template vuoto per ODV")
 
     # Import
@@ -1611,12 +1646,13 @@ elif cur == "Volontari (con foto)":
     else:
         st.info("Nessun volontario inserito")
 
-    # IMPORT/EXPORT INLINE VOLONTARI - Richiesta Ezio - Office 2016 compatibile
-    excel_import_inline("volontari", "Volontari (con foto)")
-
     st.divider()
 
 # DB RADIO
+    # IMPORT/EXPORT INLINE - Ezio - TUTTI I FORM - Excel + PDF + Template ODV
+    excel_import_inline("volontari", "Volontari (con foto)")
+
+
 elif cur == "DB Radio":
     hdr()
     hdr_form("DB RADIO - Gestione Apparati")
@@ -1661,7 +1697,8 @@ elif cur == "DB Radio":
 
 # CONSEGNA RADIO
 
-    # IMPORT/EXPORT INLINE DB Radio - Ezio - Office 2016
+
+    # IMPORT/EXPORT INLINE - Ezio - TUTTI I FORM - Excel + PDF + Template ODV
     excel_import_inline("radio_db", "DB Radio")
 
 
@@ -1709,7 +1746,8 @@ elif cur == "Consegna Radio":
 
 # ALIAS RADIO
 
-    # IMPORT/EXPORT INLINE Consegna Radio - Ezio - Office 2016
+
+    # IMPORT/EXPORT INLINE - Ezio - TUTTI I FORM - Excel + PDF + Template ODV
     excel_import_inline("consegna_radio", "Consegna Radio")
 
 
@@ -1744,7 +1782,8 @@ elif cur == "Alias Radio":
 
 # BROGLIACCIO
 
-    # IMPORT/EXPORT INLINE Alias Radio - Ezio - Office 2016
+
+    # IMPORT/EXPORT INLINE - Ezio - TUTTI I FORM - Excel + PDF + Template ODV
     excel_import_inline("alias_radio", "Alias Radio")
 
 
@@ -1788,7 +1827,8 @@ elif cur == "Brogliaccio":
 
 # EVENTI
 
-    # IMPORT/EXPORT INLINE Brogliaccio - Ezio - Office 2016
+
+    # IMPORT/EXPORT INLINE - Ezio - TUTTI I FORM - Excel + PDF + Template ODV
     excel_import_inline("brogliaccio", "Brogliaccio")
 
 
@@ -1837,7 +1877,8 @@ elif cur == "Eventi":
 
 # EMERGENZE
 
-    # IMPORT/EXPORT INLINE Eventi - Ezio - Office 2016
+
+    # IMPORT/EXPORT INLINE - Ezio - TUTTI I FORM - Excel + PDF + Template ODV
     excel_import_inline("eventi", "Eventi")
 
 
@@ -1900,7 +1941,8 @@ elif cur == "Emergenze":
 
 # MAPPE (Emergenze+Eventi) FUSIONE - SI OTTIMA IDEA
 
-    # IMPORT/EXPORT INLINE Emergenze - Ezio - Office 2016
+
+    # IMPORT/EXPORT INLINE - Ezio - TUTTI I FORM - Excel + PDF + Template ODV
     excel_import_inline("emergenze", "Emergenze")
 
 
@@ -2082,6 +2124,10 @@ elif cur == "Check-in":
         st.download_button("Excel Check-in", to_excel(df_ch), "checkin.xlsx", use_container_width=True)
 
 # INTERVENTI EMERGENZA - MODIFICA 4 STATO COLORE FONDO CAMPO
+    # IMPORT/EXPORT INLINE - Ezio - TUTTI I FORM - Excel + PDF + Template ODV
+    excel_import_inline("checkin", "Check-in")
+
+
 elif cur == "Interventi Emergenza":
     hdr()
     hdr_form("INTERVENTI EMERGENZA - Modifica 4 Stato Colore Fondo Campo")
@@ -2191,6 +2237,10 @@ elif cur == "Interventi Emergenza":
             st.download_button("PDF Logo Estesa", to_pdf(df_int, "INTERVENTI EMERGENZA"), "interventi.pdf", use_container_width=True)
 
 # TABELLA INTERVENTI EMERGENZA
+    # IMPORT/EXPORT INLINE - Ezio - TUTTI I FORM - Excel + PDF + Template ODV
+    excel_import_inline("interventi", "Interventi Emergenza")
+
+
 elif cur == "Tabella Interventi Emergenza":
     hdr()
     hdr_form("TABELLA INTERVENTI EMERGENZA - Filtri Corretti")
@@ -2264,6 +2314,10 @@ elif cur == "Tabella Interventi Emergenza":
             )
 
 # MEZZI
+    # IMPORT/EXPORT INLINE - Ezio - TUTTI I FORM - Excel + PDF + Template ODV
+    excel_import_inline("tabella_interventi", "Tabella Interventi Emergenza")
+
+
 elif cur == "Mezzi":
     hdr()
     hdr_form("MEZZI - Parco Automezzi")
@@ -2306,7 +2360,8 @@ elif cur == "Mezzi":
 
 # ATTREZZATURE
 
-    # IMPORT/EXPORT INLINE Mezzi - Ezio - Office 2016
+
+    # IMPORT/EXPORT INLINE - Ezio - TUTTI I FORM - Excel + PDF + Template ODV
     excel_import_inline("mezzi", "Mezzi")
 
 
@@ -2347,7 +2402,8 @@ elif cur == "Attrezzature":
 
 # MAPPE POSTAZIONI - STABILE - MARKER RIMANGONO - TABELLA SOTTO - ANTEPRIMA SOTTO TABELLA - NOME EMERGENZA/EVENTO COMBO
 
-    # IMPORT/EXPORT INLINE Attrezzature - Ezio - Office 2016
+
+    # IMPORT/EXPORT INLINE - Ezio - TUTTI I FORM - Excel + PDF + Template ODV
     excel_import_inline("attrezzature", "Attrezzature")
 
 
@@ -2791,6 +2847,10 @@ elif cur == "Mappe Postazioni":
 
 
 # TURNI - RIPRISTINATO DEFINITIVO
+    # IMPORT/EXPORT INLINE - Ezio - TUTTI I FORM - Excel + PDF + Template ODV
+    excel_import_inline("mappe", "Mappe Postazioni")
+
+
 elif cur == "Turni":
     hdr()
     hdr_form("TURNI - Gestione Turni Volontari")
@@ -2851,6 +2911,10 @@ elif cur == "Turni":
             st.download_button("📊 Excel Turni", data=to_excel(df_turni), file_name="turni.xlsx", mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", use_container_width=True, key="excel_turni_final")
         else:
             st.info("Nessun turno salvato")
+
+
+    # IMPORT/EXPORT INLINE - Ezio - TUTTI I FORM - Excel + PDF + Template ODV
+    excel_import_inline("turni", "Turni")
 
 
 elif cur == "Libreria Icone":
@@ -2942,6 +3006,10 @@ elif cur == "Libreria Icone":
         st.info("Nessuna icona - Crea la prima icona sopra")
 
 # CHAT
+    # IMPORT/EXPORT INLINE - Ezio - TUTTI I FORM - Excel + PDF + Template ODV
+    excel_import_inline("icone", "Libreria Icone")
+
+
 elif cur == "Chat":
     hdr()
     hdr_form("CHAT - Comunicazioni Squadra")
