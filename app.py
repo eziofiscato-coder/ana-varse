@@ -1229,6 +1229,7 @@ with st.sidebar:
             "Brogliaccio",
             "Eventi",
             "Emergenze",
+            "Tabella Emergenze",
             "Check-in",
             "Interventi Emergenza",
             "Tabella Interventi Emergenza",
@@ -1251,6 +1252,7 @@ with st.sidebar:
             "Brogliaccio",
             "Eventi",
             "Emergenze",
+            "Tabella Emergenze",
             "Check-in",
             "Interventi Emergenza",
             "Tabella Interventi Emergenza",
@@ -2091,6 +2093,110 @@ elif cur == "Emergenze":
 
     # IMPORT/EXPORT INLINE - Ezio - TUTTI I FORM - Excel + PDF + Template ODV
     excel_import_inline("emergenze", "Emergenze")
+
+
+# TABELLA EMERGENZE - FORM TABELLA - Richiesta Ezio - Formato tabella per vedere emergenze
+elif cur == "Tabella Emergenze":
+    hdr()
+    hdr_form("TABELLA EMERGENZE - Vista Tabella - Filtri + Stato Colorato")
+    
+    st.markdown("""
+    <div style="background:#fff3e0;padding:10px;border-radius:8px;border-left:4px solid #ff9800;margin-bottom:12px;">
+    <b>📋 Tabella Emergenze - Formato Tabella</b><br>
+    Vedi tutte le emergenze in tabella con filtri per Tipo, Comune, Stato, Priorità - Stato colorato
+    </div>
+    """, unsafe_allow_html=True)
+
+    if not st.session_state.emergenze:
+        st.info("Nessuna emergenza salvata - Vai in Emergenze per crearne una")
+        st.markdown("""
+        <div style="background:#e8f5e9;padding:12px;border-radius:8px;text-align:center;">
+        <b>Come creare emergenza:</b><br>
+        1. Vai in <b>Emergenze</b><br>
+        2. Compila Nome, Tipo, Comune, Via, Priorità, Stato<br>
+        3. Salva - Apparirà qui in tabella
+        </div>
+        """, unsafe_allow_html=True)
+    else:
+        df_em = pd.DataFrame(st.session_state.emergenze)
+        
+        # Filtri
+        tipi_list = sorted(list(set([str(x) for x in df_em.get("Tipo", []).tolist() if x]))) if "Tipo" in df_em.columns else []
+        comuni_list = sorted(list(set([str(x) for x in df_em.get("Comune", []).tolist() if x]))) if "Comune" in df_em.columns else []
+        stati_list = sorted(list(set([str(x) for x in df_em.get("Stato", []).tolist() if x]))) if "Stato" in df_em.columns else []
+        prior_list = sorted(list(set([str(x) for x in df_em.get("Priorita", []).tolist() if x]))) if "Priorita" in df_em.columns else []
+        
+        c1, c2, c3, c4 = st.columns(4)
+        with c1:
+            filtro_tipo = st.selectbox("Filtra Tipo", ["Tutti"] + tipi_list, key="tab_em_tipo")
+        with c2:
+            filtro_comune = st.selectbox("Filtra Comune", ["Tutti"] + comuni_list, key="tab_em_comune")
+        with c3:
+            filtro_stato = st.selectbox("Filtra Stato", ["Tutti"] + stati_list, key="tab_em_stato")
+        with c4:
+            filtro_prior = st.selectbox("Filtra Priorità", ["Tutte"] + prior_list, key="tab_em_prior")
+        
+        df_filtrato = df_em.copy()
+        if filtro_tipo != "Tutti" and "Tipo" in df_filtrato.columns:
+            df_filtrato = df_filtrato[df_filtrato["Tipo"] == filtro_tipo]
+        if filtro_comune != "Tutti" and "Comune" in df_filtrato.columns:
+            df_filtrato = df_filtrato[df_filtrato["Comune"] == filtro_comune]
+        if filtro_stato != "Tutti" and "Stato" in df_filtrato.columns:
+            df_filtrato = df_filtrato[df_filtrato["Stato"] == filtro_stato]
+        if filtro_prior != "Tutte" and "Priorita" in df_filtrato.columns:
+            df_filtrato = df_filtrato[df_filtrato["Priorita"] == filtro_prior]
+        
+        st.write(f"**Risultati: {len(df_filtrato)} su {len(df_em)} emergenze**")
+        
+        # Tabella formattata con stato colorato
+        if not df_filtrato.empty:
+            for idx, row in df_filtrato.iterrows():
+                bg_c = row.get("StatoColoreBg", "#e8f5e9")
+                txt_c = row.get("StatoColoreTxt", "black")
+                stato = row.get("Stato","")
+                prior = row.get("Priorita","")
+                col_prior = {"Bassa":"#4caf50","Media":"#ff9800","Alta":"#ff5722","Critica":"#d32f2f"}.get(prior, "#9e9e9e")
+                
+                c1, c2, c3 = st.columns([3,1,1])
+                with c1:
+                    st.markdown(f"""
+                    <div style="background:white;padding:8px;border-radius:8px;border-left:4px solid {bg_c};margin-bottom:4px;">
+                    <b>{row.get('Nome','')}</b> - Tipo: {row.get('Tipo','')} - Comune: {row.get('Comune','')} {row.get('Via','')}<br>
+                    <small>Data: {row.get('Data','')} - Coord: {row.get('Coordinate','')} - Note: {row.get('Note','')[:80]}</small>
+                    </div>
+                    """, unsafe_allow_html=True)
+                with c2:
+                    st.markdown(f"""
+                    <div style="background:{bg_c};color:{txt_c};padding:8px;border-radius:8px;text-align:center;font-weight:bold;border:2px solid black;">
+                    {stato}
+                    </div>
+                    """, unsafe_allow_html=True)
+                with c3:
+                    st.markdown(f"""
+                    <div style="background:{col_prior};color:white;padding:4px;border-radius:4px;text-align:center;font-weight:bold;">
+                    {prior}
+                    </div>
+                    """, unsafe_allow_html=True)
+                st.divider()
+            
+            st.markdown("#### 📊 Tabella Completa Emergenze")
+            cols_show = ["Nome","Tipo","Data","Comune","Via","Priorita","Stato","Coordinate","Note"]
+            cols_show = [c for c in cols_show if c in df_filtrato.columns]
+            st.dataframe(df_filtrato[cols_show], use_container_width=True)
+        else:
+            st.warning("Nessuna emergenza con questi filtri")
+        
+        # Export
+        st.divider()
+        c_exp1, c_exp2 = st.columns(2)
+        with c_exp1:
+            st.download_button("⬇️ Excel Emergenze Filtrate", data=to_excel(df_filtrato), file_name="tabella_emergenze_filtrata.xlsx", use_container_width=True, key="exp_tab_em")
+        with c_exp2:
+            if REPORTLAB_OK:
+                st.download_button("📄 PDF Emergenze Filtrate", data=to_pdf(df_filtrato, "TABELLA EMERGENZE"), file_name="tabella_emergenze.pdf", use_container_width=True, key="pdf_tab_em")
+
+    # IMPORT/EXPORT INLINE
+    excel_import_inline("emergenze", "Tabella Emergenze")
 
 
 elif cur == "# RIMOSSO":
