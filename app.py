@@ -2783,9 +2783,10 @@ elif cur == "Geolocalizzazione Hytera + Anytone":
         st.map(demo_pos)
 
 # BACKUP - Import/Export singolo + totale - gg/mm/aaaa
+# BACKUP - Import/Export singolo + totale - gg/mm/aaaa - FIX TEMPLATE ODV
 elif cur == "Backup":
     hdr()
-    hdr_form("BACKUP - Unica Scheda - Solo Excel - Fix openpyxl definitivo")
+    hdr_form("BACKUP - Template ODV + Import Multiplo - Solo Excel")
 
     FORM_KEYS = {
         "Volontari (con foto)": "volontari",
@@ -2810,12 +2811,12 @@ elif cur == "Backup":
 
     st.markdown("""
     <div style="background:#e8f5e9;padding:10px;border-radius:8px;border-left:4px solid #1A5D1A;margin-bottom:12px;">
-    <b>Backup completo su unica scheda - Solo Excel xlsx/xls - Fix definitivo openpyxl - Richiesta Ezio</b><br>
-    <small>Backup Totale, Export Singolo, Import Singolo, Import Totale tutto in unica scheda</small>
+    <b>NUOVO: Template Excel per ODV - Invia file vuoto, ODV compila, tu importi in Volontari senza inserire uno per uno!</b><br>
+    <small>Backup Totale | Template ODV | Import Multi-Foglio | Solo Excel</small>
     </div>
     """, unsafe_allow_html=True)
 
-    # Riepilogo compatto senza elenco lungo
+    # Riepilogo
     cols = st.columns(4)
     tot_records = 0
     for i, (label, key) in enumerate(FORM_KEYS.items()):
@@ -2823,6 +2824,84 @@ elif cur == "Backup":
         tot_records += cnt
         cols[i % 4].metric(label[:18], cnt)
     st.metric("Totale Record", tot_records)
+
+    st.divider()
+
+    # === SEZIONE 1: TEMPLATE EXCEL PER ODV - VOLONTARI ===
+    st.markdown("### 📋 TEMPLATE EXCEL PER ODV - Volontari")
+    st.info("Scarica template vuoto, invialo alle ODV, loro compilano Nome/Cognome/CF etc, ti rimandano file, tu lo importi sotto in un click!")
+
+    def get_volontari_template_df():
+        # Template con colonne giuste per volontari
+        columns = [
+            "Nome", "Cognome", "Comune", "Via", "CapoODV", "ODVAppartenenza",
+            "DataNascita", "CodFisc", "Cellulare", "Email", "TelEmergenza",
+            "Ruolo", "Squadra", "RadioID", "Documento", "ScadDoc", "Note"
+        ]
+        # 2 righe esempio per far capire formato
+        example = [
+            {
+                "Nome": "Mario", "Cognome": "Rossi", "Comune": "Varese", "Via": "Via Milano 1",
+                "CapoODV": "Ezio Fiscato", "ODVAppartenenza": "ANA Varese",
+                "DataNascita": "15/06/1985", "CodFisc": "RSSMRA85H15L319X",
+                "Cellulare": "3451234567", "Email": "mario.rossi@email.it", "TelEmergenza": "0332123456",
+                "Ruolo": "Volontario", "Squadra": "Squadra A", "RadioID": "101", "Documento": "CI123456", "ScadDoc": "15/06/2030", "Note": "Esempio"
+            },
+            {
+                "Nome": "", "Cognome": "", "Comune": "Varese", "Via": "",
+                "CapoODV": "", "ODVAppartenenza": "ANA Varese",
+                "DataNascita": "gg/mm/aaaa", "CodFisc": "",
+                "Cellulare": "", "Email": "", "TelEmergenza": "",
+                "Ruolo": "Volontario", "Squadra": "Squadra A", "RadioID": "", "Documento": "", "ScadDoc": "", "Note": ""
+            }
+        ]
+        return pd.DataFrame(example, columns=columns)
+
+    c_t1, c_t2 = st.columns(2)
+    with c_t1:
+        df_template_vol = get_volontari_template_df()
+        st.dataframe(df_template_vol, use_container_width=True)
+        st.download_button(
+            "📥 Scarica TEMPLATE Volontari per ODV (Excel vuoto + esempio)",
+            data=to_excel(df_template_vol),
+            file_name="TEMPLATE_Volontari_ODV_da_compilare.xlsx",
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            use_container_width=True,
+            type="primary",
+            key="download_template_vol_odv"
+        )
+    with c_t2:
+        st.markdown("""
+        **Istruzioni per ODV:**
+        1. Scarica template a sinistra
+        2. Compila righe: Nome, Cognome, Comune, CapoODV, Cellulare...
+        3. Data formato: gg/mm/aaaa (es: 15/06/1985)
+        4. Lascia prima riga esempio o cancellala
+        5. Salva e rimanda file a te
+        6. Tu carichi file sotto in "Import Template ODV"
+        
+        **Campi obbligatori:** Nome, Cognome, CapoODV
+        """)
+        # Template anche per altri form
+        sel_template_other = st.selectbox("Scarica Template altro Form", ["--"] + list(FORM_KEYS.keys()), key="sel_template_other")
+        if sel_template_other != "--":
+            key_other = FORM_KEYS[sel_template_other]
+            data_other = st.session_state.get(key_other, [])
+            if data_other:
+                df_other = pd.DataFrame([{k:v for k,v in r.items() if "Bytes" not in k and "Foto" not in k and "File" not in k} for r in data_other[:1]])
+                if df_other.empty:
+                    df_other = pd.DataFrame(columns=["Col1","Col2"])
+            else:
+                # Template vuoto con colonne generiche
+                df_other = pd.DataFrame(columns=["Campo1","Campo2","Note"])
+            st.download_button(
+                f"📥 Template {sel_template_other}",
+                data=to_excel(df_other),
+                file_name=f"TEMPLATE_{key_other}.xlsx",
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                use_container_width=True,
+                key=f"tpl_{key_other}"
+            )
 
     st.divider()
 
@@ -2880,8 +2959,108 @@ elif cur == "Backup":
 
     st.divider()
 
-    # Import Singolo - Solo Excel - FIX DEFINITIVO
-    st.markdown("### 📥 Import Singolo Form - Solo Excel xlsx/xls")
+    # === IMPORT TEMPLATE ODV - NUOVO - PER VOLONTARI ===
+    st.markdown("### 📥 IMPORT TEMPLATE ODV - Volontari da Excel")
+    st.success("Carica qui il file Excel compilato dalle ODV - Importa tutti i volontari in un click senza inserire uno per uno!")
+
+    sel_label_imp_odv = st.selectbox("Form destinazione", ["Volontari (con foto)"] + list(FORM_KEYS.keys()), index=0, key="import_odv_dest")
+    sel_key_imp_odv = FORM_KEYS.get(sel_label_imp_odv, "volontari")
+    up_mode_odv = st.radio("Modalità", ["Aggiungi a esistenti", "Sostituisci tutto"], key="up_mode_odv", horizontal=True)
+    up_file_odv = st.file_uploader(f"Carica Excel ODV compilato per {sel_label_imp_odv}", type=["xlsx", "xls"], key="up_odv_excel")
+
+    if up_file_odv:
+        try:
+            df_odv = None
+            last_err = ""
+            # Prova lettura con engine automatico
+            for eng in [None, "openpyxl", "xlrd"]:
+                try:
+                    up_file_odv.seek(0)
+                    if eng is None:
+                        df_odv = pd.read_excel(up_file_odv)
+                    else:
+                        df_odv = pd.read_excel(up_file_odv, engine=eng)
+                    if df_odv is not None and not df_odv.empty:
+                        break
+                except Exception as e:
+                    last_err = str(e)
+                    continue
+
+            if df_odv is not None and not df_odv.empty:
+                # Pulisci colonne vuote e righe vuote
+                df_odv = df_odv.dropna(how='all')
+                # Rimuovi righe dove Nome e Cognome vuoti
+                if "Nome" in df_odv.columns and "Cognome" in df_odv.columns:
+                    df_odv = df_odv[~(df_odv["Nome"].astype(str).str.strip().isin(["", "nan", "None"]) & df_odv["Cognome"].astype(str).str.strip().isin(["", "nan", "None"]))]
+                # Rimuovi riga esempio se c'è
+                df_odv = df_odv[~((df_odv.astype(str).apply(lambda x: x.str.contains("Esempio", na=False)).any(axis=1)) | (df_odv.astype(str).apply(lambda x: x.str.contains("gg/mm/aaaa", na=False)).any(axis=1)))]
+
+                st.success(f"✅ {len(df_odv)} volontari trovati nel file Excel ODV")
+                st.dataframe(df_odv.head(30), use_container_width=True)
+
+                # Mappatura colonne -> campi volontari
+                # Converte DataNascita in formato gg/mm/aaaa se necessario
+                if st.button(f"✅ IMPORTA {len(df_odv)} VOLONTARI IN {sel_label_imp_odv}", type="primary", use_container_width=True, key="btn_import_odv_vol"):
+                    imported_list = []
+                    for _, row in df_odv.iterrows():
+                        rec = {}
+                        for col in df_odv.columns:
+                            val = row[col]
+                            # Salta NaN
+                            if pd.isna(val):
+                                continue
+                            # Converte date
+                            if "Data" in col or "Scad" in col:
+                                try:
+                                    if isinstance(val, (pd.Timestamp, datetime, date)):
+                                        rec[col] = val.strftime("%d/%m/%Y")
+                                    else:
+                                        rec[col] = str(val).strip()
+                                except:
+                                    rec[col] = str(val)
+                            else:
+                                rec[col] = str(val).strip() if isinstance(val, str) else val
+                        # Normalizza chiavi comuni
+                        # Mappa CodFisc varianti
+                        if "CodFisc" not in rec:
+                            for k in ["CodiceFiscale","CF","Codice Fiscale"]:
+                                if k in rec:
+                                    rec["CodFisc"] = rec.pop(k)
+                        # Aggiungi campi default se mancano
+                        if "ODVAppartenenza" not in rec:
+                            rec["ODVAppartenenza"] = "ANA Varese"
+                        if "Ruolo" not in rec:
+                            rec["Ruolo"] = "Volontario"
+                        if "Squadra" not in rec:
+                            rec["Squadra"] = "Squadra A"
+                        if "Comune" not in rec:
+                            rec["Comune"] = "Varese"
+                        # Solo se ha Nome o Cognome
+                        if rec.get("Nome") or rec.get("Cognome"):
+                            imported_list.append(rec)
+
+                    if up_mode_odv.startswith("Sostituisci"):
+                        st.session_state[sel_key_imp_odv] = imported_list
+                    else:
+                        st.session_state[sel_key_imp_odv] = st.session_state.get(sel_key_imp_odv, []) + imported_list
+
+                    st.success(f"🎉 Importati {len(imported_list)} volontari in {sel_label_imp_odv}!")
+                    st.balloons()
+                    st.rerun()
+            elif df_odv is not None:
+                st.warning("File Excel vuoto o solo intestazioni")
+            else:
+                st.error(f"Errore lettura Excel: {last_err}")
+                st.error("Verifica che file sia .xlsx valido e che requirements.txt contenga openpyxl, xlrd")
+        except Exception as e:
+            st.error(f"Errore import ODV: {e}")
+            import traceback
+            st.code(traceback.format_exc())
+
+    st.divider()
+
+    # Import Singolo - Solo Excel - FIX DEFINITIVO - Mantenuto per compatibilità
+    st.markdown("### 📥 Import Singolo Form - Solo Excel xlsx/xls (Generico)")
     sel_label_imp = st.selectbox("Seleziona Form per Import Excel", list(FORM_KEYS.keys()), key="import_sel_form_excel")
     sel_key_imp = FORM_KEYS[sel_label_imp]
     up_mode_single = st.radio("Modalità Import Singolo Excel", ["Aggiungi", "Sostituisci"], key="up_mode_single_excel", horizontal=True)
@@ -2890,23 +3069,18 @@ elif cur == "Backup":
         try:
             df_imp = None
             last_err = ""
-            # Tentativo 1: lettura standard senza engine (pandas sceglie da solo)
-            try:
-                df_imp = pd.read_excel(up_file_single)
-            except Exception as e1:
-                last_err = str(e1)
-                # Tentativo 2: prova con engine openpyxl esplicito
+            for eng in [None, "openpyxl", "xlrd"]:
                 try:
                     up_file_single.seek(0)
-                    df_imp = pd.read_excel(up_file_single, engine="openpyxl")
-                except Exception as e2:
-                    last_err = str(e2)
-                    # Tentativo 3: prova con xlrd engine per xls
-                    try:
-                        up_file_single.seek(0)
-                        df_imp = pd.read_excel(up_file_single, engine="xlrd")
-                    except Exception as e3:
-                        last_err = f"{e1} | {e2} | {e3}"
+                    if eng is None:
+                        df_imp = pd.read_excel(up_file_single)
+                    else:
+                        df_imp = pd.read_excel(up_file_single, engine=eng)
+                    if df_imp is not None and not df_imp.empty:
+                        break
+                except Exception as e:
+                    last_err = str(e)
+                    continue
 
             if df_imp is not None and not df_imp.empty:
                 imported = df_imp.to_dict(orient="records")
@@ -2924,55 +3098,64 @@ elif cur == "Backup":
             else:
                 st.error(f"Errore lettura Excel: {last_err}")
                 if "openpyxl" in last_err.lower():
-                    st.error("⚠️ openpyxl non installato su Streamlit Cloud")
-                    st.info("SOLUZIONE: Verifica che requirements.txt su GitHub contenga: openpyxl")
-                    st.code("openpyxl", language="text")
-                    st.info("Poi su Streamlit Cloud: Manage app -> Reboot")
-                else:
-                    st.error(f"Dettaglio: {last_err}")
+                    st.error("⚠️ openpyxl non installato - Controlla requirements.txt e Reboot Cloud")
         except Exception as e:
             st.error(f"Errore import Excel: {e}")
 
     st.divider()
 
-    # Import Totale - Solo Excel
+    # Import Totale - Solo Excel Multi-foglio - Un file con tanti fogli
     st.markdown("### 📥 Import Backup Totale - Solo Excel xlsx/xls Multi-fogli")
+    st.info("Carica un file Excel con più fogli: ogni foglio = un form (Volontari, Radio, etc). Importa tutto in un click!")
     up_total_excel = st.file_uploader("Carica Backup Totale Excel - Solo xlsx/xls", type=["xlsx", "xls"], key="up_total_excel")
     if up_total_excel:
         try:
             xls = None
             last_err = ""
-            try:
-                xls = pd.ExcelFile(up_total_excel)
-            except Exception as e1:
-                last_err = str(e1)
+            for eng in [None, "openpyxl", "xlrd"]:
                 try:
                     up_total_excel.seek(0)
-                    xls = pd.ExcelFile(up_total_excel, engine="openpyxl")
-                except Exception as e2:
-                    last_err = f"{e1} | {e2}"
+                    if eng is None:
+                        xls = pd.ExcelFile(up_total_excel)
+                    else:
+                        xls = pd.ExcelFile(up_total_excel, engine=eng)
+                    if xls is not None:
+                        break
+                except Exception as e:
+                    last_err = str(e)
+                    continue
 
             if xls is not None:
                 st.write(f"Fogli trovati: {xls.sheet_names}")
+                for sh in xls.sheet_names:
+                    try:
+                        df_preview = pd.read_excel(xls, sheet_name=sh)
+                        st.write(f"**{sh}**: {len(df_preview)} righe")
+                    except:
+                        pass
                 mode_total = st.radio("Modalità Import Totale Excel", ["Aggiungi", "Sostituisci"], key="mode_total_excel", horizontal=True)
-                if st.button("✅ CONFERMA IMPORT TOTALE EXCEL", type="primary", use_container_width=True, key="btn_import_tot_excel"):
+                if st.button("✅ CONFERMA IMPORT TOTALE EXCEL MULTI-FOGLIO", type="primary", use_container_width=True, key="btn_import_tot_excel"):
                     for sheet in xls.sheet_names:
                         for label, key in FORM_KEYS.items():
                             if label[:31].lower() in sheet.lower() or key.lower() in sheet.lower() or label.lower() in sheet.lower():
-                                df_sheet = pd.read_excel(xls, sheet_name=sheet)
-                                imported_sheet = df_sheet.to_dict(orient="records")
-                                if mode_total.startswith("Sostituisci"):
-                                    st.session_state[key] = imported_sheet
-                                else:
-                                    st.session_state[key] = st.session_state.get(key, []) + imported_sheet
-                                st.success(f"Importato {len(imported_sheet)} in {label}")
+                                try:
+                                    df_sheet = pd.read_excel(xls, sheet_name=sheet)
+                                    df_sheet = df_sheet.dropna(how='all')
+                                    imported_sheet = df_sheet.to_dict(orient="records")
+                                    if imported_sheet:
+                                        if mode_total.startswith("Sostituisci"):
+                                            st.session_state[key] = imported_sheet
+                                        else:
+                                            st.session_state[key] = st.session_state.get(key, []) + imported_sheet
+                                        st.success(f"Importato {len(imported_sheet)} in {label}")
+                                except Exception as e:
+                                    st.error(f"Errore foglio {sheet}: {e}")
                                 break
                     st.success("Import totale Excel completato!")
+                    st.balloons()
                     st.rerun()
             else:
                 st.error(f"Errore apertura Excel: {last_err}")
-                if "openpyxl" in last_err.lower():
-                    st.error("⚠️ openpyxl mancante - Controlla requirements.txt su GitHub e fai Reboot su Streamlit Cloud")
         except Exception as e:
             st.error(f"Errore import totale Excel: {e}")
 
@@ -2985,6 +3168,7 @@ elif cur == "Backup":
                 st.session_state[FORM_KEYS[sel_zero]] = []
                 st.success(f"{sel_zero} azzerato")
                 st.rerun()
+
 
 
 
