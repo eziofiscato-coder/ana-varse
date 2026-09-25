@@ -2733,6 +2733,42 @@ elif cur == "Mappe Postazioni":
     var map = L.map('map', {zoomControl: false}).setView([45.8167, 8.8333], 13);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {attribution: 'ANA Varese'}).addTo(map);
     L.control.zoom({position: 'topleft'}).addTo(map);
+    // TASTO FULLSCREEN 100% SULLA MAPPA - Ezio - SOTTO + -
+    var FullscreenControl = L.Control.extend({
+        onAdd: function(map) {
+            var container = L.DomUtil.create('div', 'leaflet-bar leaflet-control');
+            container.style.backgroundColor = 'white';
+            container.style.width = '34px';
+            container.style.height = '34px';
+            container.style.lineHeight = '34px';
+            container.style.textAlign = 'center';
+            container.style.cursor = 'pointer';
+            container.style.fontSize = '22px';
+            container.style.fontWeight = 'bold';
+            container.style.border = '2px solid rgba(0,0,0,0.2)';
+            container.style.borderRadius = '4px';
+            container.innerHTML = '⛶';
+            container.title = 'Schermo intero 100%';
+            container.onclick = function(){
+                var mapContainer = document.getElementById('map');
+                var parentContainer = mapContainer.parentElement;
+                if (!document.fullscreenElement) {
+                    if (parentContainer.requestFullscreen) parentContainer.requestFullscreen();
+                    else if (parentContainer.webkitRequestFullscreen) parentContainer.webkitRequestFullscreen();
+                    else if (mapContainer.requestFullscreen) mapContainer.requestFullscreen();
+                } else {
+                    if (document.exitFullscreen) document.exitFullscreen();
+                    else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
+                }
+                setTimeout(function(){ map.invalidateSize(); }, 600);
+            };
+            return container;
+        }
+    });
+    new FullscreenControl({position: 'topleft'}).addTo(map);
+    document.addEventListener('fullscreenchange', function(){
+        setTimeout(function(){ map.invalidateSize(); }, 600);
+    });
     function getColorCode(c){ var m={'red':'#d32f2f','blue':'#1976d2','green':'#388e3c','orange':'#f57c00','purple':'#7b1fa2'}; return m[c]||'#388e3c'; }
     var allMarkers = [];
     // MARKER SALVATI - RIMANGONO - PICCOLI
@@ -2873,8 +2909,10 @@ elif cur == "Mappe Postazioni":
             <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
             <script>
             var markersDataBottom = """ + markers_for_js + """;
-            var mapB = L.map('preview_bottom').setView([45.8167, 8.8333], 12);
+            var mapB = L.map('preview_bottom', {zoomControl: false}).setView([45.8167, 8.8333], 12);
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(mapB);
+            L.control.zoom({position: 'topleft'}).addTo(mapB);
+            var FsBottom = L.Control.extend({onAdd: function(m){var cEl=L.DomUtil.create('div','leaflet-bar leaflet-control');cEl.style.background='white';cEl.style.width='34px';cEl.style.height='34px';cEl.style.lineHeight='34px';cEl.style.textAlign='center';cEl.style.cursor='pointer';cEl.style.fontSize='20px';cEl.innerHTML='⛶';cEl.title='Fullscreen 100%';cEl.onclick=function(){var contEl=document.getElementById('preview_bottom').parentElement;if(!document.fullscreenElement){if(contEl.requestFullscreen)contEl.requestFullscreen();}else{if(document.exitFullscreen)document.exitFullscreen();} setTimeout(function(){m.invalidateSize();},500);};return cEl;}}); new FsBottom({position:'topleft'}).addTo(mapB);
             function getColorCodeB(c){ var m={'red':'#d32f2f','blue':'#1976d2','green':'#388e3c','orange':'#f57c00','purple':'#7b1fa2'}; return m[c]||'#388e3c'; }
             var allB = [];
             markersDataBottom.forEach(function(md){
