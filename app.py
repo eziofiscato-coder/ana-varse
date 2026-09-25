@@ -2891,108 +2891,75 @@ elif cur == "Turni":
 
 elif cur == "Libreria Icone":
     hdr()
-    hdr_form("LIBRERIA ICONE - Icone per Mappe Postazioni - Anteprima + Quadratino")
+    hdr_form("LIBRERIA ICONE - Scegli tu il marker da usare su Mappe Postazioni")
 
     st.markdown("""
     <div style="background:#e8f5e9;padding:8px;border-radius:8px;border-left:4px solid #1A5D1A;margin-bottom:12px;">
-    <b>Carica icona personalizzata - Anteprima con quadratino come su mappa</b><br>
-    <small>Es: ambulanza.png - Formati: png, jpg, svg - File singolo, no doppia scritta</small>
+    <b>Qui crei le icone che poi usi su Mappe Postazioni - Decidi tu che marker usare - Ogni icona ha Emoji + Colore + Nome</b>
     </div>
     """, unsafe_allow_html=True)
 
+    # Icone predefinite se vuoto
     if not st.session_state.icone:
         st.session_state.icone = [
-            {"Nome": "Postazione", "Emoji": "📍", "Tipo": "Postazione", "Colore": "green", "Descrizione": "Postazione generica", "Data": datetime.now().strftime("%d/%m/%Y")},
+            {"Nome": "Emergenza", "Emoji": "🚨", "Tipo": "Emergenza", "Colore": "red", "Descrizione": "Emergenza", "Data": datetime.now().strftime("%d/%m/%Y")},
+            {"Nome": "Evento", "Emoji": "📅", "Tipo": "Evento", "Colore": "blue", "Descrizione": "Evento", "Data": datetime.now().strftime("%d/%m/%Y")},
+            {"Nome": "Mezzo", "Emoji": "🚐", "Tipo": "Mezzo", "Colore": "green", "Descrizione": "Mezzo", "Data": datetime.now().strftime("%d/%m/%Y")},
+            {"Nome": "Volontario", "Emoji": "👤", "Tipo": "Volontario", "Colore": "orange", "Descrizione": "Volontario", "Data": datetime.now().strftime("%d/%m/%Y")},
+            {"Nome": "Ospedale", "Emoji": "🏥", "Tipo": "Emergenza", "Colore": "red", "Descrizione": "Ospedale", "Data": datetime.now().strftime("%d/%m/%Y")},
+            {"Nome": "Incendio", "Emoji": "🔥", "Tipo": "Emergenza", "Colore": "red", "Descrizione": "Incendio", "Data": datetime.now().strftime("%d/%m/%Y")},
+            {"Nome": "Alluvione", "Emoji": "💧", "Tipo": "Emergenza", "Colore": "blue", "Descrizione": "Alluvione", "Data": datetime.now().strftime("%d/%m/%Y")},
+            {"Nome": "Radio", "Emoji": "📻", "Tipo": "Mezzo", "Colore": "purple", "Descrizione": "Radio", "Data": datetime.now().strftime("%d/%m/%Y")},
         ]
 
-    c1, c2, c3, c4 = st.columns([1,1,1,1])
+    c1, c2, c3, c4 = st.columns(4)
     with c1:
-        nome_icona = st.text_input("Nome Icona *", key="ico_nome", placeholder="Es: Ambulanza")
-        tipo_icona = st.selectbox("Tipo", ["Emergenza", "Evento", "Mezzo", "Volontario", "Postazione", "Punto Interesse", "Altro"], key="ico_tipo")
+        nome_icona = st.text_input("Nome Icona *", key="ico_nome", placeholder="Es: Postazione 1")
+        emoji_icona = st.text_input("Emoji Icona *", value="📍", key="ico_emoji", help="Inserisci emoji: 🚨 📅 🚐 👤 🏥 🔥 💧 📻 ⛑️ 🚒 🚑")
     with c2:
-        desc_icona = st.text_input("Descrizione", key="ico_desc", placeholder="Es: Ambulanza 118")
+        tipo_icona = st.selectbox("Tipo", ["Emergenza", "Evento", "Mezzo", "Volontario", "Postazione", "Punto Interesse", "Altro"], key="ico_tipo")
+        colore_icona = st.selectbox("Colore Marker", ["red", "blue", "green", "orange", "purple", "darkred", "darkblue", "cadetblue"], key="ico_colore")
     with c3:
-        file_icona = st.file_uploader("Carica icona", type=["png", "jpg", "jpeg", "svg"], key="ico_file")
-        if file_icona:
-            st.session_state["ico_file_bytes"] = file_icona.getvalue()
-            st.session_state["ico_file_name"] = file_icona.name
-            st.success(f"✅ {file_icona.name}")
+        desc_icona = st.text_input("Descrizione Icona", key="ico_desc", placeholder="Descrizione")
+        file_icona = st.file_uploader("File Icona (opzionale)", type=["png", "jpg", "svg"], key="ico_file")
     with c4:
-        st.markdown("**Anteprima icona caricata**")
-        if st.session_state.get("ico_file_bytes"):
-            try:
-                import base64 as b64lib
-                fb = st.session_state["ico_file_bytes"]
-                fname = st.session_state.get("ico_file_name","icona.png").lower()
-                mime = "image/png"
-                if fname.endswith(".jpg") or fname.endswith(".jpeg"): mime="image/jpeg"
-                elif fname.endswith(".svg"): mime="image/svg+xml"
-                b64 = b64lib.b64encode(fb).decode()
-                src = f"data:{mime};base64,{b64}"
-                st.markdown(f"""
-                <div style='background:white;padding:10px;border-radius:8px;border:2px solid #1A5D1A;text-align:center;'>
-                <div style='background:white;border:2px solid #1A5D1A;width:64px;height:64px;display:flex;align-items:center;justify-content:center;margin:0 auto 6px auto;overflow:hidden;padding:4px;border-radius:4px;'>
-                <img src="{src}" style="width:52px;height:52px;object-fit:contain;">
-                </div>
-                <b>{st.session_state.get('ico_nome','') or nome_icona or 'Nuova'}</b><br>
-                <small style='color:#1A5D1A;'>✅ Quadratino con icona</small>
-                </div>
-                """, unsafe_allow_html=True)
-                st.image(fb, width=100)
-                if st.button("🗑️ Rimuovi file", key="del_ico_file_preview"):
-                    st.session_state["ico_file_bytes"]=None
-                    st.session_state["ico_file_name"]=""
-                    st.rerun()
-            except Exception as e:
-                st.error(f"Errore: {e}")
-        else:
-            st.info("⬆️ Carica icona per anteprima")
-            st.markdown("<div style='background:#f5f5f5;border:2px dashed #1A5D1A;width:64px;height:64px;display:flex;align-items:center;justify-content:center;margin:0 auto;border-radius:4px;'><span style='font-size:28px;'>📷</span></div>", unsafe_allow_html=True)
+        st.markdown("**Anteprima**")
+        preview_emoji = st.session_state.get("ico_emoji", "📍") if "ico_emoji" in st.session_state else emoji_icona
+        st.markdown(f"<div style='font-size:40px;text-align:center;background:white;padding:10px;border-radius:8px;border:2px solid #1A5D1A;'>{preview_emoji}</div>", unsafe_allow_html=True)
 
     if st.button("💾 Salva Icona in Libreria", type="primary", use_container_width=True):
-        if nome_icona and st.session_state.get("ico_file_bytes"):
-            exists=False
+        if nome_icona and emoji_icona:
+            # Controlla se esiste già
+            exists = False
             for ico in st.session_state.icone:
-                if ico.get("Nome")==nome_icona:
-                    exists=True
+                if ico.get("Nome") == nome_icona:
+                    exists = True
                     break
             if not exists:
-                emoji_fallback="📍"
-                nl=nome_icona.lower()
-                if "ambulanza" in nl: emoji_fallback="🚑"
-                elif "polizia" in nl: emoji_fallback="🚓"
-                elif "vigili" in nl: emoji_fallback="🚒"
-                nuova={
+                st.session_state.icone.append({
                     "Nome": nome_icona,
-                    "Emoji": emoji_fallback,
+                    "Emoji": emoji_icona,
                     "Tipo": tipo_icona,
-                    "Colore": "green",
+                    "Colore": colore_icona,
                     "Descrizione": desc_icona,
-                    "Data": datetime.now().strftime("%d/%m/%Y %H:%M"),
-                    "FileBytes": st.session_state["ico_file_bytes"],
-                    "FileName": st.session_state.get("ico_file_name","")
-                }
-                st.session_state.icone.append(nuova)
-                st.success(f"✅ {nome_icona} salvata")
-                st.session_state["ico_file_bytes"]=None
-                st.session_state["ico_file_name"]=""
+                    "Data": datetime.now().strftime("%d/%m/%Y %H:%M")
+                })
+                st.success(f"Icona {emoji_icona} {nome_icona} salvata - Ora la puoi usare su Mappe Postazioni")
                 st.rerun()
             else:
-                st.warning("Nome già esistente")
+                st.warning("Nome già esistente - cambia nome")
         else:
-            if not nome_icona:
-                st.error("❌ Nome Icona")
-            else:
-                st.error("❌ Carica icona")
+            st.error("Nome e Emoji obbligatori")
 
     st.divider()
-    st.markdown(f"### Libreria Icone - {len(st.session_state.icone)} icone - Solo icona, no quadratino vecchio")
+    st.markdown(f"### Libreria Icone - {len(st.session_state.icone)} icone disponibili - Le usi su Mappe Postazioni")
 
     if st.session_state.icone:
         cols = st.columns(4)
         for idx, ico in enumerate(st.session_state.icone):
             col = cols[idx % 4]
             with col:
+                # FIX EZIO: solo icona, niente quadratino
                 if ico.get("FileBytes"):
                     try:
                         st.image(ico.get("FileBytes"), width=90)
@@ -3003,20 +2970,21 @@ elif cur == "Libreria Icone":
                 st.markdown(f"""
                 <div style="background:white;padding:8px;border-radius:8px;border:2px solid #1A5D1A;text-align:center;margin-bottom:8px;">
                 <b>{ico.get('Nome','')}</b><br>
-                <small>{ico.get('Tipo','')}</small>
+                <small>{ico.get('Tipo','')}</small><br>
+                <small>{ico.get('Descrizione','')}</small>
                 </div>
                 """, unsafe_allow_html=True)
                 if st.button(f"🗑️ Elimina {ico.get('Nome','')}", key=f"del_ico_{idx}"):
                     st.session_state.icone.pop(idx)
                     st.rerun()
         st.divider()
-        df_ico = pd.DataFrame([{k:v for k,v in ico.items() if k not in ["FileBytes"]} for ico in st.session_state.icone])
+        df_ico = pd.DataFrame(st.session_state.icone)
         st.dataframe(df_ico, use_container_width=True)
         st.download_button("Excel Libreria Icone", to_excel(df_ico), "libreria_icone.xlsx", use_container_width=True)
     else:
-        st.info("Nessuna icona")
+        st.info("Nessuna icona - Crea la prima icona sopra")
 
-
+# CHAT
 elif cur == "Chat":
     hdr()
     hdr_form("CHAT - Comunicazioni Squadra")
