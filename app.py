@@ -47,17 +47,15 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# CSS Globale - Times New Roman grassetto per tutti + Verde ANA
+# CSS Globale - Times New Roman grassetto per tutti + Verde ANA - FIX upload/download storpiati
 st.markdown(
     """
     <style>
-    * {
+    /* Solo form e testi normali in Times New Roman bold - NON su upload/download */
+    html, body {
         font-family: 'Times New Roman', Times, serif !important;
     }
-    html, body, [class*="css"] {
-        font-family: 'Times New Roman', Times, serif !important;
-    }
-    p, div, span, label, input, select, textarea, button {
+    p, div, span, label {
         font-family: 'Times New Roman', Times, serif !important;
         font-weight: bold !important;
     }
@@ -67,6 +65,32 @@ st.markdown(
         font-size: 14px !important;
         color: black !important;
     }
+    /* FIX UPLOAD/DOWNLOAD - Ripristina font normale per non storpiare scritte - Ezio */
+    [data-testid="stFileUploader"], [data-testid="stFileUploader"] * {
+        font-family: 'Source Sans Pro', sans-serif !important;
+        font-weight: normal !important;
+    }
+    [data-testid="stFileUploader"] button {
+        font-family: 'Source Sans Pro', sans-serif !important;
+        font-weight: 500 !important;
+        font-size: 14px !important;
+        background-color: white !important;
+        color: black !important;
+        border: 1px solid #d0d0d0 !important;
+    }
+    [data-testid="stFileUploader"] small {
+        font-family: 'Source Sans Pro', sans-serif !important;
+        font-weight: normal !important;
+        font-size: 12px !important;
+    }
+    /* Fix download button - non storpiare */
+    [data-testid="stDownloadButton"] button {
+        font-family: 'Times New Roman', Times, serif !important;
+        font-weight: bold !important;
+        font-size: 13px !important;
+        white-space: normal !important;
+        line-height: 1.3 !important;
+    }
     /* Bottoni dashboard verde ANA */
     div[data-testid="column"] .stButton > button {
         background-color: #1A5D1A !important;
@@ -75,6 +99,9 @@ st.markdown(
         font-weight: bold !important;
         font-family: 'Times New Roman', serif !important;
         font-size: 13px !important;
+        white-space: normal !important;
+        line-height: 1.2 !important;
+        padding: 6px 8px !important;
     }
     div[data-testid="column"] .stButton > button:hover {
         background-color: #2e7d32 !important;
