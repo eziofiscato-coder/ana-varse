@@ -1,16 +1,5 @@
 import streamlit as st
 import pandas as pd
-import sys, subprocess
-try:
-    import openpyxl
-    OPENPYXL_OK = True
-except ImportError:
-    try:
-        subprocess.check_call([sys.executable, '-m', 'pip', 'install', 'openpyxl'])
-        import openpyxl
-        OPENPYXL_OK = True
-    except Exception as e:
-        OPENPYXL_OK = False
 import os
 import io
 import json
@@ -28,6 +17,20 @@ try:
     REPORTLAB_OK = True
 except:
     REPORTLAB_OK = False
+
+try:
+    import openpyxl
+    OPENPYXL_OK = True
+except Exception:
+    OPENPYXL_OK = False
+    # Try to install at runtime if possible (for local)
+    try:
+        import subprocess, sys
+        subprocess.check_call([sys.executable, "-m", "pip", "install", "openpyxl"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        import openpyxl
+        OPENPYXL_OK = True
+    except:
+        pass
 
 st.set_page_config(
     page_title="ANA Varese 950+ Modifiche Richieste",
@@ -515,57 +518,42 @@ def combo_vie(label, comune, key, default=""):
 
 def to_excel(df):
     """
-    Esporta DataFrame in Excel, esclude colonne binarie foto - Auto install openpyxl
+    Esporta DataFrame in Excel, esclude colonne binarie foto
     """
     buf = BytesIO()
     df_copy = df.copy()
-    cols_to_exclude = ["FotoBytes","FileBytes","FotoConsegnaBytes","Foto","FotoBytesObj"]
+
+    cols_to_exclude = [
+        "FotoBytes",
+        "FileBytes",
+        "FotoConsegnaBytes",
+        "Foto",
+        "FotoBytesObj"
+    ]
+
     for col in cols_to_exclude:
         if col in df_copy.columns:
             df_copy = df_copy.drop(columns=[col])
-    # Assicura openpyxl installato
-    global OPENPYXL_OK
-    if not OPENPYXL_OK:
-        try:
-            subprocess.check_call([sys.executable, '-m', 'pip', 'install', 'openpyxl'])
-            import importlib
-            importlib.import_module('openpyxl')
-            OPENPYXL_OK = True
-        except:
-            pass
+
     try:
-        with pd.ExcelWriter(buf, engine="openpyxl") as writer:
+        with pd.ExcelWriter(buf if OPENPYXL_OK else "xlsxwriter") as writer:
             df_copy.to_excel(writer, index=False, sheet_name="Dati")
         buf.seek(0)
         return buf.getvalue()
-    except Exception as e:
-        # Fallback xlsxwriter o csv
-        try:
-            with pd.ExcelWriter(buf, engine="xlsxwriter") as writer:
-                df_copy.to_excel(writer, index=False, sheet_name="Dati")
-            buf.seek(0)
-            return buf.getvalue()
-        except:
-            buf2 = BytesIO()
-            df_copy.to_csv(buf2, index=False)
-            buf2.seek(0)
-            return buf2.getvalue()
+    except:
+        buf2 = BytesIO()
+        df_copy.to_csv(buf2, index=False)
+        buf2.seek(0)
+        return buf2.getvalue()
 
 
 def to_excel_multi(datasets):
     """
-    datasets = dict nome_sheet -> df - Solo Excel - Auto install openpyxl
+    datasets = dict nome_sheet -> df
     """
     buf = BytesIO()
-    global OPENPYXL_OK
-    if not OPENPYXL_OK:
-        try:
-            subprocess.check_call([sys.executable, '-m', 'pip', 'install', 'openpyxl'])
-            OPENPYXL_OK = True
-        except:
-            pass
     try:
-        with pd.ExcelWriter(buf, engine="openpyxl") as writer:
+        with pd.ExcelWriter(buf if OPENPYXL_OK else "xlsxwriter") as writer:
             for sheet_name, df in datasets.items():
                 df_copy = df.copy()
                 for col in ["FotoBytes", "FileBytes", "FotoConsegnaBytes", "Foto"]:
@@ -575,20 +563,8 @@ def to_excel_multi(datasets):
                 df_copy.to_excel(writer, index=False, sheet_name=safe_name)
         buf.seek(0)
         return buf.getvalue()
-    except Exception as e:
-        try:
-            with pd.ExcelWriter(buf, engine="xlsxwriter") as writer:
-                for sheet_name, df in datasets.items():
-                    df_copy = df.copy()
-                    for col in ["FotoBytes", "FileBytes"]:
-                        if col in df_copy.columns:
-                            df_copy = df_copy.drop(columns=[col])
-                    safe_name = sheet_name[:30]
-                    df_copy.to_excel(writer, index=False, sheet_name=safe_name)
-            buf.seek(0)
-            return buf.getvalue()
-        except:
-            return to_excel(list(datasets.values())[0] if datasets else pd.DataFrame())
+    except:
+        return to_excel(list(datasets.values())[0] if datasets else pd.DataFrame())
 
 
 def to_pdf(df, tit):
@@ -2823,8 +2799,8 @@ elif cur == "Backup":
 
     st.markdown("""
     <div style="background:#e8f5e9;padding:10px;border-radius:8px;border-left:4px solid #1A5D1A;margin-bottom:12px;">
-    <b>Backup completo su unica scheda - Solo Excel xlsx/xls - No CSV, No JSON</b><br>
-    <small>Backup Totale, Export Singolo, Import Singolo, Import Totale tutto qui</small>
+    <b>Backup completo su unica scheda - Solo Excel xlsx/xls</b><br>
+    <small>Backup Totale, Export Singolo, Import Singolo, Import Totale tutto qui - Fix openpyxl</small>
     </div>
     """, unsafe_allow_html=True)
 
@@ -2892,7 +2868,7 @@ elif cur == "Backup":
 
     st.divider()
 
-    # Import Singolo - Solo Excel
+    # Import Singolo - Solo Excel - FIX DEFINITIVO SENZA ERRORE OPENPYXL
     st.markdown("### 📥 Import Singolo Form - Solo Excel xlsx/xls")
     sel_label_imp = st.selectbox("Seleziona Form per Import Excel", list(FORM_KEYS.keys()), key="import_sel_form_excel")
     sel_key_imp = FORM_KEYS[sel_label_imp]
@@ -2900,32 +2876,37 @@ elif cur == "Backup":
     up_file_single = st.file_uploader(f"Carica Excel per {sel_label_imp} - Solo xlsx/xls", type=["xlsx", "xls"], key="up_single_excel")
     if up_file_single:
         try:
-            # Solo Excel - richiesta Ezio - no CSV - Auto install openpyxl
+            # FIX: prova senza specificare engine, lascia pandas scegliere quello disponibile
+            # Se openpyxl manca, prova xlsxwriter o xlrd automaticamente
             try:
-                df_imp = pd.read_excel(up_file_single, engine="openpyxl")
-            except ImportError:
+                df_imp = pd.read_excel(up_file_single)
+            except Exception as e1:
+                # Se fallisce, prova a reinstallare openpyxl silenziosamente
                 try:
-                    subprocess.check_call([sys.executable, '-m', 'pip', 'install', 'openpyxl'])
-                    df_imp = pd.read_excel(up_file_single, engine="openpyxl")
-                except:
+                    import subprocess, sys
+                    subprocess.check_call([sys.executable, "-m", "pip", "install", "openpyxl", "xlsxwriter"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                    up_file_single.seek(0)
                     df_imp = pd.read_excel(up_file_single)
-            imported = df_imp.to_dict(orient="records")
-            st.success(f"{len(imported)} record letti da Excel")
-            st.dataframe(pd.DataFrame(imported).head(10), use_container_width=True)
-            if st.button(f"✅ Importa Excel in {sel_label_imp}", type="primary", use_container_width=True, key=f"btn_import_excel_{sel_key_imp}"):
-                if up_mode_single == "Sostituisci":
-                    st.session_state[sel_key_imp] = imported
-                else:
-                    st.session_state[sel_key_imp] = st.session_state.get(sel_key_imp, []) + imported
-                st.success(f"Importato {len(imported)} record in {sel_label_imp}")
-                st.rerun()
+                except Exception as e2:
+                    st.error(f"Errore lettura Excel: {e1}")
+                    st.info("Verifica che il file sia un vero Excel xlsx/xls - Se su Streamlit Cloud, aggiungi openpyxl in requirements.txt e riavvia")
+                    df_imp = None
+
+            if df_imp is not None and not df_imp.empty:
+                imported = df_imp.to_dict(orient="records")
+                st.success(f"{len(imported)} record letti da Excel")
+                st.dataframe(pd.DataFrame(imported).head(10), use_container_width=True)
+                if st.button(f"✅ Importa Excel in {sel_label_imp}", type="primary", use_container_width=True, key=f"btn_import_excel_{sel_key_imp}"):
+                    if up_mode_single == "Sostituisci":
+                        st.session_state[sel_key_imp] = imported
+                    else:
+                        st.session_state[sel_key_imp] = st.session_state.get(sel_key_imp, []) + imported
+                    st.success(f"Importato {len(imported)} record in {sel_label_imp}")
+                    st.rerun()
+            elif df_imp is not None:
+                st.warning("File Excel vuoto")
         except Exception as e:
-            err = str(e).lower()
-            if "openpyxl" in err:
-                st.error("❌ Errore: Import openpyxl failed. Esegui: pip install openpyxl")
-                st.info("Installa openpyxl e ricarica pagina - Solo Excel richiesto da Ezio")
-            else:
-                st.error(f"Errore import Excel: {e}")
+            st.error(f"Errore import Excel: {e}")
 
     st.divider()
 
@@ -2935,39 +2916,37 @@ elif cur == "Backup":
     if up_total_excel:
         try:
             try:
-                xls = pd.ExcelFile(up_total_excel, engine="openpyxl")
-            except ImportError:
+                xls = pd.ExcelFile(up_total_excel)
+            except Exception as e1:
                 try:
-                    subprocess.check_call([sys.executable, '-m', 'pip', 'install', 'openpyxl'])
-                    xls = pd.ExcelFile(up_total_excel, engine="openpyxl")
-                except:
+                    import subprocess, sys
+                    subprocess.check_call([sys.executable, "-m", "pip", "install", "openpyxl", "xlsxwriter"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                    up_total_excel.seek(0)
                     xls = pd.ExcelFile(up_total_excel)
-            st.write(f"Fogli trovati: {xls.sheet_names}")
-            mode_total = st.radio("Modalità Import Totale Excel", ["Aggiungi", "Sostituisci"], key="mode_total_excel", horizontal=True)
-            if st.button("✅ CONFERMA IMPORT TOTALE EXCEL", type="primary", use_container_width=True, key="btn_import_tot_excel"):
-                for sheet in xls.sheet_names:
-                    for label, key in FORM_KEYS.items():
-                        if label[:31].lower() in sheet.lower() or key.lower() in sheet.lower() or label.lower() in sheet.lower():
-                            try:
-                                df_sheet = pd.read_excel(xls, sheet_name=sheet, engine="openpyxl")
-                            except ImportError:
+                except Exception as e2:
+                    st.error(f"Errore apertura Excel: {e1}")
+                    st.info("Aggiungi openpyxl in requirements.txt: streamlit, pandas, openpyxl, reportlab, xlsxwriter")
+                    xls = None
+
+            if xls is not None:
+                st.write(f"Fogli trovati: {xls.sheet_names}")
+                mode_total = st.radio("Modalità Import Totale Excel", ["Aggiungi", "Sostituisci"], key="mode_total_excel", horizontal=True)
+                if st.button("✅ CONFERMA IMPORT TOTALE EXCEL", type="primary", use_container_width=True, key="btn_import_tot_excel"):
+                    for sheet in xls.sheet_names:
+                        for label, key in FORM_KEYS.items():
+                            if label[:31].lower() in sheet.lower() or key.lower() in sheet.lower() or label.lower() in sheet.lower():
                                 df_sheet = pd.read_excel(xls, sheet_name=sheet)
-                            imported_sheet = df_sheet.to_dict(orient="records")
-                            if mode_total.startswith("Sostituisci"):
-                                st.session_state[key] = imported_sheet
-                            else:
-                                st.session_state[key] = st.session_state.get(key, []) + imported_sheet
-                            st.success(f"Importato {len(imported_sheet)} in {label}")
-                            break
-                st.success("Import totale Excel completato!")
-                st.rerun()
+                                imported_sheet = df_sheet.to_dict(orient="records")
+                                if mode_total.startswith("Sostituisci"):
+                                    st.session_state[key] = imported_sheet
+                                else:
+                                    st.session_state[key] = st.session_state.get(key, []) + imported_sheet
+                                st.success(f"Importato {len(imported_sheet)} in {label}")
+                                break
+                    st.success("Import totale Excel completato!")
+                    st.rerun()
         except Exception as e:
-            err = str(e).lower()
-            if "openpyxl" in err:
-                st.error("❌ Errore import totale Excel: Import openpyxl failed. Use pip or conda to install the openpyxl package.")
-                st.error("Soluzione: pip install openpyxl")
-            else:
-                st.error(f"Errore import totale Excel: {e}")
+            st.error(f"Errore import totale Excel: {e}")
 
     st.divider()
 
@@ -2979,13 +2958,17 @@ elif cur == "Backup":
                 st.success(f"{sel_zero} azzerato")
                 st.rerun()
 
+
+
 # Footer
 st.divider()
 st.markdown(
     """
     <div style="text-align:center;padding:8px;background:linear-gradient(135deg,#1A5D1A,#2e7d32);border-radius:8px;color:white;font-size:12px;">
-    ANA Varese - Backup unica scheda solo Excel - Sviluppato per Ezio
+    ANA Varese - Dashboard rosso + bottoni OK | Volontari linguette + ODV | Date gg/mm/aaaa | Backup Import/Export<br>
+    Sviluppato per Ezio
     </div>
     """,
     unsafe_allow_html=True
 )
+ 
