@@ -2383,28 +2383,59 @@ elif cur == "Check-in":
 
 elif cur == "Interventi Emergenza":
     hdr()
-    hdr_form("INTERVENTI EMERGENZA - Modifica 4 Stato Colore Fondo Campo")
+    hdr_form("INTERVENTI EMERGENZA - Stato Colore + Icona da Libreria")
 
     st.markdown(
         """
-        <p style="font-family:Times New Roman;font-weight:bold;color:black;
-        background:#e8f5e9;padding:8px;border-radius:6px;">
-        Modifica 4: Campo Stato con fondo colorato come richiesto
-        </p>
+        <div style="background:#e8f5e9;padding:10px;border-radius:8px;border-left:4px solid #1A5D1A;margin-bottom:10px;">
+        <b>NUOVO:</b> Ora puoi caricare un'icona dalla Libreria Icone per ogni intervento!
+        </div>
         """,
         unsafe_allow_html=True
     )
+
+    # Prepara lista icone da Libreria Icone - Richiesta Ezio
+    icone_lib = st.session_state.get("icone", [])
+    if not icone_lib:
+        icone_lib = [
+            {"Nome": "Emergenza", "Emoji": "🚨", "Tipo": "Emergenza", "Colore": "red"},
+            {"Nome": "Soccorso", "Emoji": "⛑️", "Tipo": "Emergenza", "Colore": "red"},
+            {"Nome": "Mezzo", "Emoji": "🚐", "Tipo": "Mezzo", "Colore": "green"},
+            {"Nome": "Logistica", "Emoji": "📦", "Tipo": "Logistica", "Colore": "blue"},
+        ]
+    
+    # Crea opzioni per selectbox: Emoji + Nome
+    icone_options = ["-- Nessuna Icona --"]
+    icone_map = {"-- Nessuna Icona --": None}
+    for ico in icone_lib:
+        label = f"{ico.get('Emoji','📍')} {ico.get('Nome','')} - {ico.get('Tipo','')} ({ico.get('Colore','')})"
+        icone_options.append(label)
+        icone_map[label] = ico
 
     c1, c2, c3 = st.columns(3)
     with c1:
         tipo_int = st.selectbox("Tipo Intervento", ["Soccorso", "Logistica", "Monitoraggio", "Bonifica", "Altro"], key="int_tipo")
         squadra_int = st.selectbox("Squadra", ["Squadra A", "Squadra B", "Squadra C", "Logistica"], key="int_squadra")
         data_int = st.date_input("Data Intervento", value=date.today(), format="DD/MM/YYYY", key="int_data")
+        # ICONA DA LIBRERIA - Richiesta Ezio
+        icona_sel_label = st.selectbox("Icona da Libreria Icone", icone_options, index=0, key="int_icona", help="Scegli icona creata in Libreria Icone")
+        sel_ico_obj = icone_map.get(icona_sel_label)
 
     with c2:
         comune_int = combo_comune("Comune Intervento", "int_comune", "Varese")
         via_int = combo_vie("Via Intervento", comune_int, "int_via", "")
         ora_int = st.time_input("Ora Intervento", value=datetime.now().time(), key="int_ora")
+        # Anteprima icona selezionata
+        if sel_ico_obj:
+            st.markdown(f"""
+            <div style="background:white;padding:10px;border-radius:8px;border:2px solid #1A5D1A;text-align:center;margin-top:8px;">
+            <div style="font-size:32px;">{sel_ico_obj.get('Emoji','📍')}</div>
+            <b>{sel_ico_obj.get('Nome','')}</b><br>
+            <small>{sel_ico_obj.get('Tipo','')} - {sel_ico_obj.get('Colore','')}</small>
+            </div>
+            """, unsafe_allow_html=True)
+        else:
+            st.info("Nessuna icona selezionata - Vai in Libreria Icone per crearne")
 
     with c3:
         # MODIFICA 4 - STATO CON COLORE FONDO CAMPO
@@ -2422,19 +2453,8 @@ elif cur == "Interventi Emergenza":
             text-align:center;font-weight:bold;font-size:16px;
             margin-top:10px;box-shadow:0 2px 8px rgba(0,0,0,0.3);">
             STATO SELEZIONATO: {label}<br>
-            Fondo campo colorato come richiesto - Modifica 4
+            Fondo campo colorato - Modifica 4
             </div>
-            """,
-            unsafe_allow_html=True
-        )
-
-        st.markdown(
-            f"""
-            <style>
-            div[data-testid='stSelectbox'] div[data-baseweb='select'] {{
-                transition: all 0.3s ease;
-            }}
-            </style>
             """,
             unsafe_allow_html=True
         )
@@ -2443,9 +2463,9 @@ elif cur == "Interventi Emergenza":
     mezzi_int = st.text_input("Mezzi Utilizzati", key="int_mezzi")
     volontari_int = st.text_input("Volontari Coinvolti", key="int_vol")
 
-    if st.button("Salva Intervento Emergenza", type="primary", use_container_width=True):
+    if st.button("Salva Intervento Emergenza con Icona", type="primary", use_container_width=True):
         if desc_int:
-            st.session_state.interventi.append({
+            new_intervento = {
                 "Tipo": tipo_int,
                 "Squadra": squadra_int,
                 "Data": str(data_int),
@@ -2457,10 +2477,20 @@ elif cur == "Interventi Emergenza":
                 "StatoColoreTxt": txt_color,
                 "Descrizione": desc_int,
                 "Mezzi": mezzi_int,
-                "Volontari": volontari_int
-            })
-            st.success(f"Intervento salvato con stato {label} colorato {bg_color}")
+                "Volontari": volontari_int,
+                "IconaLabel": icona_sel_label,
+                "IconaNome": sel_ico_obj.get("Nome","") if sel_ico_obj else "",
+                "IconaEmoji": sel_ico_obj.get("Emoji","") if sel_ico_obj else "",
+                "IconaColore": sel_ico_obj.get("Colore","") if sel_ico_obj else "",
+                "IconaTipo": sel_ico_obj.get("Tipo","") if sel_ico_obj else ""
+            }
+            st.session_state.interventi.append(new_intervento)
+            icona_msg = f" con icona {sel_ico_obj.get('Emoji','')} {sel_ico_obj.get('Nome','')}" if sel_ico_obj else ""
+            st.success(f"Intervento salvato con stato {label} colorato {bg_color}{icona_msg}")
+            st.balloons()
             st.rerun()
+        else:
+            st.error("Compila Descrizione Intervento *")
 
     if st.session_state.interventi:
         st.divider()
