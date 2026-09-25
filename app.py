@@ -113,10 +113,18 @@ st.markdown(
     }
     .fullscreen-btn-all:hover { background: #f4f4f4 !important; }
 
-    /* Fullscreen rosso */
+    /* Fullscreen rosso + 100% */
     button#fs-btn, button[key="btn_fullscreen_dash"], button[key="btn_fs_mappa"] {
         background-color: #ff0000 !important;
         border-color: #ff0000 !important;
+    }
+    /* Fullscreen 100% tutto schermo */
+    :fullscreen {
+        width: 100vw !important;
+        height: 100vh !important;
+    }
+    ::backdrop {
+        background: white !important;
     }
     /* Tab linguette Times New Roman bold */
     .stTabs [data-baseweb="tab-list"] button {
@@ -2733,7 +2741,7 @@ elif cur == "Mappe Postazioni":
     var map = L.map('map', {zoomControl: false}).setView([45.8167, 8.8333], 13);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {attribution: 'ANA Varese'}).addTo(map);
     L.control.zoom({position: 'topleft'}).addTo(map);
-    // TASTO FULLSCREEN 100% SULLA MAPPA - Ezio - SOTTO + -
+    // TASTO FULLSCREEN 100% TUTTO LO SCHERMO - Ezio - SOTTO + - 100% vero fullscreen
     var FullscreenControl = L.Control.extend({
         onAdd: function(map) {
             var container = L.DomUtil.create('div', 'leaflet-bar leaflet-control');
@@ -2748,17 +2756,57 @@ elif cur == "Mappe Postazioni":
             container.style.border = '2px solid rgba(0,0,0,0.2)';
             container.style.borderRadius = '4px';
             container.innerHTML = '⛶';
-            container.title = 'Schermo intero 100%';
+            container.title = 'Schermo intero 100% - Tutto lo schermo';
             container.onclick = function(){
                 var mapContainer = document.getElementById('map');
-                var parentContainer = mapContainer.parentElement;
-                if (!document.fullscreenElement) {
-                    if (parentContainer.requestFullscreen) parentContainer.requestFullscreen();
-                    else if (parentContainer.webkitRequestFullscreen) parentContainer.webkitRequestFullscreen();
-                    else if (mapContainer.requestFullscreen) mapContainer.requestFullscreen();
-                } else {
-                    if (document.exitFullscreen) document.exitFullscreen();
-                    else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
+                var parentContainer = document.getElementById('map-container');
+                var rootContainer = document.documentElement;
+                // Prova fullscreen su tutto lo schermo 100%
+                try {
+                    if (!document.fullscreenElement) {
+                        // Prova prima il container mappa grande a 100%
+                        if (parentContainer.requestFullscreen) {
+                            parentContainer.requestFullscreen();
+                        } else if (rootContainer.requestFullscreen) {
+                            rootContainer.requestFullscreen();
+                        } else if (mapContainer.requestFullscreen) {
+                            mapContainer.requestFullscreen();
+                        } else {
+                            // Fallback: prova parent window (Streamlit iframe parent)
+                            try {
+                                var parentDoc = window.parent.document;
+                                var iframe = parentDoc.querySelector('iframe[title*="st.components"]');
+                                if (iframe && iframe.requestFullscreen) iframe.requestFullscreen();
+                                else if (parentDoc.documentElement.requestFullscreen) parentDoc.documentElement.requestFullscreen();
+                            } catch(e) {
+                                console.log('Fullscreen parent failed', e);
+                            }
+                        }
+                        // Imposta mappa a 100vh in fullscreen
+                        setTimeout(function(){
+                            parentContainer.style.width = '100vw';
+                            parentContainer.style.height = '100vh';
+                            mapContainer.style.height = '100vh';
+                            map.invalidateSize();
+                        }, 100);
+                    } else {
+                        if (document.exitFullscreen) document.exitFullscreen();
+                        else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
+                        try {
+                            var parentDoc = window.parent.document;
+                            if (parentDoc.exitFullscreen) parentDoc.exitFullscreen();
+                            else if (parentDoc.webkitExitFullscreen) parentDoc.webkitExitFullscreen();
+                        } catch(e) {}
+                        // Ripristina dimensioni normali
+                        setTimeout(function(){
+                            parentContainer.style.width = '100%';
+                            parentContainer.style.height = '';
+                            mapContainer.style.height = '650px';
+                            map.invalidateSize();
+                        }, 100);
+                    }
+                } catch(err) {
+                    console.log('Fullscreen error', err);
                 }
                 setTimeout(function(){ map.invalidateSize(); }, 600);
             };
@@ -2766,9 +2814,53 @@ elif cur == "Mappe Postazioni":
         }
     });
     new FullscreenControl({position: 'topleft'}).addTo(map);
+    // Listener per gestire fullscreen 100% - mappa diventa 100vh
     document.addEventListener('fullscreenchange', function(){
+        var mapContainer = document.getElementById('map');
+        var parentContainer = document.getElementById('map-container');
+        if (document.fullscreenElement) {
+            // In fullscreen: mappa 100% schermo
+            parentContainer.style.width = '100vw';
+            parentContainer.style.height = '100vh';
+            parentContainer.style.background = 'white';
+            mapContainer.style.height = '100vh';
+            mapContainer.style.borderRadius = '0';
+        } else {
+            // Fuori fullscreen: ripristina
+            parentContainer.style.width = '100%';
+            parentContainer.style.height = '';
+            parentContainer.style.background = '';
+            mapContainer.style.height = '650px';
+            mapContainer.style.borderRadius = '12px';
+        }
         setTimeout(function(){ map.invalidateSize(); }, 600);
     });
+    // CSS per fullscreen 100% vero
+    var style = document.createElement('style');
+    style.innerHTML = `
+        #map-container:fullscreen {
+            width: 100vw !important;
+            height: 100vh !important;
+            background: white !important;
+            padding: 0 !important;
+            margin: 0 !important;
+        }
+        #map-container:fullscreen #map {
+            height: 100vh !important;
+            width: 100vw !important;
+            border-radius: 0 !important;
+            border: none !important;
+        }
+        #map:fullscreen {
+            width: 100vw !important;
+            height: 100vh !important;
+        }
+        :-webkit-full-screen {
+            width: 100vw !important;
+            height: 100vh !important;
+        }
+    `;
+    document.head.appendChild(style);
     function getColorCode(c){ var m={'red':'#d32f2f','blue':'#1976d2','green':'#388e3c','orange':'#f57c00','purple':'#7b1fa2'}; return m[c]||'#388e3c'; }
     var allMarkers = [];
     // MARKER SALVATI - RIMANGONO - PICCOLI
