@@ -1358,6 +1358,14 @@ elif cur == "Volontari (con foto)":
                 st.rerun()
             except:
                 pass
+
+        st.divider()
+        c_exp1, c_exp2 = st.columns(2)
+        with c_exp1:
+            st.download_button("📊 Excel Volontari", data=to_excel(df_vol), file_name="volontari.xlsx", mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", use_container_width=True, key="excel_vol")
+        with c_exp2:
+            if REPORTLAB_OK:
+                st.download_button("📄 PDF Volontari con Logo Estesa", data=to_pdf(df_vol, "VOLONTARI"), file_name="volontari.pdf", mime="application/pdf", use_container_width=True, key="pdf_vol")
     else:
         st.info("Nessun volontario inserito")
 
@@ -1477,7 +1485,12 @@ elif cur == "Alias Radio":
     if st.session_state.alias_radio:
         df_al = pd.DataFrame(st.session_state.alias_radio)
         st.dataframe(df_al, use_container_width=True)
-        st.download_button("Excel Alias", to_excel(df_al), "alias.xlsx", use_container_width=True)
+        c1,c2 = st.columns(2)
+        with c1:
+            st.download_button("📊 Excel Alias", to_excel(df_al), "alias.xlsx", use_container_width=True, key="excel_alias")
+        with c2:
+            if REPORTLAB_OK:
+                st.download_button("📄 PDF Alias con Logo Estesa", data=to_pdf(df_al, "ALIAS RADIO"), file_name="alias.pdf", mime="application/pdf", use_container_width=True, key="pdf_alias")
 
 # BROGLIACCIO
 elif cur == "Brogliaccio":
@@ -1973,7 +1986,12 @@ elif cur == "Check-in":
     if st.session_state.checkin:
         df_ch = pd.DataFrame(st.session_state.checkin)
         st.dataframe(df_ch, use_container_width=True)
-        st.download_button("Excel Check-in", to_excel(df_ch), "checkin.xlsx", use_container_width=True)
+        c1,c2 = st.columns(2)
+        with c1:
+            st.download_button("📊 Excel Check-in", to_excel(df_ch), "checkin.xlsx", use_container_width=True, key="excel_checkin")
+        with c2:
+            if REPORTLAB_OK:
+                st.download_button("📄 PDF Check-in con Logo Estesa", data=to_pdf(df_ch, "CHECK-IN"), file_name="checkin.pdf", mime="application/pdf", use_container_width=True, key="pdf_checkin")
 
 # INTERVENTI EMERGENZA - MODIFICA 4 STATO COLORE FONDO CAMPO
 elif cur == "Interventi Emergenza":
@@ -2891,75 +2909,108 @@ elif cur == "Turni":
 
 elif cur == "Libreria Icone":
     hdr()
-    hdr_form("LIBRERIA ICONE - Scegli tu il marker da usare su Mappe Postazioni")
+    hdr_form("LIBRERIA ICONE - Icone per Mappe Postazioni - Anteprima + Quadratino")
 
     st.markdown("""
     <div style="background:#e8f5e9;padding:8px;border-radius:8px;border-left:4px solid #1A5D1A;margin-bottom:12px;">
-    <b>Qui crei le icone che poi usi su Mappe Postazioni - Decidi tu che marker usare - Ogni icona ha Emoji + Colore + Nome</b>
+    <b>Carica icona personalizzata - Anteprima con quadratino come su mappa</b><br>
+    <small>Es: ambulanza.png - Formati: png, jpg, svg - File singolo, no doppia scritta</small>
     </div>
     """, unsafe_allow_html=True)
 
-    # Icone predefinite se vuoto
     if not st.session_state.icone:
         st.session_state.icone = [
-            {"Nome": "Emergenza", "Emoji": "🚨", "Tipo": "Emergenza", "Colore": "red", "Descrizione": "Emergenza", "Data": datetime.now().strftime("%d/%m/%Y")},
-            {"Nome": "Evento", "Emoji": "📅", "Tipo": "Evento", "Colore": "blue", "Descrizione": "Evento", "Data": datetime.now().strftime("%d/%m/%Y")},
-            {"Nome": "Mezzo", "Emoji": "🚐", "Tipo": "Mezzo", "Colore": "green", "Descrizione": "Mezzo", "Data": datetime.now().strftime("%d/%m/%Y")},
-            {"Nome": "Volontario", "Emoji": "👤", "Tipo": "Volontario", "Colore": "orange", "Descrizione": "Volontario", "Data": datetime.now().strftime("%d/%m/%Y")},
-            {"Nome": "Ospedale", "Emoji": "🏥", "Tipo": "Emergenza", "Colore": "red", "Descrizione": "Ospedale", "Data": datetime.now().strftime("%d/%m/%Y")},
-            {"Nome": "Incendio", "Emoji": "🔥", "Tipo": "Emergenza", "Colore": "red", "Descrizione": "Incendio", "Data": datetime.now().strftime("%d/%m/%Y")},
-            {"Nome": "Alluvione", "Emoji": "💧", "Tipo": "Emergenza", "Colore": "blue", "Descrizione": "Alluvione", "Data": datetime.now().strftime("%d/%m/%Y")},
-            {"Nome": "Radio", "Emoji": "📻", "Tipo": "Mezzo", "Colore": "purple", "Descrizione": "Radio", "Data": datetime.now().strftime("%d/%m/%Y")},
+            {"Nome": "Postazione", "Emoji": "📍", "Tipo": "Postazione", "Colore": "green", "Descrizione": "Postazione generica", "Data": datetime.now().strftime("%d/%m/%Y")},
         ]
 
-    c1, c2, c3, c4 = st.columns(4)
+    c1, c2, c3, c4 = st.columns([1,1,1,1])
     with c1:
-        nome_icona = st.text_input("Nome Icona *", key="ico_nome", placeholder="Es: Postazione 1")
-        emoji_icona = st.text_input("Emoji Icona *", value="📍", key="ico_emoji", help="Inserisci emoji: 🚨 📅 🚐 👤 🏥 🔥 💧 📻 ⛑️ 🚒 🚑")
-    with c2:
+        nome_icona = st.text_input("Nome Icona *", key="ico_nome", placeholder="Es: Ambulanza")
         tipo_icona = st.selectbox("Tipo", ["Emergenza", "Evento", "Mezzo", "Volontario", "Postazione", "Punto Interesse", "Altro"], key="ico_tipo")
-        colore_icona = st.selectbox("Colore Marker", ["red", "blue", "green", "orange", "purple", "darkred", "darkblue", "cadetblue"], key="ico_colore")
+    with c2:
+        desc_icona = st.text_input("Descrizione", key="ico_desc", placeholder="Es: Ambulanza 118")
     with c3:
-        desc_icona = st.text_input("Descrizione Icona", key="ico_desc", placeholder="Descrizione")
-        file_icona = st.file_uploader("File Icona (opzionale)", type=["png", "jpg", "svg"], key="ico_file")
+        file_icona = st.file_uploader("Carica icona", type=["png", "jpg", "jpeg", "svg"], key="ico_file")
+        if file_icona:
+            st.session_state["ico_file_bytes"] = file_icona.getvalue()
+            st.session_state["ico_file_name"] = file_icona.name
+            st.success(f"✅ {file_icona.name}")
     with c4:
-        st.markdown("**Anteprima**")
-        preview_emoji = st.session_state.get("ico_emoji", "📍") if "ico_emoji" in st.session_state else emoji_icona
-        st.markdown(f"<div style='font-size:40px;text-align:center;background:white;padding:10px;border-radius:8px;border:2px solid #1A5D1A;'>{preview_emoji}</div>", unsafe_allow_html=True)
+        st.markdown("**Anteprima icona caricata**")
+        if st.session_state.get("ico_file_bytes"):
+            try:
+                import base64 as b64lib
+                fb = st.session_state["ico_file_bytes"]
+                fname = st.session_state.get("ico_file_name","icona.png").lower()
+                mime = "image/png"
+                if fname.endswith(".jpg") or fname.endswith(".jpeg"): mime="image/jpeg"
+                elif fname.endswith(".svg"): mime="image/svg+xml"
+                b64 = b64lib.b64encode(fb).decode()
+                src = f"data:{mime};base64,{b64}"
+                st.markdown(f"""
+                <div style='background:white;padding:10px;border-radius:8px;border:2px solid #1A5D1A;text-align:center;'>
+                <div style='background:white;border:2px solid #1A5D1A;width:64px;height:64px;display:flex;align-items:center;justify-content:center;margin:0 auto 6px auto;overflow:hidden;padding:4px;border-radius:4px;'>
+                <img src="{src}" style="width:52px;height:52px;object-fit:contain;">
+                </div>
+                <b>{st.session_state.get('ico_nome','') or nome_icona or 'Nuova'}</b><br>
+                <small style='color:#1A5D1A;'>✅ Quadratino con icona</small>
+                </div>
+                """, unsafe_allow_html=True)
+                st.image(fb, width=100)
+                if st.button("🗑️ Rimuovi file", key="del_ico_file_preview"):
+                    st.session_state["ico_file_bytes"]=None
+                    st.session_state["ico_file_name"]=""
+                    st.rerun()
+            except Exception as e:
+                st.error(f"Errore: {e}")
+        else:
+            st.info("⬆️ Carica icona per anteprima")
+            st.markdown("<div style='background:#f5f5f5;border:2px dashed #1A5D1A;width:64px;height:64px;display:flex;align-items:center;justify-content:center;margin:0 auto;border-radius:4px;'><span style='font-size:28px;'>📷</span></div>", unsafe_allow_html=True)
 
     if st.button("💾 Salva Icona in Libreria", type="primary", use_container_width=True):
-        if nome_icona and emoji_icona:
-            # Controlla se esiste già
-            exists = False
+        if nome_icona and st.session_state.get("ico_file_bytes"):
+            exists=False
             for ico in st.session_state.icone:
-                if ico.get("Nome") == nome_icona:
-                    exists = True
+                if ico.get("Nome")==nome_icona:
+                    exists=True
                     break
             if not exists:
-                st.session_state.icone.append({
+                emoji_fallback="📍"
+                nl=nome_icona.lower()
+                if "ambulanza" in nl: emoji_fallback="🚑"
+                elif "polizia" in nl: emoji_fallback="🚓"
+                elif "vigili" in nl: emoji_fallback="🚒"
+                nuova={
                     "Nome": nome_icona,
-                    "Emoji": emoji_icona,
+                    "Emoji": emoji_fallback,
                     "Tipo": tipo_icona,
-                    "Colore": colore_icona,
+                    "Colore": "green",
                     "Descrizione": desc_icona,
-                    "Data": datetime.now().strftime("%d/%m/%Y %H:%M")
-                })
-                st.success(f"Icona {emoji_icona} {nome_icona} salvata - Ora la puoi usare su Mappe Postazioni")
+                    "Data": datetime.now().strftime("%d/%m/%Y %H:%M"),
+                    "FileBytes": st.session_state["ico_file_bytes"],
+                    "FileName": st.session_state.get("ico_file_name","")
+                }
+                st.session_state.icone.append(nuova)
+                st.success(f"✅ {nome_icona} salvata")
+                st.session_state["ico_file_bytes"]=None
+                st.session_state["ico_file_name"]=""
                 st.rerun()
             else:
-                st.warning("Nome già esistente - cambia nome")
+                st.warning("Nome già esistente")
         else:
-            st.error("Nome e Emoji obbligatori")
+            if not nome_icona:
+                st.error("❌ Nome Icona")
+            else:
+                st.error("❌ Carica icona")
 
     st.divider()
-    st.markdown(f"### Libreria Icone - {len(st.session_state.icone)} icone disponibili - Le usi su Mappe Postazioni")
+    st.markdown(f"### Libreria Icone - {len(st.session_state.icone)} icone - Solo icona, no quadratino vecchio")
 
     if st.session_state.icone:
         cols = st.columns(4)
         for idx, ico in enumerate(st.session_state.icone):
             col = cols[idx % 4]
             with col:
-                # FIX EZIO: solo icona, niente quadratino
                 if ico.get("FileBytes"):
                     try:
                         st.image(ico.get("FileBytes"), width=90)
@@ -2970,21 +3021,25 @@ elif cur == "Libreria Icone":
                 st.markdown(f"""
                 <div style="background:white;padding:8px;border-radius:8px;border:2px solid #1A5D1A;text-align:center;margin-bottom:8px;">
                 <b>{ico.get('Nome','')}</b><br>
-                <small>{ico.get('Tipo','')}</small><br>
-                <small>{ico.get('Descrizione','')}</small>
+                <small>{ico.get('Tipo','')}</small>
                 </div>
                 """, unsafe_allow_html=True)
                 if st.button(f"🗑️ Elimina {ico.get('Nome','')}", key=f"del_ico_{idx}"):
                     st.session_state.icone.pop(idx)
                     st.rerun()
         st.divider()
-        df_ico = pd.DataFrame(st.session_state.icone)
+        df_ico = pd.DataFrame([{k:v for k,v in ico.items() if k not in ["FileBytes"]} for ico in st.session_state.icone])
         st.dataframe(df_ico, use_container_width=True)
-        st.download_button("Excel Libreria Icone", to_excel(df_ico), "libreria_icone.xlsx", use_container_width=True)
+        c1,c2 = st.columns(2)
+        with c1:
+            st.download_button("📊 Excel Libreria Icone", to_excel(df_ico), "libreria_icone.xlsx", use_container_width=True, key="excel_icone")
+        with c2:
+            if REPORTLAB_OK:
+                st.download_button("📄 PDF Libreria Icone con Logo Estesa", data=to_pdf(df_ico, "LIBRERIA ICONE"), file_name="libreria_icone.pdf", mime="application/pdf", use_container_width=True, key="pdf_icone")
     else:
-        st.info("Nessuna icona - Crea la prima icona sopra")
+        st.info("Nessuna icona")
 
-# CHAT
+
 elif cur == "Chat":
     hdr()
     hdr_form("CHAT - Comunicazioni Squadra")
@@ -3018,6 +3073,15 @@ elif cur == "Chat":
                 """,
                 unsafe_allow_html=True
             )
+        c1,c2 = st.columns(2)
+        with c1:
+            if st.session_state.chat:
+                df_chat = pd.DataFrame(st.session_state.chat)
+                st.download_button("📊 Excel Chat", data=to_excel(df_chat), file_name="chat.xlsx", use_container_width=True, key="excel_chat")
+        with c2:
+            if REPORTLAB_OK and st.session_state.chat:
+                df_chat = pd.DataFrame(st.session_state.chat)
+                st.download_button("📄 PDF Chat con Logo Estesa", data=to_pdf(df_chat, "CHAT"), file_name="chat.pdf", mime="application/pdf", use_container_width=True, key="pdf_chat")
     else:
         st.info("Nessun messaggio - Inizia conversazione")
 
@@ -3098,6 +3162,16 @@ elif cur == "Geolocalizzazione Hytera + Anytone":
             {"lat": 45.82, "lon": 8.84}
         ])
         st.map(demo_pos)
+
+    # PDF per geoloc - ogni form file PDF
+    if st.session_state.posizioni_pd785:
+        df_pd = pd.DataFrame(st.session_state.posizioni_pd785)
+        if REPORTLAB_OK:
+            st.download_button("📄 PDF PD785 con Logo Estesa", data=to_pdf(df_pd, "GEOLOC PD785"), file_name="pd785.pdf", mime="application/pdf", use_container_width=True, key="pdf_pd785_final")
+    if st.session_state.posizioni_anytone:
+        df_any2 = pd.DataFrame(st.session_state.posizioni_anytone)
+        if REPORTLAB_OK:
+            st.download_button("📄 PDF Anytone con Logo Estesa", data=to_pdf(df_any2, "GEOLOC ANYTONE"), file_name="anytone.pdf", mime="application/pdf", use_container_width=True, key="pdf_anytone_final")
 
 # BACKUP - Import/Export singolo + totale - gg/mm/aaaa
 elif cur == "Backup":
