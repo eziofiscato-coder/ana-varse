@@ -526,8 +526,8 @@ def combo_vie(label, comune, key, default=""):
 
 def to_excel(df):
     """
-    Esporta DataFrame in Excel - FIX Office 2016 100% compatibile
-    Usa openpyxl, compatibile Office 2016/2019/365
+    Esporta DataFrame in Excel - FIX Office 2016 100% compatibile - Ezio
+    Usa openpyxl, compatibile Office 2016/2019/365 - MAI CSV travestito
     """
     buf = BytesIO()
     df_copy = df.copy()
@@ -544,24 +544,63 @@ def to_excel(df):
         if col in df_copy.columns:
             df_copy = df_copy.drop(columns=[col])
 
+    # Assicura che df non sia None
+    if df_copy is None or not isinstance(df_copy, pd.DataFrame):
+        df_copy = pd.DataFrame()
+
+    # Prova openpyxl prima (100% Office 2016 compatibile)
+    last_error = ""
+    for engine_try in ["openpyxl", "xlsxwriter"]:
+        try:
+            buf = BytesIO()
+            # Verifica engine disponibile
+            if engine_try == "openpyxl" and not OPENPYXL_OK:
+                continue
+            if engine_try == "xlsxwriter" and not XLSXWRITER_OK:
+                continue
+            with pd.ExcelWriter(buf, engine=engine_try) as writer:
+                df_copy.to_excel(writer, index=False, sheet_name="Dati")
+            buf.seek(0)
+            data = buf.getvalue()
+            # Verifica che sia un vero xlsx (PK zip header)
+            if data[:2] == b'PK':
+                return data
+            else:
+                last_error = f"Engine {engine_try} non ha prodotto xlsx valido"
+        except Exception as e:
+            last_error = str(e)
+            continue
+
+    # Ultimo tentativo: forza openpyxl anche se flag dice False (per Cloud)
     try:
-        # Office 2016 FIX: usa sempre openpyxl per massima compatibilità
-        # xlsxwriter crea file che a volte Office 2016 rifiuta come "formato non valido"
-        if OPENPYXL_OK:
-            engine = "openpyxl"
-        elif XLSXWRITER_OK:
-            engine = "xlsxwriter"
-        else:
-            engine = "openpyxl"
-        with pd.ExcelWriter(buf, engine=engine) as writer:
+        buf = BytesIO()
+        with pd.ExcelWriter(buf, engine="openpyxl") as writer:
             df_copy.to_excel(writer, index=False, sheet_name="Dati")
         buf.seek(0)
         return buf.getvalue()
-    except:
-        buf2 = BytesIO()
-        df_copy.to_csv(buf2, index=False)
-        buf2.seek(0)
-        return buf2.getvalue()
+    except Exception as e:
+        last_error = str(e)
+
+    # Se proprio fallisce, crea file Excel minimo con openpyxl diretto (non CSV!)
+    try:
+        import openpyxl
+        wb = openpyxl.Workbook()
+        ws = wb.active
+        ws.title = "Dati"
+        # Scrivi header
+        for c_idx, col_name in enumerate(df_copy.columns, 1):
+            ws.cell(row=1, column=c_idx, value=col_name)
+        # Scrivi dati
+        for r_idx, row in enumerate(df_copy.itertuples(index=False), 2):
+            for c_idx, val in enumerate(row, 1):
+                ws.cell(row=r_idx, column=c_idx, value=val)
+        buf = BytesIO()
+        wb.save(buf)
+        buf.seek(0)
+        return buf.getvalue()
+    except Exception as e:
+        # Ultima spiaggia: errore visibile, non CSV
+        raise Exception(f"Impossibile creare Excel: {last_error} | {e} - Verifica requirements.txt contenga openpyxl")
 
 
 def to_excel_multi(datasets):
@@ -588,16 +627,15 @@ def to_excel_multi(datasets):
 
 def excel_import_inline(form_key, form_label):
     """
-    Import/Export inline per ogni form - Ezio richiesta
-    Ogni form ha il suo Excel import direttamente nel form
-    Compatibile Office 2016
+    Import/Export inline per ogni form - Ezio richiesta - ORA CON PDF
+    Ogni form ha Excel + PDF + Template ODV + Import - Office 2016 compatibile
     """
     st.divider()
-    st.markdown(f"#### 📥📤 Import/Export Excel - {form_label} (Office 2016 compatibile)")
+    st.markdown(f"#### 📥📤 Import/Export - {form_label} - Excel + PDF + Template ODV (Office 2016)")
 
-    c1, c2, c3 = st.columns(3)
+    c1, c2, c3, c4 = st.columns(4)
 
-    # Export corrente
+    # Export Excel corrente
     with c1:
         data = st.session_state.get(form_key, [])
         if data:
@@ -605,45 +643,79 @@ def excel_import_inline(form_key, form_label):
             if clean:
                 df_exp = pd.DataFrame(clean)
                 st.download_button(
-                    f"⬇️ Scarica Excel {form_label}",
+                    f"⬇️ Excel {form_label}",
                     data=to_excel(df_exp),
                     file_name=f"{form_key}_export_{datetime.now().strftime('%Y%m%d')}.xlsx",
                     mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                     use_container_width=True,
                     key=f"exp_inline_{form_key}"
                 )
-                st.caption(f"{len(data)} record")
+                st.caption(f"Excel: {len(data)} record")
             else:
                 st.info("Nessun dato")
         else:
             st.info(f"{form_label} vuoto")
 
-    # Template vuoto per ODV
+    # Export PDF corrente - NUOVO RICHIESTA EZIO
     with c2:
-        # Crea template vuoto con colonne del form se esiste, altrimenti generico
+        data_pdf = st.session_state.get(form_key, [])
+        if data_pdf:
+            clean_pdf = [{kk: vv for kk, vv in r.items() if "Bytes" not in kk and "Foto" not in kk and "File" not in kk} for r in data_pdf if isinstance(r, dict)]
+            if clean_pdf:
+                df_pdf = pd.DataFrame(clean_pdf)
+                if REPORTLAB_OK:
+                    try:
+                        pdf_data = to_pdf(df_pdf, form_label.upper())
+                        st.download_button(
+                            f"📄 PDF {form_label}",
+                            data=pdf_data,
+                            file_name=f"{form_key}_{datetime.now().strftime('%Y%m%d')}.pdf",
+                            mime="application/pdf",
+                            use_container_width=True,
+                            key=f"pdf_inline_{form_key}",
+                            type="primary"
+                        )
+                        st.caption(f"PDF: {len(data_pdf)} record")
+                    except Exception as e:
+                        st.error(f"PDF errore: {e}")
+                else:
+                    st.warning("Reportlab non installato - aggiungi in requirements.txt: reportlab")
+            else:
+                st.info("Nessun dato PDF")
+        else:
+            st.info("Nessun dato per PDF")
+
+    # Template vuoto per ODV
+    with c3:
         data_existing = st.session_state.get(form_key, [])
         if data_existing and len(data_existing) > 0:
-            # Usa colonne del primo record come template
             first = data_existing[0]
             cols = [k for k in first.keys() if "Bytes" not in k and "Foto" not in k and "File" not in k]
             if not cols:
                 cols = ["Nome","Cognome","Note"]
         else:
-            # Template specifici per form conosciuti
             if form_key == "volontari":
                 cols = ["Nome","Cognome","Comune","Via","CapoODV","ODVAppartenenza","DataNascita","CodFisc","Cellulare","Email","TelEmergenza","Ruolo","Squadra","RadioID","Documento","ScadDoc","Note"]
+            elif form_key == "radio_db":
+                cols = ["ID","Modello","Frequenza","Canale","Note"]
+            elif form_key == "consegna_radio":
+                cols = ["Data","Volontario","RadioID","Note"]
             elif form_key == "mezzi":
                 cols = ["Targa","Modello","Tipo","ODV","Stato","Note"]
             elif form_key == "attrezzature":
                 cols = ["Nome","Tipo","Quantita","ODV","Stato","Note"]
+            elif form_key == "brogliaccio":
+                cols = ["Data","Evento","Descrizione","Operatore","Note"]
+            elif form_key == "eventi":
+                cols = ["Data","Titolo","Luogo","Descrizione","Note"]
+            elif form_key == "emergenze":
+                cols = ["Data","Tipo","Luogo","Descrizione","Note"]
             else:
                 cols = ["Campo1","Campo2","Campo3","Note"]
 
         df_template = pd.DataFrame(columns=cols)
-        # Aggiungi riga esempio vuota per Office 2016 (Office 2016 vuole almeno header)
-        # Non aggiungere righe dati, solo header, così Office 2016 non da errore formato
         st.download_button(
-            f"📋 Template vuoto {form_label} per ODV",
+            f"📋 Template {form_label} ODV",
             data=to_excel(df_template),
             file_name=f"TEMPLATE_{form_key}_ODV_Office2016.xlsx",
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
@@ -651,10 +723,10 @@ def excel_import_inline(form_key, form_label):
             key=f"tpl_inline_{form_key}",
             help="File .xlsx puro compatibile Office 2016 - solo intestazioni"
         )
-        st.caption("Invia alle ODV")
+        st.caption("Template vuoto per ODV")
 
     # Import
-    with c3:
+    with c4:
         up_mode = st.radio("Modalità import", ["Aggiungi","Sostituisci"], key=f"mode_inline_{form_key}", horizontal=True)
         up_file = st.file_uploader(f"Carica Excel per {form_label}", type=["xlsx","xls"], key=f"up_inline_{form_key}")
 
@@ -670,21 +742,39 @@ def excel_import_inline(form_key, form_label):
                             df_imp = pd.read_excel(up_file)
                         else:
                             df_imp = pd.read_excel(up_file, engine=eng)
-                        if df_imp is not None and not df_imp.empty:
+                        if df_imp is not None and len(df_imp.columns) > 0:
                             break
                     except Exception as e:
                         last_err = str(e)
                         continue
 
-                if df_imp is not None and not df_imp.empty:
-                    df_imp = df_imp.dropna(how='all')
-                    # Pulisci colonne Unnamed
-                    df_imp = df_imp.loc[:, ~df_imp.columns.astype(str).str.contains('^Unnamed')]
-                    st.success(f"{len(df_imp)} righe lette")
-                    st.dataframe(df_imp.head(10), use_container_width=True)
+                # FIX: accetta anche file con solo header + dati, e mostra anche se vuoto
+                if df_imp is not None:
+                    # Pulisci
+                    try:
+                        df_imp = df_imp.dropna(how='all')
+                        # Pulisci colonne Unnamed
+                        if not df_imp.columns.empty:
+                            df_imp = df_imp.loc[:, ~df_imp.columns.astype(str).str.contains('^Unnamed', na=False)]
+                    except:
+                        pass
 
-                    if st.button(f"✅ Importa in {form_label}", type="primary", use_container_width=True, key=f"btn_imp_inline_{form_key}"):
-                        imported = df_imp.to_dict(orient="records")
+                    if df_imp.empty:
+                        # File ha solo intestazioni o vuoto - mostra colonne
+                        if len(df_imp.columns) > 0:
+                            st.warning(f"File letto: {len(df_imp.columns)} colonne trovate ma 0 righe dati")
+                            st.write(f"Colonne: {list(df_imp.columns)}")
+                            st.info("💡 Aggiungi righe dati sotto intestazione in Excel e ricarica")
+                            st.dataframe(pd.DataFrame(columns=df_imp.columns).head(), use_container_width=True)
+                        else:
+                            st.warning("Excel vuoto - solo intestazioni? Aggiungi righe e ricarica")
+                    else:
+                        st.success(f"✅ {len(df_imp)} righe lette da Excel - {len(df_imp.columns)} colonne")
+                        st.write(f"Colonne: {list(df_imp.columns)}")
+                        st.dataframe(df_imp.head(20), use_container_width=True)
+
+                        if st.button(f"✅ Importa {len(df_imp)} righe in {form_label}", type="primary", use_container_width=True, key=f"btn_imp_inline_{form_key}"):
+                            imported = df_imp.to_dict(orient="records")
                         # Pulisci NaN
                         cleaned = []
                         for r in imported:
@@ -3245,7 +3335,7 @@ elif cur == "Backup":
                         df_imp = pd.read_excel(up_file_single)
                     else:
                         df_imp = pd.read_excel(up_file_single, engine=eng)
-                    if df_imp is not None and not df_imp.empty:
+                    if df_imp is not None and len(df_imp.columns) > 0:
                         break
                 except Exception as e:
                     last_err = str(e)
