@@ -18,19 +18,31 @@ try:
 except:
     REPORTLAB_OK = False
 
+import sys, subprocess
+# FIX DEFINITIVO OPENPYXL - Installa automatico all'avvio se manca - Ezio
 try:
     import openpyxl
     OPENPYXL_OK = True
 except Exception:
     OPENPYXL_OK = False
-    # Try to install at runtime if possible (for local)
     try:
-        import subprocess, sys
-        subprocess.check_call([sys.executable, "-m", "pip", "install", "openpyxl"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        subprocess.check_call([sys.executable, "-m", "pip", "install", "openpyxl", "xlsxwriter"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         import openpyxl
         OPENPYXL_OK = True
+    except Exception:
+        OPENPYXL_OK = False
+
+try:
+    import xlsxwriter
+    XLSXWRITER_OK = True
+except Exception:
+    XLSXWRITER_OK = False
+    try:
+        subprocess.check_call([sys.executable, "-m", "pip", "install", "xlsxwriter"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        import xlsxwriter
+        XLSXWRITER_OK = True
     except:
-        pass
+        XLSXWRITER_OK = False
 
 st.set_page_config(
     page_title="ANA Varese 950+ Modifiche Richieste",
@@ -518,7 +530,7 @@ def combo_vie(label, comune, key, default=""):
 
 def to_excel(df):
     """
-    Esporta DataFrame in Excel, esclude colonne binarie foto
+    Esporta DataFrame in Excel, esclude colonne binarie foto - FIX Win7
     """
     buf = BytesIO()
     df_copy = df.copy()
@@ -536,7 +548,9 @@ def to_excel(df):
             df_copy = df_copy.drop(columns=[col])
 
     try:
-        with pd.ExcelWriter(buf if OPENPYXL_OK else "xlsxwriter") as writer:
+        # FIX: usa xlsxwriter se openpyxl manca (Win7)
+        engine = "openpyxl" if OPENPYXL_OK else ("xlsxwriter" if XLSXWRITER_OK else "openpyxl")
+        with pd.ExcelWriter(buf, engine=engine) as writer:
             df_copy.to_excel(writer, index=False, sheet_name="Dati")
         buf.seek(0)
         return buf.getvalue()
@@ -549,11 +563,12 @@ def to_excel(df):
 
 def to_excel_multi(datasets):
     """
-    datasets = dict nome_sheet -> df
+    datasets = dict nome_sheet -> df - FIX Win7
     """
     buf = BytesIO()
     try:
-        with pd.ExcelWriter(buf if OPENPYXL_OK else "xlsxwriter") as writer:
+        engine = "openpyxl" if OPENPYXL_OK else ("xlsxwriter" if XLSXWRITER_OK else "openpyxl")
+        with pd.ExcelWriter(buf, engine=engine) as writer:
             for sheet_name, df in datasets.items():
                 df_copy = df.copy()
                 for col in ["FotoBytes", "FileBytes", "FotoConsegnaBytes", "Foto"]:
@@ -2774,7 +2789,7 @@ elif cur == "Geolocalizzazione Hytera + Anytone":
 # BACKUP - Import/Export singolo + totale - gg/mm/aaaa
 elif cur == "Backup":
     hdr()
-    hdr_form("BACKUP - Unica Scheda - Solo Excel")
+    hdr_form("BACKUP - Unica Scheda - Solo Excel - Fix openpyxl definitivo")
 
     FORM_KEYS = {
         "Volontari (con foto)": "volontari",
@@ -2799,11 +2814,12 @@ elif cur == "Backup":
 
     st.markdown("""
     <div style="background:#e8f5e9;padding:10px;border-radius:8px;border-left:4px solid #1A5D1A;margin-bottom:12px;">
-    <b>Backup completo su unica scheda - Solo Excel xlsx/xls</b><br>
-    <small>Backup Totale, Export Singolo, Import Singolo, Import Totale tutto qui - Fix openpyxl</small>
+    <b>Backup completo su unica scheda - Solo Excel xlsx/xls - Fix definitivo openpyxl - Richiesta Ezio</b><br>
+    <small>Backup Totale, Export Singolo, Import Singolo, Import Totale tutto in unica scheda</small>
     </div>
     """, unsafe_allow_html=True)
 
+    # Riepilogo compatto senza elenco lungo
     cols = st.columns(4)
     tot_records = 0
     for i, (label, key) in enumerate(FORM_KEYS.items()):
@@ -2868,7 +2884,7 @@ elif cur == "Backup":
 
     st.divider()
 
-    # Import Singolo - Solo Excel - FIX DEFINITIVO SENZA ERRORE OPENPYXL
+    # Import Singolo - Solo Excel - FIX DEFINITIVO
     st.markdown("### 📥 Import Singolo Form - Solo Excel xlsx/xls")
     sel_label_imp = st.selectbox("Seleziona Form per Import Excel", list(FORM_KEYS.keys()), key="import_sel_form_excel")
     sel_key_imp = FORM_KEYS[sel_label_imp]
@@ -2876,25 +2892,30 @@ elif cur == "Backup":
     up_file_single = st.file_uploader(f"Carica Excel per {sel_label_imp} - Solo xlsx/xls", type=["xlsx", "xls"], key="up_single_excel")
     if up_file_single:
         try:
-            # FIX: prova senza specificare engine, lascia pandas scegliere quello disponibile
-            # Se openpyxl manca, prova xlsxwriter o xlrd automaticamente
+            df_imp = None
+            last_err = ""
+            # Tentativo 1: lettura standard senza engine (pandas sceglie da solo)
             try:
                 df_imp = pd.read_excel(up_file_single)
             except Exception as e1:
-                # Se fallisce, prova a reinstallare openpyxl silenziosamente
+                last_err = str(e1)
+                # Tentativo 2: installa openpyxl e riprova
                 try:
-                    import subprocess, sys
                     subprocess.check_call([sys.executable, "-m", "pip", "install", "openpyxl", "xlsxwriter"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
                     up_file_single.seek(0)
                     df_imp = pd.read_excel(up_file_single)
                 except Exception as e2:
-                    st.error(f"Errore lettura Excel: {e1}")
-                    st.info("Verifica che il file sia un vero Excel xlsx/xls - Se su Streamlit Cloud, aggiungi openpyxl in requirements.txt e riavvia")
-                    df_imp = None
+                    last_err = str(e2)
+                    # Tentativo 3: prova con xlrd engine per xls
+                    try:
+                        up_file_single.seek(0)
+                        df_imp = pd.read_excel(up_file_single, engine="xlrd")
+                    except Exception as e3:
+                        last_err = f"{e1} | {e2} | {e3}"
 
             if df_imp is not None and not df_imp.empty:
                 imported = df_imp.to_dict(orient="records")
-                st.success(f"{len(imported)} record letti da Excel")
+                st.success(f"{len(imported)} record letti da Excel - OK")
                 st.dataframe(pd.DataFrame(imported).head(10), use_container_width=True)
                 if st.button(f"✅ Importa Excel in {sel_label_imp}", type="primary", use_container_width=True, key=f"btn_import_excel_{sel_key_imp}"):
                     if up_mode_single == "Sostituisci":
@@ -2905,6 +2926,14 @@ elif cur == "Backup":
                     st.rerun()
             elif df_imp is not None:
                 st.warning("File Excel vuoto")
+            else:
+                st.error(f"Errore lettura Excel: {last_err}")
+                if "openpyxl" in last_err.lower():
+                    st.error("Import openpyxl failed - Sto provando installazione automatica...")
+                    st.info("Se su Streamlit Cloud: aggiungi in requirements.txt: openpyxl, xlsxwriter, pandas, streamlit, reportlab")
+                    st.code("streamlit\npandas\nopenpyxl\nreportlab\nxlsxwriter\nrequests\nPillow", language="text")
+                else:
+                    st.error(f"Dettaglio: {last_err}")
         except Exception as e:
             st.error(f"Errore import Excel: {e}")
 
@@ -2915,18 +2944,18 @@ elif cur == "Backup":
     up_total_excel = st.file_uploader("Carica Backup Totale Excel - Solo xlsx/xls", type=["xlsx", "xls"], key="up_total_excel")
     if up_total_excel:
         try:
+            xls = None
+            last_err = ""
             try:
                 xls = pd.ExcelFile(up_total_excel)
             except Exception as e1:
+                last_err = str(e1)
                 try:
-                    import subprocess, sys
                     subprocess.check_call([sys.executable, "-m", "pip", "install", "openpyxl", "xlsxwriter"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
                     up_total_excel.seek(0)
                     xls = pd.ExcelFile(up_total_excel)
                 except Exception as e2:
-                    st.error(f"Errore apertura Excel: {e1}")
-                    st.info("Aggiungi openpyxl in requirements.txt: streamlit, pandas, openpyxl, reportlab, xlsxwriter")
-                    xls = None
+                    last_err = f"{e1} | {e2}"
 
             if xls is not None:
                 st.write(f"Fogli trovati: {xls.sheet_names}")
@@ -2945,6 +2974,10 @@ elif cur == "Backup":
                                 break
                     st.success("Import totale Excel completato!")
                     st.rerun()
+            else:
+                st.error(f"Errore apertura Excel: {last_err}")
+                if "openpyxl" in last_err.lower():
+                    st.error("Import openpyxl failed - Aggiungi openpyxl in requirements.txt")
         except Exception as e:
             st.error(f"Errore import totale Excel: {e}")
 
@@ -2971,4 +3004,3 @@ st.markdown(
     """,
     unsafe_allow_html=True
 )
- 
