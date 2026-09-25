@@ -1217,26 +1217,51 @@ with st.sidebar:
         unsafe_allow_html=True
     )
 
-    menu_base = [
-        "Dashboard",
-        "Volontari (con foto)",
-        "DB Radio",
-        "Consegna Radio",
-        "Alias Radio",
-        "Brogliaccio",
-        "Eventi",
-        "Emergenze",
-        "Check-in",
-        "Interventi Emergenza",
-        "Tabella Interventi Emergenza",
-        "Mezzi",
-        "Attrezzature",
-        "Mappe Postazioni",
-        "Libreria Icone",
-        "Chat",
-        "Geolocalizzazione Hytera + Anytone",
-        "Backup"
-    ]
+    # Menu base - Gestione Utenti solo per amministratore
+    ruolo_corrente = st.session_state.get("ruolo_utente", "amministratore")
+    if ruolo_corrente == "amministratore":
+        menu_base = [
+            "Dashboard",
+            "Volontari (con foto)",
+            "DB Radio",
+            "Consegna Radio",
+            "Alias Radio",
+            "Brogliaccio",
+            "Eventi",
+            "Emergenze",
+            "Check-in",
+            "Interventi Emergenza",
+            "Tabella Interventi Emergenza",
+            "Mezzi",
+            "Attrezzature",
+            "Mappe Postazioni",
+            "Libreria Icone",
+            "Chat",
+            "Geolocalizzazione Hytera + Anytone",
+            "Gestione Utenti",
+            "Backup"
+        ]
+    else:
+        menu_base = [
+            "Dashboard",
+            "Volontari (con foto)",
+            "DB Radio",
+            "Consegna Radio",
+            "Alias Radio",
+            "Brogliaccio",
+            "Eventi",
+            "Emergenze",
+            "Check-in",
+            "Interventi Emergenza",
+            "Tabella Interventi Emergenza",
+            "Mezzi",
+            "Attrezzature",
+            "Mappe Postazioni",
+            "Libreria Icone",
+            "Chat",
+            "Geolocalizzazione Hytera + Anytone",
+            "Backup"
+        ]
 
     cur = st.radio(
         "Seleziona form",
@@ -1247,12 +1272,40 @@ with st.sidebar:
     st.session_state.menu = cur
 
     st.divider()
+    
+    # Utente loggato + ruolo
+    username = st.session_state.get("username", "admin")
+    nome_utente = st.session_state.get("nome_utente", "Amministratore")
+    ruolo_utente = st.session_state.get("ruolo_utente", "amministratore")
+    
+    # Colore ruolo
+    colore_ruolo = {"amministratore": "#d32f2f", "operatore": "#1A5D1A", "lettore": "#1976d2"}.get(ruolo_utente, "#1A5D1A")
+    
+    st.markdown(f"""
+    <div style="background:{colore_ruolo};color:white;padding:8px;border-radius:8px;text-align:center;">
+    <b>{nome_utente}</b><br>
+    <small>{username} - {ruolo_utente.upper()}</small>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    # Aggiorna presenza ogni volta che naviga
+    try:
+        aggiorna_presenza(username, nome_utente, ruolo_utente)
+    except:
+        pass
 
-    # MODIFICA 6 - LOGOUT RIPRISTINATO
+    # MODIFICA 6 - LOGOUT RIPRISTINATO con rimozione presenza
     if st.button("Logout", type="primary", use_container_width=True, key="logout_btn"):
+        try:
+            rimuovi_presenza(st.session_state.get("username", ""))
+        except:
+            pass
         st.session_state.page = "entra"
         st.session_state.logged = False
         st.session_state.menu = "Dashboard"
+        st.session_state.username = ""
+        st.session_state.nome_utente = ""
+        st.session_state.ruolo_utente = ""
         st.rerun()
 
     st.divider()
@@ -3228,39 +3281,118 @@ elif cur == "Libreria Icone":
 
 elif cur == "Chat":
     hdr()
-    hdr_form("CHAT - Comunicazioni Squadra")
+    hdr_form("CHAT - Comunicazioni Squadra - Chi è collegato")
 
-    st.markdown("Chat operativa volontari")
+    # Mostra chi è collegato ora - Richiesta Ezio
+    st.markdown("#### 🟢 Chi è collegato ora")
+    try:
+        presenza = load_presenza()
+        if presenza:
+            # Aggiorna mia presenza
+            aggiorna_presenza(st.session_state.get("username",""), st.session_state.get("nome_utente",""), st.session_state.get("ruolo_utente",""))
+            presenza = load_presenza()
+            cols = st.columns(min(len(presenza), 4))
+            for idx, p in enumerate(presenza[-12:]):  # ultimi 12
+                with cols[idx % len(cols)]:
+                    ruolo = p.get("ruolo","operatore")
+                    colore = {"amministratore":"#d32f2f","operatore":"#1A5D1A","lettore":"#1976d2"}.get(ruolo, "#1A5D1A")
+                    st.markdown(f"""
+                    <div style="background:{colore};color:white;padding:8px;border-radius:8px;text-align:center;margin-bottom:6px;">
+                    <b>🟢 {p.get("nome","")}</b><br>
+                    <small>{p.get("username","")} - {ruolo}</small><br>
+                    <small>{p.get("ora","")}</small>
+                    </div>
+                    """, unsafe_allow_html=True)
+            st.caption(f"{len(presenza)} utenti collegati negli ultimi 30 minuti - Aggiornamento automatico")
+        else:
+            st.info("Nessun utente collegato oltre te - File presenza.json vuoto")
+    except Exception as e:
+        st.warning(f"Presenza non disponibile: {e}")
 
-    msg = st.text_input("Messaggio", key="chat_msg")
+    st.divider()
+    
+    # Info multi-utente
+    st.markdown("""
+    <div style="background:#e3f2fd;padding:10px;border-radius:8px;border-left:4px solid #1976d2;margin-bottom:10px;">
+    <b>ℹ️ Multi-utente contemporaneo:</b> Sì, più utenti possono aprire il gestionale insieme!<br>
+    - Ogni utente ha il suo login (admin, operatore1, lettore1)<br>
+    - Su Streamlit Cloud session_state è separato per utente, ma presenza.json è condiviso<br>
+    - Per dati condivisi in tempo reale serve database esterno (Firebase/Supabase) - per ora chat e presenza usano file condiviso<br>
+    - Chat salvata in sessione locale (per condivisione reale serve DB)
+    </div>
+    """, unsafe_allow_html=True)
 
-    c1, c2 = st.columns([1, 3])
+    st.markdown("#### 💬 Chat operativa volontari")
+    
+    # Mostra utente corrente
+    curr_user = st.session_state.get("nome_utente", "Admin")
+    curr_username = st.session_state.get("username", "admin")
+    st.caption(f"Stai chattando come: {curr_user} ({curr_username})")
+
+    msg = st.text_input("Messaggio", key="chat_msg", placeholder="Scrivi messaggio e premi Invio o Invia")
+
+    c1, c2, c3 = st.columns([1, 1, 3])
     with c1:
-        if st.button("Invia Messaggio", type="primary", use_container_width=True):
+        if st.button("📤 Invia Messaggio", type="primary", use_container_width=True):
             if msg:
                 st.session_state.chat.append({
+                    "Data": datetime.now().strftime("%d/%m/%Y"),
                     "Ora": datetime.now().strftime("%H:%M:%S"),
-                    "Utente": "Admin",
-                    "Messaggio": msg
+                    "Utente": curr_user,
+                    "Username": curr_username,
+                    "Messaggio": msg,
+                    "Ruolo": st.session_state.get("ruolo_utente","operatore")
                 })
+                # Salva anche su file per condivisione parziale
+                try:
+                    with open("chat.json","a", encoding="utf-8") as f:
+                        f.write(json.dumps({"Data": datetime.now().strftime("%d/%m/%Y"), "Ora": datetime.now().strftime("%H:%M:%S"), "Utente": curr_user, "Messaggio": msg}) + "\n")
+                except:
+                    pass
                 st.rerun()
+    with c2:
+        if st.button("🔄 Aggiorna", use_container_width=True):
+            try:
+                aggiorna_presenza(curr_username, curr_user, st.session_state.get("ruolo_utente",""))
+            except:
+                pass
+            st.rerun()
 
     st.divider()
 
     if st.session_state.chat:
-        for chat_msg in reversed(st.session_state.chat[-20:]):
+        st.markdown(f"#### Ultimi {len(st.session_state.chat[-30:])} messaggi")
+        for chat_msg in reversed(st.session_state.chat[-30:]):
+            ruolo = chat_msg.get('Ruolo','operatore')
+            colore = {"amministratore":"#d32f2f","operatore":"#1A5D1A","lettore":"#1976d2"}.get(ruolo, "#1A5D1A")
             st.markdown(
                 f"""
                 <div style="background:white;padding:10px;border-radius:8px;
-                margin-bottom:6px;border-left:4px solid #1A5D1A;">
-                <strong>{chat_msg.get('Ora','')} - {chat_msg.get('Utente','')}</strong><br>
+                margin-bottom:6px;border-left:4px solid {colore};">
+                <strong>{chat_msg.get('Data','')} {chat_msg.get('Ora','')} - {chat_msg.get('Utente','')} ({chat_msg.get('Ruolo','')})</strong><br>
                 {chat_msg.get('Messaggio','')}
                 </div>
                 """,
                 unsafe_allow_html=True
             )
     else:
-        st.info("Nessun messaggio - Inizia conversazione")
+        st.info("Nessun messaggio - Inizia conversazione - I messaggi sono visibili solo nella tua sessione (per chat condivisa serve DB)")
+
+    # Mostra anche chat da file se esiste
+    try:
+        if os.path.exists("chat.json"):
+            st.divider()
+            st.markdown("#### 📁 Chat condivisa da file (ultimi 10)")
+            with open("chat.json","r", encoding="utf-8") as f:
+                lines = f.readlines()[-10:]
+                for line in reversed(lines):
+                    try:
+                        cj = json.loads(line)
+                        st.caption(f"{cj.get('Data','')} {cj.get('Ora','')} - {cj.get('Utente','')}: {cj.get('Messaggio','')}")
+                    except:
+                        pass
+    except:
+        pass
 
 # GEOLOCALIZZAZIONE HYTERA + ANYTONE
 elif cur == "Geolocalizzazione Hytera + Anytone":
@@ -3339,6 +3471,147 @@ elif cur == "Geolocalizzazione Hytera + Anytone":
             {"lat": 45.82, "lon": 8.84}
         ])
         st.map(demo_pos)
+
+# GESTIONE UTENTI - Amministratore e utenti view/insert - Ezio richiesta
+elif cur == "Gestione Utenti":
+    hdr()
+    hdr_form("GESTIONE UTENTI - Amministratore / Operatore / Lettore")
+    
+    # Solo amministratore può accedere
+    if st.session_state.get("ruolo_utente") != "amministratore":
+        st.error("⛔ Accesso negato - Solo amministratore può gestire utenti")
+        st.info(f"Il tuo ruolo: {st.session_state.get('ruolo_utente')} - Contatta amministratore")
+        st.stop()
+    
+    st.markdown("""
+    <div style="background:#ffebee;padding:12px;border-radius:8px;border-left:4px solid #d32f2f;margin-bottom:12px;">
+    <b>🔐 Gestione Utenti - Solo Amministratore</b><br>
+    - <b>Amministratore:</b> può tutto (creare utenti, cancellare dati, backup, gestione utenti)<br>
+    - <b>Operatore:</b> può vedere e inserire (volontari, mezzi, brogliaccio, chat) ma non cancellare utenti<br>
+    - <b>Lettore:</b> può solo vedere (no inserimento)<br>
+    - <b>Multi-utente contemporaneo:</b> Sì! Più utenti possono aprire il gestionale insieme su browser diversi<br>
+    - Su Streamlit Cloud ogni utente ha sessione separata, ma utenti.json e presenza.json sono condivisi
+    </div>
+    """, unsafe_allow_html=True)
+    
+    utenti = load_utenti()
+    
+    tab1, tab2, tab3 = st.tabs(["👥 Elenco Utenti", "➕ Crea Utente", "📊 Presenza Online"])
+    
+    with tab1:
+        st.markdown(f"#### Utenti configurati ({len(utenti)})")
+        if utenti:
+            df_ut = pd.DataFrame([{k:v for k,v in u.items() if k != 'password'} for u in utenti])
+            st.dataframe(df_ut, use_container_width=True)
+            
+            # Modifica/elimina utente
+            st.divider()
+            st.markdown("#### Modifica / Elimina Utente")
+            usernames = [u.get("username") for u in utenti]
+            sel_user = st.selectbox("Seleziona utente", ["--"] + usernames, key="sel_user_edit")
+            if sel_user != "--":
+                user_obj = next((u for u in utenti if u.get("username") == sel_user), None)
+                if user_obj:
+                    c1, c2 = st.columns(2)
+                    with c1:
+                        nuovo_nome = st.text_input("Nome", value=user_obj.get("nome",""), key="edit_nome")
+                        nuovo_ruolo = st.selectbox("Ruolo", ["amministratore","operatore","lettore"], index=["amministratore","operatore","lettore"].index(user_obj.get("ruolo","operatore")), key="edit_ruolo")
+                        attivo = st.checkbox("Attivo", value=user_obj.get("attivo",True), key="edit_attivo")
+                    with c2:
+                        nuova_pwd = st.text_input("Nuova Password (lascia vuoto per non cambiare)", type="password", key="edit_pwd")
+                        st.caption(f"Username: {user_obj.get('username')} - Non modificabile")
+                    
+                    col1, col2 = st.columns(2)
+                    with col1:
+                        if st.button("💾 Salva Modifiche", type="primary", use_container_width=True, key="btn_save_user"):
+                            for u in utenti:
+                                if u.get("username") == sel_user:
+                                    u["nome"] = nuovo_nome
+                                    u["ruolo"] = nuovo_ruolo
+                                    u["attivo"] = attivo
+                                    if nuova_pwd.strip():
+                                        u["password"] = hash_pwd(nuova_pwd.strip())
+                            save_utenti(utenti)
+                            st.success(f"Utente {sel_user} aggiornato")
+                            st.rerun()
+                    with col2:
+                        if st.button("🗑️ Elimina Utente", use_container_width=True, key="btn_del_user"):
+                            if sel_user == "admin":
+                                st.error("Non puoi eliminare admin principale")
+                            else:
+                                utenti = [u for u in utenti if u.get("username") != sel_user]
+                                save_utenti(utenti)
+                                st.success(f"Utente {sel_user} eliminato")
+                                st.rerun()
+    
+    with tab2:
+        st.markdown("#### Crea Nuovo Utente")
+        with st.form("crea_utente_form"):
+            c1, c2 = st.columns(2)
+            with c1:
+                new_username = st.text_input("Username * (senza spazi)", placeholder="es: mario.rossi", key="new_username")
+                new_nome = st.text_input("Nome Completo *", placeholder="es: Mario Rossi - ODV Varese", key="new_nome_user")
+                new_ruolo = st.selectbox("Ruolo *", ["operatore","lettore","amministratore"], index=0, key="new_ruolo_user", help="operatore=vede+inserisce, lettore=solo vede, amministratore=tutto")
+            with c2:
+                new_pwd = st.text_input("Password *", type="password", key="new_pwd_user")
+                new_pwd2 = st.text_input("Conferma Password *", type="password", key="new_pwd2_user")
+                attivo_new = st.checkbox("Attivo", value=True, key="new_attivo")
+            
+            submitted = st.form_submit_button("✅ Crea Utente", type="primary", use_container_width=True)
+            if submitted:
+                if not new_username or not new_nome or not new_pwd:
+                    st.error("Compila campi obbligatori *")
+                elif new_pwd != new_pwd2:
+                    st.error("Password non coincidono")
+                elif len(new_pwd) < 4:
+                    st.error("Password minimo 4 caratteri")
+                elif any(u.get("username") == new_username for u in utenti):
+                    st.error(f"Username {new_username} già esistente")
+                else:
+                    utenti.append({
+                        "username": new_username.strip().lower(),
+                        "password": hash_pwd(new_pwd.strip()),
+                        "nome": new_nome.strip(),
+                        "ruolo": new_ruolo,
+                        "attivo": attivo_new
+                    })
+                    save_utenti(utenti)
+                    st.success(f"Utente {new_username} creato con ruolo {new_ruolo}")
+                    st.balloons()
+                    st.rerun()
+    
+    with tab3:
+        st.markdown("#### 🟢 Utenti Online - Presenza")
+        try:
+            presenza = load_presenza()
+            if presenza:
+                df_pres = pd.DataFrame(presenza)
+                st.dataframe(df_pres, use_container_width=True)
+                st.success(f"{len(presenza)} utenti collegati ultimi 30 min")
+                if st.button("🧹 Pulisci Presenza", use_container_width=True):
+                    save_presenza([])
+                    st.success("Presenza pulita")
+                    st.rerun()
+            else:
+                st.info("Nessun utente online oltre te")
+        except Exception as e:
+            st.error(f"Errore presenza: {e}")
+        
+        st.divider()
+        st.markdown("""
+        #### ℹ️ Come funziona multi-utente contemporaneo?
+        - **Sì, più utenti possono aprire il progetto insieme!**
+        - Ogni utente apre link Streamlit su browser diverso (PC, telefono)
+        - Login con username/password diversi
+        - Su Streamlit Cloud session_state è separato per utente (dati in memoria non condivisi)
+        - Ma utenti.json e presenza.json sono file condivisi sul server (visibili a tutti)
+        - Per dati condivisi in tempo reale (volontari, brogliaccio) serve database esterno:
+          - Opzione 1: Google Sheets come DB
+          - Opzione 2: Supabase / Firebase (gratis)
+          - Opzione 3: File JSON su GitHub + sync
+        - Per ora: chat presenza funziona, dati form restano locali per utente (su Cloud si resettano a reboot)
+        - Su PC locale (localhost): tutti i dati condivisi se usi file JSON
+        """)
 
 # BACKUP - Import/Export singolo + totale - gg/mm/aaaa
 # BACKUP - Import/Export singolo + totale - gg/mm/aaaa - FIX TEMPLATE ODV
