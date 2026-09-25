@@ -5,3 +5,4 @@ reportlab
 xlsxwriter
 requests
 Pillow
+xlrd
