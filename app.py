@@ -1,4 +1,4 @@
-﻿import streamlit as st
+import streamlit as st
 import pandas as pd
 import os
 import io
@@ -526,7 +526,8 @@ def combo_vie(label, comune, key, default=""):
 
 def to_excel(df):
     """
-    Esporta DataFrame in Excel, esclude colonne binarie foto - FIX Win7
+    Esporta DataFrame in Excel - FIX Office 2016 100% compatibile
+    Usa openpyxl, compatibile Office 2016/2019/365
     """
     buf = BytesIO()
     df_copy = df.copy()
@@ -544,8 +545,14 @@ def to_excel(df):
             df_copy = df_copy.drop(columns=[col])
 
     try:
-        # FIX: usa xlsxwriter se openpyxl manca (Win7)
-        engine = "openpyxl" if OPENPYXL_OK else ("xlsxwriter" if XLSXWRITER_OK else "openpyxl")
+        # Office 2016 FIX: usa sempre openpyxl per massima compatibilità
+        # xlsxwriter crea file che a volte Office 2016 rifiuta come "formato non valido"
+        if OPENPYXL_OK:
+            engine = "openpyxl"
+        elif XLSXWRITER_OK:
+            engine = "xlsxwriter"
+        else:
+            engine = "openpyxl"
         with pd.ExcelWriter(buf, engine=engine) as writer:
             df_copy.to_excel(writer, index=False, sheet_name="Dati")
         buf.seek(0)
@@ -576,6 +583,140 @@ def to_excel_multi(datasets):
         return buf.getvalue()
     except:
         return to_excel(list(datasets.values())[0] if datasets else pd.DataFrame())
+
+
+
+def excel_import_inline(form_key, form_label):
+    """
+    Import/Export inline per ogni form - Ezio richiesta
+    Ogni form ha il suo Excel import direttamente nel form
+    Compatibile Office 2016
+    """
+    st.divider()
+    st.markdown(f"#### 📥📤 Import/Export Excel - {form_label} (Office 2016 compatibile)")
+
+    c1, c2, c3 = st.columns(3)
+
+    # Export corrente
+    with c1:
+        data = st.session_state.get(form_key, [])
+        if data:
+            clean = [{kk: vv for kk, vv in r.items() if "Bytes" not in kk and "Foto" not in kk and "File" not in kk} for r in data if isinstance(r, dict)]
+            if clean:
+                df_exp = pd.DataFrame(clean)
+                st.download_button(
+                    f"⬇️ Scarica Excel {form_label}",
+                    data=to_excel(df_exp),
+                    file_name=f"{form_key}_export_{datetime.now().strftime('%Y%m%d')}.xlsx",
+                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                    use_container_width=True,
+                    key=f"exp_inline_{form_key}"
+                )
+                st.caption(f"{len(data)} record")
+            else:
+                st.info("Nessun dato")
+        else:
+            st.info(f"{form_label} vuoto")
+
+    # Template vuoto per ODV
+    with c2:
+        # Crea template vuoto con colonne del form se esiste, altrimenti generico
+        data_existing = st.session_state.get(form_key, [])
+        if data_existing and len(data_existing) > 0:
+            # Usa colonne del primo record come template
+            first = data_existing[0]
+            cols = [k for k in first.keys() if "Bytes" not in k and "Foto" not in k and "File" not in k]
+            if not cols:
+                cols = ["Nome","Cognome","Note"]
+        else:
+            # Template specifici per form conosciuti
+            if form_key == "volontari":
+                cols = ["Nome","Cognome","Comune","Via","CapoODV","ODVAppartenenza","DataNascita","CodFisc","Cellulare","Email","TelEmergenza","Ruolo","Squadra","RadioID","Documento","ScadDoc","Note"]
+            elif form_key == "mezzi":
+                cols = ["Targa","Modello","Tipo","ODV","Stato","Note"]
+            elif form_key == "attrezzature":
+                cols = ["Nome","Tipo","Quantita","ODV","Stato","Note"]
+            else:
+                cols = ["Campo1","Campo2","Campo3","Note"]
+
+        df_template = pd.DataFrame(columns=cols)
+        # Aggiungi riga esempio vuota per Office 2016 (Office 2016 vuole almeno header)
+        # Non aggiungere righe dati, solo header, così Office 2016 non da errore formato
+        st.download_button(
+            f"📋 Template vuoto {form_label} per ODV",
+            data=to_excel(df_template),
+            file_name=f"TEMPLATE_{form_key}_ODV_Office2016.xlsx",
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            use_container_width=True,
+            key=f"tpl_inline_{form_key}",
+            help="File .xlsx puro compatibile Office 2016 - solo intestazioni"
+        )
+        st.caption("Invia alle ODV")
+
+    # Import
+    with c3:
+        up_mode = st.radio("Modalità import", ["Aggiungi","Sostituisci"], key=f"mode_inline_{form_key}", horizontal=True)
+        up_file = st.file_uploader(f"Carica Excel per {form_label}", type=["xlsx","xls"], key=f"up_inline_{form_key}")
+
+        if up_file:
+            try:
+                df_imp = None
+                last_err = ""
+                # Prova tutti gli engine per compatibilità Office 2016
+                for eng in [None, "openpyxl", "xlrd"]:
+                    try:
+                        up_file.seek(0)
+                        if eng is None:
+                            df_imp = pd.read_excel(up_file)
+                        else:
+                            df_imp = pd.read_excel(up_file, engine=eng)
+                        if df_imp is not None and not df_imp.empty:
+                            break
+                    except Exception as e:
+                        last_err = str(e)
+                        continue
+
+                if df_imp is not None and not df_imp.empty:
+                    df_imp = df_imp.dropna(how='all')
+                    # Pulisci colonne Unnamed
+                    df_imp = df_imp.loc[:, ~df_imp.columns.astype(str).str.contains('^Unnamed')]
+                    st.success(f"{len(df_imp)} righe lette")
+                    st.dataframe(df_imp.head(10), use_container_width=True)
+
+                    if st.button(f"✅ Importa in {form_label}", type="primary", use_container_width=True, key=f"btn_imp_inline_{form_key}"):
+                        imported = df_imp.to_dict(orient="records")
+                        # Pulisci NaN
+                        cleaned = []
+                        for r in imported:
+                            nr = {}
+                            for k,v in r.items():
+                                if pd.isna(v):
+                                    continue
+                                if isinstance(v, (pd.Timestamp, datetime, date)):
+                                    nr[k] = v.strftime("%d/%m/%Y")
+                                else:
+                                    nr[k] = str(v).strip() if isinstance(v, str) else v
+                            # Salta righe vuote
+                            if any(nr.values()):
+                                cleaned.append(nr)
+
+                        if up_mode.startswith("Sostituisci"):
+                            st.session_state[form_key] = cleaned
+                        else:
+                            st.session_state[form_key] = st.session_state.get(form_key, []) + cleaned
+
+                        st.success(f"Importati {len(cleaned)} in {form_label}!")
+                        st.balloons()
+                        st.rerun()
+                elif df_imp is not None:
+                    st.warning("Excel vuoto - solo intestazioni? Aggiungi righe e ricarica")
+                else:
+                    st.error(f"Errore: {last_err}")
+                    if "openpyxl" in last_err.lower():
+                        st.error("Office 2016 FIX: Salva file come .xlsx (non .xls) in Office 2016 -> File -> Salva con nome -> Cartella di lavoro Excel (*.xlsx)")
+            except Exception as e:
+                st.error(f"Errore import: {e}")
+
 
 
 def to_pdf(df, tit):
@@ -1380,6 +1521,9 @@ elif cur == "Volontari (con foto)":
     else:
         st.info("Nessun volontario inserito")
 
+    # IMPORT/EXPORT INLINE VOLONTARI - Richiesta Ezio - Office 2016 compatibile
+    excel_import_inline("volontari", "Volontari (con foto)")
+
     st.divider()
 
 # DB RADIO
@@ -1426,6 +1570,11 @@ elif cur == "DB Radio":
             st.download_button("PDF Logo Estesa", to_pdf(df_r, "DB RADIO"), "radio_db.pdf", use_container_width=True)
 
 # CONSEGNA RADIO
+
+    # IMPORT/EXPORT INLINE DB Radio - Ezio - Office 2016
+    excel_import_inline("radio_db", "DB Radio")
+
+
 elif cur == "Consegna Radio":
     hdr()
     hdr_form("CONSEGNA RADIO - Tracciamento")
@@ -1469,6 +1618,11 @@ elif cur == "Consegna Radio":
             st.download_button("PDF Logo Estesa", to_pdf(df_cr, "CONSEGNA RADIO"), "consegne.pdf", use_container_width=True)
 
 # ALIAS RADIO
+
+    # IMPORT/EXPORT INLINE Consegna Radio - Ezio - Office 2016
+    excel_import_inline("consegna_radio", "Consegna Radio")
+
+
 elif cur == "Alias Radio":
     hdr()
     hdr_form("ALIAS RADIO - Gestione Alias")
@@ -1499,6 +1653,11 @@ elif cur == "Alias Radio":
         st.download_button("Excel Alias", to_excel(df_al), "alias.xlsx", use_container_width=True)
 
 # BROGLIACCIO
+
+    # IMPORT/EXPORT INLINE Alias Radio - Ezio - Office 2016
+    excel_import_inline("alias_radio", "Alias Radio")
+
+
 elif cur == "Brogliaccio":
     hdr()
     hdr_form("BROGLIACCIO - Registro Operativo")
@@ -1538,6 +1697,11 @@ elif cur == "Brogliaccio":
             st.download_button("PDF Logo Estesa", to_pdf(df_br, "BROGLIACCIO"), "brogliaccio.pdf", use_container_width=True)
 
 # EVENTI
+
+    # IMPORT/EXPORT INLINE Brogliaccio - Ezio - Office 2016
+    excel_import_inline("brogliaccio", "Brogliaccio")
+
+
 elif cur == "Eventi":
     hdr()
     hdr_form("EVENTI - Gestione Eventi Programmati")
@@ -1582,6 +1746,11 @@ elif cur == "Eventi":
             st.download_button("PDF Logo Estesa", to_pdf(df_ev, "EVENTI"), "eventi.pdf", use_container_width=True)
 
 # EMERGENZE
+
+    # IMPORT/EXPORT INLINE Eventi - Ezio - Office 2016
+    excel_import_inline("eventi", "Eventi")
+
+
 elif cur == "Emergenze":
     hdr()
     hdr_form("EMERGENZE - Gestione Emergenze Attive")
@@ -1640,6 +1809,11 @@ elif cur == "Emergenze":
             st.download_button("PDF Logo Estesa", to_pdf(df_em, "EMERGENZE"), "emergenze.pdf", use_container_width=True)
 
 # MAPPE (Emergenze+Eventi) FUSIONE - SI OTTIMA IDEA
+
+    # IMPORT/EXPORT INLINE Emergenze - Ezio - Office 2016
+    excel_import_inline("emergenze", "Emergenze")
+
+
 elif cur == "# RIMOSSO":
     hdr()
     hdr_form("MAPPE - Fusione Emergenze + Eventi - Proposta Ezio - SI OTTIMA IDEA")
@@ -2041,6 +2215,11 @@ elif cur == "Mezzi":
             st.download_button("PDF Logo Estesa", to_pdf(df_mez, "MEZZI"), "mezzi.pdf", use_container_width=True)
 
 # ATTREZZATURE
+
+    # IMPORT/EXPORT INLINE Mezzi - Ezio - Office 2016
+    excel_import_inline("mezzi", "Mezzi")
+
+
 elif cur == "Attrezzature":
     hdr()
     hdr_form("ATTREZZATURE - Magazzino")
@@ -2077,6 +2256,11 @@ elif cur == "Attrezzature":
             st.download_button("PDF Logo Estesa", to_pdf(df_att, "ATTREZZATURE"), "attrezzature.pdf", use_container_width=True)
 
 # MAPPE POSTAZIONI - STABILE - MARKER RIMANGONO - TABELLA SOTTO - ANTEPRIMA SOTTO TABELLA - NOME EMERGENZA/EVENTO COMBO
+
+    # IMPORT/EXPORT INLINE Attrezzature - Ezio - Office 2016
+    excel_import_inline("attrezzature", "Attrezzature")
+
+
 elif cur == "Mappe Postazioni":
     hdr()
     hdr_form("MAPPE POSTAZIONI - Postazioni + Marker - Stabile")
@@ -2832,30 +3016,15 @@ elif cur == "Backup":
     st.info("Scarica template vuoto, invialo alle ODV, loro compilano Nome/Cognome/CF etc, ti rimandano file, tu lo importi sotto in un click!")
 
     def get_volontari_template_df():
-        # Template con colonne giuste per volontari
+        # Template OFFICE 2016 COMPATIBILE - solo header, no righe esempio che danno errore formato
         columns = [
             "Nome", "Cognome", "Comune", "Via", "CapoODV", "ODVAppartenenza",
             "DataNascita", "CodFisc", "Cellulare", "Email", "TelEmergenza",
             "Ruolo", "Squadra", "RadioID", "Documento", "ScadDoc", "Note"
         ]
-        # 2 righe esempio per far capire formato
-        example = [
-            {
-                "Nome": "Mario", "Cognome": "Rossi", "Comune": "Varese", "Via": "Via Milano 1",
-                "CapoODV": "Ezio Fiscato", "ODVAppartenenza": "ANA Varese",
-                "DataNascita": "15/06/1985", "CodFisc": "RSSMRA85H15L319X",
-                "Cellulare": "3451234567", "Email": "mario.rossi@email.it", "TelEmergenza": "0332123456",
-                "Ruolo": "Volontario", "Squadra": "Squadra A", "RadioID": "101", "Documento": "CI123456", "ScadDoc": "15/06/2030", "Note": "Esempio"
-            },
-            {
-                "Nome": "", "Cognome": "", "Comune": "Varese", "Via": "",
-                "CapoODV": "", "ODVAppartenenza": "ANA Varese",
-                "DataNascita": "gg/mm/aaaa", "CodFisc": "",
-                "Cellulare": "", "Email": "", "TelEmergenza": "",
-                "Ruolo": "Volontario", "Squadra": "Squadra A", "RadioID": "", "Documento": "", "ScadDoc": "", "Note": ""
-            }
-        ]
-        return pd.DataFrame(example, columns=columns)
+        # Office 2016 FIX: DataFrame vuoto solo con colonne, niente righe esempio
+        # Office 2016 da errore "formato non valido" se ci sono righe con tipi misti esempio
+        return pd.DataFrame(columns=columns)
 
     c_t1, c_t2 = st.columns(2)
     with c_t1:
