@@ -1482,41 +1482,218 @@ elif cur == "Alias Radio":
 # BROGLIACCIO
 elif cur == "Brogliaccio":
     hdr()
-    hdr_form("BROGLIACCIO - Registro Operativo")
+    hdr_form("BROGLIACCIO - Registro Operativo per Evento/Emergenza Blindato + Alias ALIA")
 
-    c1, c2 = st.columns(2)
+    # Init blindati
+    if "brog_evento_blindato" not in st.session_state:
+        st.session_state.brog_evento_blindato = None
+    if "brog_emergenza_blindata" not in st.session_state:
+        st.session_state.brog_emergenza_blindata = None
+    if "brog_blindato" not in st.session_state:
+        st.session_state.brog_blindato = False
+    if "brog_tipo_blindato" not in st.session_state:
+        st.session_state.brog_tipo_blindato = None  # "evento" o "emergenza"
+
+    # Recupera liste
+    alias_list = st.session_state.get("alias_radio", [])
+    alias_nomi = [a.get("Alias","") for a in alias_list if a.get("Alias")] if alias_list else []
+    if not alias_nomi:
+        alias_nomi = ["-- Nessun Alias --", "Centrale", "Squadra A", "Squadra B", "COC", "SOU"]
+
+    eventi_list = st.session_state.get("eventi", [])
+    emergenze_list = st.session_state.get("emergenze", [])
+    nomi_eventi_brog = ["-- Nessuno --"] + [f"{ev.get('Nome','')} - {ev.get('Data','')} - {ev.get('Comune','')}" for ev in eventi_list] if eventi_list else ["-- Nessuno --"]
+    nomi_emergenze_brog = ["-- Nessuna --"] + [f"{em.get('Nome','')} - {em.get('Data','')} - {em.get('Comune','')} [{em.get('Stato','')}]" for em in emergenze_list] if emergenze_list else ["-- Nessuna --"]
+
+    # Mostra stato blindato
+    if st.session_state.brog_blindato:
+        if st.session_state.brog_tipo_blindato == "evento" and st.session_state.brog_evento_blindato:
+            st.warning(f"🔒 BROGLIACCIO BLINDATO SU EVENTO: {st.session_state.brog_evento_blindato} - Tutti i nuovi brogliacci saranno per questo evento")
+        elif st.session_state.brog_tipo_blindato == "emergenza" and st.session_state.brog_emergenza_blindata:
+            st.error(f"🔒 BROGLIACCIO BLINDATO SU EMERGENZA: {st.session_state.brog_emergenza_blindata} - Tutti i nuovi brogliacci saranno per questa emergenza")
+        if st.button("🔓 Sblocca Brogliaccio - Torna libero", use_container_width=True):
+            st.session_state.brog_blindato = False
+            st.session_state.brog_evento_blindato = None
+            st.session_state.brog_emergenza_blindata = None
+            st.session_state.brog_tipo_blindato = None
+            st.success("Brogliaccio sbloccato")
+            st.rerun()
+
+    st.divider()
+
+    # Form brogliaccio
+    c1, c2, c3 = st.columns(3)
     with c1:
         data_b = st.date_input("Data", value=date.today(), format="DD/MM/YYYY", key="brog_data")
         ora_b = st.time_input("Ora", value=datetime.now().time(), key="brog_ora")
-        operatore = st.text_input("Operatore", key="brog_op")
+        operatore = st.text_input("Operatore *", key="brog_op", placeholder="Nome operatore")
 
     with c2:
-        evento_b = st.text_input("Evento Riferimento", key="brog_evento")
-        emerg_b = st.text_input("Emergenza Riferimento", key="brog_emerg")
-        blindato = st.checkbox("Blinda Evento/Emergenza", key="brog_blind")
+        # COMBO CHI RICEVE - agganciata a ALIA Alias
+        riceve = st.selectbox("Chi Riceve * - da Alias Radio ALIA", alias_nomi, index=0, key="brog_riceve", help="Combo agganciata al form Alias Radio campo Alias - chi riceve il messaggio")
+        trasmette = st.selectbox("Chi Trasmette * - da Alias Radio ALIA", alias_nomi, index=0, key="brog_trasmette", help="Combo agganciata al form Alias Radio campo Alias - chi trasmette il messaggio")
+        if riceve == "-- Nessun Alias --" or trasmette == "-- Nessun Alias --":
+            st.info("💡 Vai su Alias Radio e crea alias per vedere qui in combo")
 
-    testo_b = st.text_area("Testo Brogliaccio *", height=150, key="brog_testo")
+    with c3:
+        # Se blindato, mostra bloccato, altrimenti combo normali
+        if st.session_state.brog_blindato:
+            if st.session_state.brog_tipo_blindato == "evento":
+                st.text_input("Evento Riferimento - BLINDATO", value=st.session_state.brog_evento_blindato, disabled=True, key="brog_evento_blindato_view")
+                evento_b = st.session_state.brog_evento_blindato
+                emerg_b = "-- Nessuna --"
+                st.text_input("Emergenza Riferimento - disabilitato", value="-- Bloccato su Evento --", disabled=True, key="brog_emerg_disabled1")
+            else:
+                st.text_input("Emergenza Riferimento - BLINDATA", value=st.session_state.brog_emergenza_blindata, disabled=True, key="brog_emerg_blindata_view")
+                emerg_b = st.session_state.brog_emergenza_blindata
+                evento_b = "-- Nessuno --"
+                st.text_input("Evento Riferimento - disabilitato", value="-- Bloccato su Emergenza --", disabled=True, key="brog_evento_disabled1")
+        else:
+            evento_b = st.selectbox("Evento Riferimento", nomi_eventi_brog, index=0, key="brog_evento")
+            emerg_b = st.selectbox("Emergenza Riferimento", nomi_emergenze_brog, index=0, key="brog_emerg")
 
-    if st.button("Salva Brogliaccio", type="primary", use_container_width=True):
-        if testo_b:
-            st.session_state.brogliaccio.append({
+        # Tasti per blindare evento oppure emergenza - richiesta Ezio
+        st.markdown("**🔒 Blinda Brogliaccio su Evento/Emergenza**")
+        col_blind1, col_blind2 = st.columns(2)
+        with col_blind1:
+            if st.button("🔒 Blinda su Evento selezionato", use_container_width=True, key="btn_blinda_evento", help="Brogliaccio sarà fatto per quel evento"):
+                if evento_b and evento_b != "-- Nessuno --":
+                    st.session_state.brog_evento_blindato = evento_b
+                    st.session_state.brog_emergenza_blindata = None
+                    st.session_state.brog_blindato = True
+                    st.session_state.brog_tipo_blindato = "evento"
+                    st.success(f"🔒 Blindato su Evento: {evento_b}")
+                    st.rerun()
+                else:
+                    st.warning("Seleziona un Evento prima di blindare")
+        with col_blind2:
+            if st.button("🔒 Blinda su Emergenza selezionata", use_container_width=True, key="btn_blinda_emerg", help="Brogliaccio sarà fatto per quella emergenza"):
+                if emerg_b and emerg_b != "-- Nessuna --":
+                    st.session_state.brog_emergenza_blindata = emerg_b
+                    st.session_state.brog_evento_blindato = None
+                    st.session_state.brog_blindato = True
+                    st.session_state.brog_tipo_blindato = "emergenza"
+                    st.success(f"🔒 Blindato su Emergenza: {emerg_b}")
+                    st.rerun()
+                else:
+                    st.warning("Seleziona una Emergenza prima di blindare")
+
+    testo_b = st.text_area("Testo Brogliaccio * - Comunicazione", height=150, key="brog_testo", placeholder="Es: Richiesta intervento ambulanza in Via... - Risposta...")
+
+    # Validazione: brogliaccio deve essere per evento o emergenza blindata
+    if st.session_state.brog_blindato:
+        st.info(f"📝 Brogliaccio sarà salvato per: {st.session_state.brog_evento_blindato or st.session_state.brog_emergenza_blindata} - Tipo: {st.session_state.brog_tipo_blindato}")
+
+    if st.button("💾 Salva Brogliaccio per Evento/Emergenza Blindato", type="primary", use_container_width=True, key="btn_salva_brog"):
+        if not operatore:
+            st.error("❌ Inserisci Operatore")
+        elif riceve == "-- Nessun Alias --" or trasmette == "-- Nessun Alias --":
+            st.error("❌ Seleziona Chi Riceve e Chi Trasmette da Alias ALIA")
+        elif riceve == trasmette and riceve != "-- Nessun Alias --":
+            st.warning("⚠️ Chi Riceve e Chi Trasmette sono uguali - va bene se è auto-comunicazione?")
+        elif not testo_b:
+            st.error("❌ Inserisci Testo Brogliaccio")
+        elif st.session_state.brog_blindato:
+            # Se blindato, deve essere per evento/emergenza blindato
+            if st.session_state.brog_tipo_blindato == "evento" and not st.session_state.brog_evento_blindato:
+                st.error("❌ Errore blindatura evento")
+            elif st.session_state.brog_tipo_blindato == "emergenza" and not st.session_state.brog_emergenza_blindata:
+                st.error("❌ Errore blindatura emergenza")
+            else:
+                nuovo_brog = {
+                    "Data": str(data_b),
+                    "Ora": str(ora_b),
+                    "Operatore": operatore,
+                    "ChiRiceve": riceve,
+                    "ChiTrasmette": trasmette,
+                    "Evento": st.session_state.brog_evento_blindato if st.session_state.brog_tipo_blindato=="evento" else "-- Nessuno --",
+                    "Emergenza": st.session_state.brog_emergenza_blindata if st.session_state.brog_tipo_blindato=="emergenza" else "-- Nessuna --",
+                    "TipoBlindato": st.session_state.brog_tipo_blindato,
+                    "EventoBlindato": st.session_state.brog_evento_blindato,
+                    "EmergenzaBlindata": st.session_state.brog_emergenza_blindata,
+                    "Testo": testo_b,
+                    "Blindato": True,
+                    "DataIns": datetime.now().strftime("%d/%m/%Y %H:%M")
+                }
+                st.session_state.brogliaccio.append(nuovo_brog)
+                st.success(f"✅ Brogliaccio salvato per {st.session_state.brog_evento_blindato or st.session_state.brog_emergenza_blindata} - {riceve} <- {trasmette}")
+                st.rerun()
+        else:
+            # Non blindato - salva libero ma deve avere almeno evento o emergenza
+            if (evento_b == "-- Nessuno --" and emerg_b == "-- Nessuna --"):
+                st.warning("⚠️ Brogliaccio senza Evento/Emergenza - consigliato blindare su uno dei due")
+            nuovo_brog = {
                 "Data": str(data_b),
                 "Ora": str(ora_b),
                 "Operatore": operatore,
+                "ChiRiceve": riceve,
+                "ChiTrasmette": trasmette,
                 "Evento": evento_b,
                 "Emergenza": emerg_b,
+                "TipoBlindato": "libero",
+                "EventoBlindato": evento_b if evento_b != "-- Nessuno --" else "",
+                "EmergenzaBlindata": emerg_b if emerg_b != "-- Nessuna --" else "",
                 "Testo": testo_b,
-                "Blindato": blindato
-            })
-            st.success("Brogliaccio salvato")
+                "Blindato": False,
+                "DataIns": datetime.now().strftime("%d/%m/%Y %H:%M")
+            }
+            st.session_state.brogliaccio.append(nuovo_brog)
+            st.success(f"✅ Brogliaccio salvato - {riceve} <- {trasmette} - Evento: {evento_b} - Emergenza: {emerg_b}")
             st.rerun()
 
+    st.divider()
     if st.session_state.brogliaccio:
-        df_br = pd.DataFrame(st.session_state.brogliaccio)
+        # Filtra per blindato se attivo
+        if st.session_state.brog_blindato:
+            if st.session_state.brog_tipo_blindato == "evento":
+                filtrati = [b for b in st.session_state.brogliaccio if b.get("Evento")==st.session_state.brog_evento_blindato or b.get("EventoBlindato")==st.session_state.brog_evento_blindato]
+                st.markdown(f"### 📓 Brogliacci per Evento Blindato: {st.session_state.brog_evento_blindato} - {len(filtrati)} record")
+                df_br = pd.DataFrame(filtrati) if filtrati else pd.DataFrame(st.session_state.brogliaccio)
+            else:
+                filtrati = [b for b in st.session_state.brogliaccio if b.get("Emergenza")==st.session_state.brog_emergenza_blindata or b.get("EmergenzaBlindata")==st.session_state.brog_emergenza_blindata]
+                st.markdown(f"### 📓 Brogliacci per Emergenza Blindata: {st.session_state.brog_emergenza_blindata} - {len(filtrati)} record")
+                df_br = pd.DataFrame(filtrati) if filtrati else pd.DataFrame(st.session_state.brogliaccio)
+        else:
+            st.markdown(f"### 📓 Tutti i Brogliacci - {len(st.session_state.brogliaccio)} record")
+            df_br = pd.DataFrame(st.session_state.brogliaccio)
+
         st.dataframe(df_br, use_container_width=True)
-        st.download_button("Excel Brogliaccio", to_excel(df_br), "brogliaccio.xlsx", use_container_width=True)
-        if REPORTLAB_OK:
-            st.download_button("PDF Logo Estesa", to_pdf(df_br, "BROGLIACCIO"), "brogliaccio.pdf", use_container_width=True)
+
+        # Mostra dettaglio con chi riceve / trasmette
+        for idx, brog in enumerate(st.session_state.brogliaccio[-10:][::-1]):
+            actual_idx = len(st.session_state.brogliaccio)-1 - idx
+            if st.session_state.brog_blindato:
+                # Se blindato, mostra solo quelli del blindato
+                if st.session_state.brog_tipo_blindato == "evento":
+                    if brog.get("Evento") != st.session_state.brog_evento_blindato and brog.get("EventoBlindato") != st.session_state.brog_evento_blindato:
+                        continue
+                else:
+                    if brog.get("Emergenza") != st.session_state.brog_emergenza_blindata and brog.get("EmergenzaBlindata") != st.session_state.brog_emergenza_blindata:
+                        continue
+
+            with st.expander(f"📄 {brog.get('Data','')} {brog.get('Ora','')} - {brog.get('ChiTrasmette','')} -> {brog.get('ChiRiceve','')} - {brog.get('Evento','')[:20] or brog.get('Emergenza','')[:20]} - {brog.get('Testo','')[:50]}"):
+                st.write(f"**Operatore:** {brog.get('Operatore','')}")
+                st.write(f"**Chi Trasmette:** {brog.get('ChiTrasmette','')} (da ALIA Alias)")
+                st.write(f"**Chi Riceve:** {brog.get('ChiRiceve','')} (da ALIA Alias)")
+                st.write(f"**Evento:** {brog.get('Evento','')}")
+                st.write(f"**Emergenza:** {brog.get('Emergenza','')}")
+                st.write(f"**Blindato:** {brog.get('Blindato','')} - Tipo: {brog.get('TipoBlindato','')}")
+                st.write(f"**Testo:** {brog.get('Testo','')}")
+                if st.button(f"🗑️ Elimina", key=f"del_brog_{actual_idx}"):
+                    st.session_state.brogliaccio.pop(actual_idx)
+                    st.rerun()
+
+        c_exp1, c_exp2 = st.columns(2)
+        with c_exp1:
+            st.download_button("⬇️ Excel Brogliaccio", data=to_excel(df_br), file_name="brogliaccio.xlsx", use_container_width=True)
+        with c_exp2:
+            if REPORTLAB_OK:
+                st.download_button("📄 PDF Brogliaccio con Logo", data=to_pdf(df_br, f"BROGLIACCIO - {st.session_state.brog_evento_blindato or st.session_state.brog_emergenza_blindata or 'TUTTI'} - Riceve/Trasmette ALIA"), file_name="brogliaccio_ana.pdf", mime="application/pdf", use_container_width=True, key="pdf_brog")
+    else:
+        st.info("📓 Nessun brogliaccio - Crea alias su Alias Radio, blinda su Evento/Emergenza e salva")
+
+# EVENTI
+
 
 # EVENTI
 elif cur == "Eventi":
@@ -2714,75 +2891,108 @@ elif cur == "Turni":
 
 elif cur == "Libreria Icone":
     hdr()
-    hdr_form("LIBRERIA ICONE - Scegli tu il marker da usare su Mappe Postazioni")
+    hdr_form("LIBRERIA ICONE - Icone per Mappe Postazioni - Anteprima + Quadratino")
 
     st.markdown("""
     <div style="background:#e8f5e9;padding:8px;border-radius:8px;border-left:4px solid #1A5D1A;margin-bottom:12px;">
-    <b>Qui crei le icone che poi usi su Mappe Postazioni - Decidi tu che marker usare - Ogni icona ha Emoji + Colore + Nome</b>
+    <b>Carica icona personalizzata - Anteprima con quadratino come su mappa</b><br>
+    <small>Es: ambulanza.png - Formati: png, jpg, svg - File singolo, no doppia scritta</small>
     </div>
     """, unsafe_allow_html=True)
 
-    # Icone predefinite se vuoto
     if not st.session_state.icone:
         st.session_state.icone = [
-            {"Nome": "Emergenza", "Emoji": "🚨", "Tipo": "Emergenza", "Colore": "red", "Descrizione": "Emergenza", "Data": datetime.now().strftime("%d/%m/%Y")},
-            {"Nome": "Evento", "Emoji": "📅", "Tipo": "Evento", "Colore": "blue", "Descrizione": "Evento", "Data": datetime.now().strftime("%d/%m/%Y")},
-            {"Nome": "Mezzo", "Emoji": "🚐", "Tipo": "Mezzo", "Colore": "green", "Descrizione": "Mezzo", "Data": datetime.now().strftime("%d/%m/%Y")},
-            {"Nome": "Volontario", "Emoji": "👤", "Tipo": "Volontario", "Colore": "orange", "Descrizione": "Volontario", "Data": datetime.now().strftime("%d/%m/%Y")},
-            {"Nome": "Ospedale", "Emoji": "🏥", "Tipo": "Emergenza", "Colore": "red", "Descrizione": "Ospedale", "Data": datetime.now().strftime("%d/%m/%Y")},
-            {"Nome": "Incendio", "Emoji": "🔥", "Tipo": "Emergenza", "Colore": "red", "Descrizione": "Incendio", "Data": datetime.now().strftime("%d/%m/%Y")},
-            {"Nome": "Alluvione", "Emoji": "💧", "Tipo": "Emergenza", "Colore": "blue", "Descrizione": "Alluvione", "Data": datetime.now().strftime("%d/%m/%Y")},
-            {"Nome": "Radio", "Emoji": "📻", "Tipo": "Mezzo", "Colore": "purple", "Descrizione": "Radio", "Data": datetime.now().strftime("%d/%m/%Y")},
+            {"Nome": "Postazione", "Emoji": "📍", "Tipo": "Postazione", "Colore": "green", "Descrizione": "Postazione generica", "Data": datetime.now().strftime("%d/%m/%Y")},
         ]
 
-    c1, c2, c3, c4 = st.columns(4)
+    c1, c2, c3, c4 = st.columns([1,1,1,1])
     with c1:
-        nome_icona = st.text_input("Nome Icona *", key="ico_nome", placeholder="Es: Postazione 1")
-        emoji_icona = st.text_input("Emoji Icona *", value="📍", key="ico_emoji", help="Inserisci emoji: 🚨 📅 🚐 👤 🏥 🔥 💧 📻 ⛑️ 🚒 🚑")
-    with c2:
+        nome_icona = st.text_input("Nome Icona *", key="ico_nome", placeholder="Es: Ambulanza")
         tipo_icona = st.selectbox("Tipo", ["Emergenza", "Evento", "Mezzo", "Volontario", "Postazione", "Punto Interesse", "Altro"], key="ico_tipo")
-        colore_icona = st.selectbox("Colore Marker", ["red", "blue", "green", "orange", "purple", "darkred", "darkblue", "cadetblue"], key="ico_colore")
+    with c2:
+        desc_icona = st.text_input("Descrizione", key="ico_desc", placeholder="Es: Ambulanza 118")
     with c3:
-        desc_icona = st.text_input("Descrizione Icona", key="ico_desc", placeholder="Descrizione")
-        file_icona = st.file_uploader("File Icona (opzionale)", type=["png", "jpg", "svg"], key="ico_file")
+        file_icona = st.file_uploader("Carica icona", type=["png", "jpg", "jpeg", "svg"], key="ico_file")
+        if file_icona:
+            st.session_state["ico_file_bytes"] = file_icona.getvalue()
+            st.session_state["ico_file_name"] = file_icona.name
+            st.success(f"✅ {file_icona.name}")
     with c4:
-        st.markdown("**Anteprima**")
-        preview_emoji = st.session_state.get("ico_emoji", "📍") if "ico_emoji" in st.session_state else emoji_icona
-        st.markdown(f"<div style='font-size:40px;text-align:center;background:white;padding:10px;border-radius:8px;border:2px solid #1A5D1A;'>{preview_emoji}</div>", unsafe_allow_html=True)
+        st.markdown("**Anteprima icona caricata**")
+        if st.session_state.get("ico_file_bytes"):
+            try:
+                import base64 as b64lib
+                fb = st.session_state["ico_file_bytes"]
+                fname = st.session_state.get("ico_file_name","icona.png").lower()
+                mime = "image/png"
+                if fname.endswith(".jpg") or fname.endswith(".jpeg"): mime="image/jpeg"
+                elif fname.endswith(".svg"): mime="image/svg+xml"
+                b64 = b64lib.b64encode(fb).decode()
+                src = f"data:{mime};base64,{b64}"
+                st.markdown(f"""
+                <div style='background:white;padding:10px;border-radius:8px;border:2px solid #1A5D1A;text-align:center;'>
+                <div style='background:white;border:2px solid #1A5D1A;width:64px;height:64px;display:flex;align-items:center;justify-content:center;margin:0 auto 6px auto;overflow:hidden;padding:4px;border-radius:4px;'>
+                <img src="{src}" style="width:52px;height:52px;object-fit:contain;">
+                </div>
+                <b>{st.session_state.get('ico_nome','') or nome_icona or 'Nuova'}</b><br>
+                <small style='color:#1A5D1A;'>✅ Quadratino con icona</small>
+                </div>
+                """, unsafe_allow_html=True)
+                st.image(fb, width=100)
+                if st.button("🗑️ Rimuovi file", key="del_ico_file_preview"):
+                    st.session_state["ico_file_bytes"]=None
+                    st.session_state["ico_file_name"]=""
+                    st.rerun()
+            except Exception as e:
+                st.error(f"Errore: {e}")
+        else:
+            st.info("⬆️ Carica icona per anteprima")
+            st.markdown("<div style='background:#f5f5f5;border:2px dashed #1A5D1A;width:64px;height:64px;display:flex;align-items:center;justify-content:center;margin:0 auto;border-radius:4px;'><span style='font-size:28px;'>📷</span></div>", unsafe_allow_html=True)
 
     if st.button("💾 Salva Icona in Libreria", type="primary", use_container_width=True):
-        if nome_icona and emoji_icona:
-            # Controlla se esiste già
-            exists = False
+        if nome_icona and st.session_state.get("ico_file_bytes"):
+            exists=False
             for ico in st.session_state.icone:
-                if ico.get("Nome") == nome_icona:
-                    exists = True
+                if ico.get("Nome")==nome_icona:
+                    exists=True
                     break
             if not exists:
-                st.session_state.icone.append({
+                emoji_fallback="📍"
+                nl=nome_icona.lower()
+                if "ambulanza" in nl: emoji_fallback="🚑"
+                elif "polizia" in nl: emoji_fallback="🚓"
+                elif "vigili" in nl: emoji_fallback="🚒"
+                nuova={
                     "Nome": nome_icona,
-                    "Emoji": emoji_icona,
+                    "Emoji": emoji_fallback,
                     "Tipo": tipo_icona,
-                    "Colore": colore_icona,
+                    "Colore": "green",
                     "Descrizione": desc_icona,
-                    "Data": datetime.now().strftime("%d/%m/%Y %H:%M")
-                })
-                st.success(f"Icona {emoji_icona} {nome_icona} salvata - Ora la puoi usare su Mappe Postazioni")
+                    "Data": datetime.now().strftime("%d/%m/%Y %H:%M"),
+                    "FileBytes": st.session_state["ico_file_bytes"],
+                    "FileName": st.session_state.get("ico_file_name","")
+                }
+                st.session_state.icone.append(nuova)
+                st.success(f"✅ {nome_icona} salvata")
+                st.session_state["ico_file_bytes"]=None
+                st.session_state["ico_file_name"]=""
                 st.rerun()
             else:
-                st.warning("Nome già esistente - cambia nome")
+                st.warning("Nome già esistente")
         else:
-            st.error("Nome e Emoji obbligatori")
+            if not nome_icona:
+                st.error("❌ Nome Icona")
+            else:
+                st.error("❌ Carica icona")
 
     st.divider()
-    st.markdown(f"### Libreria Icone - {len(st.session_state.icone)} icone disponibili - Le usi su Mappe Postazioni")
+    st.markdown(f"### Libreria Icone - {len(st.session_state.icone)} icone - Solo icona, no quadratino vecchio")
 
     if st.session_state.icone:
         cols = st.columns(4)
         for idx, ico in enumerate(st.session_state.icone):
             col = cols[idx % 4]
             with col:
-                # FIX EZIO: solo icona, niente quadratino
                 if ico.get("FileBytes"):
                     try:
                         st.image(ico.get("FileBytes"), width=90)
@@ -2793,21 +3003,20 @@ elif cur == "Libreria Icone":
                 st.markdown(f"""
                 <div style="background:white;padding:8px;border-radius:8px;border:2px solid #1A5D1A;text-align:center;margin-bottom:8px;">
                 <b>{ico.get('Nome','')}</b><br>
-                <small>{ico.get('Tipo','')}</small><br>
-                <small>{ico.get('Descrizione','')}</small>
+                <small>{ico.get('Tipo','')}</small>
                 </div>
                 """, unsafe_allow_html=True)
                 if st.button(f"🗑️ Elimina {ico.get('Nome','')}", key=f"del_ico_{idx}"):
                     st.session_state.icone.pop(idx)
                     st.rerun()
         st.divider()
-        df_ico = pd.DataFrame(st.session_state.icone)
+        df_ico = pd.DataFrame([{k:v for k,v in ico.items() if k not in ["FileBytes"]} for ico in st.session_state.icone])
         st.dataframe(df_ico, use_container_width=True)
         st.download_button("Excel Libreria Icone", to_excel(df_ico), "libreria_icone.xlsx", use_container_width=True)
     else:
-        st.info("Nessuna icona - Crea la prima icona sopra")
+        st.info("Nessuna icona")
 
-# CHAT
+
 elif cur == "Chat":
     hdr()
     hdr_form("CHAT - Comunicazioni Squadra")
