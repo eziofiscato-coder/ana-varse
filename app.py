@@ -1,5 +1,16 @@
 import streamlit as st
 import pandas as pd
+import sys, subprocess
+try:
+    import openpyxl
+    OPENPYXL_OK = True
+except ImportError:
+    try:
+        subprocess.check_call([sys.executable, '-m', 'pip', 'install', 'openpyxl'])
+        import openpyxl
+        OPENPYXL_OK = True
+    except Exception as e:
+        OPENPYXL_OK = False
 import os
 import io
 import json
@@ -17,12 +28,6 @@ try:
     REPORTLAB_OK = True
 except:
     REPORTLAB_OK = False
-
-try:
-    import openpyxl
-    OPENPYXL_OK = True
-except:
-    OPENPYXL_OK = False
 
 st.set_page_config(
     page_title="ANA Varese 950+ Modifiche Richieste",
@@ -510,40 +515,55 @@ def combo_vie(label, comune, key, default=""):
 
 def to_excel(df):
     """
-    Esporta DataFrame in Excel, esclude colonne binarie foto
+    Esporta DataFrame in Excel, esclude colonne binarie foto - Auto install openpyxl
     """
     buf = BytesIO()
     df_copy = df.copy()
-
-    cols_to_exclude = [
-        "FotoBytes",
-        "FileBytes",
-        "FotoConsegnaBytes",
-        "Foto",
-        "FotoBytesObj"
-    ]
-
+    cols_to_exclude = ["FotoBytes","FileBytes","FotoConsegnaBytes","Foto","FotoBytesObj"]
     for col in cols_to_exclude:
         if col in df_copy.columns:
             df_copy = df_copy.drop(columns=[col])
-
+    # Assicura openpyxl installato
+    global OPENPYXL_OK
+    if not OPENPYXL_OK:
+        try:
+            subprocess.check_call([sys.executable, '-m', 'pip', 'install', 'openpyxl'])
+            import importlib
+            importlib.import_module('openpyxl')
+            OPENPYXL_OK = True
+        except:
+            pass
     try:
         with pd.ExcelWriter(buf, engine="openpyxl") as writer:
             df_copy.to_excel(writer, index=False, sheet_name="Dati")
         buf.seek(0)
         return buf.getvalue()
-    except:
-        buf2 = BytesIO()
-        df_copy.to_csv(buf2, index=False)
-        buf2.seek(0)
-        return buf2.getvalue()
+    except Exception as e:
+        # Fallback xlsxwriter o csv
+        try:
+            with pd.ExcelWriter(buf, engine="xlsxwriter") as writer:
+                df_copy.to_excel(writer, index=False, sheet_name="Dati")
+            buf.seek(0)
+            return buf.getvalue()
+        except:
+            buf2 = BytesIO()
+            df_copy.to_csv(buf2, index=False)
+            buf2.seek(0)
+            return buf2.getvalue()
 
 
 def to_excel_multi(datasets):
     """
-    datasets = dict nome_sheet -> df
+    datasets = dict nome_sheet -> df - Solo Excel - Auto install openpyxl
     """
     buf = BytesIO()
+    global OPENPYXL_OK
+    if not OPENPYXL_OK:
+        try:
+            subprocess.check_call([sys.executable, '-m', 'pip', 'install', 'openpyxl'])
+            OPENPYXL_OK = True
+        except:
+            pass
     try:
         with pd.ExcelWriter(buf, engine="openpyxl") as writer:
             for sheet_name, df in datasets.items():
@@ -555,8 +575,20 @@ def to_excel_multi(datasets):
                 df_copy.to_excel(writer, index=False, sheet_name=safe_name)
         buf.seek(0)
         return buf.getvalue()
-    except:
-        return to_excel(list(datasets.values())[0] if datasets else pd.DataFrame())
+    except Exception as e:
+        try:
+            with pd.ExcelWriter(buf, engine="xlsxwriter") as writer:
+                for sheet_name, df in datasets.items():
+                    df_copy = df.copy()
+                    for col in ["FotoBytes", "FileBytes"]:
+                        if col in df_copy.columns:
+                            df_copy = df_copy.drop(columns=[col])
+                    safe_name = sheet_name[:30]
+                    df_copy.to_excel(writer, index=False, sheet_name=safe_name)
+            buf.seek(0)
+            return buf.getvalue()
+        except:
+            return to_excel(list(datasets.values())[0] if datasets else pd.DataFrame())
 
 
 def to_pdf(df, tit):
@@ -2868,11 +2900,15 @@ elif cur == "Backup":
     up_file_single = st.file_uploader(f"Carica Excel per {sel_label_imp} - Solo xlsx/xls", type=["xlsx", "xls"], key="up_single_excel")
     if up_file_single:
         try:
-            # Solo Excel - richiesta Ezio - no CSV
+            # Solo Excel - richiesta Ezio - no CSV - Auto install openpyxl
             try:
                 df_imp = pd.read_excel(up_file_single, engine="openpyxl")
             except ImportError:
-                df_imp = pd.read_excel(up_file_single)
+                try:
+                    subprocess.check_call([sys.executable, '-m', 'pip', 'install', 'openpyxl'])
+                    df_imp = pd.read_excel(up_file_single, engine="openpyxl")
+                except:
+                    df_imp = pd.read_excel(up_file_single)
             imported = df_imp.to_dict(orient="records")
             st.success(f"{len(imported)} record letti da Excel")
             st.dataframe(pd.DataFrame(imported).head(10), use_container_width=True)
@@ -2901,7 +2937,11 @@ elif cur == "Backup":
             try:
                 xls = pd.ExcelFile(up_total_excel, engine="openpyxl")
             except ImportError:
-                xls = pd.ExcelFile(up_total_excel)
+                try:
+                    subprocess.check_call([sys.executable, '-m', 'pip', 'install', 'openpyxl'])
+                    xls = pd.ExcelFile(up_total_excel, engine="openpyxl")
+                except:
+                    xls = pd.ExcelFile(up_total_excel)
             st.write(f"Fogli trovati: {xls.sheet_names}")
             mode_total = st.radio("Modalità Import Totale Excel", ["Aggiungi", "Sostituisci"], key="mode_total_excel", horizontal=True)
             if st.button("✅ CONFERMA IMPORT TOTALE EXCEL", type="primary", use_container_width=True, key="btn_import_tot_excel"):
