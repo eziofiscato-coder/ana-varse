@@ -1789,17 +1789,69 @@ elif cur == "Alias Radio":
 
 elif cur == "Brogliaccio":
     hdr()
-    hdr_form("BROGLIACCIO - Registro Operativo")
+    hdr_form("BROGLIACCIO - Registro Operativo - Alias + Volontari agganciati")
+
+    st.markdown("""
+    <div style="background:#e8f5e9;padding:8px;border-radius:8px;border-left:4px solid #1A5D1A;margin-bottom:10px;">
+    <b>NUOVO:</b> Chiamate e Ricevente da Alias Radio | Operatore da Volontari Nome Cognome
+    </div>
+    """, unsafe_allow_html=True)
+
+    # Prepara liste combo da Alias Radio e Volontari
+    # Alias Radio -> lista Alias
+    alias_list = []
+    try:
+        alias_data = st.session_state.get("alias_radio", [])
+        for a in alias_data:
+            al = a.get("Alias", "").strip() if isinstance(a, dict) else ""
+            if al and al not in alias_list:
+                alias_list.append(al)
+    except:
+        pass
+    if not alias_list:
+        alias_list = ["Centrale Operativa", "Squadra A", "Squadra B", "Squadra C", "Coordinamento"]
+
+    # Volontari -> lista Nome Cognome
+    volontari_list = []
+    try:
+        vol_data = st.session_state.get("volontari", [])
+        for v in vol_data:
+            if isinstance(v, dict):
+                nome = v.get("Nome", "").strip()
+                cognome = v.get("Cognome", "").strip()
+                full = f"{nome} {cognome}".strip()
+                if full and full not in volontari_list:
+                    volontari_list.append(full)
+    except:
+        pass
+    if not volontari_list:
+        volontari_list = ["Ezio Fiscato", "Operatore 1", "Operatore 2"]
 
     c1, c2 = st.columns(2)
     with c1:
         data_b = st.date_input("Data", value=date.today(), format="DD/MM/YYYY", key="brog_data")
         ora_b = st.time_input("Ora", value=datetime.now().time(), key="brog_ora")
-        operatore = st.text_input("Operatore", key="brog_op")
+        # OPERATORE COMBO DA VOLONTARI NOME COGNOME - Richiesta Ezio
+        operatore = st.selectbox("Operatore (da Volontari Nome Cognome)", volontari_list, key="brog_op_combo", help="Lista agganciata a form Volontari - Nome Cognome")
+        # Permetti anche inserimento manuale se non in lista
+        operatore_custom = st.text_input("Oppure inserisci Operatore manuale", key="brog_op_custom", placeholder="Se non in lista volontari")
+        if operatore_custom.strip():
+            operatore = operatore_custom.strip()
+
+        # CHIAMATE COMBO DA ALIAS RADIO - Richiesta Ezio
+        chiamate = st.selectbox("Chiamate (da Alias Radio - Alias)", alias_list, key="brog_chiamate", help="Lista agganciata a form Alias Radio - campo Alias")
+        chiamate_custom = st.text_input("Oppure Chiamate manuale", key="brog_chiamate_custom", placeholder="Alias non in lista")
+        if chiamate_custom.strip():
+            chiamate = chiamate_custom.strip()
 
     with c2:
         evento_b = st.text_input("Evento Riferimento", key="brog_evento")
         emerg_b = st.text_input("Emergenza Riferimento", key="brog_emerg")
+        # RICEVENTE COMBO DA ALIAS RADIO - Richiesta Ezio
+        ricevente = st.selectbox("Ricevente (da Alias Radio - Alias)", alias_list, key="brog_ricevente", help="Lista agganciata a form Alias Radio - campo Alias")
+        ricevente_custom = st.text_input("Oppure Ricevente manuale", key="brog_ricevente_custom", placeholder="Alias non in lista")
+        if ricevente_custom.strip():
+            ricevente = ricevente_custom.strip()
         blindato = st.checkbox("Blinda Evento/Emergenza", key="brog_blind")
 
     testo_b = st.text_area("Testo Brogliaccio *", height=150, key="brog_testo")
@@ -1810,20 +1862,27 @@ elif cur == "Brogliaccio":
                 "Data": str(data_b),
                 "Ora": str(ora_b),
                 "Operatore": operatore,
+                "Chiamate": chiamate,
+                "Ricevente": ricevente,
                 "Evento": evento_b,
                 "Emergenza": emerg_b,
                 "Testo": testo_b,
                 "Blindato": blindato
             })
-            st.success("Brogliaccio salvato")
+            st.success(f"Brogliaccio salvato - Op: {operatore} - Chiamate: {chiamate} -> Ricevente: {ricevente}")
             st.rerun()
+        else:
+            st.error("Compila Testo Brogliaccio *")
 
     if st.session_state.brogliaccio:
         df_br = pd.DataFrame(st.session_state.brogliaccio)
+        st.markdown(f"#### Elenco Brogliaccio ({len(st.session_state.brogliaccio)})")
         st.dataframe(df_br, use_container_width=True)
-        st.download_button("Excel Brogliaccio", to_excel(df_br), "brogliaccio.xlsx", use_container_width=True)
-        if REPORTLAB_OK:
-            st.download_button("PDF Logo Estesa", to_pdf(df_br, "BROGLIACCIO"), "brogliaccio.pdf", use_container_width=True)
+        # Tabella con colonne importanti
+        cols_show = ["Data","Ora","Operatore","Chiamate","Ricevente","Testo","Evento"]
+        cols_show = [c for c in cols_show if c in df_br.columns]
+        if cols_show:
+            st.dataframe(df_br[cols_show], use_container_width=True)
 
 # EVENTI
 
