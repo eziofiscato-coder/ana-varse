@@ -2647,8 +2647,9 @@ elif cur == "Libreria Icone":
         nome_icona = st.text_input("Nome Icona *", key="ico_nome", placeholder="Es: Ambulanza, Polizia, Postazione 1")
         tipo_icona = st.selectbox("Tipo", ["Emergenza", "Evento", "Mezzo", "Volontario", "Postazione", "Punto Interesse", "Altro"], key="ico_tipo")
     with c2:
-        colore_icona = st.selectbox("Colore Marker", ["red", "blue", "green", "orange", "purple", "darkred", "darkblue", "cadetblue"], key="ico_colore")
         desc_icona = st.text_input("Descrizione Icona", key="ico_desc", placeholder="Es: Ambulanza 118")
+        # Colore marker rimosso su richiesta Ezio - uso default verde ANA
+        colore_icona = "green"
     with c3:
         file_icona = st.file_uploader("File Icona * - png/jpg/svg", type=["png", "jpg", "jpeg", "svg"], key="ico_file", help="Carica immagine icona - appare subito in anteprima a destra come marker su mappa")
         if file_icona:
@@ -2659,35 +2660,53 @@ elif cur == "Libreria Icone":
         st.markdown("**Anteprima Marker - Icona caricata**")
         col_map_preview = {'red':'#d32f2f','blue':'#1976d2','green':'#388e3c','orange':'#f57c00','purple':'#7b1fa2','darkred':'#b71c1c','darkblue':'#0d47a1','cadetblue':'#5f9ea0'}
         col_hex = col_map_preview.get(colore_icona, '#388e3c')
-        # Anteprima con icona caricata
+        # Anteprima con icona caricata - FIX: mostra vera icona caricata
         if st.session_state.get("ico_file_bytes"):
             try:
-                # Mostra anteprima come marker mappa con icona caricata dentro
+                # Genera base64 corretto per anteprima
+                import base64 as b64lib
+                file_bytes = st.session_state["ico_file_bytes"]
+                file_name = st.session_state.get("ico_file_name", "icona.png").lower()
+                # Determina mime
+                if file_name.endswith(".svg"):
+                    mime_type = "image/svg+xml"
+                elif file_name.endswith(".jpg") or file_name.endswith(".jpeg"):
+                    mime_type = "image/jpeg"
+                else:
+                    mime_type = "image/png"
+                b64_str = b64lib.b64encode(file_bytes).decode()
+                img_src = f"data:{mime_type};base64,{b64_str}"
+                
+                # Mostra anteprima come marker mappa con VERA icona caricata dentro
                 st.markdown(f"""
                 <div style='background:white;padding:12px;border-radius:8px;border:2px solid #1A5D1A;text-align:center;'>
-                <div style='background:white;border:3px solid {col_hex};width:60px;height:60px;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 8px auto;box-shadow:0 3px 6px rgba(0,0,0,0.3);overflow:hidden;'>
-                <img src="data:image/png;base64,PLACEHOLDER" style="width:40px;height:40px;object-fit:contain;" id="preview_img_marker">
+                <div style='background:white;border:3px solid {col_hex};width:70px;height:70px;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 8px auto;box-shadow:0 3px 6px rgba(0,0,0,0.3);overflow:hidden;padding:5px;'>
+                <img src="{img_src}" style="width:50px;height:50px;object-fit:contain;" id="preview_img_marker">
                 </div>
                 <b>{st.session_state.get('ico_nome','Nuova icona') or nome_icona or 'Nuova'}</b><br>
                 <small>{tipo_icona} - bordo {colore_icona}</small><br>
-                <small style='color:#1A5D1A;font-weight:bold;'>Marker su mappa</small>
+                <small style='color:#1A5D1A;font-weight:bold;'>✅ Marker su mappa con tua icona</small>
                 </div>
                 """, unsafe_allow_html=True)
-                # Immagine reale sotto
-                st.image(st.session_state["ico_file_bytes"], width=120, caption=f"Icona: {st.session_state.get('ico_file_name','')}")
+                # Immagine reale sotto grande
+                st.image(file_bytes, width=150, caption=f"✅ Icona caricata: {st.session_state.get('ico_file_name','')} - {len(file_bytes)} bytes")
+                st.success("Anteprima marker OK - vedi icona nel cerchio sopra")
                 if st.button("🗑️ Rimuovi", key="del_ico_file_preview"):
                     st.session_state["ico_file_bytes"] = None
                     st.session_state["ico_file_name"] = ""
                     st.rerun()
             except Exception as e:
                 st.error(f"Errore anteprima: {e}")
-                st.image(st.session_state.get("ico_file_bytes"), width=120)
+                try:
+                    st.image(st.session_state.get("ico_file_bytes"), width=150, caption="Icona caricata")
+                except:
+                    pass
         else:
             st.info("⬆️ Carica file icona per vedere anteprima qui")
             st.markdown(f"""
             <div style='background:white;padding:12px;border-radius:8px;border:2px dashed #1A5D1A;text-align:center;'>
-            <div style='background:#f5f5f5;border:2px dashed {col_hex};width:60px;height:60px;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 8px auto;'>
-            <span style='font-size:24px;'>📷</span>
+            <div style='background:#f5f5f5;border:2px dashed {col_hex};width:70px;height:70px;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 8px auto;'>
+            <span style='font-size:28px;'>📷</span>
             </div>
             <small>Nessuna icona caricata</small><br>
             <small>Carica png/jpg/svg</small>
@@ -2749,23 +2768,44 @@ elif cur == "Libreria Icone":
         for idx, ico in enumerate(st.session_state.icone):
             col = cols[idx % 4]
             with col:
-                # Mostra icona caricata se presente, altrimenti emoji
+                # MODIFICATO EZIO: in libreria devo vedere icona che ho caricato e salvato
+                col_hex_map = {'red':'#d32f2f','blue':'#1976d2','green':'#388e3c','orange':'#f57c00','purple':'#7b1fa2','darkred':'#b71c1c','darkblue':'#0d47a1','cadetblue':'#5f9ea0'}
+                col_hex = col_hex_map.get(ico.get('Colore','green'), '#388e3c')
+                
+                # Mostra icona caricata come marker con bordo colorato - come su mappa
                 if ico.get("FileBytes"):
                     try:
-                        st.image(ico.get("FileBytes"), width=80, caption=f"{ico.get('Nome','')}")
-                    except:
-                        st.markdown(f"<div style='font-size:32px;text-align:center;'>{ico.get('Emoji','📍')}</div>", unsafe_allow_html=True)
+                        # Anteprima marker con immagine dentro cerchio bordato
+                        st.markdown(f"""
+                        <div style="background:white;padding:8px;border-radius:8px;border:2px solid {col_hex};text-align:center;margin-bottom:4px;">
+                        <div style="background:white;border:3px solid {col_hex};width:70px;height:70px;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 6px auto;box-shadow:0 3px 6px rgba(0,0,0,0.3);overflow:hidden;">
+                        <img src="data:image/png;base64,placeholder" style="width:50px;height:50px;object-fit:contain;display:none;">
+                        </div>
+                        <small style="color:{col_hex};font-weight:bold;">Marker su mappa</small>
+                        </div>
+                        """, unsafe_allow_html=True)
+                        st.image(ico.get("FileBytes"), width=80, caption=f"✅ {ico.get('Nome','')} - File: {ico.get('FileName','icona.png')}")
+                    except Exception as e:
+                        st.markdown(f"<div style='font-size:32px;text-align:center;'>{ico.get('Emoji','📍')}<br><small>Errore img: {e}</small></div>", unsafe_allow_html=True)
                 else:
-                    st.markdown(f"<div style='font-size:32px;text-align:center;'>{ico.get('Emoji','📍')}</div>", unsafe_allow_html=True)
+                    st.markdown(f"""
+                    <div style="background:white;padding:8px;border-radius:8px;border:2px solid {col_hex};text-align:center;margin-bottom:4px;">
+                    <div style="background:white;border:3px solid {col_hex};width:70px;height:70px;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 6px auto;box-shadow:0 3px 6px rgba(0,0,0,0.3);font-size:32px;">
+                    {ico.get('Emoji','📍')}
+                    </div>
+                    <small style="color:{col_hex};font-weight:bold;">Marker: {ico.get('Emoji','📍')}</small>
+                    </div>
+                    """, unsafe_allow_html=True)
+                
                 st.markdown(f"""
                 <div style="background:white;padding:8px;border-radius:8px;border:2px solid #1A5D1A;text-align:center;margin-bottom:8px;">
                 <b>{ico.get('Nome','')}</b><br>
                 <small>{ico.get('Tipo','')} - {ico.get('Colore','')}</small><br>
                 <small>{ico.get('Descrizione','')}</small><br>
-                <small style="color:#1A5D1A;">{"✅ Con file: " + ico.get('FileName','') if ico.get('FileBytes') else "📍 Emoji: " + ico.get('Emoji','')}</small>
+                <small style="color:#1A5D1A;font-weight:bold;">{"✅ File caricato: " + ico.get('FileName','') if ico.get('FileBytes') else "📍 Emoji: " + ico.get('Emoji','')}</small>
                 </div>
                 """, unsafe_allow_html=True)
-                if st.button(f"🗑️ Elimina", key=f"del_ico_{idx}"):
+                if st.button(f"🗑️ Elimina {ico.get('Nome','')}", key=f"del_ico_{idx}"):
                     st.session_state.icone.pop(idx)
                     st.rerun()
         st.divider()
