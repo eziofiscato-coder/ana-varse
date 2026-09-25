@@ -1,8 +1,8 @@
 streamlit
 pandas
 openpyxl
-reportlab
 xlsxwriter
+xlrd
+reportlab
 requests
 Pillow
-xlrd
