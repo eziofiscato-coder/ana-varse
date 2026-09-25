@@ -2766,7 +2766,7 @@ elif cur == "Geolocalizzazione Hytera + Anytone":
 # BACKUP - Import/Export singolo + totale - gg/mm/aaaa
 elif cur == "Backup":
     hdr()
-    hdr_form("BACKUP - Backup Export Import su Unica Scheda - Solo Excel")
+    hdr_form("BACKUP - Unica Scheda - Solo Excel")
 
     FORM_KEYS = {
         "Volontari (con foto)": "volontari",
@@ -2789,28 +2789,25 @@ elif cur == "Backup":
         "Posizioni Anytone": "posizioni_anytone"
     }
 
-    # Unica scheda - richiesta Ezio - backup + export + import tutti insieme
     st.markdown("""
     <div style="background:#e8f5e9;padding:10px;border-radius:8px;border-left:4px solid #1A5D1A;margin-bottom:12px;">
-    <b>Backup completo su unica scheda - Solo Excel (no JSON) - Import Excel</b><br>
-    <small>Backup, Export singolo, Import singolo e Import totale tutto in questa scheda</small>
+    <b>Backup completo su unica scheda - Solo Excel xlsx/xls - No CSV, No JSON</b><br>
+    <small>Backup Totale, Export Singolo, Import Singolo, Import Totale tutto qui</small>
     </div>
     """, unsafe_allow_html=True)
 
-    # Riepilogo senza elenco form lungo - solo metriche compatte
     cols = st.columns(4)
     tot_records = 0
     for i, (label, key) in enumerate(FORM_KEYS.items()):
         cnt = len(st.session_state.get(key, []))
         tot_records += cnt
         cols[i % 4].metric(label[:18], cnt)
-
-    st.metric("Totale Record Tutti i Form", tot_records)
+    st.metric("Totale Record", tot_records)
 
     st.divider()
 
-    # Sezione 1: Backup Totale Excel
-    st.markdown("### 💾 Backup Totale - Solo Excel")
+    # Backup Totale Excel
+    st.markdown("### 💾 Backup Totale Excel")
     c1, c2, c3 = st.columns(3)
     with c1:
         try:
@@ -2824,28 +2821,28 @@ elif cur == "Backup":
             if datasets:
                 st.download_button("⬇️ Backup Totale Excel", data=to_excel_multi(datasets), file_name=f"backup_totale_{datetime.now().strftime('%Y%m%d')}.xlsx", mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", use_container_width=True, type="primary", key="backup_tot_excel")
             else:
-                st.info("Nessun dato per backup")
+                st.info("Nessun dato")
         except Exception as e:
             st.error(f"Excel: {e}")
     with c2:
         if REPORTLAB_OK:
             try:
                 df_summary = pd.DataFrame([{"Form": label, "Record": len(st.session_state.get(key, []))} for label, key in FORM_KEYS.items()])
-                st.download_button("⬇️ Backup PDF Riepilogo", data=to_pdf(df_summary, "BACKUP TOTALE"), file_name="backup_riepilogo.pdf", mime="application/pdf", use_container_width=True, key="backup_pdf")
+                st.download_button("⬇️ PDF Riepilogo", data=to_pdf(df_summary, "BACKUP TOTALE"), file_name="backup_riepilogo.pdf", mime="application/pdf", use_container_width=True, key="backup_pdf")
             except:
                 pass
     with c3:
-        if st.button("🗑️ Azzera Tutto - Backup", use_container_width=True, key="azzera_backup_unico"):
+        if st.button("🗑️ Azzera Tutto", use_container_width=True, key="azzera_backup_unico"):
             for k in FORM_KEYS.values():
                 st.session_state[k] = []
-            st.success("Tutti i form azzerati")
+            st.success("Azzerati")
             st.rerun()
 
     st.divider()
 
-    # Sezione 2: Export Singolo Form Excel
+    # Export Singolo Excel
     st.markdown("### 📄 Export Singolo Form - Solo Excel")
-    sel_label = st.selectbox("Seleziona Form per Export", list(FORM_KEYS.keys()), key="backup_sel_form_unico")
+    sel_label = st.selectbox("Seleziona Form per Export Excel", list(FORM_KEYS.keys()), key="backup_sel_form_unico")
     sel_key = FORM_KEYS[sel_label]
     sel_data = st.session_state.get(sel_key, [])
     st.metric(f"Record in {sel_label}", len(sel_data))
@@ -2863,150 +2860,77 @@ elif cur == "Backup":
 
     st.divider()
 
-    # Sezione 3: Import Singolo Form - Solo Excel (no JSON) - richiesta Ezio
-    st.markdown("### 📥 Import Singolo Form - Solo Excel (no JSON)")
+    # Import Singolo - Solo Excel
+    st.markdown("### 📥 Import Singolo Form - Solo Excel xlsx/xls")
     sel_label_imp = st.selectbox("Seleziona Form per Import Excel", list(FORM_KEYS.keys()), key="import_sel_form_excel")
     sel_key_imp = FORM_KEYS[sel_label_imp]
-    up_mode_single = st.radio("Modalità Import Singolo", ["Aggiungi", "Sostituisci"], key="up_mode_single_excel", horizontal=True)
-    up_file_single = st.file_uploader(f"Carica Excel per {sel_label_imp} - Solo Excel", type=["xlsx", "xls", "csv"], key="up_single_excel")
+    up_mode_single = st.radio("Modalità Import Singolo Excel", ["Aggiungi", "Sostituisci"], key="up_mode_single_excel", horizontal=True)
+    up_file_single = st.file_uploader(f"Carica Excel per {sel_label_imp} - Solo xlsx/xls", type=["xlsx", "xls"], key="up_single_excel")
     if up_file_single:
         try:
-            imported = []
-            fname = up_file_single.name.lower()
-            if fname.endswith(".csv"):
-                imported = pd.read_csv(up_file_single).to_dict(orient="records")
-            else:
-                try:
-                    imported = pd.read_excel(up_file_single, engine="openpyxl").to_dict(orient="records")
-                except ImportError as ie:
-                    # Fix Ezio: openpyxl mancante - prova con xlrd o engine automatico
-                    try:
-                        imported = pd.read_excel(up_file_single).to_dict(orient="records")
-                    except Exception as e2:
-                        if "openpyxl" in str(e2).lower() or "openpyxl" in str(ie).lower():
-                            st.error("❌ Libreria openpyxl mancante sul server - Installa con: pip install openpyxl")
-                            st.warning("💡 Workaround: salva il file Excel come CSV e carica il CSV, oppure carica come xls vecchio formato")
-                            # Prova a leggere come csv se possibile
-                            try:
-                                up_file_single.seek(0)
-                                imported = pd.read_csv(up_file_single).to_dict(orient="records")
-                                st.info("✅ Letto come CSV fallback")
-                            except:
-                                imported = []
-                                st.error(f"Import openpyxl failed: {e2} - Usa CSV")
-                        else:
-                            raise e2
-                except Exception as e_inner:
-                    if "openpyxl" in str(e_inner).lower():
-                        st.error(f"❌ Errore import totale Excel: {e_inner}")
-                        st.info("💡 Soluzione: pip install openpyxl oppure converti Excel in CSV")
-                        try:
-                            up_file_single.seek(0)
-                            imported = pd.read_csv(up_file_single).to_dict(orient="records")
-                            st.success("✅ Letto come CSV")
-                        except:
-                            imported = []
-                    else:
-                        raise e_inner
-
-            if imported:
-                st.success(f"{len(imported)} record letti da Excel/CSV")
-                st.dataframe(pd.DataFrame(imported).head(10), use_container_width=True)
-                if st.button(f"✅ Importa Excel in {sel_label_imp}", type="primary", use_container_width=True, key=f"btn_import_excel_{sel_key_imp}"):
-                    if up_mode_single == "Sostituisci":
-                        st.session_state[sel_key_imp] = imported
-                    else:
-                        st.session_state[sel_key_imp] = st.session_state.get(sel_key_imp, []) + imported
-                    st.success(f"Importato {len(imported)} record in {sel_label_imp}")
-                    st.rerun()
-            else:
-                st.warning("Nessun record letto - verifica formato")
+            # Solo Excel - richiesta Ezio - no CSV
+            try:
+                df_imp = pd.read_excel(up_file_single, engine="openpyxl")
+            except ImportError:
+                df_imp = pd.read_excel(up_file_single)
+            imported = df_imp.to_dict(orient="records")
+            st.success(f"{len(imported)} record letti da Excel")
+            st.dataframe(pd.DataFrame(imported).head(10), use_container_width=True)
+            if st.button(f"✅ Importa Excel in {sel_label_imp}", type="primary", use_container_width=True, key=f"btn_import_excel_{sel_key_imp}"):
+                if up_mode_single == "Sostituisci":
+                    st.session_state[sel_key_imp] = imported
+                else:
+                    st.session_state[sel_key_imp] = st.session_state.get(sel_key_imp, []) + imported
+                st.success(f"Importato {len(imported)} record in {sel_label_imp}")
+                st.rerun()
         except Exception as e:
-            st.error(f"Errore import Excel: {e}")
-            st.info("Se vedi 'Import openpyxl failed', installa openpyxl: pip install openpyxl oppure usa CSV")
+            err = str(e).lower()
+            if "openpyxl" in err:
+                st.error("❌ Errore: Import openpyxl failed. Esegui: pip install openpyxl")
+                st.info("Installa openpyxl e ricarica pagina - Solo Excel richiesto da Ezio")
+            else:
+                st.error(f"Errore import Excel: {e}")
 
     st.divider()
 
-    # Sezione 4: Import Backup Totale - Solo Excel Multi-scheda
-    st.markdown("### 📥 Import Backup Totale - Solo Excel Multi-scheda")
-    up_total_excel = st.file_uploader("Carica Backup Totale Excel - Multi fogli - Solo Excel o CSV", type=["xlsx", "xls", "csv"], key="up_total_excel")
+    # Import Totale - Solo Excel
+    st.markdown("### 📥 Import Backup Totale - Solo Excel xlsx/xls Multi-fogli")
+    up_total_excel = st.file_uploader("Carica Backup Totale Excel - Solo xlsx/xls", type=["xlsx", "xls"], key="up_total_excel")
     if up_total_excel:
         try:
-            fname_tot = up_total_excel.name.lower()
-            if fname_tot.endswith(".csv"):
-                # CSV singolo - importa nel form selezionato sopra
-                df_csv = pd.read_csv(up_total_excel)
-                st.write(f"CSV con {len(df_csv)} righe")
-                mode_total = st.radio("Modalità Import Totale CSV", ["Aggiungi", "Sostituisci"], key="mode_total_csv", horizontal=True)
-                if st.button("✅ CONFERMA IMPORT CSV", type="primary", use_container_width=True, key="btn_import_tot_csv"):
-                    # Prova a capire a quale form appartiene
-                    sel_for_csv = st.session_state.get("import_sel_form_excel", list(FORM_KEYS.keys())[0])
-                    key_csv = FORM_KEYS.get(sel_for_csv, "volontari")
-                    imported_csv = df_csv.to_dict(orient="records")
-                    if mode_total.startswith("Sostituisci"):
-                        st.session_state[key_csv] = imported_csv
-                    else:
-                        st.session_state[key_csv] = st.session_state.get(key_csv, []) + imported_csv
-                    st.success(f"Importato {len(imported_csv)} in {sel_for_csv}")
-                    st.rerun()
-            else:
-                try:
-                    xls = pd.ExcelFile(up_total_excel, engine="openpyxl")
-                except ImportError:
-                    try:
-                        xls = pd.ExcelFile(up_total_excel)
-                    except Exception as e_xls:
-                        if "openpyxl" in str(e_xls).lower():
-                            st.error(f"❌ Errore import totale Excel: {e_xls}")
-                            st.error("Import openpyxl failed. Use pip or conda to install the openpyxl package.")
-                            st.info("💡 FIX: Esegui nel terminale: pip install openpyxl")
-                            st.info("💡 Workaround immediato: salva ogni foglio Excel come CSV e usa import singolo CSV")
-                            st.stop()
-                        else:
-                            raise e_xls
-                except Exception as e_xls2:
-                    if "openpyxl" in str(e_xls2).lower():
-                        st.error(f"❌ Errore import totale Excel: Import openpyxl failed. Use pip or conda to install the openpyxl package.")
-                        st.info("Soluzione: pip install openpyxl")
-                        st.stop()
-                    else:
-                        raise e_xls2
-
-                st.write(f"Fogli trovati: {xls.sheet_names}")
-                mode_total = st.radio("Modalità Import Totale Excel", ["Aggiungi", "Sostituisci"], key="mode_total_excel", horizontal=True)
-                if st.button("✅ CONFERMA IMPORT TOTALE EXCEL", type="primary", use_container_width=True, key="btn_import_tot_excel"):
-                    for sheet in xls.sheet_names:
-                        for label, key in FORM_KEYS.items():
-                            if label[:31].lower() in sheet.lower() or key.lower() in sheet.lower() or label.lower() in sheet.lower():
-                                try:
-                                    df_sheet = pd.read_excel(xls, sheet_name=sheet, engine="openpyxl")
-                                except ImportError:
-                                    df_sheet = pd.read_excel(xls, sheet_name=sheet)
-                                imported_sheet = df_sheet.to_dict(orient="records")
-                                if mode_total.startswith("Sostituisci"):
-                                    st.session_state[key] = imported_sheet
-                                else:
-                                    st.session_state[key] = st.session_state.get(key, []) + imported_sheet
-                                st.success(f"Importato {len(imported_sheet)} in {label}")
-                                break
-                    st.success("Import totale Excel completato!")
-                    st.rerun()
+            try:
+                xls = pd.ExcelFile(up_total_excel, engine="openpyxl")
+            except ImportError:
+                xls = pd.ExcelFile(up_total_excel)
+            st.write(f"Fogli trovati: {xls.sheet_names}")
+            mode_total = st.radio("Modalità Import Totale Excel", ["Aggiungi", "Sostituisci"], key="mode_total_excel", horizontal=True)
+            if st.button("✅ CONFERMA IMPORT TOTALE EXCEL", type="primary", use_container_width=True, key="btn_import_tot_excel"):
+                for sheet in xls.sheet_names:
+                    for label, key in FORM_KEYS.items():
+                        if label[:31].lower() in sheet.lower() or key.lower() in sheet.lower() or label.lower() in sheet.lower():
+                            try:
+                                df_sheet = pd.read_excel(xls, sheet_name=sheet, engine="openpyxl")
+                            except ImportError:
+                                df_sheet = pd.read_excel(xls, sheet_name=sheet)
+                            imported_sheet = df_sheet.to_dict(orient="records")
+                            if mode_total.startswith("Sostituisci"):
+                                st.session_state[key] = imported_sheet
+                            else:
+                                st.session_state[key] = st.session_state.get(key, []) + imported_sheet
+                            st.success(f"Importato {len(imported_sheet)} in {label}")
+                            break
+                st.success("Import totale Excel completato!")
+                st.rerun()
         except Exception as e:
-            err_str = str(e).lower()
-            if "openpyxl" in err_str:
-                st.error(f"❌ Errore import totale Excel: Import openpyxl failed. Use pip or conda to install the openpyxl package.")
-                st.markdown("""
-                **Soluzione:**
-                1. Apri terminale e lancia: `pip install openpyxl`
-                2. Oppure in requirements.txt aggiungi: `openpyxl`
-                3. Workaround: salva Excel come CSV e importa CSV
-                """)
+            err = str(e).lower()
+            if "openpyxl" in err:
+                st.error("❌ Errore import totale Excel: Import openpyxl failed. Use pip or conda to install the openpyxl package.")
+                st.error("Soluzione: pip install openpyxl")
             else:
                 st.error(f"Errore import totale Excel: {e}")
 
     st.divider()
 
-    # Azzera singolo form
     with st.expander("⚠️ Azzera Singolo Form"):
         sel_zero = st.selectbox("Form da azzerare", ["--"] + list(FORM_KEYS.keys()), key="zero_sel_unico")
         if sel_zero != "--":
@@ -3020,8 +2944,7 @@ st.divider()
 st.markdown(
     """
     <div style="text-align:center;padding:8px;background:linear-gradient(135deg,#1A5D1A,#2e7d32);border-radius:8px;color:white;font-size:12px;">
-    ANA Varese - Dashboard rosso + bottoni OK | Volontari linguette + ODV | Date gg/mm/aaaa | Backup Import/Export<br>
-    Sviluppato per Ezio
+    ANA Varese - Backup unica scheda solo Excel - Sviluppato per Ezio
     </div>
     """,
     unsafe_allow_html=True
