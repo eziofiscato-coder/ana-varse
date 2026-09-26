@@ -47,6 +47,51 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
+# FULLSCREEN AUTOMATICO ALL'APERTURA - Richiesta Ezio - 100% monitor
+def auto_fullscreen():
+    st.components.v1.html(
+        """
+        <script>
+        // Prova fullscreen automatico all'apertura - 100% monitor
+        function goFullscreen() {
+            try {
+                if (!document.fullscreenElement) {
+                    document.documentElement.requestFullscreen().catch(err => {
+                        console.log('Fullscreen auto bloccato, serve click: ' + err);
+                    });
+                }
+            } catch(e) { console.log(e); }
+        }
+        // Prova subito dopo 1 sec
+        setTimeout(goFullscreen, 1000);
+        // Se bloccato, al primo click ovunque va in fullscreen
+        document.addEventListener('click', function once() {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen().catch(()=>{});
+            }
+            document.removeEventListener('click', once);
+        }, {once: true});
+        // Tasto F per fullscreen manuale
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'f' || e.key === 'F') {
+                if (!document.fullscreenElement) {
+                    document.documentElement.requestFullscreen();
+                } else {
+                    document.exitFullscreen();
+                }
+            }
+        });
+        </script>
+        """,
+        height=0,
+    )
+
+try:
+    auto_fullscreen()
+except:
+    pass
+
+
 # CSS Globale - Times New Roman grassetto per tutti + Verde ANA - FIX upload/download storpiati
 st.markdown(
     """
@@ -1965,8 +2010,10 @@ elif cur == "DB Radio":
     with c1:
         modello = st.selectbox("Modello Radio", ["Hytera PD785", "Anytone 878", "Motorola", "Altro"], key="radio_modello_db_2026")
         matricola = st.text_input("Matricola / ID", key="radio_mat_db_2026")
-        # CAMPO MODIFICATO - Richiesta Ezio - Tolta Frequenza, ora Banda: VHF,UHF,VHF/UHF,HF
-        tipo_banda = st.selectbox("Banda *", ["VHF", "UHF", "VHF/UHF", "HF"], key="radio_tipo_banda_db_2026")
+        # CAMPO BANDA - Richiesta Ezio - VHF,UHF,VHF/UHF,HF
+        banda = st.selectbox("Banda *", ["VHF", "UHF", "VHF/UHF", "HF"], key="radio_banda_db_2026")
+        # CAMPO TIPO - Ripristinato - Richiesta Ezio - DMR,PMR446 ecc
+        tipo_radio = st.selectbox("Tipo *", ["DMR", "TETRA", "PMR446", "NAUTICHE", "VARIE"], key="radio_tipo_db_2026")
 
     with c2:
         alias_r = st.text_input("Alias Radio", key="radio_alias_db_2026")
@@ -1984,7 +2031,8 @@ elif cur == "DB Radio":
             st.session_state.radio_db.append({
                 "Modello": modello,
                 "Matricola": matricola,
-                "Banda": tipo_banda,
+                "Banda": banda,
+                "Tipo": tipo_radio,
                 "Alias": alias_r,
                 "Stato": stato_r,
                 "Note": note_r,
