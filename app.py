@@ -1931,35 +1931,33 @@ elif cur == "Volontari (con foto)":
 
 elif cur == "DB Radio":
     hdr()
-    hdr_form("DB RADIO")
+    hdr_form("DB RADIO - Gestione Apparati")
 
     c1, c2, c3 = st.columns(3)
     with c1:
-        modello = st.selectbox("Modello Radio", ["Hytera PD785", "Anytone 878", "Motorola", "Altro"], key="radio_modello")
-        matricola = st.text_input("Matricola / ID", key="radio_mat")
-        freq = st.text_input("Frequenza", value="430.000", key="radio_freq")
-    c1, c2, c3 = st.columns(3)
-    with c1:
-        modello = st.selectbox("Modello Radio", ["Hytera PD785", "Anytone 878", "Motorola", "Altro"], key="radio_modello")
-        matricola = st.text_input("Matricola / ID", key="radio_mat")
-        tipo_banda = st.selectbox("Tipo Banda *", ["DMR", "TETRA", "PMR446", "NAUTICHE", "VARIE"], key="radio_tipo_banda")
+        modello = st.selectbox("Modello Radio", ["Hytera PD785", "Anytone 878", "Motorola", "Altro"], key="radio_modello_db_2026")
+        matricola = st.text_input("Matricola / ID", key="radio_mat_db_2026")
+        freq = st.text_input("Frequenza", value="430.000", key="radio_freq_db_2026")
+        tipo_banda = st.selectbox("Tipo Banda *", ["DMR", "TETRA", "PMR446", "NAUTICHE", "VARIE"], key="radio_tipo_banda_db_2026")
+
     with c2:
-        alias_r = st.text_input("Alias Radio", key="radio_alias")
-        stato_r = st.selectbox("Stato Radio", ["Operativa", "In Manutenzione", "Fuori Servizio", "Assegnata"], key="radio_stato")
-        note_r = st.text_area("Note", key="radio_note")
+        alias_r = st.text_input("Alias Radio", key="radio_alias_db_2026")
+        stato_r = st.selectbox("Stato Radio", ["Operativa", "In Manutenzione", "Fuori Servizio", "Assegnata"], key="radio_stato_db_2026")
+        note_r = st.text_area("Note", key="radio_note_db_2026")
 
     with c3:
         st.write("Foto Radio")
-        foto_r = st.file_uploader("Foto", type=["jpg", "png"], key="radio_foto")
+        foto_r = st.file_uploader("Foto", type=["jpg", "png"], key="radio_foto_db_2026")
         if foto_r:
             st.image(foto_r.getvalue(), width=100)
 
-    if st.button("Salva Radio in DB", type="primary", use_container_width=True):
+    if st.button("Salva Radio in DB", type="primary", use_container_width=True, key="btn_salva_radio_db_2026"):
         if matricola:
             st.session_state.radio_db.append({
                 "Modello": modello,
                 "Matricola": matricola,
                 "Frequenza": freq,
+                "Tipo Banda": tipo_banda,
                 "Alias": alias_r,
                 "Stato": stato_r,
                 "Note": note_r,
@@ -1971,9 +1969,15 @@ elif cur == "DB Radio":
     if st.session_state.radio_db:
         df_r = pd.DataFrame(st.session_state.radio_db)
         st.dataframe(df_r, use_container_width=True)
-        st.download_button("Excel Radio", to_excel(df_r), "radio_db.xlsx", use_container_width=True)
+        st.download_button("Excel Radio", to_excel(df_r), "radio_db.xlsx", use_container_width=True, key="dl_excel_radio_db_2026")
         if REPORTLAB_OK:
-            st.download_button("PDF Logo Estesa", to_pdf(df_r, "DB RADIO"), "radio_db.pdf", use_container_width=True)
+            st.download_button("PDF Logo Estesa", to_pdf(df_r, "DB RADIO"), "radio_db.pdf", use_container_width=True, key="dl_pdf_radio_db_2026")
+
+    # IMPORT/EXPORT INLINE - Ezio - TUTTI I FORM - Excel + PDF + Template ODV
+    excel_import_inline("radio_db", "DB Radio")
+
+# CONSEGNA RADIO
+
 
 # CONSEGNA RADIO
 
