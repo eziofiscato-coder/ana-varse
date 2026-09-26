@@ -1515,7 +1515,7 @@ with st.sidebar:
 # DASHBOARD MODIFICATA RICHIESTA 1 e 2 - FULLSCREEN ROSSO + BOTTONI ON_CLICK
 if cur == "Dashboard":
     hdr()
-    hdr_form("Dashboard - Menu + Tasti Form")
+    hdr_form("MENU'")
 
     st.markdown(
         """
@@ -1695,7 +1695,7 @@ if cur == "Dashboard":
 # VOLONTARI FORM CON SOTTOMASCHERE A LINGUETTE + CAMPO ODV - NUOVA VERSIONE FINALE
 elif cur == "Volontari (con foto)":
     hdr()
-    hdr_form("VOLONTARI - Sottomaschere a Linguette + ODV")
+    hdr_form("DB VOLONTARI")
 
     edit_mode = False
     edit_data = {}
@@ -1931,7 +1931,7 @@ elif cur == "Volontari (con foto)":
 
 elif cur == "DB Radio":
     hdr()
-    hdr_form("DB RADIO - Gestione Apparati")
+    hdr_form("DB RADIO")
 
     c1, c2, c3 = st.columns(3)
     with c1:
@@ -1980,7 +1980,7 @@ elif cur == "DB Radio":
 
 elif cur == "Consegna Radio":
     hdr()
-    hdr_form("CONSEGNA RADIO - Tracciamento")
+    hdr_form("CONSEGNA RADIO")
 
     c1, c2 = st.columns(2)
     with c1:
@@ -2029,7 +2029,7 @@ elif cur == "Consegna Radio":
 
 elif cur == "Alias Radio":
     hdr()
-    hdr_form("ALIAS RADIO - Gestione Alias")
+    hdr_form("ALIAS RADIO")
 
     c1, c2 = st.columns(2)
     with c1:
@@ -2065,7 +2065,7 @@ elif cur == "Alias Radio":
 
 elif cur == "Brogliaccio":
     hdr()
-    hdr_form("BROGLIACCIO - Registro Operativo - Alias + Volontari agganciati")
+    hdr_form("BROGLIACCIO RADIO")
 
     st.markdown("""
     <div style="background:#e8f5e9;padding:8px;border-radius:8px;border-left:4px solid #1A5D1A;margin-bottom:10px;">
@@ -2284,7 +2284,7 @@ elif cur == "Emergenze":
 # TABELLA EMERGENZE - FORM TABELLA - Richiesta Ezio - Formato tabella per vedere emergenze
 elif cur == "Tabella Emergenze":
     hdr()
-    hdr_form("TABELLA EMERGENZE - Vista Tabella - Filtri + Stato Colorato")
+    hdr_form("ELENCO EMERGENZE")
     
     st.markdown("""
     <div style="background:#fff3e0;padding:10px;border-radius:8px;border-left:4px solid #ff9800;margin-bottom:12px;">
@@ -2503,7 +2503,7 @@ elif cur == "# RIMOSSO":
 # CHECK-IN
 elif cur == "Mappe":
     hdr()
-    hdr_form("MAPPE - Form Completo")
+    hdr_form("MAPPE PER POSTAZIONI/CANTIERI/EMERGENZE IN CORSO")
     c1, c2 = st.columns(2)
     with c1:
         tipo_mappa = st.selectbox("Tipo Mappa *", ["Emergenza", "Evento"], key="mappa_tipo_old2")
@@ -2569,7 +2569,7 @@ elif cur == "Check-in":
 
 elif cur == "Interventi Emergenza":
     hdr()
-    hdr_form("INTERVENTI EMERGENZA - Stato Colore + Icona da Libreria")
+    hdr_form("INTERVENTI EMERGENZA")
 
     st.markdown(
         """
@@ -2712,7 +2712,7 @@ elif cur == "Interventi Emergenza":
 
 elif cur == "Tabella Interventi Emergenza":
     hdr()
-    hdr_form("TABELLA INTERVENTI EMERGENZA - Filtri Corretti")
+    hdr_form("TABELLA INTERVENTI EMERGENZA")
 
     if not st.session_state.interventi:
         st.info("Nessun intervento salvato - Vai in Interventi Emergenza")
@@ -2878,7 +2878,7 @@ elif cur == "Attrezzature":
 
 elif cur == "Mappe Postazioni":
     hdr()
-    hdr_form("MAPPE POSTAZIONI - Postazioni + Marker - Stabile")
+    hdr_form("MAPPE POSTAZIONI")
 
     # Init stabile
     if "mappa_avanzata_markers" not in st.session_state:
@@ -3510,7 +3510,7 @@ elif cur == "Turni":
 
 elif cur == "Libreria Icone":
     hdr()
-    hdr_form("LIBRERIA ICONE - Scegli tu il marker da usare su Mappe Postazioni")
+    hdr_form("LIBRERIA ICONE")
 
     st.markdown("""
     <div style="background:#e8f5e9;padding:8px;border-radius:8px;border-left:4px solid #1A5D1A;margin-bottom:12px;">
@@ -4018,7 +4018,7 @@ elif cur == "Gestione Utenti":
 
 elif cur == "Backup":
     hdr()
-    hdr_form("BACKUP - Template ODV + Import Multiplo - Solo Excel")
+    hdr_form("BACKUP")
 
     FORM_KEYS = {
         "Volontari (con foto)": "volontari",
