@@ -3823,32 +3823,67 @@ elif cur == "Gestione Utenti":
         st.caption(f"Stai creando come: {st.session_state.get('username','admin')} - {datetime.now().strftime('%d/%m/%Y %H:%M')}")
     
     with col_u3:
-        st.markdown("**Permessi extra:**")
-        mu_perm_brog = st.checkbox("📓 Brogliaccio", value=True if mu_ruolo in ["amministratore","coordinatore","operatore"] else False, key="cfg_perm_brog")
-        mu_perm_mezzi = st.checkbox("🚐 Mezzi/Attrezz", value=True if mu_ruolo in ["amministratore","coordinatore","operatore"] else False, key="cfg_perm_mezzi")
-        mu_perm_mappe = st.checkbox("🗺️ Mappe", value=True if mu_ruolo in ["amministratore","coordinatore"] else False, key="cfg_perm_mappe")
-        mu_perm_radio = st.checkbox("📻 Radio", value=True if mu_ruolo in ["amministratore","coordinatore","operatore"] else False, key="cfg_perm_radio")
-        mu_perm_eventi = st.checkbox("📅 Eventi/Emergenze", value=True if mu_ruolo in ["amministratore","coordinatore","operatore"] else False, key="cfg_perm_eventi")
+        st.markdown("**Permessi per singolo utente - Spunta TUTTI i form che può usare:**")
+        st.caption("Decidi per singolo utente cosa può fare - TUTTI visibili qui")
+        is_admin = mu_ruolo == "amministratore"
+        is_coord = mu_ruolo in ["amministratore","coordinatore"]
+        is_oper = mu_ruolo in ["amministratore","coordinatore","operatore"]
+        
+        mu_perm_dashboard = st.checkbox("🏠 Dashboard", value=True, key="cfg_perm_dashboard")
+        mu_perm_volontari = st.checkbox("👤 Volontari (con foto)", value=is_oper, key="cfg_perm_volontari")
+        mu_perm_db_radio = st.checkbox("📻 DB Radio", value=is_oper, key="cfg_perm_db_radio")
+        mu_perm_consegna = st.checkbox("🤝 Consegna Radio", value=is_oper, key="cfg_perm_consegna")
+        mu_perm_alias = st.checkbox("🔖 Alias Radio", value=is_oper, key="cfg_perm_alias")
+        mu_perm_brog = st.checkbox("📓 Brogliaccio", value=is_oper, key="cfg_perm_brog")
+        mu_perm_eventi = st.checkbox("📅 Eventi", value=is_oper, key="cfg_perm_eventi")
+        mu_perm_emergenze = st.checkbox("🚨 Emergenze", value=is_oper, key="cfg_perm_emergenze")
+        mu_perm_tab_em = st.checkbox("📋 Tabella Emergenze", value=is_oper, key="cfg_perm_tab_em")
+        mu_perm_checkin = st.checkbox("✅ Check-in", value=True, key="cfg_perm_checkin")
+        mu_perm_interv = st.checkbox("🚒 Interventi Emergenza", value=is_oper, key="cfg_perm_interv")
+        mu_perm_tab_interv = st.checkbox("📊 Tabella Interventi", value=is_oper, key="cfg_perm_tab_interv")
+        mu_perm_mezzi = st.checkbox("🚐 Mezzi", value=is_oper, key="cfg_perm_mezzi")
+        mu_perm_attrezz = st.checkbox("🧰 Attrezzature", value=is_oper, key="cfg_perm_attrezz")
+        mu_perm_mappe = st.checkbox("🗺️ Mappe Postazioni", value=is_coord, key="cfg_perm_mappe")
+        mu_perm_icone = st.checkbox("🎨 Libreria Icone", value=is_coord, key="cfg_perm_icone")
+        mu_perm_chat = st.checkbox("💬 Chat", value=True, key="cfg_perm_chat")
+        mu_perm_geo = st.checkbox("📍 Geolocalizzazione", value=is_coord, key="cfg_perm_geo")
+        mu_perm_backup = st.checkbox("💾 Backup", value=is_admin, key="cfg_perm_backup")
+        mu_perm_gest = st.checkbox("👥 Gestione Utenti (solo admin)", value=is_admin, key="cfg_perm_gest")
     
-    # Bottone CREA grande verde - SEMPRE VISIBILE
-    if st.button("✅ CREA UTENTE CON LIVELLO ACCESSO - SALVA", type="primary", use_container_width=True, key="btn_crea_utente_mask_visibile"):
+    # Bottone CREA con TUTTI i permessi
+    if st.button("✅ CREA UTENTE - SALVA CON PERMESSI SCELTI PER SINGOLO UTENTE", type="primary", use_container_width=True, key="btn_crea_utente_mask_visibile"):
         if not mu_username or not mu_nome or not mu_pwd:
-            st.error("❌ Compila Username, Nome, Password obbligatori *")
+            st.error("❌ Compila Username, Nome, Password *")
         elif mu_pwd != mu_pwd2:
             st.error("❌ Password non coincidono")
         elif len(mu_pwd) < 4:
             st.error("❌ Password minimo 4 caratteri")
         elif any(u.get("username") == mu_username.strip().lower() for u in utenti):
-            st.error(f"❌ Username {mu_username} già esistente - scegli altro")
+            st.error(f"❌ Username {mu_username} già esistente")
         elif " " in mu_username.strip():
             st.error("❌ Username senza spazi - usa punto: mario.rossi")
         else:
             perm_list = []
+            if mu_perm_dashboard: perm_list.append("dashboard")
+            if mu_perm_volontari: perm_list.append("volontari")
+            if mu_perm_db_radio: perm_list.append("db_radio")
+            if mu_perm_consegna: perm_list.append("consegna_radio")
+            if mu_perm_alias: perm_list.append("alias_radio")
             if mu_perm_brog: perm_list.append("brogliaccio")
-            if mu_perm_mezzi: perm_list.append("mezzi")
-            if mu_perm_mappe: perm_list.append("mappe")
-            if mu_perm_radio: perm_list.append("radio")
             if mu_perm_eventi: perm_list.append("eventi")
+            if mu_perm_emergenze: perm_list.append("emergenze")
+            if mu_perm_tab_em: perm_list.append("tabella_emergenze")
+            if mu_perm_checkin: perm_list.append("checkin")
+            if mu_perm_interv: perm_list.append("interventi_emergenza")
+            if mu_perm_tab_interv: perm_list.append("tabella_interventi")
+            if mu_perm_mezzi: perm_list.append("mezzi")
+            if mu_perm_attrezz: perm_list.append("attrezzature")
+            if mu_perm_mappe: perm_list.append("mappe_postazioni")
+            if mu_perm_icone: perm_list.append("libreria_icone")
+            if mu_perm_chat: perm_list.append("chat")
+            if mu_perm_geo: perm_list.append("geolocalizzazione")
+            if mu_perm_backup: perm_list.append("backup")
+            if mu_perm_gest: perm_list.append("gestione_utenti")
             
             nuovo = {
                 "username": mu_username.strip().lower(),
