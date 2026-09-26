@@ -65,11 +65,16 @@ st.markdown(
         font-size: 14px !important;
         color: black !important;
     }
-    /* FIX UPLOAD/DOWNLOAD - Ripristina font normale per non storpiare scritte - Ezio */
-    [data-testid="stFileUploader"], [data-testid="stFileUploader"] * {
+    /* FIX UPLOAD - Risolve uploadupload doppio - Ezio - vedi immagine */
+    [data-testid="stFileUploader"] {
         font-family: 'Source Sans Pro', sans-serif !important;
         font-weight: normal !important;
     }
+    [data-testid="stFileUploader"] * {
+        font-family: 'Source Sans Pro', sans-serif !important;
+        font-weight: normal !important;
+    }
+    /* Bottone upload - fix duplicato testo uploadupload */
     [data-testid="stFileUploader"] button {
         font-family: 'Source Sans Pro', sans-serif !important;
         font-weight: 500 !important;
@@ -77,11 +82,34 @@ st.markdown(
         background-color: white !important;
         color: black !important;
         border: 1px solid #d0d0d0 !important;
+        white-space: nowrap !important;
+        overflow: hidden !important;
+    }
+    [data-testid="stFileUploader"] button div {
+        font-family: 'Source Sans Pro', sans-serif !important;
+        font-weight: 500 !important;
+        white-space: nowrap !important;
+        text-overflow: ellipsis !important;
+        overflow: hidden !important;
+    }
+    /* Nasconde eventuale span duplicato dentro bottone upload */
+    [data-testid="stFileUploader"] button span {
+        display: none !important;
+    }
+    [data-testid="stFileUploader"] button div p {
+        font-family: 'Source Sans Pro', sans-serif !important;
+        font-weight: 500 !important;
+        margin: 0 !important;
+        padding: 0 !important;
     }
     [data-testid="stFileUploader"] small {
         font-family: 'Source Sans Pro', sans-serif !important;
         font-weight: normal !important;
         font-size: 12px !important;
+    }
+    [data-testid="stFileUploader"] label {
+        font-family: 'Times New Roman', serif !important;
+        font-weight: bold !important;
     }
     /* Fix download button - non storpiare */
     [data-testid="stDownloadButton"] button {
@@ -1937,8 +1965,8 @@ elif cur == "DB Radio":
     with c1:
         modello = st.selectbox("Modello Radio", ["Hytera PD785", "Anytone 878", "Motorola", "Altro"], key="radio_modello_db_2026")
         matricola = st.text_input("Matricola / ID", key="radio_mat_db_2026")
-        freq = st.text_input("Frequenza", value="430.000", key="radio_freq_db_2026")
-        tipo_banda = st.selectbox("Tipo Banda *", ["DMR", "TETRA", "PMR446", "NAUTICHE", "VARIE"], key="radio_tipo_banda_db_2026")
+        # CAMPO MODIFICATO - Richiesta Ezio - Tolta Frequenza, ora Banda: VHF,UHF,VHF/UHF,HF
+        tipo_banda = st.selectbox("Banda *", ["VHF", "UHF", "VHF/UHF", "HF"], key="radio_tipo_banda_db_2026")
 
     with c2:
         alias_r = st.text_input("Alias Radio", key="radio_alias_db_2026")
@@ -1956,8 +1984,7 @@ elif cur == "DB Radio":
             st.session_state.radio_db.append({
                 "Modello": modello,
                 "Matricola": matricola,
-                "Frequenza": freq,
-                "Tipo Banda": tipo_banda,
+                "Banda": tipo_banda,
                 "Alias": alias_r,
                 "Stato": stato_r,
                 "Note": note_r,
@@ -1977,13 +2004,6 @@ elif cur == "DB Radio":
     excel_import_inline("radio_db", "DB Radio")
 
 # CONSEGNA RADIO
-
-
-# CONSEGNA RADIO
-
-
-    # IMPORT/EXPORT INLINE - Ezio - TUTTI I FORM - Excel + PDF + Template ODV
-    excel_import_inline("radio_db", "DB Radio")
 
 
 elif cur == "Consegna Radio":
