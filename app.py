@@ -683,7 +683,7 @@ def excel_import_inline(form_key, form_label):
     Lascia tutti campi aggiunti OK
     """
     st.divider()
-    st.markdown(f"#### 📥📤 Import/Export - {form_label} - Excel + PDF + Template ODV (Office 2016)")
+    st.markdown(f"Import/Export")
 
     c1, c2, c3, c4 = st.columns(4)
 
