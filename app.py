@@ -918,7 +918,7 @@ def to_pdf(df, tit):
         story.append(Spacer(1, 12))
 
         date_para = Paragraph(
-            f"Generato il {datetime.now().strftime('%d/%m/%Y %H:%M')} - Gestionale 950+ Modifiche Richieste",
+            f"Generato il {datetime.now().strftime('%d/%m/%Y %H:%M')} - "GESTIONALE DI PROTEZIONE CIVILE",
             styles["Normal"]
         )
         story.append(date_para)
