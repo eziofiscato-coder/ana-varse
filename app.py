@@ -1938,7 +1938,7 @@ elif cur == "DB Radio":
         modello = st.selectbox("Modello Radio", ["Hytera PD785", "Anytone 878", "Motorola", "Altro"], key="radio_modello")
         matricola = st.text_input("Matricola / ID", key="radio_mat")
         freq = st.text_input("Frequenza", value="430.000", key="radio_freq")
-c1, c2, c3 = st.columns(3)
+    c1, c2, c3 = st.columns(3)
     with c1:
         modello = st.selectbox("Modello Radio", ["Hytera PD785", "Anytone 878", "Motorola", "Altro"], key="radio_modello")
         matricola = st.text_input("Matricola / ID", key="radio_mat")
