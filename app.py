@@ -1140,6 +1140,55 @@ if st.session_state.page == "entra":
         ):
             st.session_state.page = "login"
             st.rerun()
+        
+        st.write("")
+        st.write("")
+        # ETICHETTA CON LOGO - Developed by Ezio F. 2026 Vers. 1.0 - SOLO PRIMA PAGINA - Richiesta Ezio
+        try:
+            # Prova a mostrare logo_dev_ezio.png
+            col_logo, col_text = st.columns([1, 3])
+            with col_logo:
+                if os.path.exists("logo_dev_ezio.png"):
+                    st.image("logo_dev_ezio.png", width=80)
+                elif os.path.exists("/mnt/data/logo_dev_ezio.png"):
+                    st.image("/mnt/data/logo_dev_ezio.png", width=80)
+                else:
+                    st.markdown('<div style="font-size:40px;text-align:center;">👨‍💻</div>', unsafe_allow_html=True)
+            with col_text:
+                st.markdown("""
+                <div style="background:linear-gradient(135deg,#1A5D1A 0%,#2e7d32 100%);padding:10px 14px;border-radius:10px;
+                border-left:4px solid #FFD700;margin-top:8px;">
+                <p style="margin:0;color:white;font-family:Times New Roman;font-weight:bold;font-size:14px;">
+                Developed by Ezio F. 2026 Vers. 1.0
+                </p>
+                <p style="margin:2px 0 0 0;color:#FFD700;font-family:Times New Roman;font-size:11px;">
+                ANA Varese Protezione Civile - Gestionale 950+ Modifiche
+                </p>
+                </div>
+                """, unsafe_allow_html=True)
+        except:
+            st.markdown("""
+            <div style="text-align:center;background:#1A5D1A;color:white;padding:10px;border-radius:8px;margin-top:20px;">
+            <b>Developed by Ezio F. 2026 Vers. 1.0</b><br>
+            <small>ANA Varese Protezione Civile</small>
+            </div>
+            """, unsafe_allow_html=True)
+        
+        # Footer HTML con logo base64 fallback per Cloud
+        try:
+            import base64
+            logo_path = "logo_dev_ezio.png" if os.path.exists("logo_dev_ezio.png") else "/mnt/data/logo_dev_ezio.png" if os.path.exists("/mnt/data/logo_dev_ezio.png") else None
+            if logo_path:
+                with open(logo_path, "rb") as f:
+                    b64_logo = base64.b64encode(f.read()).decode()
+                st.markdown(f"""
+                <div style="text-align:center;margin-top:12px;padding:10px;background:white;border-radius:10px;border:2px solid #1A5D1A;">
+                <img src="data:image/png;base64,{b64_logo}" style="width:60px;height:60px;border-radius:50%;border:2px solid #1A5D1A;object-fit:cover;"><br>
+                <span style="font-family:Times New Roman;font-weight:bold;font-size:13px;color:#1A5D1A;">Developed by Ezio F. 2026 Vers. 1.0</span>
+                </div>
+                """, unsafe_allow_html=True)
+        except:
+            pass
 
     st.stop()
 
@@ -3611,110 +3660,200 @@ elif cur == "Geolocalizzazione Hytera + Anytone":
 # GESTIONE UTENTI - Amministratore e utenti view/insert - Ezio richiesta
 elif cur == "Gestione Utenti":
     hdr()
-    hdr_form("GESTIONE UTENTI - Amministratore / Operatore / Lettore")
+    hdr_form("GESTIONE UTENTI - Solo Amministratore - Crea Utenti con Livelli Accesso")
     
-    # Solo amministratore può accedere
+    # Solo amministratore può accedere - RICHIESTA EZIO
     if st.session_state.get("ruolo_utente") != "amministratore":
         st.error("⛔ Accesso negato - Solo amministratore può gestire utenti")
-        st.info(f"Il tuo ruolo: {st.session_state.get('ruolo_utente')} - Contatta amministratore")
+        st.info(f"Il tuo ruolo: {st.session_state.get('ruolo_utente')} - Contatta amministratore (admin / ana2024)")
+        st.markdown("""
+        <div style="background:#fff3e0;padding:12px;border-radius:8px;text-align:center;">
+        <b>Questo form è solo per Amministratore</b><br>
+        Livelli accesso: Amministratore = tutto, Coordinatore = gestione squadre, Operatore = vede+inserisce, Lettore = solo vede
+        </div>
+        """, unsafe_allow_html=True)
         st.stop()
     
     st.markdown("""
     <div style="background:#ffebee;padding:12px;border-radius:8px;border-left:4px solid #d32f2f;margin-bottom:12px;">
-    <b>🔐 Gestione Utenti - Solo Amministratore</b><br>
-    - <b>Amministratore:</b> può tutto (creare utenti, cancellare dati, backup, gestione utenti)<br>
-    - <b>Operatore:</b> può vedere e inserire (volontari, mezzi, brogliaccio, chat) ma non cancellare utenti<br>
-    - <b>Lettore:</b> può solo vedere (no inserimento)<br>
-    - <b>Multi-utente contemporaneo:</b> Sì! Più utenti possono aprire il gestionale insieme su browser diversi<br>
-    - Su Streamlit Cloud ogni utente ha sessione separata, ma utenti.json e presenza.json sono condivisi
+    <b>🔐 Gestione Utenti - Solo Amministratore - Livelli Accesso</b><br>
+    - <b>Amministratore:</b> 🔴 può tutto - creare utenti, cancellare dati, backup, gestione utenti, tutti i form<br>
+    - <b>Coordinatore:</b> 🟠 può gestire squadre, volontari, mezzi, eventi, emergenze, brogliaccio, mappe, interventi<br>
+    - <b>Operatore:</b> 🟢 può vedere e inserire (volontari, mezzi, brogliaccio, chat, check-in) ma non cancellare utenti né gestire ruoli<br>
+    - <b>Volontario:</b> 🔵 può vedere e inserire solo proprio check-in, chat, volontari (solo lettura)<br>
+    - <b>Lettore:</b> ⚪ può solo vedere tutto (no inserimento, no modifica)<br>
+    - <b>Multi-utente:</b> Sì! Più utenti contemporaneamente - ogni login separato
     </div>
     """, unsafe_allow_html=True)
     
     utenti = load_utenti()
     
-    tab1, tab2, tab3 = st.tabs(["👥 Elenco Utenti", "➕ Crea Utente", "📊 Presenza Online"])
+    tab1, tab2, tab3, tab4 = st.tabs(["👥 Elenco Utenti", "➕ Crea Utente con Livello", "✏️ Modifica Utente", "📊 Presenza Online"])
     
     with tab1:
-        st.markdown(f"#### Utenti configurati ({len(utenti)})")
+        st.markdown(f"#### Utenti configurati ({len(utenti)}) - Solo Amministratore vede questo")
         if utenti:
-            df_ut = pd.DataFrame([{k:v for k,v in u.items() if k != 'password'} for u in utenti])
+            # Mostra senza password ma con permessi
+            df_show = []
+            for u in utenti:
+                df_show.append({
+                    "Username": u.get("username"),
+                    "Nome": u.get("nome"),
+                    "Ruolo": u.get("ruolo"),
+                    "Attivo": "✅" if u.get("attivo",True) else "❌",
+                    "Permessi": ", ".join(u.get("permessi", [])[:5]) if u.get("permessi") else "Tutti" if u.get("ruolo")=="amministratore" else "Base"
+                })
+            df_ut = pd.DataFrame(df_show)
             st.dataframe(df_ut, use_container_width=True)
             
-            # Modifica/elimina utente
-            st.divider()
-            st.markdown("#### Modifica / Elimina Utente")
-            usernames = [u.get("username") for u in utenti]
-            sel_user = st.selectbox("Seleziona utente", ["--"] + usernames, key="sel_user_edit")
-            if sel_user != "--":
-                user_obj = next((u for u in utenti if u.get("username") == sel_user), None)
-                if user_obj:
-                    c1, c2 = st.columns(2)
-                    with c1:
-                        nuovo_nome = st.text_input("Nome", value=user_obj.get("nome",""), key="edit_nome")
-                        nuovo_ruolo = st.selectbox("Ruolo", ["amministratore","operatore","lettore"], index=["amministratore","operatore","lettore"].index(user_obj.get("ruolo","operatore")), key="edit_ruolo")
-                        attivo = st.checkbox("Attivo", value=user_obj.get("attivo",True), key="edit_attivo")
-                    with c2:
-                        nuova_pwd = st.text_input("Nuova Password (lascia vuoto per non cambiare)", type="password", key="edit_pwd")
-                        st.caption(f"Username: {user_obj.get('username')} - Non modificabile")
-                    
-                    col1, col2 = st.columns(2)
-                    with col1:
-                        if st.button("💾 Salva Modifiche", type="primary", use_container_width=True, key="btn_save_user"):
-                            for u in utenti:
-                                if u.get("username") == sel_user:
-                                    u["nome"] = nuovo_nome
-                                    u["ruolo"] = nuovo_ruolo
-                                    u["attivo"] = attivo
-                                    if nuova_pwd.strip():
-                                        u["password"] = hash_pwd(nuova_pwd.strip())
-                            save_utenti(utenti)
-                            st.success(f"Utente {sel_user} aggiornato")
-                            st.rerun()
-                    with col2:
-                        if st.button("🗑️ Elimina Utente", use_container_width=True, key="btn_del_user"):
-                            if sel_user == "admin":
-                                st.error("Non puoi eliminare admin principale")
-                            else:
-                                utenti = [u for u in utenti if u.get("username") != sel_user]
-                                save_utenti(utenti)
-                                st.success(f"Utente {sel_user} eliminato")
-                                st.rerun()
+            # Info livelli
+            st.info("Livelli accesso: amministratore=tutto, coordinatore=gestione operativa, operatore=vede+inserisce, volontario=check-in+chat, lettore=solo vista")
     
     with tab2:
-        st.markdown("#### Crea Nuovo Utente")
-        with st.form("crea_utente_form"):
+        st.markdown("#### ➕ Crea Nuovo Utente con Livello Accesso - Solo Amministratore")
+        st.markdown("""
+        <div style="background:#e8f5e9;padding:8px;border-radius:8px;margin-bottom:10px;">
+        <b>Come Amministratore crei utenti:</b> Scegli username, password, nome, ruolo/livello accesso - L'utente potrà fare login con quel livello
+        </div>
+        """, unsafe_allow_html=True)
+        
+        with st.form("crea_utente_form_avanzato"):
             c1, c2 = st.columns(2)
             with c1:
-                new_username = st.text_input("Username * (senza spazi)", placeholder="es: mario.rossi", key="new_username")
-                new_nome = st.text_input("Nome Completo *", placeholder="es: Mario Rossi - ODV Varese", key="new_nome_user")
-                new_ruolo = st.selectbox("Ruolo *", ["operatore","lettore","amministratore"], index=0, key="new_ruolo_user", help="operatore=vede+inserisce, lettore=solo vede, amministratore=tutto")
-            with c2:
-                new_pwd = st.text_input("Password *", type="password", key="new_pwd_user")
-                new_pwd2 = st.text_input("Conferma Password *", type="password", key="new_pwd2_user")
-                attivo_new = st.checkbox("Attivo", value=True, key="new_attivo")
+                new_username = st.text_input("Username * (senza spazi, minuscolo)", placeholder="es: mario.rossi", key="new_username_adv")
+                new_nome = st.text_input("Nome Completo *", placeholder="es: Mario Rossi - ODV Varese - Squadra A", key="new_nome_user_adv")
+                new_ruolo = st.selectbox("Livello Accesso / Ruolo *", 
+                    ["operatore","coordinatore","volontario","lettore","amministratore"], 
+                    index=0, 
+                    key="new_ruolo_user_adv",
+                    help="amministratore=tutto, coordinatore=gestione squadre, operatore=vede+inserisce, volontario=base, lettore=solo vista")
+                
+                # Descrizione ruolo
+                desc_ruoli = {
+                    "amministratore": "🔴 Può tutto: creare utenti, cancellare, backup, tutti i form",
+                    "coordinatore": "🟠 Gestisce squadre, volontari, mezzi, eventi, emergenze, brogliaccio",
+                    "operatore": "🟢 Vede e inserisce volontari, mezzi, brogliaccio, chat, check-in",
+                    "volontario": "🔵 Solo check-in, chat, vista volontari e mezzi",
+                    "lettore": "⚪ Solo visualizzazione, nessun inserimento"
+                }
+                st.caption(desc_ruoli.get(new_ruolo, ""))
             
-            submitted = st.form_submit_button("✅ Crea Utente", type="primary", use_container_width=True)
+            with c2:
+                new_pwd = st.text_input("Password * (min 4 caratteri)", type="password", key="new_pwd_user_adv")
+                new_pwd2 = st.text_input("Conferma Password *", type="password", key="new_pwd2_user_adv")
+                attivo_new = st.checkbox("Utente Attivo", value=True, key="new_attivo_adv")
+                st.caption("Se disattivo, non può fare login")
+                
+                # Permessi extra per livello
+                st.markdown("**Permessi extra (opzionale):**")
+                perm_brogliaccio = st.checkbox("Può gestire Brogliaccio", value=True if new_ruolo in ["amministratore","coordinatore","operatore"] else False, key="perm_brog")
+                perm_mezzi = st.checkbox("Può gestire Mezzi/Attrezzature", value=True if new_ruolo in ["amministratore","coordinatore","operatore"] else False, key="perm_mezzi")
+                perm_mappe = st.checkbox("Può gestire Mappe", value=True if new_ruolo in ["amministratore","coordinatore"] else False, key="perm_mappe")
+                perm_radio = st.checkbox("Può gestire Radio", value=True if new_ruolo in ["amministratore","coordinatore","operatore"] else False, key="perm_radio")
+            
+            submitted = st.form_submit_button("✅ Crea Utente con Livello Accesso", type="primary", use_container_width=True)
             if submitted:
                 if not new_username or not new_nome or not new_pwd:
-                    st.error("Compila campi obbligatori *")
+                    st.error("Compila campi obbligatori * (Username, Nome, Password)")
                 elif new_pwd != new_pwd2:
-                    st.error("Password non coincidono")
+                    st.error("Password non coincidono - riscrivi")
                 elif len(new_pwd) < 4:
                     st.error("Password minimo 4 caratteri")
-                elif any(u.get("username") == new_username for u in utenti):
-                    st.error(f"Username {new_username} già esistente")
+                elif any(u.get("username") == new_username.strip().lower() for u in utenti):
+                    st.error(f"Username {new_username} già esistente - scegli altro")
+                elif " " in new_username.strip():
+                    st.error("Username senza spazi - usa punto es: mario.rossi")
                 else:
-                    utenti.append({
+                    permessi_list = []
+                    if perm_brogliaccio: permessi_list.append("brogliaccio")
+                    if perm_mezzi: permessi_list.append("mezzi")
+                    if perm_mappe: permessi_list.append("mappe")
+                    if perm_radio: permessi_list.append("radio")
+                    
+                    nuovo_utente = {
                         "username": new_username.strip().lower(),
                         "password": hash_pwd(new_pwd.strip()),
                         "nome": new_nome.strip(),
                         "ruolo": new_ruolo,
-                        "attivo": attivo_new
-                    })
-                    save_utenti(utenti)
-                    st.success(f"Utente {new_username} creato con ruolo {new_ruolo}")
-                    st.balloons()
-                    st.rerun()
+                        "attivo": attivo_new,
+                        "permessi": permessi_list,
+                        "creato_da": st.session_state.get("username","admin"),
+                        "data_creazione": datetime.now().strftime("%d/%m/%Y %H:%M")
+                    }
+                    utenti.append(nuovo_utente)
+                    if save_utenti(utenti):
+                        st.success(f"✅ Utente {new_username} creato con livello {new_ruolo.upper()} - Permessi: {', '.join(permessi_list) if permessi_list else 'base'}")
+                        st.balloons()
+                        st.info(f"L'utente può fare login con: {new_username.strip().lower()} / {new_pwd.strip()} - Ruolo: {new_ruolo}")
+                        st.rerun()
+                    else:
+                        st.error("Errore salvataggio utenti.json - verifica permessi file")
+    
+    with tab3:
+        st.markdown("#### ✏️ Modifica / Elimina Utente - Solo Amministratore")
+        st.warning("Solo amministratore può modificare livelli accesso e eliminare utenti")
+        usernames = [u.get("username") for u in utenti]
+        sel_user = st.selectbox("Seleziona utente da modificare", ["-- Seleziona --"] + usernames, key="sel_user_edit_adv")
+        if sel_user != "-- Seleziona --":
+            user_obj = next((u for u in utenti if u.get("username") == sel_user), None)
+            if user_obj:
+                st.markdown(f"#### Modifica: {user_obj.get('nome')} ({user_obj.get('username')})")
+                c1, c2 = st.columns(2)
+                with c1:
+                    nuovo_nome = st.text_input("Nome Completo", value=user_obj.get("nome",""), key="edit_nome_adv")
+                    nuovo_ruolo = st.selectbox("Livello Accesso / Ruolo", 
+                        ["amministratore","coordinatore","operatore","volontario","lettore"], 
+                        index=["amministratore","coordinatore","operatore","volontario","lettore"].index(user_obj.get("ruolo","operatore")) if user_obj.get("ruolo") in ["amministratore","coordinatore","operatore","volontario","lettore"] else 2,
+                        key="edit_ruolo_adv")
+                    attivo = st.checkbox("Utente Attivo", value=user_obj.get("attivo",True), key="edit_attivo_adv")
+                    st.caption(f"Creato da: {user_obj.get('creato_da','sistema')} il {user_obj.get('data_creazione','--')}")
+                with c2:
+                    nuova_pwd = st.text_input("Nuova Password (lascia vuoto per non cambiare)", type="password", key="edit_pwd_adv")
+                    st.caption(f"Username: {user_obj.get('username')} - Non modificabile - Serve per login")
+                    st.caption(f"Ruolo attuale: {user_obj.get('ruolo')} - Nuovo: {nuovo_ruolo}")
+                    # Permessi
+                    perm_attuali = user_obj.get("permessi", [])
+                    st.write("Permessi attuali:", ", ".join(perm_attuali) if perm_attuali else "Base")
+                
+                col1, col2, col3 = st.columns(3)
+                with col1:
+                    if st.button("💾 Salva Modifiche Livello Accesso", type="primary", use_container_width=True, key="btn_save_user_adv"):
+                        for u in utenti:
+                            if u.get("username") == sel_user:
+                                u["nome"] = nuovo_nome
+                                u["ruolo"] = nuovo_ruolo
+                                u["attivo"] = attivo
+                                if nuova_pwd.strip():
+                                    u["password"] = hash_pwd(nuova_pwd.strip())
+                                    st.info("Password aggiornata")
+                        if save_utenti(utenti):
+                            st.success(f"✅ Utente {sel_user} aggiornato a livello {nuovo_ruolo.upper()}")
+                            st.rerun()
+                        else:
+                            st.error("Errore salvataggio")
+                with col2:
+                    if st.button("🔄 Reset Password a 'password'", use_container_width=True, key="btn_reset_pwd"):
+                        for u in utenti:
+                            if u.get("username") == sel_user:
+                                u["password"] = hash_pwd("password")
+                        save_utenti(utenti)
+                        st.success(f"Password di {sel_user} resettata a 'password'")
+                        st.rerun()
+                with col3:
+                    if st.button("🗑️ Elimina Utente", use_container_width=True, key="btn_del_user_adv"):
+                        if sel_user == "admin":
+                            st.error("⛔ Non puoi eliminare admin principale - è amministratore di sistema")
+                        else:
+                            # Conferma
+                            if st.session_state.get("conferma_elimina") == sel_user:
+                                utenti = [u for u in utenti if u.get("username") != sel_user]
+                                save_utenti(utenti)
+                                st.success(f"Utente {sel_user} eliminato definitivamente")
+                                st.session_state["conferma_elimina"] = None
+                                st.rerun()
+                            else:
+                                st.session_state["conferma_elimina"] = sel_user
+                                st.warning(f"Clicca di nuovo Elimina per confermare eliminazione di {sel_user}")
     
     with tab3:
         st.markdown("#### 🟢 Utenti Online - Presenza")
