@@ -1263,8 +1263,8 @@ if st.session_state.page == "entra":
                 font-family: 'Times New Roman', serif;
             }}
             .footer-developed img {{
-                width: 45px;
-                height: 45px;
+                width: 60px;
+                height: 60px;
                 border-radius: 50%;
                 border: 2px solid #FFD700;
                 object-fit: cover;
