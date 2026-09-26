@@ -1093,6 +1093,94 @@ def init_session():
         if k not in st.session_state:
             st.session_state[k] = v
 
+# --- GESTIONE UTENTI + PRESENZA CHAT - Ezio richiesta - FIX accesso negato ---
+import json
+import hashlib
+
+UTENTI_FILE = "utenti.json"
+PRESENZA_FILE = "presenza.json"
+
+def hash_pwd(pwd):
+    return hashlib.sha256(pwd.encode()).hexdigest()
+
+def load_utenti():
+    default_utenti = [
+        {"username": "admin", "password": hash_pwd("ana2024"), "nome": "Amministratore ANA", "ruolo": "amministratore", "attivo": True, "permessi": [], "creato_da": "sistema", "data_creazione": "01/01/2026"},
+        {"username": "operatore1", "password": hash_pwd("operatore1"), "nome": "Operatore 1", "ruolo": "operatore", "attivo": True, "permessi": [], "creato_da": "admin", "data_creazione": "01/01/2026"},
+        {"username": "lettore1", "password": hash_pwd("lettore1"), "nome": "Lettore 1", "ruolo": "lettore", "attivo": True, "permessi": [], "creato_da": "admin", "data_creazione": "01/01/2026"},
+    ]
+    try:
+        if os.path.exists(UTENTI_FILE):
+            with open(UTENTI_FILE, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+                if data:
+                    return data
+    except:
+        pass
+    try:
+        with open(UTENTI_FILE, 'w', encoding='utf-8') as f:
+            json.dump(default_utenti, f, indent=2, ensure_ascii=False)
+    except:
+        pass
+    return default_utenti
+
+def save_utenti(utenti_list):
+    try:
+        with open(UTENTI_FILE, 'w', encoding='utf-8') as f:
+            json.dump(utenti_list, f, indent=2, ensure_ascii=False)
+        return True
+    except Exception as e:
+        print(f"Errore save utenti: {e}")
+        return False
+
+def load_presenza():
+    try:
+        if os.path.exists(PRESENZA_FILE):
+            with open(PRESENZA_FILE, 'r', encoding='utf-8') as f:
+                return json.load(f)
+    except:
+        pass
+    return []
+
+def save_presenza(presenza_list):
+    try:
+        now = datetime.now()
+        fresh = []
+        for p in presenza_list:
+            try:
+                t = datetime.fromisoformat(p.get("ultimo_accesso", ""))
+                if (now - t).total_seconds() < 1800:
+                    fresh.append(p)
+            except:
+                fresh.append(p)
+        with open(PRESENZA_FILE, 'w', encoding='utf-8') as f:
+            json.dump(fresh, f, indent=2, ensure_ascii=False)
+    except:
+        pass
+
+def aggiorna_presenza(username, nome, ruolo):
+    try:
+        presenza = load_presenza()
+        presenza = [p for p in presenza if p.get("username") != username]
+        presenza.append({
+            "username": username,
+            "nome": nome,
+            "ruolo": ruolo,
+            "ultimo_accesso": datetime.now().isoformat(),
+            "ora": datetime.now().strftime("%H:%M:%S")
+        })
+        save_presenza(presenza)
+    except:
+        pass
+
+def rimuovi_presenza(username):
+    try:
+        presenza = load_presenza()
+        presenza = [p for p in presenza if p.get("username") != username]
+        save_presenza(presenza)
+    except:
+        pass
+
 
 init_session()
 
@@ -1192,7 +1280,7 @@ if st.session_state.page == "entra":
 
     st.stop()
 
-# PAGINA LOGIN RIPRISTINATA - MODIFICA 6
+# PAGINA LOGIN - GESTIONE UTENTI MULTI-RUOLO - Ezio - FIX accesso negato
 if st.session_state.page == "login":
     hdr()
     st.write("")
@@ -1204,27 +1292,44 @@ if st.session_state.page == "login":
             border-radius:12px;box-shadow:0 4px 12px rgba(0,0,0,0.1);
             border-top:4px solid #1A5D1A;">
             <h3 style="font-family:Times New Roman;font-weight:bold;text-align:center;">
-            LOGIN RIPRISTINATO - Modifica 6
+            LOGIN - Gestione Utenti - Multi Livello Accesso
             </h3>
+            <p style="text-align:center;font-size:12px;">Amministratore crea utenti con livelli: admin, coordinatore, operatore, volontario, lettore</p>
             </div>
             """,
             unsafe_allow_html=True
         )
         st.write("")
-        utente = st.text_input("Utente", key="login_utente")
-        pwd = st.text_input("Password", type="password", key="login_pwd")
-
-        st.info("Demo: admin / ana2024")
-
-        if st.button("Accedi", type="primary", use_container_width=True):
-            if utente == "admin" and pwd == "ana2024":
-                st.session_state.logged = True
-                st.session_state.page = "dashboard"
-                st.session_state.menu = "Dashboard"
-                st.success("Accesso effettuato")
-                st.rerun()
-            else:
-                st.error("Credenziali errate - Usa admin / ana2024")
+        utenti_list = load_utenti()
+        st.info(f"Utenti configurati: {len(utenti_list)} - Demo: admin / ana2024 (amministratore) | operatore1 / operatore1 | lettore1 / lettore1")
+        
+        with st.form("login_form"):
+            utente = st.text_input("Utente", key="login_utente_form")
+            pwd = st.text_input("Password", type="password", key="login_pwd_form")
+            submitted = st.form_submit_button("Accedi", type="primary", use_container_width=True)
+            
+            if submitted:
+                found = False
+                for u in utenti_list:
+                    if u.get("username") == utente.strip().lower() and u.get("password") == hash_pwd(pwd) and u.get("attivo", True):
+                        st.session_state.logged = True
+                        st.session_state.page = "dashboard"
+                        st.session_state.menu = "Dashboard"
+                        st.session_state.username = u.get("username")
+                        st.session_state.nome_utente = u.get("nome")
+                        st.session_state.ruolo_utente = u.get("ruolo")
+                        # Aggiorna presenza per chat
+                        try:
+                            aggiorna_presenza(u.get("username"), u.get("nome"), u.get("ruolo"))
+                        except:
+                            pass
+                        st.success(f"Accesso effettuato - Benvenuto {u.get('nome')} - Ruolo: {u.get('ruolo')}")
+                        st.balloons()
+                        st.rerun()
+                        found = True
+                        break
+                if not found:
+                    st.error("Credenziali errate o utente disattivato - Verifica username/password e che utente sia attivo")
 
         if st.button("Torna a Entra", use_container_width=True):
             st.session_state.page = "entra"
