@@ -993,7 +993,7 @@ def to_pdf(df, tit):
 
 def hdr():
     """
-    columns 1,5 con logo.png 110 e div verde titolo GESTIONALE 950+ MODIFICHE RICHIESTE
+    columns 1,5 con logo.png 110 e div verde titolo GESTIONALE DI PROTEZIONE CIVILE
     """
     c1, c2 = st.columns([1, 5])
     with c1:
