@@ -1925,7 +1925,7 @@ elif cur == "Volontari (con foto)":
     st.divider()
 
 # DB RADIO
-    # IMPORT/EXPORT INLINE - Ezio - TUTTI I FORM - Excel + PDF + Template ODV
+    # IMPORT/EXPORT
     excel_import_inline("volontari", "Volontari (con foto)")
 
 
