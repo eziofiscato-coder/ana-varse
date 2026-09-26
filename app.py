@@ -1938,7 +1938,12 @@ elif cur == "DB Radio":
         modello = st.selectbox("Modello Radio", ["Hytera PD785", "Anytone 878", "Motorola", "Altro"], key="radio_modello")
         matricola = st.text_input("Matricola / ID", key="radio_mat")
         freq = st.text_input("Frequenza", value="430.000", key="radio_freq")
-
+c1, c2, c3 = st.columns(3)
+    with c1:
+        modello = st.selectbox("Modello Radio", ["Hytera PD785", "Anytone 878", "Motorola", "Altro"], key="radio_modello")
+        matricola = st.text_input("Matricola / ID", key="radio_mat")
+        freq = st.text_input("Frequenza", value="430.000", key="radio_freq")
+        tipo_banda = st.selectbox("Tipo Banda *", ["DMR", "TETRA", "PMR446", "NAUTICHE", "VARIE"], key="radio_tipo_banda") # ← NUOVO RIGA 1941
     with c2:
         alias_r = st.text_input("Alias Radio", key="radio_alias")
         stato_r = st.selectbox("Stato Radio", ["Operativa", "In Manutenzione", "Fuori Servizio", "Assegnata"], key="radio_stato")
