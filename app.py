@@ -1026,7 +1026,7 @@ def hdr():
                 Squadra di Volontari di Protezione Civile - NUCLEO ANA SEZIONE DI VARESE
                 </h1>
                 <p style="margin:4px 0 0 0;font-size:14px;opacity:0.9;">
-                Dashboard solo menu + tasti form | PDF logo + tabella estesa | Stato colorato | Click cognome per modifica | Login/Logout ripristinati | Fusione Mappe SI
+                ASSOCIAZIONE NAZIONALE ALPINI
                 </p>
             </div>
             """,
