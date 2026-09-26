@@ -47,80 +47,39 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# FULLSCREEN 100% MONITOR - Richiesta Ezio - Fix browser visibile
-# Chrome blocca fullscreen auto senza gesto - serve bottone + CSS kiosk
+# FULLSCREEN 100% MONITOR - Fix non vedo pagina iniziale - Richiesta Ezio
 def inject_fullscreen_kiosk():
-    st.components.v1.html(
+    st.markdown(
         """
         <style>
-        /* Nasconde barra Streamlit per sembrare più fullscreen */
-        #MainMenu {visibility: hidden;}
-        header {visibility: hidden; height: 0 !important;}
+        /* Nasconde menu Streamlit ma NON sposta contenuto - fix pagina iniziale non visibile */
+        #MainMenu {visibility: hidden; height: 0 !important;}
         footer {visibility: hidden; height: 0 !important;}
-        .stApp {margin-top: -60px;}
-        </style>
-        <div id="fs-container" style="position:fixed; top:10px; right:10px; z-index:999999;">
-            <button id="fs-btn-kiosk" style="
-                background:#ff0000; color:white; border:2px solid #ff0000;
-                padding:10px 20px; font-weight:bold; font-size:16px;
-                border-radius:8px; cursor:pointer; box-shadow:0 2px 8px rgba(0,0,0,0.3);
-            ">⛶ FULLSCREEN 100% - CLICCA QUI</button>
-        </div>
-        <script>
-        const fsBtn = document.getElementById('fs-btn-kiosk');
-        function goFullscreen() {
-            const el = document.documentElement;
-            if (!document.fullscreenElement) {
-                if (el.requestFullscreen) el.requestFullscreen();
-                else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();
-                else if (el.msRequestFullscreen) el.msRequestFullscreen();
-                if (fsBtn) fsBtn.innerHTML = '✕ ESCI FULLSCREEN (ESC o F)';
-                if (fsBtn) fsBtn.style.background = '#1A5D1A';
-            } else {
-                if (document.exitFullscreen) document.exitFullscreen();
-                else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
-                if (fsBtn) fsBtn.innerHTML = '⛶ FULLSCREEN 100% - CLICCA QUI';
-                if (fsBtn) fsBtn.style.background = '#ff0000';
-            }
+        /* header ridotto ma non nascosto del tutto per non perdere pagina entra */
+        header[data-testid="stHeader"] {
+            height: 0 !important;
+            visibility: hidden !important;
         }
-        if (fsBtn) fsBtn.addEventListener('click', goFullscreen);
-        // Auto prova dopo 1.5 sec
-        setTimeout(() => {
-            if (!document.fullscreenElement) {
-                // Non forza, ma mostra bottone lampeggiante
-                if (fsBtn) {
-                    fsBtn.style.animation = 'pulse 1s infinite';
-                    fsBtn.innerHTML = '⛶ CLICCA PER FULLSCREEN 100%!';
-                }
-            }
-        }, 1500);
-        // F11 e tasto F per toggle
-        document.addEventListener('keydown', (e) => {
-            if (e.key === 'F11' || e.key === 'f' || e.key === 'F') {
-                e.preventDefault();
-                goFullscreen();
-            }
-            if (e.key === 'Escape' && document.fullscreenElement) {
-                if (fsBtn) fsBtn.innerHTML = '⛶ FULLSCREEN 100% - CLICCA QUI';
-                if (fsBtn) fsBtn.style.background = '#ff0000';
-            }
-        });
-        // Al primo click su ENTRA nel gestionale -> fullscreen
-        document.addEventListener('click', function handler(e) {
-            const target = e.target;
-            if (target && target.innerText && target.innerText.includes('ENTRA NEL GESTIONALE')) {
-                setTimeout(goFullscreen, 300);
-                document.removeEventListener('click', handler);
-            }
-        });
-        document.addEventListener('fullscreenchange', () => {
-            if (!document.fullscreenElement && fsBtn) {
-                fsBtn.innerHTML = '⛶ FULLSCREEN 100% - CLICCA QUI';
-                fsBtn.style.background = '#ff0000';
-            }
-        });
-        </script>
-        <style>
+        .stApp {
+            margin-top: 0px !important;
+            padding-top: 10px !important;
+        }
+        /* Bottone fullscreen fisso parent */
+        #fs-btn-kiosk-parent {
+            position: fixed !important;
+            top: 10px !important;
+            right: 10px !important;
+            z-index: 9999999 !important;
+            background: #ff0000 !important;
+            color: white !important;
+            border: 2px solid #ff0000 !important;
+            padding: 10px 20px !important;
+            font-weight: bold !important;
+            font-size: 14px !important;
+            border-radius: 8px !important;
+            cursor: pointer !important;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3) !important;
+        }
         @keyframes pulse {
             0% { transform: scale(1); }
             50% { transform: scale(1.05); }
@@ -128,13 +87,97 @@ def inject_fullscreen_kiosk():
         }
         </style>
         """,
-        height=80,
+        unsafe_allow_html=True
+    )
+    st.components.v1.html(
+        """
+        <div id="fs-container-inner" style="height:0;"></div>
+        <script>
+        // Crea bottone nel parent document (fuori iframe) così fullscreen funziona su tutta pagina
+        (function() {
+            const parentDoc = window.parent.document;
+            // Rimuovi bottone vecchio se esiste
+            const oldBtn = parentDoc.getElementById('fs-btn-kiosk-parent');
+            if (oldBtn) oldBtn.remove();
+            
+            const btn = parentDoc.createElement('button');
+            btn.id = 'fs-btn-kiosk-parent';
+            btn.innerHTML = '⛶ FULLSCREEN 100%';
+            btn.style.cssText = 'position:fixed;top:10px;right:10px;z-index:9999999;background:#ff0000;color:white;border:2px solid #ff0000;padding:10px 20px;font-weight:bold;font-size:14px;border-radius:8px;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,0.3);';
+            
+            function goFullscreen() {
+                const el = parentDoc.documentElement;
+                if (!parentDoc.fullscreenElement) {
+                    if (el.requestFullscreen) el.requestFullscreen().catch(()=>{});
+                    else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();
+                    else if (el.msRequestFullscreen) el.msRequestFullscreen();
+                    btn.innerHTML = '✕ ESCI (ESC)';
+                    btn.style.background = '#1A5D1A';
+                    btn.style.borderColor = '#1A5D1A';
+                } else {
+                    if (parentDoc.exitFullscreen) parentDoc.exitFullscreen();
+                    else if (parentDoc.webkitExitFullscreen) parentDoc.webkitExitFullscreen();
+                    btn.innerHTML = '⛶ FULLSCREEN 100%';
+                    btn.style.background = '#ff0000';
+                    btn.style.borderColor = '#ff0000';
+                }
+            }
+            
+            btn.addEventListener('click', goFullscreen);
+            parentDoc.body.appendChild(btn);
+            
+            // Lampeggia dopo 2 sec per invitare al click
+            setTimeout(() => {
+                if (!parentDoc.fullscreenElement) {
+                    btn.style.animation = 'pulse 1.2s infinite';
+                    btn.innerHTML = '⛶ CLICCA PER FULLSCREEN!';
+                }
+            }, 2000);
+            
+            // Tasto F per fullscreen
+            parentDoc.addEventListener('keydown', (e) => {
+                if (e.key === 'f' || e.key === 'F' || e.key === 'F11') {
+                    e.preventDefault();
+                    goFullscreen();
+                }
+            });
+            
+            // Quando clicchi ENTRA NEL GESTIONALE -> fullscreen auto
+            const observer = new MutationObserver(() => {
+                const buttons = parentDoc.querySelectorAll('button');
+                buttons.forEach(b => {
+                    if (b.innerText && b.innerText.includes('ENTRA NEL GESTIONALE') && !b.dataset.fsBound) {
+                        b.dataset.fsBound = '1';
+                        b.addEventListener('click', () => {
+                            setTimeout(goFullscreen, 400);
+                        });
+                    }
+                });
+            });
+            observer.observe(parentDoc.body, {childList:true, subtree:true});
+            
+            parentDoc.addEventListener('fullscreenchange', () => {
+                if (!parentDoc.fullscreenElement) {
+                    btn.innerHTML = '⛶ FULLSCREEN 100%';
+                    btn.style.background = '#ff0000';
+                    btn.style.borderColor = '#ff0000';
+                } else {
+                    btn.innerHTML = '✕ ESCI (ESC)';
+                    btn.style.background = '#1A5D1A';
+                    btn.style.borderColor = '#1A5D1A';
+                }
+            });
+        })();
+        </script>
+        """,
+        height=0,
     )
 
 try:
     inject_fullscreen_kiosk()
 except:
     pass
+
 
 
 
