@@ -1184,7 +1184,7 @@ def rimuovi_presenza(username):
 
 init_session()
 
-# PAGINA ENTRA
+# PAGINA ENTRA - con footer fisso in basso Developed by Ezio F. 2026 Vers 1.0 - Logo cartoon
 if st.session_state.page == "entra":
     hdr()
     st.write("")
@@ -1228,55 +1228,87 @@ if st.session_state.page == "entra":
         ):
             st.session_state.page = "login"
             st.rerun()
+    
+    # FOOTER FISSO IN BASSO - fuori da c2, centrato in tutta pagina - Fix posizione Ezio
+    # CSS fixed bottom
+    try:
+        import base64
+        logo_path = None
+        if os.path.exists("logo_dev_ezio.png"):
+            logo_path = "logo_dev_ezio.png"
+        elif os.path.exists("/mnt/data/logo_dev_ezio.png"):
+            logo_path = "/mnt/data/logo_dev_ezio.png"
         
-        st.write("")
-        st.write("")
-        # ETICHETTA CON LOGO - Developed by Ezio F. 2026 Vers. 1.0 - SOLO PRIMA PAGINA - Richiesta Ezio
-        try:
-            # Prova a mostrare logo_dev_ezio.png
-            col_logo, col_text = st.columns([1, 3])
-            with col_logo:
-                if os.path.exists("logo_dev_ezio.png"):
-                    st.image("logo_dev_ezio.png", width=80)
-                elif os.path.exists("/mnt/data/logo_dev_ezio.png"):
-                    st.image("/mnt/data/logo_dev_ezio.png", width=80)
-                else:
-                    st.markdown('<div style="font-size:40px;text-align:center;">👨‍💻</div>', unsafe_allow_html=True)
-            with col_text:
-                st.markdown("""
-                <div style="background:linear-gradient(135deg,#1A5D1A 0%,#2e7d32 100%);padding:10px 14px;border-radius:10px;
-                border-left:4px solid #FFD700;margin-top:8px;">
-                <p style="margin:0;color:white;font-family:Times New Roman;font-weight:bold;font-size:14px;">
-                Developed by Ezio F. 2026 Vers. 1.0
-                </p>
-                <p style="margin:2px 0 0 0;color:#FFD700;font-family:Times New Roman;font-size:11px;">
-                ANA Varese Protezione Civile - Gestionale 950+ Modifiche
-                </p>
+        if logo_path:
+            with open(logo_path, "rb") as f:
+                b64_logo = base64.b64encode(f.read()).decode()
+            # Footer fisso in basso con logo e scritta Developed by
+            st.markdown(f"""
+            <style>
+            .footer-developed {{
+                position: fixed;
+                left: 0;
+                bottom: 0;
+                width: 100%;
+                background: linear-gradient(135deg,#1A5D1A 0%,#2e7d32 100%);
+                color: white;
+                text-align: center;
+                padding: 8px 0px;
+                z-index: 9999;
+                border-top: 3px solid #FFD700;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                gap: 12px;
+                font-family: 'Times New Roman', serif;
+            }}
+            .footer-developed img {{
+                width: 45px;
+                height: 45px;
+                border-radius: 50%;
+                border: 2px solid #FFD700;
+                object-fit: cover;
+                background: white;
+            }}
+            </style>
+            <div class="footer-developed">
+                <img src="data:image/png;base64,{b64_logo}" alt="Logo Ezio">
+                <div style="text-align:left;line-height:1.2;">
+                    <div style="font-weight:bold;font-size:14px;">Developed by Ezio F. 2026 Vers. 1.0</div>
+                    <div style="font-size:11px;color:#FFD700;">ANA Varese Protezione Civile - Gestionale 950+ Modifiche</div>
                 </div>
-                """, unsafe_allow_html=True)
-        except:
-            st.markdown("""
-            <div style="text-align:center;background:#1A5D1A;color:white;padding:10px;border-radius:8px;margin-top:20px;">
-            <b>Developed by Ezio F. 2026 Vers. 1.0</b><br>
-            <small>ANA Varese Protezione Civile</small>
             </div>
+            <div style="height:70px;"></div>
             """, unsafe_allow_html=True)
-        
-        # Footer HTML con logo base64 fallback per Cloud
-        try:
-            import base64
-            logo_path = "logo_dev_ezio.png" if os.path.exists("logo_dev_ezio.png") else "/mnt/data/logo_dev_ezio.png" if os.path.exists("/mnt/data/logo_dev_ezio.png") else None
-            if logo_path:
-                with open(logo_path, "rb") as f:
-                    b64_logo = base64.b64encode(f.read()).decode()
-                st.markdown(f"""
-                <div style="text-align:center;margin-top:12px;padding:10px;background:white;border-radius:10px;border:2px solid #1A5D1A;">
-                <img src="data:image/png;base64,{b64_logo}" style="width:60px;height:60px;border-radius:50%;border:2px solid #1A5D1A;object-fit:cover;"><br>
-                <span style="font-family:Times New Roman;font-weight:bold;font-size:13px;color:#1A5D1A;">Developed by Ezio F. 2026 Vers. 1.0</span>
-                </div>
-                """, unsafe_allow_html=True)
-        except:
-            pass
+        else:
+            # Fallback senza logo
+            st.markdown("""
+            <style>
+            .footer-developed {{
+                position: fixed;
+                left: 0;
+                bottom: 0;
+                width: 100%;
+                background: #1A5D1A;
+                color: white;
+                text-align: center;
+                padding: 10px;
+                z-index: 9999;
+                border-top: 3px solid #FFD700;
+            }}
+            </style>
+            <div class="footer-developed">
+                <b>Developed by Ezio F. 2026 Vers. 1.0</b> - ANA Varese Protezione Civile
+            </div>
+            <div style="height:60px;"></div>
+            """, unsafe_allow_html=True)
+    except Exception as e:
+        st.markdown(f"""
+        <div style="position:fixed;bottom:0;left:0;width:100%;background:#1A5D1A;color:white;text-align:center;padding:8px;z-index:9999;border-top:2px solid #FFD700;">
+        Developed by Ezio F. 2026 Vers. 1.0 - ANA Varese
+        </div>
+        <div style="height:50px;"></div>
+        """, unsafe_allow_html=True)
 
     st.stop()
 
