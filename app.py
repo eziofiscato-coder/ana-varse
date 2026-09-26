@@ -47,49 +47,95 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# FULLSCREEN AUTOMATICO ALL'APERTURA - Richiesta Ezio - 100% monitor
-def auto_fullscreen():
+# FULLSCREEN 100% MONITOR - Richiesta Ezio - Fix browser visibile
+# Chrome blocca fullscreen auto senza gesto - serve bottone + CSS kiosk
+def inject_fullscreen_kiosk():
     st.components.v1.html(
         """
+        <style>
+        /* Nasconde barra Streamlit per sembrare più fullscreen */
+        #MainMenu {visibility: hidden;}
+        header {visibility: hidden; height: 0 !important;}
+        footer {visibility: hidden; height: 0 !important;}
+        .stApp {margin-top: -60px;}
+        </style>
+        <div id="fs-container" style="position:fixed; top:10px; right:10px; z-index:999999;">
+            <button id="fs-btn-kiosk" style="
+                background:#ff0000; color:white; border:2px solid #ff0000;
+                padding:10px 20px; font-weight:bold; font-size:16px;
+                border-radius:8px; cursor:pointer; box-shadow:0 2px 8px rgba(0,0,0,0.3);
+            ">⛶ FULLSCREEN 100% - CLICCA QUI</button>
+        </div>
         <script>
-        // Prova fullscreen automatico all'apertura - 100% monitor
+        const fsBtn = document.getElementById('fs-btn-kiosk');
         function goFullscreen() {
-            try {
-                if (!document.fullscreenElement) {
-                    document.documentElement.requestFullscreen().catch(err => {
-                        console.log('Fullscreen auto bloccato, serve click: ' + err);
-                    });
-                }
-            } catch(e) { console.log(e); }
-        }
-        // Prova subito dopo 1 sec
-        setTimeout(goFullscreen, 1000);
-        // Se bloccato, al primo click ovunque va in fullscreen
-        document.addEventListener('click', function once() {
+            const el = document.documentElement;
             if (!document.fullscreenElement) {
-                document.documentElement.requestFullscreen().catch(()=>{});
+                if (el.requestFullscreen) el.requestFullscreen();
+                else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();
+                else if (el.msRequestFullscreen) el.msRequestFullscreen();
+                if (fsBtn) fsBtn.innerHTML = '✕ ESCI FULLSCREEN (ESC o F)';
+                if (fsBtn) fsBtn.style.background = '#1A5D1A';
+            } else {
+                if (document.exitFullscreen) document.exitFullscreen();
+                else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
+                if (fsBtn) fsBtn.innerHTML = '⛶ FULLSCREEN 100% - CLICCA QUI';
+                if (fsBtn) fsBtn.style.background = '#ff0000';
             }
-            document.removeEventListener('click', once);
-        }, {once: true});
-        // Tasto F per fullscreen manuale
-        document.addEventListener('keydown', function(e) {
-            if (e.key === 'f' || e.key === 'F') {
-                if (!document.fullscreenElement) {
-                    document.documentElement.requestFullscreen();
-                } else {
-                    document.exitFullscreen();
+        }
+        if (fsBtn) fsBtn.addEventListener('click', goFullscreen);
+        // Auto prova dopo 1.5 sec
+        setTimeout(() => {
+            if (!document.fullscreenElement) {
+                // Non forza, ma mostra bottone lampeggiante
+                if (fsBtn) {
+                    fsBtn.style.animation = 'pulse 1s infinite';
+                    fsBtn.innerHTML = '⛶ CLICCA PER FULLSCREEN 100%!';
                 }
+            }
+        }, 1500);
+        // F11 e tasto F per toggle
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'F11' || e.key === 'f' || e.key === 'F') {
+                e.preventDefault();
+                goFullscreen();
+            }
+            if (e.key === 'Escape' && document.fullscreenElement) {
+                if (fsBtn) fsBtn.innerHTML = '⛶ FULLSCREEN 100% - CLICCA QUI';
+                if (fsBtn) fsBtn.style.background = '#ff0000';
+            }
+        });
+        // Al primo click su ENTRA nel gestionale -> fullscreen
+        document.addEventListener('click', function handler(e) {
+            const target = e.target;
+            if (target && target.innerText && target.innerText.includes('ENTRA NEL GESTIONALE')) {
+                setTimeout(goFullscreen, 300);
+                document.removeEventListener('click', handler);
+            }
+        });
+        document.addEventListener('fullscreenchange', () => {
+            if (!document.fullscreenElement && fsBtn) {
+                fsBtn.innerHTML = '⛶ FULLSCREEN 100% - CLICCA QUI';
+                fsBtn.style.background = '#ff0000';
             }
         });
         </script>
+        <style>
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+        </style>
         """,
-        height=0,
+        height=80,
     )
 
 try:
-    auto_fullscreen()
+    inject_fullscreen_kiosk()
 except:
     pass
+
 
 
 # CSS Globale - Times New Roman grassetto per tutti + Verde ANA - FIX upload/download storpiati
@@ -1315,66 +1361,165 @@ if st.session_state.page == "entra":
         if logo_path:
             with open(logo_path, "rb") as f:
                 b64_logo = base64.b64encode(f.read()).decode()
-            # Footer fisso in basso con logo e scritta Developed by
-            st.markdown(f"""
-            <style>
-            .footer-developed {{
-                position: fixed;
-                left: 0;
-                bottom: 0;
-                width: 100%;
-                background: linear-gradient(135deg,#1A5D1A 0%,#2e7d32 100%);
-                color: white;
-                text-align: center;
-                padding: 8px 0px;
-                z-index: 9999;
-                border-top: 3px solid #FFD700;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                gap: 12px;
-                font-family: 'Times New Roman', serif;
-            }}
-            .footer-developed img {{
-                width: 50px;
-                height: 50px;
-                border-radius: 50%;
-                border: 2px solid #FFD700;
-                object-fit: cover;
-                background: white;
-            }}
-            </style>
-            <div class="footer-developed">
-                <img src="data:image/png;base64,{b64_logo}" alt="Logo Ezio">
-                <div style="text-align:left;line-height:1.2;">
-                    <div style="font-weight:bold;font-size:14px;">Developed by Ezio F. 2026 Vers. 1.0</div>
-                    <div style="font-size:11px;color:#FFD700;">GESTIONALE PROTEZIONE CIVILE</div>
+            # Cerca copertina.png per icona piccola a sx - richiesta Ezio
+            copertina_b64 = None
+            cop_path = None
+            for p in ["copertina.png", "/mnt/data/copertina.png"]:
+                if os.path.exists(p):
+                    cop_path = p
+                    break
+            if cop_path:
+                with open(cop_path, "rb") as cf:
+                    copertina_b64 = base64.b64encode(cf.read()).decode()
+            
+            # Footer fisso con copertina.png piccola a sx + scritta - richiesta Ezio
+            if copertina_b64:
+                # Usa copertina.png piccola 20px a sx
+                st.markdown(f"""
+                <style>
+                .footer-developed {{
+                    position: fixed;
+                    left: 0;
+                    bottom: 0;
+                    width: 100%;
+                    background: linear-gradient(135deg,#1A5D1A 0%,#2e7d32 100%);
+                    color: white;
+                    text-align: center;
+                    padding: 6px 0px;
+                    z-index: 9999;
+                    border-top: 3px solid #FFD700;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    gap: 8px;
+                    font-family: 'Times New Roman', serif;
+                }}
+                .footer-developed .icon-copertina {{
+                    width: 20px;
+                    height: 20px;
+                    object-fit: contain;
+                    background: white;
+                    border-radius: 3px;
+                    padding: 1px;
+                }}
+                </style>
+                <div class="footer-developed">
+                    <img class="icon-copertina" src="data:image/png;base64,{copertina_b64}" alt="copertina">
+                    <span style="font-weight:bold;font-size:13px;">Developed by Ezio F. 2026 Vers. 1.0 - ANA Varese Protezione Civile</span>
                 </div>
-            </div>
-            <div style="height:70px;"></div>
-            """, unsafe_allow_html=True)
+                <div style="height:50px;"></div>
+                """, unsafe_allow_html=True)
+            else:
+                # Fallback con logo_dev_ezio piccolo
+                st.markdown(f"""
+                <style>
+                .footer-developed {{
+                    position: fixed;
+                    left: 0;
+                    bottom: 0;
+                    width: 100%;
+                    background: linear-gradient(135deg,#1A5D1A 0%,#2e7d32 100%);
+                    color: white;
+                    text-align: center;
+                    padding: 6px 0px;
+                    z-index: 9999;
+                    border-top: 3px solid #FFD700;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    gap: 8px;
+                    font-family: 'Times New Roman', serif;
+                }}
+                .footer-developed img {{
+                    width: 20px;
+                    height: 20px;
+                    border-radius: 3px;
+                    object-fit: cover;
+                    background: white;
+                }}
+                </style>
+                <div class="footer-developed">
+                    <img src="data:image/png;base64,{b64_logo}" alt="Logo Ezio">
+                    <span style="font-weight:bold;font-size:13px;">Developed by Ezio F. 2026 Vers. 1.0 - ANA Varese Protezione Civile</span>
+                </div>
+                <div style="height:50px;"></div>
+                """, unsafe_allow_html=True)
         else:
-            # Fallback senza logo
-            st.markdown("""
-            <style>
-            .footer-developed {{
-                position: fixed;
-                left: 0;
-                bottom: 0;
-                width: 100%;
-                background: #1A5D1A;
-                color: white;
-                text-align: center;
-                padding: 10px;
-                z-index: 9999;
-                border-top: 3px solid #FFD700;
-            }}
-            </style>
-            <div class="footer-developed">
-                <b>Developed by Ezio F. 2026 Vers. 1.0</b> - ANA Varese Protezione Civile
-            </div>
-            <div style="height:60px;"></div>
-            """, unsafe_allow_html=True)
+            # Fallback con copertina.png piccola a sx - richiesta Ezio
+            cop_b64 = None
+            for pp in ["copertina.png", "/mnt/data/copertina.png"]:
+                if os.path.exists(pp):
+                    with open(pp, "rb") as ff:
+                        cop_b64 = base64.b64encode(ff.read()).decode()
+                    break
+            if cop_b64:
+                st.markdown(f"""
+                <style>
+                .footer-developed {{
+                    position: fixed;
+                    left: 0;
+                    bottom: 0;
+                    width: 100%;
+                    background: #1A5D1A;
+                    color: white;
+                    text-align: center;
+                    padding: 6px;
+                    z-index: 9999;
+                    border-top: 3px solid #FFD700;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    gap: 8px;
+                    font-family: 'Times New Roman', serif;
+                }}
+                .footer-developed .icon-copertina {{
+                    width: 20px;
+                    height: 20px;
+                    object-fit: contain;
+                    background: white;
+                    border-radius: 3px;
+                    padding: 1px;
+                }}
+                </style>
+                <div class="footer-developed">
+                    <img class="icon-copertina" src="data:image/png;base64,{cop_b64}" alt="copertina">
+                    <span style="font-weight:bold;font-size:13px;">Developed by Ezio F. 2026 Vers. 1.0 - ANA Varese Protezione Civile</span>
+                </div>
+                <div style="height:50px;"></div>
+                """, unsafe_allow_html=True)
+            else:
+                st.markdown("""
+                <style>
+                .footer-developed {{
+                    position: fixed;
+                    left: 0;
+                    bottom: 0;
+                    width: 100%;
+                    background: #1A5D1A;
+                    color: white;
+                    text-align: center;
+                    padding: 6px;
+                    z-index: 9999;
+                    border-top: 3px solid #FFD700;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    gap: 8px;
+                    font-family: 'Times New Roman', serif;
+                }}
+                .footer-developed .icon-copertina {{
+                    width: 20px;
+                    height: 20px;
+                    object-fit: contain;
+                    background: white;
+                    border-radius: 3px;
+                }}
+                </style>
+                <div class="footer-developed">
+                    <span style="font-weight:bold;font-size:13px;">Developed by Ezio F. 2026 Vers. 1.0 - ANA Varese Protezione Civile</span>
+                </div>
+                <div style="height:50px;"></div>
+                """, unsafe_allow_html=True)
     except Exception as e:
         st.markdown(f"""
         <div style="position:fixed;bottom:0;left:0;width:100%;background:#1A5D1A;color:white;text-align:center;padding:8px;z-index:9999;border-top:2px solid #FFD700;">
