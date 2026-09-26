@@ -1212,10 +1212,10 @@ if st.session_state.page == "entra":
             """
             <h2 style="text-align:center;font-family:Times New Roman;
             font-weight:bold;color:black;margin-top:20px;">
-            GESTIONALE 950+ MODIFICHE 6 RICHIESTE
+            GESTIONALE DI PROTEZIONE CIVILE
             </h2>
             <p style="text-align:center;">
-            Versione finale con tutte le modifiche Ezio implementate
+            Versione BETA
             </p>
             """,
             unsafe_allow_html=True
