@@ -999,7 +999,7 @@ def hdr():
     with c1:
         try:
             if os.path.exists("logo.png"):
-                st.image("logo.png", width=110)
+                st.image("logo.png", width=200)
             else:
                 st.markdown(
                     """
@@ -1199,7 +1199,7 @@ if st.session_state.page == "entra":
                     <div style="text-align:center;padding:40px;
                     background:linear-gradient(135deg,#e8f5e9,#c8e6c9);
                     border-radius:16px;border:2px dashed #1A5D1A;">
-                    <div style="font-size:80px;">🛡️</div>
+                    <div style="font-size:100px;">🛡️</div>
                     <p style="font-weight:bold;">Copertina ANA Varese</p>
                     </div>
                     """,
