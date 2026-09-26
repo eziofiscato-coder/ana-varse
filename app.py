@@ -1023,7 +1023,7 @@ def hdr():
             border-left:6px solid #FFD700;">
                 <h1 style="margin:0;font-family:Times New Roman;
                 font-weight:bold;font-size:18px;color:white;">
-                GESTIONALE 950+ MODIFICHE RICHIESTE - ANA Varese Protezione Civile
+                Squadra di Volontari di Protezione Civile - NUCLEO ANA SEZIONE DI VARESE
                 </h1>
                 <p style="margin:4px 0 0 0;font-size:14px;opacity:0.9;">
                 Dashboard solo menu + tasti form | PDF logo + tabella estesa | Stato colorato | Click cognome per modifica | Login/Logout ripristinati | Fusione Mappe SI
