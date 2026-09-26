@@ -1275,7 +1275,7 @@ if st.session_state.page == "entra":
                 <img src="data:image/png;base64,{b64_logo}" alt="Logo Ezio">
                 <div style="text-align:left;line-height:1.2;">
                     <div style="font-weight:bold;font-size:14px;">Developed by Ezio F. 2026 Vers. 1.0</div>
-                    <div style="font-size:11px;color:#FFD700;">ANA Varese Protezione Civile - Gestionale 950+ Modifiche</div>
+                    <div style="font-size:11px;color:#FFD700;">GESTIONALE PROTEZIONE CIVILE</div>
                 </div>
             </div>
             <div style="height:70px;"></div>
