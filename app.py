@@ -19,25 +19,53 @@ except:
     REPORTLAB_OK = False
 
 import sys
-# FIX DEFINITIVO OPENPYXL per Streamlit Cloud - Ezio
-# Su Cloud NON si può fare pip install a runtime, deve stare in requirements.txt
+# FIX DEFINITIVO OPENPYXL per Streamlit Cloud - Ezio - INSTALL RUNTIME FALLBACK
+# Se manca su Cloud, prova pip install a runtime + requirements.txt
+def _try_install_excel_deps():
+    try:
+        import subprocess
+        # Prova installare dipendenze Excel
+        subprocess.check_call([sys.executable, "-m", "pip", "install", "openpyxl==3.1.5", "xlsxwriter==3.2.0", "xlrd==2.0.1", "reportlab==4.2.0"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        return True
+    except:
+        return False
+
 try:
     import openpyxl
     OPENPYXL_OK = True
 except Exception:
-    OPENPYXL_OK = False
+    # Prova installazione runtime su Cloud
+    _try_install_excel_deps()
+    try:
+        import openpyxl
+        OPENPYXL_OK = True
+    except Exception:
+        OPENPYXL_OK = False
 
 try:
     import xlsxwriter
     XLSXWRITER_OK = True
 except Exception:
-    XLSXWRITER_OK = False
+    try:
+        import xlsxwriter
+        XLSXWRITER_OK = True
+    except:
+        # Riprova dopo install
+        try:
+            import xlsxwriter
+            XLSXWRITER_OK = True
+        except:
+            XLSXWRITER_OK = False
 
 try:
     import xlrd
     XLRD_OK = True
 except Exception:
     XLRD_OK = False
+
+# Debug per Ezio - mostra stato installazione
+if not OPENPYXL_OK:
+    print("WARNING: openpyxl non installato - tentativo install runtime fallito")
 
 
 st.set_page_config(
