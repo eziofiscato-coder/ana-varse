@@ -24,11 +24,17 @@ import sys
 def _try_install_excel_deps():
     try:
         import subprocess
-        # Prova installare dipendenze Excel
-        subprocess.check_call([sys.executable, "-m", "pip", "install", "openpyxl==3.1.5", "xlsxwriter==3.2.0", "xlrd==2.0.1", "reportlab==4.2.0"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        # Prova installare dipendenze Excel - SENZA DEVNULL per vedere errori su Cloud log
+        subprocess.check_call([sys.executable, "-m", "pip", "install", "--upgrade", "openpyxl==3.1.5", "xlsxwriter==3.2.0", "xlrd==2.0.1", "reportlab==4.2.0", "Pillow==10.4.0"])
         return True
-    except:
-        return False
+    except Exception as e:
+        try:
+            import subprocess
+            # Secondo tentativo senza versione fissa
+            subprocess.check_call([sys.executable, "-m", "pip", "install", "openpyxl", "xlsxwriter", "reportlab"])
+            return True
+        except:
+            return False
 
 try:
     import openpyxl
@@ -948,45 +954,44 @@ def to_excel(df):
             buf.seek(0)
             return buf.getvalue()
         except Exception as e2:
-            # Se anche questo fallisce, crea xlsx minimo valido con openpyxl - MAI solo header PK
+            # Se openpyxl manca davvero, ritorna CSV - meglio di niente - Excel lo apre!
             try:
-                import openpyxl
-                wb = openpyxl.Workbook()
-                ws = wb.active
-                ws.title = "Dati"
-                ws.cell(row=1, column=1, value="Export Volontari")
-                ws.cell(row=2, column=1, value="File generato ma dati non esportabili")
-                ws.cell(row=3, column=1, value=str(e2)[:200])
-                buf = BytesIO()
-                wb.save(buf)
-                buf.seek(0)
-                return buf.getvalue()
-            except:
-                # Ultimissima spiaggia - crea xlsx valido vuoto con zip minimo
-                # Usa BytesIO con contenuto minimo valido
+                # Prova CSV come fallback finale - con BOM utf-8 per Excel italiano
+                buf_csv = BytesIO()
+                # Scrivi CSV con encoding utf-8-sig (BOM) per Excel
+                csv_str = df_copy.to_csv(index=False, encoding='utf-8-sig')
+                buf_csv.write(csv_str.encode('utf-8-sig'))
+                buf_csv.seek(0)
+                # Segna che è CSV dentro bytes per gestione esterna
+                # Ritorna CSV - chi chiama gestirà estensione .csv
+                return buf_csv.getvalue()
+            except Exception as e3:
                 try:
-                    import zipfile
-                    buf = BytesIO()
-                    with zipfile.ZipFile(buf, 'w') as z:
-                        # Minimo file xlsx valido - crea struttura vuota
-                        z.writestr("[Content_Types].xml", '<?xml version="1.0"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/></Types>')
-                    buf.seek(0)
-                    # Ritorna comunque qualcosa con PK ma più valido
-                    # Meglio: crea workbook vuoto con openpyxl se possibile
                     import openpyxl
                     wb = openpyxl.Workbook()
+                    ws = wb.active
+                    ws.title = "Dati"
+                    ws.cell(row=1, column=1, value="Export Volontari")
+                    ws.cell(row=2, column=1, value="File generato ma dati non esportabili")
+                    ws.cell(row=3, column=1, value=str(e2)[:200])
                     buf = BytesIO()
                     wb.save(buf)
                     buf.seek(0)
                     return buf.getvalue()
                 except:
-                    # Se proprio tutto fallisce, ritorna xlsx vuoto ma valido
-                    import openpyxl
-                    wb = openpyxl.Workbook()
-                    buf = BytesIO()
-                    wb.save(buf)
-                    buf.seek(0)
-                    return buf.getvalue()
+                    try:
+                        import openpyxl
+                        wb = openpyxl.Workbook()
+                        buf = BytesIO()
+                        wb.save(buf)
+                        buf.seek(0)
+                        return buf.getvalue()
+                    except:
+                        # Ultima spiaggia: CSV vuoto
+                        buf = BytesIO()
+                        buf.write(b"Errore export - openpyxl mancante\n")
+                        buf.seek(0)
+                        return buf.getvalue()
 
 
 def to_excel_multi(datasets):
@@ -1046,7 +1051,7 @@ def excel_import_inline(form_key, form_label):
 
     c1, c2, c3, c4 = st.columns(4)
 
-    # Export Excel corrente - FIX CRASH CLOUD
+    # Export Excel corrente - FIX CRASH CLOUD - Gestisce sia XLSX che CSV fallback
     with c1:
         data = st.session_state.get(form_key, [])
         if data:
@@ -1055,22 +1060,49 @@ def excel_import_inline(form_key, form_label):
                 df_exp = pd.DataFrame(clean)
                 try:
                     excel_data = to_excel(df_exp)
-                    if excel_data and len(excel_data) > 100:
-                        st.download_button(
-                            f"⬇️ Excel {form_label}",
-                            data=excel_data,
-                            file_name=f"{form_key}_export_{datetime.now().strftime('%Y%m%d')}.xlsx",
-                            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                            use_container_width=True,
-                            key=f"exp_inline_{form_key}"
-                        )
-                        st.caption(f"Excel: {len(data)} record")
+                    if excel_data and len(excel_data) > 20:
+                        # Controlla se è XLSX valido (PK) o CSV
+                        is_xlsx = excel_data[:2] == b'PK'
+                        if is_xlsx:
+                            st.download_button(
+                                f"⬇️ Excel {form_label}",
+                                data=excel_data,
+                                file_name=f"{form_key}_export_{datetime.now().strftime('%Y%m%d')}.xlsx",
+                                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                                use_container_width=True,
+                                key=f"exp_inline_{form_key}"
+                            )
+                            st.caption(f"Excel: {len(data)} record - XLSX valido")
+                        else:
+                            # CSV fallback - Excel lo apre lo stesso!
+                            st.download_button(
+                                f"⬇️ Excel {form_label} (CSV)",
+                                data=excel_data,
+                                file_name=f"{form_key}_export_{datetime.now().strftime('%Y%m%d')}.csv",
+                                mime="text/csv",
+                                use_container_width=True,
+                                key=f"exp_inline_{form_key}_csv"
+                            )
+                            st.caption(f"Excel: {len(data)} record - CSV (openpyxl mancante su Cloud - ma Excel lo apre!)")
+                            st.info("ℹ️ File CSV - si apre con Excel - Per XLSX vero: verifica requirements.txt su GitHub poi Reboot Cloud")
                     else:
-                        st.warning("Excel non disponibile - verifica requirements.txt: openpyxl")
-                        st.caption(f"{len(data)} record - Excel disabilitato")
+                        st.error(f"Excel dati vuoti - len {len(excel_data) if excel_data else 0}")
+                        # Prova export diretto CSV emergenza
+                        try:
+                            csv_data = df_exp.to_csv(index=False, encoding='utf-8-sig').encode('utf-8-sig')
+                            st.download_button(
+                                f"⬇️ Export CSV Emergenza {form_label}",
+                                data=csv_data,
+                                file_name=f"{form_key}_EMERGENZA_{datetime.now().strftime('%Y%m%d')}.csv",
+                                mime="text/csv",
+                                use_container_width=True,
+                                key=f"exp_emerg_{form_key}"
+                            )
+                        except Exception as e_csv:
+                            st.error(f"Emergenza CSV fallita: {e_csv}")
                 except Exception as e:
-                    st.error(f"Excel errore: {str(e)[:100]}")
-                    st.info("Su Streamlit Cloud: verifica requirements.txt contenga openpyxl poi Reboot")
+                    st.error(f"Excel errore: {str(e)[:200]}")
+                    st.info("Su Streamlit Cloud: verifica requirements.txt contenga openpyxl==3.1.5 poi Reboot - Vedi log: Manage app -> Logs")
             else:
                 st.info("Nessun dato")
         else:
