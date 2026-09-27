@@ -361,25 +361,41 @@ st.markdown(
         font-weight: bold !important;
     }
 
-    /* COLORE DI FONDO VERDE CHIARO SOLO NELLE MASCHERE INSERIMENTO DATI - Richiesta Ezio - PIU VISIONE */
-    /* Colonne + tab content verde chiaro intenso */
+    /* COLORE DI FONDO VERDE CHIARO SU TUTTI I FORM - Richiesta Ezio - STESSO COLORE MASCHERA VOLONTARI */
+    /* Tutte le maschere inserimento dati - TUTTI I FORM - verde #C8E6C9 come volontari */
     div[data-testid="column"], 
     div[data-testid="stTabContent"],
     div[data-testid="stTabs"] div[data-testid="column"],
-    .stTabs [data-testid="stVerticalBlock"] {
+    .stTabs [data-testid="stVerticalBlock"],
+    div[data-testid="stVerticalBlock"] > div[data-testid="stHorizontalBlock"],
+    section[data-testid="stSidebar"] ~ div div[data-testid="column"] {
         background-color: #C8E6C9 !important;
         border-radius: 10px !important;
         padding: 12px 14px !important;
         border: 2px solid #81C784 !important;
         box-shadow: 0 2px 6px rgba(26,93,26,0.15) !important;
     }
-    /* Contenitore tab - verde chiaro */
+    /* Contenitore tab - verde chiaro - TUTTI I FORM con tabs */
     div[data-testid="stTabContent"] {
         background-color: #E8F5E9 !important;
         padding: 15px !important;
         border-radius: 0 10px 10px 10px !important;
         border: 2px solid #A5D6A7 !important;
         border-top: none !important;
+    }
+    /* Forza verde anche su form senza colonne - contenitori verticali principali */
+    div[data-testid="stVerticalBlock"] div[data-testid="stHorizontalBlock"] {
+        background-color: #C8E6C9 !important;
+        border-radius: 10px !important;
+        padding: 10px !important;
+        border: 2px solid #81C784 !important;
+    }
+    /* Maschere specifiche: DB Radio, Consegna Radio, Alias, Brogliaccio, Eventi, Emergenze, Mezzi, etc - TUTTI */
+    [data-testid="stForm"], form {
+        background-color: #C8E6C9 !important;
+        border: 2px solid #81C784 !important;
+        border-radius: 10px !important;
+        padding: 15px !important;
     }
     /* Input dentro maschere restano bianchi per contrasto - PIU VISIBILE */
     div[data-testid="column"] .stTextInput > div > div,
@@ -825,36 +841,36 @@ def to_excel(df):
     if df_copy is None or not isinstance(df_copy, pd.DataFrame):
         df_copy = pd.DataFrame()
 
-    # Prova openpyxl prima (100% Office 2016 compatibile)
+    # Prova openpyxl prima (100% Office 2016 compatibile) - FIX CLOUD: prova sempre, ignora flag
     last_error = ""
     for engine_try in ["openpyxl", "xlsxwriter"]:
         try:
             buf = BytesIO()
-            # Verifica engine disponibile
-            if engine_try == "openpyxl" and not OPENPYXL_OK:
-                continue
-            if engine_try == "xlsxwriter" and not XLSXWRITER_OK:
-                continue
+            # FIX: NON saltare per OPENPYXL_OK - prova sempre!
             with pd.ExcelWriter(buf, engine=engine_try) as writer:
                 df_copy.to_excel(writer, index=False, sheet_name="Dati")
             buf.seek(0)
             data = buf.getvalue()
             # Verifica che sia un vero xlsx (PK zip header)
-            if data[:2] == b'PK':
+            if data[:2] == b'PK' and len(data) > 100:
                 return data
             else:
-                last_error = f"Engine {engine_try} non ha prodotto xlsx valido"
+                last_error = f"Engine {engine_try} non ha prodotto xlsx valido - len {len(data) if data else 0}"
         except Exception as e:
             last_error = str(e)
             continue
 
-    # Ultimo tentativo: forza openpyxl anche se flag dice False (per Cloud)
+    # Ultimo tentativo: forza openpyxl diretto - FIX CLOUD
     try:
+        import openpyxl
         buf = BytesIO()
         with pd.ExcelWriter(buf, engine="openpyxl") as writer:
             df_copy.to_excel(writer, index=False, sheet_name="Dati")
         buf.seek(0)
-        return buf.getvalue()
+        data = buf.getvalue()
+        if data[:2] == b'PK' and len(data) > 100:
+            return data
+        last_error = f"openpyxl diretto len {len(data)} non PK"
     except Exception as e:
         last_error = str(e)
 
@@ -2431,14 +2447,22 @@ elif cur == "Volontari (con foto)":
         cols_show = [c for c in cols_show if c in df_vol.columns]
         st.dataframe(df_vol[cols_show] if cols_show else df_vol, use_container_width=True)
 
-        # Export Excel volontari - FIX sempre visibile
+        # Export Excel volontari - FIX sempre visibile - DEBUG OPENPYXL
         try:
             df_export = pd.DataFrame([{k:v for k,v in vol.items() if "Bytes" not in k} for vol in st.session_state.volontari])
             if not df_export.empty:
+                # Debug
+                st.caption(f"Debug: OPENPYXL_OK={OPENPYXL_OK} XLSXWRITER_OK={XLSXWRITER_OK} - {len(df_export)} record - {len(df_export.columns)} colonne")
+                try:
+                    import openpyxl
+                    st.caption(f"openpyxl import OK v{openpyxl.__version__}")
+                except Exception as e:
+                    st.error(f"openpyxl import FAIL: {e} - Verifica requirements.txt su GitHub!")
+                
                 excel_bytes = to_excel(df_export)
                 if excel_bytes and len(excel_bytes) > 100 and excel_bytes[:2] == b'PK':
                     st.download_button(
-                        "⬇️ EXPORT EXCEL VOLONTARI - FIX",
+                        "⬇️ EXPORT EXCEL VOLONTARI - FIX VALIDO",
                         data=excel_bytes,
                         file_name=f"volontari_export_{datetime.now().strftime('%Y%m%d_%H%M')}.xlsx",
                         mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
@@ -2446,10 +2470,42 @@ elif cur == "Volontari (con foto)":
                         key="export_volontari_fix",
                         type="primary"
                     )
+                    st.success(f"Excel pronto: {len(excel_bytes)} bytes - PK valido")
                 else:
-                    st.warning("Excel temporaneamente non disponibile - verifica openpyxl in requirements.txt")
+                    st.error(f"Excel non valido: len={len(excel_bytes) if excel_bytes else 0} - header={excel_bytes[:10] if excel_bytes else b''}")
+                    st.warning("Su Streamlit Cloud: Vai su Manage app -> Clear cache -> Reboot - Verifica requirements.txt contenga openpyxl==3.1.5")
+                    # Prova export diretto emergenza
+                    try:
+                        import openpyxl
+                        wb = openpyxl.Workbook()
+                        ws = wb.active
+                        ws.title="Volontari"
+                        for c_idx, col in enumerate(df_export.columns, 1):
+                            ws.cell(row=1, column=c_idx, value=str(col))
+                        for r_idx, row in enumerate(df_export.itertuples(index=False), 2):
+                            for c_idx, val in enumerate(row, 1):
+                                try:
+                                    ws.cell(row=r_idx, column=c_idx, value=str(val)[:32000])
+                                except:
+                                    ws.cell(row=r_idx, column=c_idx, value="")
+                        from io import BytesIO
+                        buf = BytesIO()
+                        wb.save(buf)
+                        buf.seek(0)
+                        st.download_button(
+                            "⬇️ EXPORT EMERGENZA - Volontari",
+                            data=buf.getvalue(),
+                            file_name=f"volontari_EMERGENZA_{datetime.now().strftime('%Y%m%d')}.xlsx",
+                            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                            use_container_width=True,
+                            key="export_vol_emerg"
+                        )
+                    except Exception as e2:
+                        st.error(f"Export emergenza fallito: {e2}")
         except Exception as e:
             st.error(f"Errore export volontari: {e}")
+            import traceback
+            st.code(traceback.format_exc())
 
         # Selectbox fallback per modifica
         cognomi = [f"{i}: {v.get('Cognome','')} {v.get('Nome','')} - ODV {v.get('ODVAppartenenza','')} - Capo {v.get('CapoODV','')}" for i, v in enumerate(st.session_state.volontari)]
