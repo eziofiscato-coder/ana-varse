@@ -19,12 +19,12 @@ except:
     REPORTLAB_OK = False
 
 import sys
-# FIX DEFINITIVO OPENPYXL per Streamlit Cloud - Ezio - INSTALL RUNTIME FALLBACK
-# Se manca su Cloud, prova pip install a runtime + requirements.txt
+# FIX DEFINITIVO - NO PIP ALL'AVVIO - altrimenti pensa infinito - Riga 21-35
 def _try_install_excel_deps():
+    # Disabilitato all'avvio - installazione solo manuale se serve
+    return False
     try:
         import subprocess
-        # Prova installare dipendenze Excel - SENZA DEVNULL per vedere errori su Cloud log
         subprocess.check_call([sys.executable, "-m", "pip", "install", "openpyxl==3.1.5"], timeout=30)
         return True
     except Exception as e:
