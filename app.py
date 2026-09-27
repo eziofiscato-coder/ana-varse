@@ -1499,13 +1499,13 @@ def hdr():
             """
             <div style="background:linear-gradient(135deg,#1A5D1A 0%,#2e7d32 100%);
             padding:10px 14px;border-radius:8px;color:white;
-            border-left:5px solid #FFD700;">
+            border-left:5px solid #1A5D1A;">
                 <p style="margin:0;font-family:Times New Roman;
                 font-weight:bold;font-size:15px;color:white;line-height:1.25;letter-spacing:0.2px;">
                 Squadra Volontari di protezione civile - Gruppo Alpini di Caronno Pertusella Bariola
                 </p>
                 <p style="margin:4px 0 0 0;font-family:Times New Roman;
-                font-weight:bold;font-size:16px;color:#FFD700;line-height:1.2;letter-spacing:0.5px;">
+                font-weight:bold;font-size:16px;color:white;line-height:1.2;letter-spacing:0.5px;">
                 NUCLEO VOLONTARI DI P.C. A.N.A. - SEZIONE DI VARESE
                 </p>
                 <p style="margin:5px 0 0 0;font-family:Times New Roman;
@@ -4777,11 +4777,21 @@ elif cur == "Verbali":
     num_verbale_auto = f"{num_prog:03d}/{anno_corr}"
 
     st.markdown(f"""
-    <div style="background:#e3f2fd;padding:12px;border-radius:8px;border-left:4px solid #1565c0;margin-bottom:12px;">
+    <div style="background:#C8E6C9;padding:12px;border-radius:8px;border-left:5px solid #1A5D1A;margin-bottom:12px;">
     <b>📝 Numero progressivo automatico: {num_verbale_auto}</b> - Totale verbali: {len(st.session_state.verbali)}<br>
     Compila campi → Salva → Genera PDF con logo PC ANA → Salva automatico in Archivio Documenti
     </div>
     """, unsafe_allow_html=True)
+
+    # Maschera colore di fondo come altri form - verde #C8E6C9 - Richiesta Ezio
+    st.markdown("""
+    <style>
+    /* Verde chiaro #C8E6C9 per form verbali come volontari - Riga maschera */
+    </style>
+    """, unsafe_allow_html=True)
+
+    # Contenitore verde chiaro per maschera verbali - come altri form
+    st.markdown('<div style="background:#C8E6C9;padding:15px;border-radius:10px;border:2px solid #1A5D1A;margin-bottom:15px;">', unsafe_allow_html=True)
 
     # Form verbale - 2 colonne
     c1, c2 = st.columns(2)
@@ -4814,7 +4824,8 @@ elif cur == "Verbali":
     st.divider()
     st.markdown("#### 📋 Contenuto Verbale - Campo libero")
     # Campo verbale mano libera - Richiesta Ezio
-    testo_verbale = st.text_area("Verbale - Scrivi a mano libera *", key="verb_testo_libero", placeholder="Scrivi qui il verbale completo a mano libera...\n\nEs:\nIl giorno ... alle ore ... presso ... si è riunito...\nPresenti...\nSi discute...\nSi delibera...", height=350)
+    st.markdown("""<div style="background:#e8f5e9;padding:8px;border-radius:6px;border-left:4px solid #1A5D1A;margin-bottom:8px;"><b>✍️ CAMPO VERBALE MANO LIBERA - Scrivi qui sotto il verbale completo</b></div>""", unsafe_allow_html=True)
+    testo_verbale = st.text_area("Verbale - Scrivi a mano libera * (campo grande)", key="verb_testo_libero", placeholder="Scrivi qui il verbale completo a mano libera...\n\nEs:\nIl giorno ... alle ore ... presso ... si è riunito il Consiglio...\nPresenti: ...\nODG: ...\nSi discute: ...\nSi delibera: ...", height=500)
 
     st.divider()
     st.markdown("#### 📋 Dettagli strutturati (opzionali - per PDF strutturato)")
@@ -4823,6 +4834,7 @@ elif cur == "Verbali":
     incarichi = st.text_area("Incarichi assegnati", key="verb_incarichi", placeholder="Mario Rossi: preparazione mezzi...", height=60)
     note_verb = st.text_area("Note finali", key="verb_note", placeholder="Note, allegati...")
 
+    st.markdown("</div>", unsafe_allow_html=True)  # chiude contenitore verde maschera
     st.divider()
     col_save, col_pdf = st.columns(2)
     with col_save:
