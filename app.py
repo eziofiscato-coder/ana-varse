@@ -2056,7 +2056,9 @@ with st.sidebar:
             "Attrezzature",
             "Mappe Postazioni",
             "Libreria Icone",
+            "Turni",
             "Chat",
+            "Archivio Documenti",
             "Geolocalizzazione Hytera + Anytone",
             "Gestione Utenti",
             "Backup"
@@ -2223,6 +2225,7 @@ if cur == "Dashboard":
     def vai_a_form_callback(form_name):
         st.session_state.menu = form_name
         st.session_state["menu_radio"] = form_name
+        # Forza aggiornamento per Archivio Documenti
 
     # CSS bottoni verde ANA - SFONDO PIENO VERDE - FIX DEFINITIVO
     st.markdown(
