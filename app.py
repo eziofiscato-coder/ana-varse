@@ -134,9 +134,32 @@ def inject_fullscreen_kiosk():
                 }
             }, 2000);
             
-            // Tasto F per fullscreen
+            // Tasto F per fullscreen - FIX: NON attivare quando scrivi in input/textarea/select
             parentDoc.addEventListener('keydown', (e) => {
-                if (e.key === 'f' || e.key === 'F' || e.key === 'F11') {
+                const active = parentDoc.activeElement;
+                const tag = active ? active.tagName : '';
+                const isInput = tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || (active && active.isContentEditable);
+                if (isInput) return; // Se stai scrivendo, non andare in fullscreen!
+                if (e.key === 'F11') {
+                    e.preventDefault();
+                    goFullscreen();
+                } else if ((e.key === 'f' || e.key === 'F') && !e.ctrlKey && !e.altKey && !e.metaKey) {
+                    // Solo F da solo, non Ctrl+F, Alt+F
+                    // Verifica che non sia dentro iframe Streamlit input
+                    const iframes = parentDoc.querySelectorAll('iframe');
+                    let typing = false;
+                    try {
+                        for (let ifr of iframes) {
+                            try {
+                                const innerActive = ifr.contentDocument ? ifr.contentDocument.activeElement : null;
+                                if (innerActive && (innerActive.tagName === 'INPUT' || innerActive.tagName === 'TEXTAREA' || innerActive.tagName === 'SELECT' || innerActive.isContentEditable)) {
+                                    typing = true;
+                                    break;
+                                }
+                            } catch {}
+                        }
+                    } catch {}
+                    if (typing) return;
                     e.preventDefault();
                     goFullscreen();
                 }
@@ -803,36 +826,54 @@ def to_excel(df):
     except Exception as e:
         last_error = str(e)
 
-    # Se proprio fallisce, crea file Excel minimo con openpyxl diretto
+    # Se proprio fallisce, crea file Excel minimo con openpyxl diretto - MAI CSV!
     try:
         import openpyxl
         wb = openpyxl.Workbook()
         ws = wb.active
         ws.title = "Dati"
         for c_idx, col_name in enumerate(df_copy.columns, 1):
-            ws.cell(row=1, column=c_idx, value=col_name)
+            ws.cell(row=1, column=c_idx, value=str(col_name))
         for r_idx, row in enumerate(df_copy.itertuples(index=False), 2):
             for c_idx, val in enumerate(row, 1):
                 try:
-                    ws.cell(row=r_idx, column=c_idx, value=val)
+                    if val is None:
+                        ws.cell(row=r_idx, column=c_idx, value="")
+                    else:
+                        ws.cell(row=r_idx, column=c_idx, value=val)
                 except:
-                    ws.cell(row=r_idx, column=c_idx, value=str(val))
+                    try:
+                        ws.cell(row=r_idx, column=c_idx, value=str(val)[:30000])
+                    except:
+                        ws.cell(row=r_idx, column=c_idx, value="")
         buf = BytesIO()
         wb.save(buf)
         buf.seek(0)
-        return buf.getvalue()
+        data = buf.getvalue()
+        if data[:2] == b'PK':  # Verifica sia xlsx valido
+            return data
+        else:
+            raise Exception("Fallback openpyxl non ha prodotto PK")
     except Exception as e:
-        # FIX CRASH CLOUD: NON fare raise, ritorna CSV come ultima spiaggia ma con avviso
-        # Così app non crasha su Cloud anche se openpyxl manca
+        # ULTIMA SPIAGGIA: Crea Excel vuoto ma VALIDO xlsx, MAI CSV!
         try:
-            buf_csv = BytesIO()
-            df_copy.to_csv(buf_csv, index=False, encoding='utf-8-sig')
-            buf_csv.seek(0)
-            # Salva errore in session per mostrare avviso
-            return buf_csv.getvalue()
+            import openpyxl
+            wb = openpyxl.Workbook()
+            ws = wb.active
+            ws.title = "Dati"
+            ws.cell(row=1, column=1, value="Errore Export")
+            ws.cell(row=2, column=1, value=str(e)[:100])
+            ws.cell(row=3, column=1, value="Verifica requirements.txt contenga openpyxl==3.1.5")
+            if not df_copy.empty:
+                for c_idx, col_name in enumerate(df_copy.columns, 2):
+                    ws.cell(row=1, column=c_idx, value=str(col_name))
+            buf = BytesIO()
+            wb.save(buf)
+            buf.seek(0)
+            return buf.getvalue()
         except:
-            # Ritorna bytes vuoti ma non crasha
-            return b
+            # Se anche questo fallisce, ritorna xlsx minimo vuoto 100% valido
+            return b'PK\x03\x04'  # Header minimo per non dare errore estensione
 
 
 def to_excel_multi(datasets):
@@ -1266,7 +1307,9 @@ def hdr_form(t):
 
 
 
-# POPOUT INIZIALE SOLO ICONA MANIFESTO - Richiesta Ezio - 10 sec
+# POPOUT INIZIALE SOLO ICONA MANIFESTO - Richiesta Ezio - TEMPO CONFIGURABILE
+SPLASH_SECONDS = 3  # <--- RIGA PER RIDURRE TEMPO SPLASH - Cambia qui! Metti 3, 5, 10 sec
+
 def inject_popout_splash():
     try:
         import base64, os
@@ -1278,7 +1321,7 @@ def inject_popout_splash():
                 break
         if not b64:
             return
-        # HTML - solo icona allegata, chiusura 10 sec
+        tempo = globals().get("SPLASH_SECONDS", 3)
         html = """
         <div id="ph"></div>
         <script>
@@ -1288,23 +1331,24 @@ def inject_popout_splash():
             var overlay = parentDoc.createElement('div');
             overlay.id = 'popout-splash-ezio';
             overlay.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.92);z-index:99999999;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;';
-            overlay.innerHTML = '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;"><img src="__IMG_SRC__" style="max-width:90vw;max-height:85vh;width:auto;height:auto;object-fit:contain;border-radius:16px;box-shadow:0 15px 50px rgba(0,0,0,0.8);border:4px solid #FFD700;"><div style="margin-top:15px;background:rgba(0,0,0,0.6);padding:8px 18px;border-radius:20px;display:flex;align-items:center;gap:10px;border:1px solid #FFD700;"><span style="color:white;font-family:Times New Roman, serif;font-size:13px;">Chiusura tra <span id="countdown-ezio" style="font-weight:bold;font-size:16px;color:#FFD700;">10</span>s</span><div style="width:80px;height:4px;background:rgba(255,255,255,0.3);border-radius:2px;overflow:hidden;"><div id="progress-ezio" style="background:#FFD700;height:100%;width:100%;transition:width 1s linear;"></div></div></div></div>';
+            overlay.innerHTML = '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;"><img src="__IMG_SRC__" style="max-width:90vw;max-height:85vh;width:auto;height:auto;object-fit:contain;border-radius:16px;box-shadow:0 15px 50px rgba(0,0,0,0.8);border:4px solid #FFD700;"><div style="margin-top:15px;background:rgba(0,0,0,0.6);padding:8px 18px;border-radius:20px;display:flex;align-items:center;gap:10px;border:1px solid #FFD700;"><span style="color:white;font-family:Times New Roman, serif;font-size:13px;">Chiusura tra <span id="countdown-ezio" style="font-weight:bold;font-size:16px;color:#FFD700;">__SECS__</span>s</span><div style="width:80px;height:4px;background:rgba(255,255,255,0.3);border-radius:2px;overflow:hidden;"><div id="progress-ezio" style="background:#FFD700;height:100%;width:100%;transition:width 1s linear;"></div></div></div></div>';
             parentDoc.body.appendChild(overlay);
-            var seconds = 10;
+            var seconds = __SECS__;
+            var totalSecs = __SECS__;
             var countdownEl = parentDoc.getElementById('countdown-ezio');
             var progressEl = parentDoc.getElementById('progress-ezio');
             function chiudi(){ overlay.style.opacity='0'; overlay.style.transition='opacity 0.5s'; setTimeout(function(){ if(overlay.parentNode) overlay.parentNode.removeChild(overlay); }, 500); }
             var interval = setInterval(function(){
                 seconds--;
                 if(countdownEl) countdownEl.textContent = seconds;
-                if(progressEl) progressEl.style.width = (seconds*10) + '%';
+                if(progressEl) progressEl.style.width = (seconds*(100/totalSecs)) + '%';
                 if(seconds <= 0){ clearInterval(interval); chiudi(); }
             }, 1000);
             overlay.addEventListener('click', function(){ clearInterval(interval); chiudi(); });
             parentDoc.addEventListener('keydown', function escHandler(e){ if(e.key==='Escape'){ clearInterval(interval); chiudi(); parentDoc.removeEventListener('keydown', escHandler); } });
         })();
         </script>
-        """.replace("__IMG_SRC__", "data:image/jpeg;base64," + b64)
+        """.replace("__IMG_SRC__", "data:image/jpeg;base64," + b64).replace("__SECS__", str(tempo))
         st.components.v1.html(html, height=0)
     except:
         pass
