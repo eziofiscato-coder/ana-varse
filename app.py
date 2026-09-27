@@ -320,6 +320,31 @@ st.markdown(
         font-family: 'Times New Roman', serif !important;
         font-weight: bold !important;
     }
+
+    /* COLORE DI FONDO VERDE CHIARO SOLO NELLE MASCHERE INSERIMENTO DATI - Richiesta Ezio */
+    /* Tutte le colonne dei form hanno verde chiaro per più visione */
+    div[data-testid="column"] {
+        background-color: #E8F5E9 !important;
+        border-radius: 10px !important;
+        padding: 12px 14px !important;
+        border: 1px solid #A5D6A7 !important;
+        box-shadow: 0 2px 4px rgba(26,93,26,0.1) !important;
+    }
+    /* Input dentro maschere restano bianchi per contrasto */
+    div[data-testid="column"] .stTextInput > div > div,
+    div[data-testid="column"] .stSelectbox > div > div,
+    div[data-testid="column"] .stDateInput > div > div,
+    div[data-testid="column"] .stTimeInput > div > div,
+    div[data-testid="column"] .stTextArea > div > div,
+    div[data-testid="column"] .stNumberInput > div > div {
+        background-color: white !important;
+        border-radius: 6px !important;
+    }
+    /* Label dentro maschere più visibili */
+    div[data-testid="column"] label {
+        color: #1A5D1A !important;
+        font-weight: bold !important;
+    }
     </style>
     """,
     unsafe_allow_html=True
@@ -1157,8 +1182,8 @@ def hdr():
     """
     Header con 2 loghi affiancati + intestazione ridotta - Richiesta Ezio - ci stanno 2 loghi
     """
-    # Colonne: logo1 - logo2 - titolo ridotto
-    c1, c2, c3 = st.columns([1, 1, 4])
+    # Colonne: logo1 - logo2 - titolo ridotto - etichetta ridotta per 2 loghi
+    c1, c2, c3 = st.columns([0.8, 0.8, 4.4])
     with c1:
         try:
             if os.path.exists("logo.png"):
@@ -1180,9 +1205,9 @@ def hdr():
     
     with c2:
         try:
-            # Secondo logo - prova vari file
+            # Secondo logo - Gruppo Caronno Pertusella - allegato Ezio - a fianco pcana
             logo2_path = None
-            for p in ["logo2.png", "logo_protezione.png", "protezione_civile.png", "copertina.png", "/mnt/data/copertina.png", "logo_dev_ezio.png", "/mnt/data/logo_dev_ezio.png"]:
+            for p in ["gruppo_CPB.jpeg", "logo2.png", "gruppo_caronno.png", "logo_gruppo.png", "Gruppo_Caronno.png", "/mnt/data/gruppo_CPB.jpeg", "/mnt/data/logo2.png", "/mnt/data/gruppo_caronno.png"]:
                 if os.path.exists(p):
                     logo2_path = p
                     break
@@ -1195,25 +1220,25 @@ def hdr():
                     border-radius:10px;display:flex;align-items:center;
                     justify-content:center;color:white;font-weight:bold;
                     font-size:20px;text-align:center;line-height:80px;">
-                    PC
+                    GRUPPO
                     </div>
                     """,
                     unsafe_allow_html=True
                 )
         except:
-            st.markdown("**PC**")
+            st.markdown("**GRUPPO**")
 
     with c3:
         st.markdown(
             """
             <div style="background:linear-gradient(135deg,#1A5D1A 0%,#2e7d32 100%);
-            padding:12px 16px;border-radius:10px;color:white;
-            border-left:5px solid #FFD700;">
+            padding:8px 12px;border-radius:8px;color:white;
+            border-left:4px solid #FFD700;">
                 <h1 style="margin:0;font-family:Times New Roman;
-                font-weight:bold;font-size:13px;color:white;line-height:1.2;">
-                Squadra Volontari Protezione Civile - NUCLEO ANA SEZ. VARESE
+                font-weight:bold;font-size:10px;color:white;line-height:1.15;letter-spacing:0.2px;">
+                Squadra Volontari di protezione civile - Gruppo Alpini di Caronno Pertusella Bariola NUCLEO DI P.C. A.N.A. - SEZIONE DI VARESE
                 </h1>
-                <p style="margin:2px 0 0 0;font-size:11px;opacity:0.9;line-height:1.1;">
+                <p style="margin:1px 0 0 0;font-size:9px;opacity:0.85;line-height:1.0;">
                 ASSOCIAZIONE NAZIONALE ALPINI
                 </p>
             </div>
