@@ -344,29 +344,44 @@ st.markdown(
         font-weight: bold !important;
     }
 
-    /* COLORE DI FONDO VERDE CHIARO SOLO NELLE MASCHERE INSERIMENTO DATI - Richiesta Ezio */
-    /* Tutte le colonne dei form hanno verde chiaro per più visione */
-    div[data-testid="column"] {
-        background-color: #E8F5E9 !important;
+    /* COLORE DI FONDO VERDE CHIARO SOLO NELLE MASCHERE INSERIMENTO DATI - Richiesta Ezio - PIU VISIONE */
+    /* Colonne + tab content verde chiaro intenso */
+    div[data-testid="column"], 
+    div[data-testid="stTabContent"],
+    div[data-testid="stTabs"] div[data-testid="column"],
+    .stTabs [data-testid="stVerticalBlock"] {
+        background-color: #C8E6C9 !important;
         border-radius: 10px !important;
         padding: 12px 14px !important;
-        border: 1px solid #A5D6A7 !important;
-        box-shadow: 0 2px 4px rgba(26,93,26,0.1) !important;
+        border: 2px solid #81C784 !important;
+        box-shadow: 0 2px 6px rgba(26,93,26,0.15) !important;
     }
-    /* Input dentro maschere restano bianchi per contrasto */
+    /* Contenitore tab - verde chiaro */
+    div[data-testid="stTabContent"] {
+        background-color: #E8F5E9 !important;
+        padding: 15px !important;
+        border-radius: 0 10px 10px 10px !important;
+        border: 2px solid #A5D6A7 !important;
+        border-top: none !important;
+    }
+    /* Input dentro maschere restano bianchi per contrasto - PIU VISIBILE */
     div[data-testid="column"] .stTextInput > div > div,
     div[data-testid="column"] .stSelectbox > div > div,
     div[data-testid="column"] .stDateInput > div > div,
     div[data-testid="column"] .stTimeInput > div > div,
     div[data-testid="column"] .stTextArea > div > div,
-    div[data-testid="column"] .stNumberInput > div > div {
+    div[data-testid="column"] .stNumberInput > div > div,
+    div[data-testid="stTabContent"] .stTextInput > div > div,
+    div[data-testid="stTabContent"] .stSelectbox > div > div {
         background-color: white !important;
         border-radius: 6px !important;
+        border: 1px solid #1A5D1A !important;
     }
-    /* Label dentro maschere più visibili */
-    div[data-testid="column"] label {
+    /* Label dentro maschere più visibili - verde scuro */
+    div[data-testid="column"] label, div[data-testid="stTabContent"] label {
         color: #1A5D1A !important;
         font-weight: bold !important;
+        font-size: 13px !important;
     }
     </style>
     """,
@@ -2302,24 +2317,71 @@ elif cur == "Volontari (con foto)":
                         "DataIns": datetime.now().strftime("%d/%m/%Y %H:%M")
                     }
                     st.session_state.volontari.append(nuovo)
-                    st.success(f"Volontario {cognome} {nome} - Capo ODV {capo_odv} salvato!")
+                    # PULISCI CAMPI PER NUOVO INSERIMENTO - Richiesta Ezio
+                    for k in ["vol_nome_tab", "vol_cognome_tab", "vol_comune_tab", "vol_via_tab", "vol_capo_odv", "vol_odv_app", "vol_data_nascita", "vol_cod_fisc", "vol_cell_tab", "vol_email_tab", "vol_tel_em", "vol_note_cont", "vol_ruolo_tab", "vol_squadra_tab", "vol_radio_id", "vol_radio_mod", "vol_note_dot", "vol_doc_tipo", "vol_doc_num"]:
+                        if k in st.session_state:
+                            try:
+                                del st.session_state[k]
+                            except:
+                                pass
+                    st.success(f"Volontario {cognome} {nome} - Capo ODV {capo_odv} salvato! Campi puliti per nuovo inserimento.")
                     st.rerun()
                 else:
                     st.error("Compila campi obbligatori * (Nome, Cognome, Cellulare, Capo ODV)")
 
-    # Tabella volontari con click cognome per modifica
+    # Tabella volontari con emoji penna per aggiornare - carica in maschera - Richiesta Ezio
     st.divider()
     if st.session_state.volontari:
-        st.markdown(f"#### Elenco Volontari ({len(st.session_state.volontari)}) - Clicca cognome per modifica")
+        st.markdown(f"#### Elenco Volontari ({len(st.session_state.volontari)}) - ✏️ Clicca penna per caricare in maschera e aggiornare")
+        # Tabella con pulsanti penna
+        for idx, vol in enumerate(st.session_state.volontari):
+            c1, c2, c3, c4, c5, c6, c7 = st.columns([1, 1.5, 1, 1.5, 1, 1, 0.5])
+            with c1:
+                st.write(f"**{vol.get('Cognome','')}**")
+            with c2:
+                st.write(f"{vol.get('Nome','')}")
+            with c3:
+                st.write(f"{vol.get('CapoODV','')}")
+            with c4:
+                st.write(f"{vol.get('ODVAppartenenza','')}")
+            with c5:
+                st.write(f"{vol.get('Comune','')}")
+            with c6:
+                st.write(f"{vol.get('Ruolo','')}")
+            with c7:
+                if st.button("✏️", key=f"edit_vol_{idx}", help=f"Modifica {vol.get('Cognome','')} {vol.get('Nome','')} - Carica in maschera"):
+                    st.session_state.vol_edit_index = idx
+                    st.rerun()
+        
+        st.divider()
         df_vol = pd.DataFrame([{k:v for k,v in vol.items() if "Bytes" not in k} for vol in st.session_state.volontari])
-        # Mostra con colonne importanti
         cols_show = ["Cognome", "Nome", "CapoODV", "ODVAppartenenza", "Comune", "Cellulare", "Ruolo", "Squadra"]
         cols_show = [c for c in cols_show if c in df_vol.columns]
         st.dataframe(df_vol[cols_show] if cols_show else df_vol, use_container_width=True)
 
-        # Click cognome per modifica - selectbox
+        # Export Excel volontari - FIX sempre visibile
+        try:
+            df_export = pd.DataFrame([{k:v for k,v in vol.items() if "Bytes" not in k} for vol in st.session_state.volontari])
+            if not df_export.empty:
+                excel_bytes = to_excel(df_export)
+                if excel_bytes and len(excel_bytes) > 100 and excel_bytes[:2] == b'PK':
+                    st.download_button(
+                        "⬇️ EXPORT EXCEL VOLONTARI - FIX",
+                        data=excel_bytes,
+                        file_name=f"volontari_export_{datetime.now().strftime('%Y%m%d_%H%M')}.xlsx",
+                        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                        use_container_width=True,
+                        key="export_volontari_fix",
+                        type="primary"
+                    )
+                else:
+                    st.warning("Excel temporaneamente non disponibile - verifica openpyxl in requirements.txt")
+        except Exception as e:
+            st.error(f"Errore export volontari: {e}")
+
+        # Selectbox fallback per modifica
         cognomi = [f"{i}: {v.get('Cognome','')} {v.get('Nome','')} - ODV {v.get('ODVAppartenenza','')} - Capo {v.get('CapoODV','')}" for i, v in enumerate(st.session_state.volontari)]
-        sel = st.selectbox("Seleziona volontario per modifica", ["--"] + cognomi, key="sel_vol_mod")
+        sel = st.selectbox("Oppure seleziona volontario per modifica (metodo vecchio)", ["--"] + cognomi, key="sel_vol_mod")
         if sel != "--":
             try:
                 idx = int(sel.split(":")[0])
