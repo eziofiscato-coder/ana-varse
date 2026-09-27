@@ -4761,7 +4761,8 @@ elif cur == "Gestione Utenti":
         except Exception as e:
             st.error(f"{e}")
 
-# VERBALI - Form con numero progressivo + PDF con logo PC ANA + salva in Archivio - Richiesta Ezio - Riga 4756
+# VERBALI - Form con numero progressivo + PDF con logo PC ANA + salva in Archivio - Richiesta Ezio - Riga 4764 - MODIFICATO 2026-09-27: rimosso Assenti, Presenti, Segretario, Responsabile agganciato Volontari
+# VERBALI - Form con numero progressivo + PDF con logo PC ANA + salva in Archivio - Richiesta Ezio - Riga 4764 - MODIFICATO 2026-09-27: rimosso Assenti, Presenti, Segretario, Responsabile agganciato Volontari
 elif cur == "Verbali":
     hdr()
     hdr_form("VERBALI - Numero progressivo + PDF con logo PC ANA")
@@ -4790,34 +4791,44 @@ elif cur == "Verbali":
         data_verbale = st.date_input("Data Verbale", value=date.today(), min_value=date(1950,1,1), max_value=date.today(), format="DD/MM/YYYY", key="verb_data")
         ora_verbale = st.time_input("Ora", value=datetime.now().time(), key="verb_ora")
         luogo_verbale = st.text_input("Luogo *", value="Sede ANA Varese", key="verb_luogo", placeholder="Es: Sede ANA Varese - Via...")
-        tipo_verbale = st.selectbox("Tipo Verbale *", ["Consiglio Direttivo", "Assemblea Ordinaria", "Assemblea Straordinaria", "Riunione Squadra", "Riunione Emergenza", "Riunione Formazione", "Verbale Intervento", "Altro"], key="verb_tipo")
-        oggetto_verbale = st.text_input("Oggetto *", key="verb_oggetto", placeholder="Es: Approvazione bilancio, Organizzazione esercitazione...")
 
     with c2:
-        presidente = st.text_input("Presidente / Responsabile *", key="verb_pres", value=st.session_state.get("nome_utente",""))
-        segretario = st.text_input("Segretario Verbalizzante *", key="verb_segr", placeholder="Nome segretario")
-        presenti = st.text_area("Presenti * (uno per riga)", key="verb_presenti", placeholder="Mario Rossi\nGiuseppe Verdi\n...", height=100)
-        assenti = st.text_area("Assenti giustificati", key="verb_assenti", placeholder="Luigi Bianchi (malattia)...", height=60)
-        # Presenti da DB Volontari
+        tipo_verbale = st.selectbox("Tipo Verbale *", ["Consiglio Direttivo", "Assemblea Ordinaria", "Assemblea Straordinaria", "Riunione Squadra", "Riunione Emergenza", "Riunione Formazione", "Verbale Intervento", "Altro"], key="verb_tipo")
+        oggetto_verbale = st.text_input("Oggetto *", key="verb_oggetto", placeholder="Es: Approvazione bilancio, Organizzazione esercitazione...")
+        # Responsabile agganciato a Volontari - Nome Cognome unificato - Riga richiesta Ezio
         if st.session_state.volontari:
-            st.caption("Volontari in DB:")
-            vol_list = [f"{v.get('Cognome','')} {v.get('Nome','')}" for v in st.session_state.volontari[:20]]
-            st.caption(", ".join(vol_list[:10]))
+            vol_options = [f"{v.get('Cognome','').strip()} {v.get('Nome','').strip()}" for v in st.session_state.volontari if v.get('Cognome') or v.get('Nome')]
+            vol_options = sorted(list(set([o for o in vol_options if o.strip()])))
+            # Aggiungi opzione manuale
+            vol_options = [""] + vol_options + ["Altro - inserisci manualmente"]
+            responsabile_sel = st.selectbox("Responsabile * (da Volontari - Nome Cognome unificato)", vol_options, key="verb_resp_sel")
+            if responsabile_sel == "Altro - inserisci manualmente":
+                responsabile = st.text_input("Responsabile - inserisci Nome Cognome", key="verb_resp_manual", placeholder="Mario Rossi")
+            elif responsabile_sel == "":
+                responsabile = st.text_input("Responsabile * - Nome Cognome", key="verb_resp", value=st.session_state.get("nome_utente",""), placeholder="Mario Rossi")
+            else:
+                responsabile = responsabile_sel
+                st.caption(f"✅ Selezionato da DB Volontari: {responsabile}")
+        else:
+            responsabile = st.text_input("Responsabile * - Nome Cognome (agganciato Volontari)", key="verb_resp", value=st.session_state.get("nome_utente",""), placeholder="Mario Rossi - Quando aggiungi volontari compariranno qui")
 
     st.divider()
-    st.markdown("#### 📋 Contenuto Verbale")
-    odg = st.text_area("Ordine del Giorno (ODG) *", key="verb_odg", placeholder="1. Approvazione verbale precedente\n2. Comunicazioni presidente\n3. Varie ed eventuali", height=100)
-    discussione = st.text_area("Discussione / Svolgimento *", key="verb_discussione", placeholder="Descrivi discussione, interventi, relazioni...", height=150)
-    delibere = st.text_area("Delibere / Decisioni prese *", key="verb_delibere", placeholder="Il consiglio delibera: ...\nSi decide di...", height=120)
-    incarichi = st.text_area("Incarichi assegnati", key="verb_incarichi", placeholder="Mario Rossi: preparazione mezzi...\nGiuseppe Verdi: contatti...", height=80)
-    prossimi = st.text_area("Prossimi appuntamenti / Chiusura", key="verb_prossimi", placeholder="Prossima riunione: ...\nChiusura lavori ore...", height=60)
-    note_verb = st.text_area("Note finali", key="verb_note", placeholder="Note, allegati, firme...")
+    st.markdown("#### 📋 Contenuto Verbale - Campo libero")
+    # Campo verbale mano libera - Richiesta Ezio
+    testo_verbale = st.text_area("Verbale - Scrivi a mano libera *", key="verb_testo_libero", placeholder="Scrivi qui il verbale completo a mano libera...\n\nEs:\nIl giorno ... alle ore ... presso ... si è riunito...\nPresenti...\nSi discute...\nSi delibera...", height=350)
+
+    st.divider()
+    st.markdown("#### 📋 Dettagli strutturati (opzionali - per PDF strutturato)")
+    odg = st.text_area("Ordine del Giorno (ODG)", key="verb_odg", placeholder="1. Approvazione verbale precedente\n2. Comunicazioni\n3. Varie", height=80)
+    delibere = st.text_area("Delibere / Decisioni prese", key="verb_delibere", placeholder="Il consiglio delibera: ...", height=100)
+    incarichi = st.text_area("Incarichi assegnati", key="verb_incarichi", placeholder="Mario Rossi: preparazione mezzi...", height=60)
+    note_verb = st.text_area("Note finali", key="verb_note", placeholder="Note, allegati...")
 
     st.divider()
     col_save, col_pdf = st.columns(2)
     with col_save:
         if st.button("💾 SALVA VERBALE", type="primary", use_container_width=True, key="btn_salva_verbale"):
-            if num_verbale and luogo_verbale and presidente and segretario and presenti and odg and discussione and delibere:
+            if num_verbale and luogo_verbale and responsabile and testo_verbale:
                 nuovo_verb = {
                     "NumVerbale": num_verbale,
                     "Data": str(data_verbale),
@@ -4825,38 +4836,33 @@ elif cur == "Verbali":
                     "Luogo": luogo_verbale,
                     "Tipo": tipo_verbale,
                     "Oggetto": oggetto_verbale,
-                    "Presidente": presidente,
-                    "Segretario": segretario,
-                    "Presenti": presenti,
-                    "Assenti": assenti,
+                    "Responsabile": responsabile,
+                    "TestoVerbale": testo_verbale,
                     "ODG": odg,
-                    "Discussione": discussione,
                     "Delibere": delibere,
                     "Incarichi": incarichi,
-                    "Prossimi": prossimi,
                     "Note": note_verb,
                     "DataIns": datetime.now().strftime("%d/%m/%Y %H:%M")
                 }
                 st.session_state.verbali.append(nuovo_verb)
                 # Pulisci maschera
-                for k in ["verb_num","verb_data","verb_ora","verb_luogo","verb_tipo","verb_oggetto","verb_pres","verb_segr","verb_presenti","verb_assenti","verb_odg","verb_discussione","verb_delibere","verb_incarichi","verb_prossimi","verb_note"]:
+                for k in ["verb_num","verb_data","verb_ora","verb_luogo","verb_tipo","verb_oggetto","verb_resp","verb_resp_sel","verb_resp_manual","verb_testo_libero","verb_odg","verb_delibere","verb_incarichi","verb_note"]:
                     if k in st.session_state:
                         try:
                             del st.session_state[k]
                         except:
                             pass
-                st.success(f"✅ Verbale {num_verbale} salvato! Numero progressivo prossimo: {len(st.session_state.verbali)+1:03d}/{anno_corr}")
+                st.success(f"✅ Verbale {num_verbale} salvato! Responsabile: {responsabile} - Prossimo: {len(st.session_state.verbali)+1:03d}/{anno_corr}")
                 st.balloons()
                 st.rerun()
             else:
-                st.error("Compila campi obbligatori *")
+                st.error("Compila campi obbligatori: Numero, Luogo, Responsabile, Verbale mano libera *")
+
 
     with col_pdf:
         if st.session_state.verbali:
-            # Genera PDF ultimo verbale
             ultimo = st.session_state.verbali[-1]
             try:
-                # Funzione PDF verbale con logo PC ANA
                 def verbale_to_pdf_logo(verb):
                     buf = BytesIO()
                     try:
@@ -4866,15 +4872,12 @@ elif cur == "Verbali":
                         from reportlab.lib import colors
                         from reportlab.lib.units import cm
                         from reportlab.lib.enums import TA_CENTER, TA_JUSTIFY
-
                         doc = SimpleDocTemplate(buf, pagesize=A4, leftMargin=2*cm, rightMargin=2*cm, topMargin=2*cm, bottomMargin=2*cm)
                         styles = getSampleStyleSheet()
                         style_title = ParagraphStyle('TitleCustom', parent=styles['Title'], fontSize=14, alignment=TA_CENTER, spaceAfter=12, textColor=colors.HexColor("#1A5D1A"))
                         style_heading = ParagraphStyle('HeadingCustom', parent=styles['Heading2'], fontSize=11, textColor=colors.HexColor("#1A5D1A"), spaceBefore=10, spaceAfter=6)
-                        style_normal = ParagraphStyle('NormalCustom', parent=styles['Normal'], fontSize=9, leading=12, alignment=TA_JUSTIFY)
-
+                        style_normal = ParagraphStyle('NormalCustom', parent=styles['Normal'], fontSize=10, leading=13, alignment=TA_JUSTIFY)
                         story = []
-                        # Logo PC ANA
                         try:
                             if os.path.exists("logo.png"):
                                 logo = Image("logo.png", width=70, height=70)
@@ -4889,123 +4892,55 @@ elif cur == "Verbali":
                                     break
                         except:
                             pass
-
                         story.append(Paragraph(f"<b>VERBALE N. {verb.get('NumVerbale','')} - {verb.get('Tipo','').upper()}</b>", style_title))
                         story.append(Spacer(1, 6))
-                        story.append(Paragraph(f"<b>ANA Varese - Protezione Civile - Sezione Varese</b>", style_normal))
-                        story.append(Paragraph(f"Data: {verb.get('Data','')} - Ora: {verb.get('Ora','')} - Luogo: {verb.get('Luogo','')}", style_normal))
+                        story.append(Paragraph(f"<b>Squadra Volontari di protezione civile - Gruppo Alpini di Caronno Pertusella Bariola<br/>NUCLEO VOLONTARI DI P.C. A.N.A. - SEZIONE DI VARESE<br/>ASSOCIAZIONE NAZIONALE ALPINI</b>", style_normal))
                         story.append(Spacer(1, 8))
-
-                        # Tabella intestazione
-                        data_head = [
-                            ["Oggetto:", verb.get('Oggetto','')],
-                            ["Presidente:", verb.get('Presidente','')],
-                            ["Segretario:", verb.get('Segretario','')]
-                        ]
-                        t_head = Table(data_head, colWidths=[3*cm, 12*cm])
-                        t_head.setStyle(TableStyle([
-                            ('BACKGROUND', (0,0), (0,-1), colors.HexColor("#e8f5e9")),
-                            ('FONTNAME', (0,0), (0,-1), 'Helvetica-Bold'),
-                            ('FONTSIZE', (0,0), (-1,-1), 8),
-                            ('GRID', (0,0), (-1,-1), 0.5, colors.grey),
-                            ('VALIGN', (0,0), (-1,-1), 'TOP'),
-                        ]))
-                        story.append(t_head)
+                        story.append(Paragraph(f"Data: {verb.get('Data','')} - Ora: {verb.get('Ora','')} - Luogo: {verb.get('Luogo','')} - Responsabile: {verb.get('Responsabile','')}", style_normal))
+                        story.append(Spacer(1, 8))
+                        story.append(Paragraph(f"<b>Oggetto:</b> {verb.get('Oggetto','')}", style_heading))
+                        story.append(Paragraph(verb.get('Oggetto',''), style_normal))
                         story.append(Spacer(1, 10))
-
-                        # Presenti / Assenti
-                        story.append(Paragraph("<b>Presenti:</b>", style_heading))
-                        story.append(Paragraph(verb.get('Presenti','').replace('\n','<br/>'), style_normal))
-                        story.append(Spacer(1, 6))
-                        if verb.get('Assenti',''):
-                            story.append(Paragraph("<b>Assenti giustificati:</b>", style_heading))
-                            story.append(Paragraph(verb.get('Assenti','').replace('\n','<br/>'), style_normal))
+                        story.append(Paragraph(f"<b>VERBALE:</b>", style_heading))
+                        # Testo libero con a capo
+                        testo_libero_html = verb.get('TestoVerbale','').replace('\n','<br/>')
+                        story.append(Paragraph(testo_libero_html, style_normal))
+                        story.append(Spacer(1, 10))
+                        if verb.get('ODG',''):
+                            story.append(Paragraph("<b>ODG:</b>", style_heading))
+                            story.append(Paragraph(verb.get('ODG','').replace('\n','<br/>'), style_normal))
                             story.append(Spacer(1, 6))
-
-                        # ODG
-                        story.append(Paragraph("<b>Ordine del Giorno:</b>", style_heading))
-                        story.append(Paragraph(verb.get('ODG','').replace('\n','<br/>'), style_normal))
-                        story.append(Spacer(1, 8))
-
-                        # Discussione
-                        story.append(Paragraph("<b>Discussione / Svolgimento:</b>", style_heading))
-                        story.append(Paragraph(verb.get('Discussione','').replace('\n','<br/>'), style_normal))
-                        story.append(Spacer(1, 8))
-
-                        # Delibere
-                        story.append(Paragraph("<b>Delibere / Decisioni:</b>", style_heading))
-                        story.append(Paragraph(verb.get('Delibere','').replace('\n','<br/>'), style_normal))
-                        story.append(Spacer(1, 8))
-
+                        if verb.get('Delibere',''):
+                            story.append(Paragraph("<b>Delibere:</b>", style_heading))
+                            story.append(Paragraph(verb.get('Delibere','').replace('\n','<br/>'), style_normal))
+                            story.append(Spacer(1, 6))
                         if verb.get('Incarichi',''):
-                            story.append(Paragraph("<b>Incarichi assegnati:</b>", style_heading))
+                            story.append(Paragraph("<b>Incarichi:</b>", style_heading))
                             story.append(Paragraph(verb.get('Incarichi','').replace('\n','<br/>'), style_normal))
-                            story.append(Spacer(1, 6))
-
-                        if verb.get('Prossimi',''):
-                            story.append(Paragraph("<b>Prossimi appuntamenti:</b>", style_heading))
-                            story.append(Paragraph(verb.get('Prossimi','').replace('\n','<br/>'), style_normal))
-                            story.append(Spacer(1, 6))
-
-                        if verb.get('Note',''):
-                            story.append(Paragraph("<b>Note:</b>", style_heading))
-                            story.append(Paragraph(verb.get('Note','').replace('\n','<br/>'), style_normal))
-                            story.append(Spacer(1, 12))
-
-                        # Firme
                         story.append(Spacer(1, 20))
-                        data_firme = [
-                            ["Il Presidente", "Il Segretario"],
-                            [verb.get('Presidente',''), verb.get('Segretario','')],
-                            ["___________________", "___________________"]
-                        ]
+                        data_firme = [["Il Responsabile", "Data"], [verb.get('Responsabile',''), verb.get('Data','')], ["___________________", "___________________"]]
                         t_firme = Table(data_firme, colWidths=[7.5*cm, 7.5*cm])
-                        t_firme.setStyle(TableStyle([
-                            ('ALIGN', (0,0), (-1,-1), 'CENTER'),
-                            ('FONTSIZE', (0,0), (-1,-1), 9),
-                            ('FONTNAME', (0,0), (0,0), 'Helvetica-Bold'),
-                        ]))
+                        t_firme.setStyle(TableStyle([('ALIGN', (0,0), (-1,-1), 'CENTER'), ('FONTSIZE', (0,0), (-1,-1), 9), ('FONTNAME', (0,0), (0,0), 'Helvetica-Bold'),]))
                         story.append(t_firme)
-
                         doc.build(story)
                         buf.seek(0)
                         return buf.getvalue()
                     except Exception as e:
-                        # Fallback PDF semplice
-                        try:
-                            from reportlab.lib.pagesizes import A4
-                            from reportlab.platypus import SimpleDocTemplate, Paragraph
-                            from reportlab.lib.styles import getSampleStyleSheet
-                            doc = SimpleDocTemplate(buf, pagesize=A4)
-                            styles = getSampleStyleSheet()
-                            story = [Paragraph(f"Verbale {verb.get('NumVerbale','')} - {e}", styles['Title'])]
-                            doc.build(story)
-                            buf.seek(0)
-                            return buf.getvalue()
-                        except:
-                            return f"Verbale {verb.get('NumVerbale','')} - Errore PDF {e}".encode()
+                        return f"Verbale {verb.get('NumVerbale','')} - Errore {e}".encode()
 
                 pdf_ultimo = verbale_to_pdf_logo(ultimo)
-                st.download_button(
-                    f"📄 PDF Ultimo Verbale {ultimo.get('NumVerbale','')}",
-                    data=pdf_ultimo,
-                    file_name=f"Verbale_{ultimo.get('NumVerbale','').replace('/','_')}.pdf",
-                    mime="application/pdf",
-                    use_container_width=True,
-                    key="pdf_ultimo_verbale"
-                )
+                st.download_button(f"📄 PDF Ultimo Verbale {ultimo.get('NumVerbale','')}", data=pdf_ultimo, file_name=f"Verbale_{ultimo.get('NumVerbale','').replace('/','_')}.pdf", mime="application/pdf", use_container_width=True, key="pdf_ultimo_verbale")
                 if st.button("💾 Salva PDF in Archivio Documenti", use_container_width=True, key="salva_pdf_archivio"):
-                    # Salva in archivio documenti
                     nuovo_doc = {
                         "Titolo": f"Verbale {ultimo.get('NumVerbale','')} - {ultimo.get('Oggetto','')}",
                         "Tipo": "Verbale",
                         "Categoria": "Amministrativo",
-                        "Descrizione": f"Verbale {ultimo.get('Tipo','')} del {ultimo.get('Data','')} - {ultimo.get('Oggetto','')}",
+                        "Descrizione": f"Verbale {ultimo.get('Tipo','')} del {ultimo.get('Data','')} - Resp: {ultimo.get('Responsabile','')} - {ultimo.get('Oggetto','')}",
                         "NomeFile": f"Verbale_{ultimo.get('NumVerbale','').replace('/','_')}.pdf",
                         "TipoFile": "application/pdf",
                         "DimensioneKB": round(len(pdf_ultimo)/1024, 1),
                         "DataDoc": ultimo.get('Data',''),
-                        "CaricatoDa": ultimo.get('Presidente',''),
+                        "CaricatoDa": ultimo.get('Responsabile',''),
                         "DataIns": datetime.now().strftime("%d/%m/%Y %H:%M"),
                         "FileBytes": pdf_ultimo
                     }
@@ -5016,19 +4951,19 @@ elif cur == "Verbali":
 
     st.divider()
     if st.session_state.verbali:
-        st.markdown(f"#### 📋 Elenco Verbali ({len(st.session_state.verbali)}) - Numero progressivo")
+        st.markdown(f"#### 📋 Elenco Verbali ({len(st.session_state.verbali)}) - Numero progressivo + Responsabile agganciato Volontari")
         for idx, verb in enumerate(reversed(st.session_state.verbali)):
             real_idx = len(st.session_state.verbali) - 1 - idx
-            c1, c2, c3, c4, c5 = st.columns([1, 1, 2, 1, 1])
+            c1, c2, c3, c4, c5 = st.columns([1, 1, 2, 1, 0.8])
             with c1:
                 st.write(f"**{verb.get('NumVerbale','')}**")
                 st.caption(f"{verb.get('Data','')} {verb.get('Ora','')}")
             with c2:
                 st.write(f"{verb.get('Tipo','')}")
-                st.caption(f"{verb.get('Luogo','')[:20]}")
+                st.caption(f"Resp: {verb.get('Responsabile','')[:20]}")
             with c3:
                 st.write(f"{verb.get('Oggetto','')[:50]}")
-                st.caption(f"Pres: {verb.get('Presidente','')[:20]}")
+                st.caption(f"{verb.get('TestoVerbale','')[:60]}...")
             with c4:
                 if st.button(f"👁️ {verb.get('NumVerbale','')}", key=f"view_verb_{real_idx}"):
                     st.session_state["verb_view_idx"] = real_idx
@@ -5037,71 +4972,22 @@ elif cur == "Verbali":
                     st.session_state.verbali.pop(real_idx)
                     st.rerun()
 
-        # Dettaglio verbale selezionato
         if "verb_view_idx" in st.session_state:
             try:
                 v_idx = st.session_state["verb_view_idx"]
                 verb_sel = st.session_state.verbali[v_idx]
                 st.divider()
-                st.markdown(f"### 📝 Verbale {verb_sel.get('NumVerbale','')} - Dettaglio con logo PC ANA")
+                st.markdown(f"### 📝 Verbale {verb_sel.get('NumVerbale','')} - Dettaglio Responsabile: {verb_sel.get('Responsabile','')}")
                 st.write(f"**Oggetto:** {verb_sel.get('Oggetto','')}")
+                st.text_area("Testo verbale mano libera", value=verb_sel.get('TestoVerbale',''), height=250, key=f"view_testo_{v_idx}", disabled=True)
                 st.write(f"**ODG:** {verb_sel.get('ODG','')}")
-                st.write(f"**Discussione:** {verb_sel.get('Discussione','')}")
                 st.write(f"**Delibere:** {verb_sel.get('Delibere','')}")
-
-                # PDF dettaglio
-                def verbale_to_pdf_logo_detail(verb):
-                    buf = BytesIO()
-                    from reportlab.lib.pagesizes import A4
-                    from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
-                    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-                    from reportlab.lib import colors
-                    from reportlab.lib.units import cm
-                    from reportlab.lib.enums import TA_CENTER
-                    doc = SimpleDocTemplate(buf, pagesize=A4, leftMargin=2*cm, rightMargin=2*cm, topMargin=2*cm, bottomMargin=2*cm)
-                    styles = getSampleStyleSheet()
-                    style_title = ParagraphStyle('TitleCustom', parent=styles['Title'], fontSize=14, alignment=TA_CENTER, textColor=colors.HexColor("#1A5D1A"))
-                    style_heading = ParagraphStyle('HeadingCustom', parent=styles['Heading2'], fontSize=11, textColor=colors.HexColor("#1A5D1A"))
-                    style_normal = ParagraphStyle('NormalCustom', parent=styles['Normal'], fontSize=9, leading=12)
-                    story = []
-                    try:
-                        if os.path.exists("logo.png"):
-                            from reportlab.platypus import Image
-                            logo = Image("logo.png", width=70, height=70)
-                            story.append(logo)
-                    except:
-                        pass
-                    story.append(Paragraph(f"<b>VERBALE N. {verb.get('NumVerbale','')} - {verb.get('Tipo','').upper()}</b>", style_title))
-                    story.append(Spacer(1, 10))
-                    story.append(Paragraph(f"Data: {verb.get('Data','')} Ora: {verb.get('Ora','')} Luogo: {verb.get('Luogo','')} Oggetto: {verb.get('Oggetto','')}", style_normal))
-                    story.append(Spacer(1, 10))
-                    story.append(Paragraph(f"<b>Presenti:</b> {verb.get('Presenti','')}", style_normal))
-                    story.append(Spacer(1, 6))
-                    story.append(Paragraph(f"<b>ODG:</b> {verb.get('ODG','')}", style_normal))
-                    story.append(Spacer(1, 6))
-                    story.append(Paragraph(f"<b>Discussione:</b> {verb.get('Discussione','')}", style_normal))
-                    story.append(Spacer(1, 6))
-                    story.append(Paragraph(f"<b>Delibere:</b> {verb.get('Delibere','')}", style_normal))
-                    doc.build(story)
-                    buf.seek(0)
-                    return buf.getvalue()
-
-                pdf_detail = verbale_to_pdf_logo_detail(verb_sel)
-                st.download_button(
-                    f"📄 PDF Verbale {verb_sel.get('NumVerbale','')} con logo PC ANA",
-                    data=pdf_detail,
-                    file_name=f"Verbale_{verb_sel.get('NumVerbale','').replace('/','_')}_logo.pdf",
-                    mime="application/pdf",
-                    use_container_width=True,
-                    key=f"pdf_detail_{v_idx}"
-                )
             except:
                 pass
 
-        # Export Excel + PDF lista verbali
         st.divider()
         df_verb = pd.DataFrame([{k:v for k,v in verb.items() if k not in ["FileBytes"]} for verb in st.session_state.verbali])
-        st.dataframe(df_verb[["NumVerbale","Data","Tipo","Oggetto","Presidente"]].head(20) if not df_verb.empty and "NumVerbale" in df_verb.columns else df_verb, use_container_width=True)
+        st.dataframe(df_verb[["NumVerbale","Data","Tipo","Oggetto","Responsabile"]].head(20) if not df_verb.empty and "NumVerbale" in df_verb.columns else df_verb, use_container_width=True)
         c_exp1, c_exp2 = st.columns(2)
         with c_exp1:
             try:
@@ -5114,13 +5000,15 @@ elif cur == "Verbali":
                     st.download_button("📄 PDF Lista Verbali", data=to_pdf(df_verb, "LISTA VERBALI"), file_name="lista_verbali.pdf", mime="application/pdf", use_container_width=True, key="exp_pdf_verbali")
             except Exception as e:
                 st.error(f"PDF errore: {e}")
-
     else:
         st.info("Nessun verbale salvato - Compila sopra primo verbale con numero progressivo automatico")
 
     excel_import_inline("verbali", "Verbali")
 
 # ARCHIVIO DOCUMENTI - Form per salvare PDF, Word, Excel ecc - Richiesta Ezio
+
+# ARCHIVIO DOCUMENTI - Form per salvare PDF, Word, Excel ecc - Richiesta Ezio
+, Word, Excel ecc - Richiesta Ezio
 elif cur == "Archivio Documenti":
     hdr()
     hdr_form("ARCHIVIO DOCUMENTI - Salva PDF, Word, Excel ecc")
