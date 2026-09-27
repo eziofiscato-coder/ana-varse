@@ -1498,18 +1498,18 @@ def hdr():
         st.markdown(
             """
             <div style="background:linear-gradient(135deg,#1A5D1A 0%,#2e7d32 100%);
-            padding:10px 14px;border-radius:8px;color:white;
-            border-left:5px solid #1A5D1A;">
+            padding:14px 16px;border-radius:10px;color:white;
+            text-align:center;border:3px solid #1A5D1A;">
                 <p style="margin:0;font-family:Times New Roman;
-                font-weight:bold;font-size:15px;color:white;line-height:1.25;letter-spacing:0.2px;">
+                font-weight:bold;font-size:20px;color:white;line-height:1.3;letter-spacing:0.3px;text-align:center;">
                 Squadra Volontari di protezione civile - Gruppo Alpini di Caronno Pertusella Bariola
                 </p>
-                <p style="margin:4px 0 0 0;font-family:Times New Roman;
-                font-weight:bold;font-size:16px;color:white;line-height:1.2;letter-spacing:0.5px;">
+                <p style="margin:6px 0 0 0;font-family:Times New Roman;
+                font-weight:bold;font-size:22px;color:white;line-height:1.25;letter-spacing:0.6px;text-align:center;">
                 NUCLEO VOLONTARI DI P.C. A.N.A. - SEZIONE DI VARESE
                 </p>
-                <p style="margin:5px 0 0 0;font-family:Times New Roman;
-                font-weight:bold;font-size:13px;color:white;opacity:0.95;line-height:1.1;letter-spacing:1px;">
+                <p style="margin:6px 0 0 0;font-family:Times New Roman;
+                font-weight:bold;font-size:18px;color:white;line-height:1.2;letter-spacing:1.2px;text-align:center;">
                 ASSOCIAZIONE NAZIONALE ALPINI
                 </p>
             </div>
@@ -2662,7 +2662,7 @@ elif cur == "Volontari (con foto)":
             except:
                 pass
     else:
-        st.info("Nessun volontario inserito")
+        # Istruzione rimossa - form pulito
 
     st.divider()
 
@@ -3039,7 +3039,7 @@ elif cur == "Tabella Emergenze":
     """, unsafe_allow_html=True)
 
     if not st.session_state.emergenze:
-        st.info("Nessuna emergenza salvata - Vai in Emergenze per crearne una")
+        # Istruzione rimossa - form pulito
         st.markdown("""
         <div style="background:#e8f5e9;padding:12px;border-radius:8px;text-align:center;">
         <b>Come creare emergenza:</b><br>
@@ -3460,7 +3460,7 @@ elif cur == "Tabella Interventi Emergenza":
     hdr_form("TABELLA INTERVENTI EMERGENZA")
 
     if not st.session_state.interventi:
-        st.info("Nessun intervento salvato - Vai in Interventi Emergenza")
+        # Istruzione rimossa - form pulito
     else:
         df_tab = pd.DataFrame(st.session_state.interventi)
 
@@ -3789,7 +3789,7 @@ elif cur == "Mappe Postazioni":
 
         if not marker_nome:
             st.error("❌ Inserisci Nome Postazione")
-            st.info("Procedura: 1) Clicca mappa 2) Scrivi Nome Postazione 3) Verifica Comune/Via 4) Clicca SALVA")
+            # Istruzione rimossa - form pulito
         elif not eff_lat or not eff_lon:
             st.error("❌ Manca Latitudine o Longitudine")
             st.warning("Procedura corretta: Clicca sulla mappa grande → vedi coordinate in giallo → compila Nome → SALVA")
@@ -4170,7 +4170,7 @@ elif cur == "Mappe Postazioni":
             st.error(f"Errore anteprima: {e}")
 
     else:
-        st.info("📍 Nessuna postazione salvata - Tabella apparirà qui dopo salvataggio - Clicca mappa grande sopra per aggiungere - Marker rimarranno")
+        # Istruzione rimossa - form pulito
         st.markdown("""
         <div style="background:#fffde7;padding:12px;border-radius:8px;text-align:center;">
         <b>Mappa anteprima sotto tabella apparirà quando salvi la prima postazione</b><br>
@@ -4246,7 +4246,7 @@ elif cur == "Turni":
                 st.download_button("📄 PDF Turni", data=to_pdf(df_turni, "TURNI"), file_name="turni.pdf", mime="application/pdf", use_container_width=True, key="pdf_turni_final")
             st.download_button("📊 Excel Turni", data=to_excel(df_turni), file_name="turni.xlsx", mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", use_container_width=True, key="excel_turni_final")
         else:
-            st.info("Nessun turno salvato")
+            # Istruzione rimossa - form pulito
 
 
     # IMPORT/EXPORT INLINE - Ezio - TUTTI I FORM - Excel + PDF + Template ODV
@@ -4339,7 +4339,7 @@ elif cur == "Libreria Icone":
         st.dataframe(df_ico, use_container_width=True)
         st.download_button("Excel Libreria Icone", to_excel(df_ico), "libreria_icone.xlsx", use_container_width=True)
     else:
-        st.info("Nessuna icona - Crea la prima icona sopra")
+        # Istruzione rimossa - form pulito
 
 # CHAT
     # IMPORT/EXPORT INLINE - Ezio - TUTTI I FORM - Excel + PDF + Template ODV
@@ -4531,7 +4531,7 @@ elif cur == "Geolocalizzazione Hytera + Anytone":
 
         st.download_button("Excel Posizioni", to_excel(df_pos), "posizioni_hytera_anytone.xlsx", use_container_width=True)
     else:
-        st.info("Nessuna posizione registrata")
+        # Istruzione rimossa - form pulito
 
         demo_pos = pd.DataFrame([
             {"lat": 45.8167, "lon": 8.8333},
@@ -4776,12 +4776,7 @@ elif cur == "Verbali":
     num_prog = len(st.session_state.verbali) + 1
     num_verbale_auto = f"{num_prog:03d}/{anno_corr}"
 
-    st.markdown(f"""
-    <div style="background:#C8E6C9;padding:12px;border-radius:8px;border-left:5px solid #1A5D1A;margin-bottom:12px;">
-    <b>📝 Numero progressivo automatico: {num_verbale_auto}</b> - Totale verbali: {len(st.session_state.verbali)}<br>
-    Compila campi → Salva → Genera PDF con logo PC ANA → Salva automatico in Archivio Documenti
-    </div>
-    """, unsafe_allow_html=True)
+    st.markdown(f"""<div style="background:#C8E6C9;padding:8px;border-radius:8px;border-left:5px solid #1A5D1A;margin-bottom:8px;text-align:center;"><b>📝 Verbale {num_verbale_auto}</b> - Totale: {len(st.session_state.verbali)}</div>""", unsafe_allow_html=True)
 
     # Maschera colore di fondo come altri form - verde #C8E6C9 - Richiesta Ezio
     st.markdown("""
@@ -4824,7 +4819,7 @@ elif cur == "Verbali":
     st.divider()
     st.markdown("#### 📋 Contenuto Verbale - Campo libero")
     # Campo verbale mano libera - Richiesta Ezio
-    st.markdown("""<div style="background:#e8f5e9;padding:8px;border-radius:6px;border-left:4px solid #1A5D1A;margin-bottom:8px;"><b>✍️ CAMPO VERBALE MANO LIBERA - Scrivi qui sotto il verbale completo</b></div>""", unsafe_allow_html=True)
+    st.markdown("""<div style="background:#e8f5e9;padding:6px;border-radius:6px;border-left:4px solid #1A5D1A;margin-bottom:6px;text-align:center;"><b>✍️ Verbale</b></div>""", unsafe_allow_html=True)
     testo_verbale = st.text_area("Verbale - Scrivi a mano libera * (campo grande)", key="verb_testo_libero", placeholder="Scrivi qui il verbale completo a mano libera...\n\nEs:\nIl giorno ... alle ore ... presso ... si è riunito il Consiglio...\nPresenti: ...\nODG: ...\nSi discute: ...\nSi delibera: ...", height=500)
 
     st.divider()
@@ -5012,7 +5007,7 @@ elif cur == "Verbali":
             except Exception as e:
                 st.error(f"PDF errore: {e}")
     else:
-        st.info("Nessun verbale salvato - Compila sopra primo verbale con numero progressivo automatico")
+        # Istruzione rimossa - form pulito
 
     excel_import_inline("verbali", "Verbali")
 
@@ -5044,7 +5039,7 @@ elif cur == "Archivio Documenti":
         uploader_doc = st.text_input("Caricato da", value=st.session_state.get("nome_utente","Admin"), key="arch_uploader")
         file_doc = st.file_uploader("Carica File - PDF, Word, Excel ecc *", type=["pdf", "doc", "docx", "xls", "xlsx", "jpg", "jpeg", "png", "zip", "txt", "ppt", "pptx"], key="arch_file")
         if file_doc:
-            st.info(f"File: {file_doc.name} - {len(file_doc.getvalue())/1024:.1f} KB - Tipo: {file_doc.type}")
+            # Info file rimossa - form pulito
             # Preview se immagine
             if file_doc.type and "image" in file_doc.type:
                 st.image(file_doc.getvalue(), width=200, caption="Anteprima")
@@ -5161,7 +5156,7 @@ elif cur == "Archivio Documenti":
             except Exception as e:
                 st.error(f"PDF errore: {e}")
     else:
-        st.info("Nessun documento in archivio - Carica primo file sopra (PDF, Word, Excel ecc)")
+        # Istruzione rimossa - form pulito
 
     # Import/Export inline
     excel_import_inline("archivio_documenti", "Archivio Documenti")
@@ -5212,7 +5207,7 @@ elif cur == "Backup":
 
     # === SEZIONE 1: TEMPLATE EXCEL PER ODV - VOLONTARI ===
     st.markdown("### 📋 TEMPLATE EXCEL PER ODV - Volontari")
-    st.info("Scarica template vuoto, invialo alle ODV, loro compilano Nome/Cognome/CF etc, ti rimandano file, tu lo importi sotto in un click!")
+    # Istruzione rimossa - form pulito
 
     def get_volontari_template_df():
         # Template OFFICE 2016 COMPATIBILE - solo header, no righe esempio che danno errore formato
@@ -5474,7 +5469,7 @@ elif cur == "Backup":
 
     # Import Totale - Solo Excel Multi-foglio - Un file con tanti fogli
     st.markdown("### 📥 Import Backup Totale - Solo Excel xlsx/xls Multi-fogli")
-    st.info("Carica un file Excel con più fogli: ogni foglio = un form (Volontari, Radio, etc). Importa tutto in un click!")
+    # Istruzione rimossa - form pulito
     up_total_excel = st.file_uploader("Carica Backup Totale Excel - Solo xlsx/xls", type=["xlsx", "xls"], key="up_total_excel")
     if up_total_excel:
         try:
