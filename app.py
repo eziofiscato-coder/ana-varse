@@ -2166,7 +2166,7 @@ if cur == "Dashboard":
         <p style="font-family:Times New Roman;font-weight:bold;color:black;
         background:#fffde7;padding:8px;border-radius:8px;
         border-left:4px solid #FFD700;">
-        Clicca su un tasto per aprire il form - Fullscreen rosso - Date gg/mm/aaaa
+        Seleziona un form
         </p>
         """,
         unsafe_allow_html=True
@@ -2814,7 +2814,7 @@ elif cur == "Brogliaccio":
 
     st.markdown("""
     <div style="background:#e8f5e9;padding:8px;border-radius:8px;border-left:4px solid #1A5D1A;margin-bottom:10px;">
-    <b>NUOVO:</b> Chiamate e Ricevente da Alias Radio | Operatore da Volontari Nome Cognome
+    Brogliaccio - Chiamate e Ricevente da Alias Radio | Operatore da Volontari
     </div>
     """, unsafe_allow_html=True)
 
@@ -3319,7 +3319,7 @@ elif cur == "Interventi Emergenza":
     st.markdown(
         """
         <div style="background:#e8f5e9;padding:10px;border-radius:8px;border-left:4px solid #1A5D1A;margin-bottom:10px;">
-        <b>NUOVO:</b> Ora puoi caricare un'icona dalla Libreria Icone per ogni intervento!
+        Interventi - Puoi caricare un'icona dalla Libreria Icone
         </div>
         """,
         unsafe_allow_html=True
@@ -4761,8 +4761,7 @@ elif cur == "Gestione Utenti":
         except Exception as e:
             st.error(f"{e}")
 
-# VERBALI - Form con numero progressivo + PDF con logo PC ANA + salva in Archivio - Richiesta Ezio - Riga 4764 - MODIFICATO 2026-09-27: rimosso Assenti, Presenti, Segretario, Responsabile agganciato Volontari
-# VERBALI - Form con numero progressivo + PDF con logo PC ANA + salva in Archivio - Richiesta Ezio - Riga 4764 - MODIFICATO 2026-09-27: rimosso Assenti, Presenti, Segretario, Responsabile agganciato Volontari
+# VERBALI - Numero progressivo + Responsabile agganciato Volontari + campo libero
 elif cur == "Verbali":
     hdr()
     hdr_form("VERBALI - Numero progressivo + PDF con logo PC ANA")
@@ -5005,19 +5004,15 @@ elif cur == "Verbali":
 
     excel_import_inline("verbali", "Verbali")
 
-# ARCHIVIO DOCUMENTI - Form per salvare PDF, Word, Excel ecc - Richiesta Ezio
-
-# ARCHIVIO DOCUMENTI - Form per salvare PDF, Word, Excel ecc - Richiesta Ezio
-, Word, Excel ecc - Richiesta Ezio
 elif cur == "Archivio Documenti":
     hdr()
     hdr_form("ARCHIVIO DOCUMENTI - Salva PDF, Word, Excel ecc")
 
     st.markdown("""
     <div style="background:#e8f5e9;padding:12px;border-radius:8px;border-left:4px solid #1A5D1A;margin-bottom:12px;">
-    <b>📁 NUOVO: Archivio documenti per volontari - Carica PDF, Word, Excel, immagini</b><br>
-    Salva documenti importanti: regolamenti, convenzioni, attestati, verbali, circolari ODV<br>
-    <b>Formati supportati:</b> PDF, DOC, DOCX, XLS, XLSX, JPG, PNG, ZIP, TXT
+    <b>📁 Archivio documenti</b><br>
+    Regolamenti, convenzioni, attestati, verbali, circolari<br>
+    <small>PDF, DOC, XLS, XLSX, JPG, PNG, ZIP</small>
     </div>
     """, unsafe_allow_html=True)
 
@@ -5187,7 +5182,7 @@ elif cur == "Backup":
 
     st.markdown("""
     <div style="background:#e8f5e9;padding:10px;border-radius:8px;border-left:4px solid #1A5D1A;margin-bottom:12px;">
-    <b>NUOVO: Template Excel per ODV - Invia file vuoto, ODV compila, tu importi in Volontari senza inserire uno per uno!</b><br>
+    <b>Template Excel per ODV</b> - Invia file vuoto, ODV compila, importi in Volontari<br>
     <small>Backup Totale | Template ODV | Import Multi-Foglio | Solo Excel</small>
     </div>
     """, unsafe_allow_html=True)
