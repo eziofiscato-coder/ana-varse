@@ -1213,7 +1213,55 @@ def hdr_form(t):
     )
 
 
+
+
+# POPOUT INIZIALE SOLO ICONA MANIFESTO - Richiesta Ezio - 10 sec
+def inject_popout_splash():
+    try:
+        import base64, os
+        b64 = None
+        for p in ["/mnt/data/manifesto_protezione_civile_ANA.jpg", "manifesto_protezione_civile_ANA.jpg", "/mnt/data/copertina.png", "copertina.png"]:
+            if os.path.exists(p):
+                with open(p, "rb") as fh:
+                    b64 = base64.b64encode(fh.read()).decode()
+                break
+        if not b64:
+            return
+        # HTML - solo icona allegata, chiusura 10 sec
+        html = """
+        <div id="ph"></div>
+        <script>
+        (function(){
+            var parentDoc = window.parent.document;
+            if(parentDoc.getElementById('popout-splash-ezio')) return;
+            var overlay = parentDoc.createElement('div');
+            overlay.id = 'popout-splash-ezio';
+            overlay.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.92);z-index:99999999;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;';
+            overlay.innerHTML = '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;"><img src="__IMG_SRC__" style="max-width:90vw;max-height:85vh;width:auto;height:auto;object-fit:contain;border-radius:16px;box-shadow:0 15px 50px rgba(0,0,0,0.8);border:4px solid #FFD700;"><div style="margin-top:15px;background:rgba(0,0,0,0.6);padding:8px 18px;border-radius:20px;display:flex;align-items:center;gap:10px;border:1px solid #FFD700;"><span style="color:white;font-family:Times New Roman, serif;font-size:13px;">Chiusura tra <span id="countdown-ezio" style="font-weight:bold;font-size:16px;color:#FFD700;">10</span>s</span><div style="width:80px;height:4px;background:rgba(255,255,255,0.3);border-radius:2px;overflow:hidden;"><div id="progress-ezio" style="background:#FFD700;height:100%;width:100%;transition:width 1s linear;"></div></div></div></div>';
+            parentDoc.body.appendChild(overlay);
+            var seconds = 10;
+            var countdownEl = parentDoc.getElementById('countdown-ezio');
+            var progressEl = parentDoc.getElementById('progress-ezio');
+            function chiudi(){ overlay.style.opacity='0'; overlay.style.transition='opacity 0.5s'; setTimeout(function(){ if(overlay.parentNode) overlay.parentNode.removeChild(overlay); }, 500); }
+            var interval = setInterval(function(){
+                seconds--;
+                if(countdownEl) countdownEl.textContent = seconds;
+                if(progressEl) progressEl.style.width = (seconds*10) + '%';
+                if(seconds <= 0){ clearInterval(interval); chiudi(); }
+            }, 1000);
+            overlay.addEventListener('click', function(){ clearInterval(interval); chiudi(); });
+            parentDoc.addEventListener('keydown', function escHandler(e){ if(e.key==='Escape'){ clearInterval(interval); chiudi(); parentDoc.removeEventListener('keydown', escHandler); } });
+        })();
+        </script>
+        """.replace("__IMG_SRC__", "data:image/jpeg;base64," + b64)
+        st.components.v1.html(html, height=0)
+    except:
+        pass
+
+
 def init_session():
+
+
     defaults = {
         "page": "entra",
         "logged": False,
@@ -1349,6 +1397,10 @@ init_session()
 # PAGINA ENTRA - con footer fisso in basso Developed by Ezio F. 2026 Vers 1.0 - Logo cartoon
 if st.session_state.page == "entra":
     hdr()
+    try:
+        inject_popout_splash()
+    except:
+        pass
     st.write("")
     c1, c2, c3 = st.columns([1, 2, 1])
     with c2:
