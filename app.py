@@ -25,7 +25,7 @@ def _try_install_excel_deps():
     try:
         import subprocess
         # Prova installare dipendenze Excel - SENZA DEVNULL per vedere errori su Cloud log
-        subprocess.check_call([sys.executable, "-m", "pip", "install", "--upgrade", "openpyxl==3.1.5", "xlsxwriter==3.2.0", "xlrd==2.0.1", "reportlab==4.2.0", "Pillow==10.4.0"])
+        subprocess.check_call([sys.executable, "-m", "pip", "install", "openpyxl==3.1.5"], timeout=30)
         return True
     except Exception as e:
         try:
@@ -40,13 +40,8 @@ try:
     import openpyxl
     OPENPYXL_OK = True
 except Exception:
-    # Prova installazione runtime su Cloud
-    _try_install_excel_deps()
-    try:
-        import openpyxl
-        OPENPYXL_OK = True
-    except Exception:
-        OPENPYXL_OK = False
+    OPENPYXL_OK = False
+    # Fix: non installare all'avvio altrimenti pensa infinito - install lazy in to_excel
 
 try:
     import xlsxwriter
@@ -1538,7 +1533,7 @@ def hdr_form(t):
 
 
 # POPOUT INIZIALE SOLO ICONA MANIFESTO - Richiesta Ezio - TEMPO CONFIGURABILE
-SPLASH_SECONDS = 3  # <--- RIGA PER RIDURRE TEMPO SPLASH - Cambia qui! Metti 3, 5, 10 sec
+SPLASH_SECONDS = 0  # <--- RIGA 1541 - Metti 0 per disattivare splash e non far pensare dopo reboot!
 
 def inject_popout_splash():
     try:
