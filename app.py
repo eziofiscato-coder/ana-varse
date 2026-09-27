@@ -1498,13 +1498,18 @@ def hdr():
         st.markdown(
             """
             <div style="background:linear-gradient(135deg,#1A5D1A 0%,#2e7d32 100%);
-            padding:8px 12px;border-radius:8px;color:white;
-            border-left:4px solid #FFD700;">
-                <h1 style="margin:0;font-family:Times New Roman;
-                font-weight:bold;font-size:10px;color:white;line-height:1.15;letter-spacing:0.2px;">
-                Squadra Volontari di protezione civile - Gruppo Alpini di Caronno Pertusella Bariola NUCLEO DI P.C. A.N.A. - SEZIONE DI VARESE
-                </h1>
-                <p style="margin:1px 0 0 0;font-size:9px;opacity:0.85;line-height:1.0;">
+            padding:10px 14px;border-radius:8px;color:white;
+            border-left:5px solid #FFD700;">
+                <p style="margin:0;font-family:Times New Roman;
+                font-weight:bold;font-size:15px;color:white;line-height:1.25;letter-spacing:0.2px;">
+                Squadra Volontari di protezione civile - Gruppo Alpini di Caronno Pertusella Bariola
+                </p>
+                <p style="margin:4px 0 0 0;font-family:Times New Roman;
+                font-weight:bold;font-size:16px;color:#FFD700;line-height:1.2;letter-spacing:0.5px;">
+                NUCLEO VOLONTARI DI P.C. A.N.A. - SEZIONE DI VARESE
+                </p>
+                <p style="margin:5px 0 0 0;font-family:Times New Roman;
+                font-weight:bold;font-size:13px;color:white;opacity:0.95;line-height:1.1;letter-spacing:1px;">
                 ASSOCIAZIONE NAZIONALE ALPINI
                 </p>
             </div>
