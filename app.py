@@ -208,19 +208,36 @@ except:
 st.markdown(
     """
     <style>
-    /* Solo form e testi normali in Times New Roman bold - NON su upload/download */
+    /* TUTTI i caratteri inserimenti Times New Roman grassetto - Richiesta Ezio */
     html, body {
         font-family: 'Times New Roman', Times, serif !important;
     }
-    p, div, span, label {
+    p, div, span, label, input, textarea, select, button {
         font-family: 'Times New Roman', Times, serif !important;
         font-weight: bold !important;
     }
-    .stTextInput label, .stSelectbox label, .stDateInput label, .stTimeInput label, .stTextArea label {
+    /* Etichette form */
+    .stTextInput label, .stSelectbox label, .stDateInput label, .stTimeInput label, .stTextArea label, .stNumberInput label {
         font-family: 'Times New Roman', Times, serif !important;
         font-weight: bold !important;
         font-size: 14px !important;
         color: black !important;
+    }
+    /* VALORI INSERITI nei form - Times Roman grassetto - Richiesta Ezio */
+    input[type="text"], input[type="number"], input[type="email"], textarea, select,
+    .stTextInput input, .stTextArea textarea, .stNumberInput input,
+    [data-baseweb="input"] input, [data-baseweb="textarea"] textarea, [data-baseweb="select"] div,
+    .stSelectbox div[data-baseweb="select"] span, .stSelectbox div[data-baseweb="select"] div,
+    div[data-baseweb="select"] span, div[data-baseweb="select"] input {
+        font-family: 'Times New Roman', Times, serif !important;
+        font-weight: bold !important;
+        font-size: 14px !important;
+        color: black !important;
+    }
+    /* Placeholder e valori selezionati */
+    [data-baseweb="select"] span, [data-baseweb="select"] div {
+        font-family: 'Times New Roman', Times, serif !important;
+        font-weight: bold !important;
     }
     /* FIX UPLOAD - Risolve uploadupload doppio - Ezio - vedi immagine */
     [data-testid="stFileUploader"] {
@@ -886,9 +903,46 @@ def to_excel(df):
             wb.save(buf)
             buf.seek(0)
             return buf.getvalue()
-        except:
-            # Se anche questo fallisce, ritorna xlsx minimo vuoto 100% valido
-            return b'PK\x03\x04'  # Header minimo per non dare errore estensione
+        except Exception as e2:
+            # Se anche questo fallisce, crea xlsx minimo valido con openpyxl - MAI solo header PK
+            try:
+                import openpyxl
+                wb = openpyxl.Workbook()
+                ws = wb.active
+                ws.title = "Dati"
+                ws.cell(row=1, column=1, value="Export Volontari")
+                ws.cell(row=2, column=1, value="File generato ma dati non esportabili")
+                ws.cell(row=3, column=1, value=str(e2)[:200])
+                buf = BytesIO()
+                wb.save(buf)
+                buf.seek(0)
+                return buf.getvalue()
+            except:
+                # Ultimissima spiaggia - crea xlsx valido vuoto con zip minimo
+                # Usa BytesIO con contenuto minimo valido
+                try:
+                    import zipfile
+                    buf = BytesIO()
+                    with zipfile.ZipFile(buf, 'w') as z:
+                        # Minimo file xlsx valido - crea struttura vuota
+                        z.writestr("[Content_Types].xml", '<?xml version="1.0"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/></Types>')
+                    buf.seek(0)
+                    # Ritorna comunque qualcosa con PK ma più valido
+                    # Meglio: crea workbook vuoto con openpyxl se possibile
+                    import openpyxl
+                    wb = openpyxl.Workbook()
+                    buf = BytesIO()
+                    wb.save(buf)
+                    buf.seek(0)
+                    return buf.getvalue()
+                except:
+                    # Se proprio tutto fallisce, ritorna xlsx vuoto ma valido
+                    import openpyxl
+                    wb = openpyxl.Workbook()
+                    buf = BytesIO()
+                    wb.save(buf)
+                    buf.seek(0)
+                    return buf.getvalue()
 
 
 def to_excel_multi(datasets):
@@ -914,9 +968,27 @@ def to_excel_multi(datasets):
             return to_excel(list(datasets.values())[0] if datasets else pd.DataFrame())
     except Exception as e:
         try:
-            return to_excel(list(datasets.values())[0] if datasets else pd.DataFrame())
+            data = to_excel(list(datasets.values())[0] if datasets else pd.DataFrame())
+            if data and data[:2] == b'PK':
+                return data
+            else:
+                # Crea xlsx valido vuoto
+                import openpyxl
+                wb = openpyxl.Workbook()
+                buf = BytesIO()
+                wb.save(buf)
+                buf.seek(0)
+                return buf.getvalue()
         except:
-            return b''
+            try:
+                import openpyxl
+                wb = openpyxl.Workbook()
+                buf = BytesIO()
+                wb.save(buf)
+                buf.seek(0)
+                return buf.getvalue()
+            except:
+                return b''
 
 
 def excel_import_inline(form_key, form_label):
