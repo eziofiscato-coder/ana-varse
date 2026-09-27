@@ -1155,20 +1155,21 @@ def to_pdf(df, tit):
 
 def hdr():
     """
-    columns 1,5 con logo.png 110 e div verde titolo GESTIONALE DI PROTEZIONE CIVILE
+    Header con 2 loghi affiancati + intestazione ridotta - Richiesta Ezio - ci stanno 2 loghi
     """
-    c1, c2 = st.columns([1, 5])
+    # Colonne: logo1 - logo2 - titolo ridotto
+    c1, c2, c3 = st.columns([1, 1, 4])
     with c1:
         try:
             if os.path.exists("logo.png"):
-                st.image("logo.png", width=200)
+                st.image("logo.png", width=110)
             else:
                 st.markdown(
                     """
-                    <div style="width:110px;height:110px;background:#1A5D1A;
-                    border-radius:12px;display:flex;align-items:center;
+                    <div style="width:80px;height:80px;background:#1A5D1A;
+                    border-radius:10px;display:flex;align-items:center;
                     justify-content:center;color:white;font-weight:bold;
-                    font-size:40px;text-align:center;line-height:110px;">
+                    font-size:24px;text-align:center;line-height:80px;">
                     ANA
                     </div>
                     """,
@@ -1176,18 +1177,43 @@ def hdr():
                 )
         except:
             st.markdown("**ANA**")
-
+    
     with c2:
+        try:
+            # Secondo logo - prova vari file
+            logo2_path = None
+            for p in ["logo2.png", "logo_protezione.png", "protezione_civile.png", "copertina.png", "/mnt/data/copertina.png", "logo_dev_ezio.png", "/mnt/data/logo_dev_ezio.png"]:
+                if os.path.exists(p):
+                    logo2_path = p
+                    break
+            if logo2_path:
+                st.image(logo2_path, width=110)
+            else:
+                st.markdown(
+                    """
+                    <div style="width:80px;height:80px;background:#0D47A1;
+                    border-radius:10px;display:flex;align-items:center;
+                    justify-content:center;color:white;font-weight:bold;
+                    font-size:20px;text-align:center;line-height:80px;">
+                    PC
+                    </div>
+                    """,
+                    unsafe_allow_html=True
+                )
+        except:
+            st.markdown("**PC**")
+
+    with c3:
         st.markdown(
             """
             <div style="background:linear-gradient(135deg,#1A5D1A 0%,#2e7d32 100%);
-            padding:18px 24px;border-radius:12px;color:white;
-            border-left:6px solid #FFD700;">
+            padding:12px 16px;border-radius:10px;color:white;
+            border-left:5px solid #FFD700;">
                 <h1 style="margin:0;font-family:Times New Roman;
-                font-weight:bold;font-size:18px;color:white;">
-                Squadra di Volontari di Protezione Civile - NUCLEO ANA SEZIONE DI VARESE
+                font-weight:bold;font-size:13px;color:white;line-height:1.2;">
+                Squadra Volontari Protezione Civile - NUCLEO ANA SEZ. VARESE
                 </h1>
-                <p style="margin:4px 0 0 0;font-size:14px;opacity:0.9;">
+                <p style="margin:2px 0 0 0;font-size:11px;opacity:0.9;line-height:1.1;">
                 ASSOCIAZIONE NAZIONALE ALPINI
                 </p>
             </div>
