@@ -2662,6 +2662,8 @@ elif cur == "Volontari (con foto)":
             except:
                 pass
     else:
+        pass  # istruzione rimossa
+        pass
         # Istruzione rimossa - form pulito
 
     st.divider()
@@ -3039,7 +3041,7 @@ elif cur == "Tabella Emergenze":
     """, unsafe_allow_html=True)
 
     if not st.session_state.emergenze:
-        # Istruzione rimossa - form pulito
+        pass  # istruzione rimossa
         st.markdown("""
         <div style="background:#e8f5e9;padding:12px;border-radius:8px;text-align:center;">
         <b>Come creare emergenza:</b><br>
@@ -3460,7 +3462,8 @@ elif cur == "Tabella Interventi Emergenza":
     hdr_form("TABELLA INTERVENTI EMERGENZA")
 
     if not st.session_state.interventi:
-        # Istruzione rimossa - form pulito
+        pass  # fix indent
+        pass
     else:
         df_tab = pd.DataFrame(st.session_state.interventi)
 
@@ -4170,6 +4173,7 @@ elif cur == "Mappe Postazioni":
             st.error(f"Errore anteprima: {e}")
 
     else:
+        pass  # istruzione rimossa
         # Istruzione rimossa - form pulito
         st.markdown("""
         <div style="background:#fffde7;padding:12px;border-radius:8px;text-align:center;">
@@ -4246,6 +4250,8 @@ elif cur == "Turni":
                 st.download_button("📄 PDF Turni", data=to_pdf(df_turni, "TURNI"), file_name="turni.pdf", mime="application/pdf", use_container_width=True, key="pdf_turni_final")
             st.download_button("📊 Excel Turni", data=to_excel(df_turni), file_name="turni.xlsx", mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", use_container_width=True, key="excel_turni_final")
         else:
+            pass  # istruzione rimossa
+            pass
             # Istruzione rimossa - form pulito
 
 
@@ -4339,6 +4345,8 @@ elif cur == "Libreria Icone":
         st.dataframe(df_ico, use_container_width=True)
         st.download_button("Excel Libreria Icone", to_excel(df_ico), "libreria_icone.xlsx", use_container_width=True)
     else:
+        pass  # istruzione rimossa
+        pass
         # Istruzione rimossa - form pulito
 
 # CHAT
@@ -4531,6 +4539,8 @@ elif cur == "Geolocalizzazione Hytera + Anytone":
 
         st.download_button("Excel Posizioni", to_excel(df_pos), "posizioni_hytera_anytone.xlsx", use_container_width=True)
     else:
+        pass  # istruzione rimossa
+        pass
         # Istruzione rimossa - form pulito
 
         demo_pos = pd.DataFrame([
@@ -5007,6 +5017,8 @@ elif cur == "Verbali":
             except Exception as e:
                 st.error(f"PDF errore: {e}")
     else:
+        pass  # istruzione rimossa
+        pass
         # Istruzione rimossa - form pulito
 
     excel_import_inline("verbali", "Verbali")
@@ -5156,6 +5168,8 @@ elif cur == "Archivio Documenti":
             except Exception as e:
                 st.error(f"PDF errore: {e}")
     else:
+        pass  # istruzione rimossa
+        pass
         # Istruzione rimossa - form pulito
 
     # Import/Export inline
