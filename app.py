@@ -4154,7 +4154,7 @@ elif cur == "Mappe Postazioni":
     with c_tipo2:
         st.caption("NESSUN default - Click lascia marker - Tutti rimangono - Non si cancellano da soli")
 
-    # LIBRERIA ICONE scelta rapida
+    # LIBRERIA ICONE scelta rapida - FIX carica da Libreria Icone con file immagini
     icone_disponibili = st.session_state.get("icone", [])
     if not icone_disponibili:
         icone_disponibili = [
@@ -4163,23 +4163,42 @@ elif cur == "Mappe Postazioni":
             {"Nome": "Evento", "Emoji": "📅", "Tipo": "Evento", "Colore": "blue"},
             {"Nome": "Mezzo", "Emoji": "🚐", "Tipo": "Mezzo", "Colore": "green"},
         ]
+    
+    # Debug quante icone dalla libreria
+    st.info(f"📚 Libreria Icone: {len(icone_disponibili)} icone disponibili - Caricate da Libreria Icone")
+    
     icone_options = []
     icone_map = {}
     for ico in icone_disponibili:
-        label = f"{ico.get('Emoji','📍')} {ico.get('Nome','')} - {ico.get('Tipo','')} ({ico.get('Colore','')})"
+        has_file = ico.get("HasFile", False)
+        file_info = " [FILE]" if has_file else ""
+        label = f"{ico.get('Emoji','📍')} {ico.get('Nome','')} - {ico.get('Tipo','')} ({ico.get('Colore','')}){file_info}"
         icone_options.append(label)
         icone_map[label] = ico
     if not st.session_state.selected_icon_label and icone_options:
         st.session_state.selected_icon_label = icone_options[0]
 
-    st.markdown("**Scegli icona dalla Libreria:**")
-    cols_ico = st.columns(6)
+    st.markdown("**Scegli icona dalla Libreria (con anteprima immagine se ha file):**")
+    cols_ico = st.columns(4)
     for idx, ico in enumerate(icone_disponibili[:12]):
-        with cols_ico[idx % 6]:
+        with cols_ico[idx % 4]:
             is_sel = st.session_state.selected_icon_label and ico.get('Nome','') in st.session_state.selected_icon_label
-            if st.button(f"{ico.get('Emoji','📍')} {ico.get('Nome','')}", key=f"sel_ico_{idx}", use_container_width=True, type="primary" if is_sel else "secondary"):
+            has_file = ico.get("HasFile", False)
+            file_bytes = ico.get("FileBytes")
+            # Mostra immagine se ha file, altrimenti emoji
+            if has_file and file_bytes:
+                try:
+                    st.image(file_bytes, width=60, caption=f"{ico.get('Emoji','')} {ico.get('Nome','')}")
+                except:
+                    st.markdown(f"<div style='font-size:32px;text-align:center;'>{ico.get('Emoji','📍')}</div>", unsafe_allow_html=True)
+            else:
+                st.markdown(f"<div style='font-size:32px;text-align:center;background:white;border:2px solid #1A5D1A;border-radius:8px;padding:4px;'>{ico.get('Emoji','📍')}</div>", unsafe_allow_html=True)
+            st.caption(f"{ico.get('Nome','')} - {ico.get('Tipo','')}")
+            if has_file:
+                st.caption(f"📁 File: {ico.get('FileName','')[:15]}")
+            if st.button(f"Seleziona", key=f"sel_ico_{idx}", use_container_width=True, type="primary" if is_sel else "secondary"):
                 for opt in icone_options:
-                    if ico.get('Nome','') in opt and ico.get('Emoji','') in opt:
+                    if ico.get('Nome','') in opt:
                         st.session_state.selected_icon_label = opt
                         break
                 st.rerun()
@@ -4290,7 +4309,11 @@ elif cur == "Mappe Postazioni":
                     "Icona": st.session_state.selected_icon_label,
                     "Tipo": marker_tipo,
                     "Descrizione": marker_desc,
-                    "DataIns": datetime.now().strftime("%d/%m/%Y %H:%M")
+                    "DataIns": datetime.now().strftime("%d/%m/%Y %H:%M"),
+                    "HasFile": sel_obj.get("HasFile", False),
+                    "FileBytes": sel_obj.get("FileBytes"),
+                    "FileName": sel_obj.get("FileName",""),
+                    "IconaTipo": sel_obj.get("Tipo","Postazione")
                 }
                 st.session_state.mappa_avanzata_markers.append(nuovo)
                 st.session_state.map_focus = nuovo
