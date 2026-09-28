@@ -3654,12 +3654,34 @@ elif cur == "Interventi Emergenza":
 
 
 elif cur == "Tabella Interventi Emergenza":
-    hdr_form("TABELLA INTERVENTI EMERGENZA")
+    hdr_form("TABELLA INTERVENTI EMERGENZA - CREATA DA FORM INTERVENTI EMERGENZA")
+
+    st.markdown("""
+    <div style="background:#e3f2fd;padding:10px;border-radius:8px;border-left:4px solid #1976d2;margin-bottom:12px;">
+    <b>📋 Tabella Interventi Emergenza - Dati dal form Interventi Emergenza</b><br>
+    Questa tabella legge direttamente da <b>Interventi Emergenza</b> (st.session_state.interventi) - Clicca icona per aprire scheda in maschera
+    </div>
+    """, unsafe_allow_html=True)
+
+    # Debug - quanti interventi da Interventi Emergenza
+    st.info(f"Debug: {len(st.session_state.interventi)} interventi da form Interventi Emergenza in memoria - Se 0, vai in Interventi Emergenza e crea intervento con icona")
 
     if not st.session_state.interventi:
-        pass  # fix indent
-        pass
+        st.warning("⚠️ Nessun intervento in memoria - Vai in Interventi Emergenza, compila con icona e salva - Apparirà qui")
+        st.markdown("""
+        <div style="background:#e8f5e9;padding:12px;border-radius:8px;text-align:center;">
+        <b>Come creare intervento:</b><br>
+        1. Vai in <b>Interventi Emergenza</b><br>
+        2. Scegli Tipo, Squadra, Data, Comune, Icona da Libreria<br>
+        3. Compila Descrizione * e salva<br>
+        4. Torna qui - tabella si crea da quel form
+        </div>
+        """, unsafe_allow_html=True)
+        # Tabella vuota esempio
+        st.dataframe(pd.DataFrame(columns=["Icona","Tipo","Squadra","Data","Comune","Stato","Descrizione"]).head(), use_container_width=True)
     else:
+        # Tabella creata dal form Interventi Emergenza - OK richiesta Ezio
+        st.success(f"✅ Tabella creata dal form Interventi Emergenza - {len(st.session_state.interventi)} interventi")
         df_tab = pd.DataFrame(st.session_state.interventi)
 
         # Filtri con variabili intermedie corrette parentesi chiuse
