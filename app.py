@@ -4242,7 +4242,19 @@ elif cur == "Mappe Postazioni":
         marker_icona_label = st.selectbox("Icona Libreria", icone_options, index=default_idx, key="adv_marker_icona_select")
         st.session_state.selected_icon_label = marker_icona_label
         selected_ico_obj = icone_map.get(marker_icona_label, {"Emoji":"👷","Nome":"Postazione","Colore":"green","Tipo":"Postazione"})
-        st.markdown(f"<div style='font-size:24px;text-align:center;background:#e8f5e9;padding:8px;border-radius:8px;border:2px solid #1A5D1A;'>{selected_ico_obj.get('Emoji','👷')} {selected_ico_obj.get('Nome','')}</div>", unsafe_allow_html=True)
+        # FIX Anteprima icona in Maschera Postazione - mostra immagine vera se ha file
+        has_file_sel = selected_ico_obj.get("HasFile", False)
+        file_bytes_sel = selected_ico_obj.get("FileBytes")
+        if has_file_sel and file_bytes_sel:
+            try:
+                st.image(file_bytes_sel, width=80, caption=f"Icona: {selected_ico_obj.get('Nome','')}")
+                st.markdown(f"<div style='text-align:center;background:#e8f5e9;padding:4px;border-radius:4px;border:1px solid #1A5D1A;font-size:12px;font-weight:bold;'>{selected_ico_obj.get('Emoji','')} {selected_ico_obj.get('Nome','')} - FILE: {selected_ico_obj.get('FileName','')[:15]}</div>", unsafe_allow_html=True)
+            except:
+                st.markdown(f"<div style='font-size:24px;text-align:center;background:#e8f5e9;padding:8px;border-radius:8px;border:2px solid #1A5D1A;'>{selected_ico_obj.get('Emoji','👷')} {selected_ico_obj.get('Nome','')}</div>", unsafe_allow_html=True)
+        else:
+            st.markdown(f"<div style='font-size:24px;text-align:center;background:#e8f5e9;padding:8px;border-radius:8px;border:2px solid #1A5D1A;'>{selected_ico_obj.get('Emoji','👷')} {selected_ico_obj.get('Nome','')}</div>", unsafe_allow_html=True)
+        # Mostra sempre dettagli icona
+        st.caption(f"Colore: {selected_ico_obj.get('Colore','green')} - Tipo: {selected_ico_obj.get('Tipo','Postazione')} - HasFile: {has_file_sel}")
         marker_tipo = st.selectbox("Tipo", ["Postazione", "Emergenza", "Evento", "Mezzo", "Volontario"], key="adv_marker_tipo")
         marker_desc = st.text_input("Descrizione", key="adv_marker_desc")
 
@@ -4330,9 +4342,9 @@ elif cur == "Mappe Postazioni":
                 st.error(f"❌ Errore coordinate: {e}")
                 st.info(f"Hai inserito Lat: '{eff_lat}' Lon: '{eff_lon}' - Usa formato 45.8167 8.8333 con punto")
 
-    # ANTEPRIMA SOPRA MAPPA GRANDE
+    # ANTEPRIMA SOPRA MAPPA GRANDE - FIX icona selezionata da libreria con immagine, rimane visibile nella prima mappa
     st.divider()
-    st.markdown("#### 🗺️ Anteprima - Mappa piccola sopra mappa grande")
+    st.markdown("#### 🗺️ Anteprima - Mappa piccola sopra mappa grande - Icona da Libreria")
     preview_lat = marker_lat or st.session_state.last_clicked_lat
     preview_lon = marker_lon or st.session_state.last_clicked_lon
     if preview_lat and preview_lon:
@@ -4341,27 +4353,61 @@ elif cur == "Mappe Postazioni":
             p_lon = float(str(preview_lon).replace(",", "."))
             sel_e = selected_ico_obj.get('Emoji','👷')
             sel_c = selected_ico_obj.get('Colore','green')
-            preview_html = f"""
-            <div style="border:2px solid #1A5D1A;border-radius:8px;overflow:hidden;">
-            <div style="background:#1A5D1A;color:white;padding:6px;text-align:center;">Anteprima: {sel_e} {marker_nome or 'Nuova'} - {marker_comune} {marker_via} - Emergenza: {nome_emergenza} - Evento: {nome_evento}</div>
-            <div id="preview_map_top" style="height:250px;width:100%;"></div>
-            </div>
-            <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
-            <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-            <script>
-            var pMap = L.map('preview_map_top').setView([{p_lat}, {p_lon}], 15);
-            L.tileLayer('https://{{s}}.tile.openstreetmap.org/{{z}}/{{x}}/{{y}}.png').addTo(pMap);
-            var colMap = {{'red':'#d32f2f','blue':'#1976d2','green':'#388e3c','orange':'#f57c00','purple':'#7b1fa2'}};
-            var cCode = colMap['{sel_c}'] || '#388e3c';
-            var pIcon = L.divIcon({{html: "<div style='background:white;border:2px solid " + cCode + ";width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;'>"+ "{sel_e}" + "</div>", iconSize: [26,26], iconAnchor: [13,13]}});
-            L.marker([{p_lat}, {p_lon}], {{icon: pIcon}}).addTo(pMap).bindPopup("{sel_e} Anteprima").openPopup();
-            </script>
-            """
+            sel_has_file = selected_ico_obj.get('HasFile', False)
+            sel_file_bytes = selected_ico_obj.get('FileBytes')
+            sel_file_b64 = ""
+            if sel_has_file and sel_file_bytes:
+                try:
+                    import base64 as b64lib
+                    sel_file_b64 = b64lib.b64encode(sel_file_bytes).decode()
+                except:
+                    sel_file_b64 = ""
+            
+            # Se ha file immagine, usa iconUrl con base64, altrimenti divIcon con emoji
+            if sel_file_b64:
+                # Icona con immagine file da libreria
+                preview_html = f"""
+                <div style="border:2px solid #1A5D1A;border-radius:8px;overflow:hidden;">
+                <div style="background:#1A5D1A;color:white;padding:6px;text-align:center;">Anteprima FILE: {sel_e} {marker_nome or 'Nuova'} - {marker_comune} {marker_via} - Icona: {selected_ico_obj.get('Nome','')} - {selected_ico_obj.get('FileName','')}</div>
+                <div id="preview_map_top" style="height:250px;width:100%;"></div>
+                </div>
+                <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+                <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+                <script>
+                var pMap = L.map('preview_map_top').setView([{p_lat}, {p_lon}], 15);
+                L.tileLayer('https://{{s}}.tile.openstreetmap.org/{{z}}/{{x}}/{{y}}.png').addTo(pMap);
+                var fileIcon = L.icon({{
+                    iconUrl: "data:image/png;base64,{sel_file_b64}",
+                    iconSize: [40, 40],
+                    iconAnchor: [20, 20],
+                    popupAnchor: [0, -20]
+                }});
+                L.marker([{p_lat}, {p_lon}], {{icon: fileIcon}}).addTo(pMap).bindPopup("{sel_e} {marker_nome or 'Nuova'} - FILE").openPopup();
+                // Marker rimane visibile nella prima mappa
+                </script>
+                """
+            else:
+                preview_html = f"""
+                <div style="border:2px solid #1A5D1A;border-radius:8px;overflow:hidden;">
+                <div style="background:#1A5D1A;color:white;padding:6px;text-align:center;">Anteprima: {sel_e} {marker_nome or 'Nuova'} - {marker_comune} {marker_via} - Emergenza: {nome_emergenza} - Evento: {nome_evento}</div>
+                <div id="preview_map_top" style="height:250px;width:100%;"></div>
+                </div>
+                <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+                <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+                <script>
+                var pMap = L.map('preview_map_top').setView([{p_lat}, {p_lon}], 15);
+                L.tileLayer('https://{{s}}.tile.openstreetmap.org/{{z}}/{{x}}/{{y}}.png').addTo(pMap);
+                var colMap = {{'red':'#d32f2f','blue':'#1976d2','green':'#388e3c','orange':'#f57c00','purple':'#7b1fa2'}};
+                var cCode = colMap['{sel_c}'] || '#388e3c';
+                var pIcon = L.divIcon({{html: "<div style='background:white;border:2px solid " + cCode + ";width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;'>"+ "{sel_e}" + "</div>", iconSize: [26,26], iconAnchor: [13,13]}});
+                L.marker([{p_lat}, {p_lon}], {{icon: pIcon}}).addTo(pMap).bindPopup("{sel_e} Anteprima").openPopup();
+                </script>
+                """
             st.components.v1.html(preview_html, height=300)
-        except:
-            st.info("Anteprima non disponibile - clicca mappa grande")
+        except Exception as e:
+            st.info(f"Anteprima non disponibile - clicca mappa grande - Errore: {e}")
     else:
-        st.info("Clicca mappa grande per anteprima qui")
+        st.info("Clicca mappa grande per anteprima qui - L'anteprima mostra icona selezionata da Libreria e rimane visibile nella prima mappa")
 
     # MAPPA GRANDE - NESSUN DEFAULT - MARKER RIMANGONO
     st.divider()
@@ -4369,8 +4415,43 @@ elif cur == "Mappe Postazioni":
     focus_marker = st.session_state.get("map_focus")
 
     import json as json_lib
-    markers_for_js = json_lib.dumps([{"lat": m["Lat"], "lon": m["Lon"], "nome": m["Nome"], "emoji": m.get("Emoji","👷"), "colore": m.get("Colore","green"), "iconaNome": m.get("IconaNome",""), "comune": m.get("Comune",""), "via": m.get("Via",""), "emergenza": m.get("NomeEmergenza",""), "evento": m.get("NomeEvento","")} for m in all_markers])
-    focus_for_js = json_lib.dumps(focus_marker) if focus_marker else "null"
+    # FIX JSON serializable + file icon base64 per mappa grande e prima mappa
+    def clean_marker_for_json(m):
+        b64 = ""
+        if m.get("HasFile") and m.get("FileBytes"):
+            try:
+                import base64 as b64lib
+                fb = m.get("FileBytes")
+                if isinstance(fb, bytes):
+                    b64 = b64lib.b64encode(fb).decode()
+                elif isinstance(fb, str):
+                    b64 = fb  # già base64?
+            except:
+                b64 = ""
+        return {
+            "lat": m.get("Lat"),
+            "lon": m.get("Lon"),
+            "nome": m.get("Nome",""),
+            "emoji": m.get("Emoji","👷"),
+            "colore": m.get("Colore","green"),
+            "iconaNome": m.get("IconaNome",""),
+            "comune": m.get("Comune",""),
+            "via": m.get("Via",""),
+            "emergenza": m.get("NomeEmergenza",""),
+            "evento": m.get("NomeEvento",""),
+            "hasFile": m.get("HasFile", False),
+            "fileName": m.get("FileName",""),
+            "fileB64": b64  # base64 per mappa
+        }
+    markers_for_js = json_lib.dumps([clean_marker_for_json(m) for m in all_markers])
+    # FIX focus_marker contiene FileBytes bytes - pulisci prima di dumps + fileB64
+    if focus_marker:
+        focus_clean = clean_marker_for_json(focus_marker)
+        focus_clean["Lat"] = focus_marker.get("Lat")
+        focus_clean["Lon"] = focus_marker.get("Lon")
+        focus_for_js = json_lib.dumps(focus_clean)
+    else:
+        focus_for_js = "null"
 
     st.markdown("#### 🌍 Mappa Grande - Tutti i marker rimangono - Non si cancellano")
     html_code = """
@@ -4510,10 +4591,21 @@ elif cur == "Mappe Postazioni":
     document.head.appendChild(style);
     function getColorCode(c){ var m={'red':'#d32f2f','blue':'#1976d2','green':'#388e3c','orange':'#f57c00','purple':'#7b1fa2'}; return m[c]||'#388e3c'; }
     var allMarkers = [];
-    // MARKER SALVATI - RIMANGONO - PICCOLI
+    // MARKER SALVATI - RIMANGONO - PICCOLI - FIX icona da Libreria con file immagine
     markersData.forEach(function(md){
-        var icon = L.divIcon({html: "<div style='background:white;border:2px solid " + getColorCode(md.colore) + ";width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;box-shadow:0 2px 4px rgba(0,0,0,0.3);'>" + md.emoji + "</div>", iconSize: [26,26], iconAnchor: [13,13]});
-        var mk = L.marker([md.lat, md.lon], {icon: icon}).addTo(map).bindPopup("<b>" + md.emoji + " " + md.nome + "</b><br>Comune: " + md.comune + "<br>Via: " + md.via + "<br>Emergenza: " + md.emergenza + "<br>Evento: " + md.evento);
+        var icon;
+        if(md.hasFile && md.fileB64){
+            // Icona con immagine file da Libreria - rimane visibile nella prima mappa e mappa grande
+            icon = L.icon({
+                iconUrl: "data:image/png;base64," + md.fileB64,
+                iconSize: [36, 36],
+                iconAnchor: [18, 18],
+                popupAnchor: [0, -18]
+            });
+        } else {
+            icon = L.divIcon({html: "<div style='background:white;border:2px solid " + getColorCode(md.colore) + ";width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;box-shadow:0 2px 4px rgba(0,0,0,0.3);'>" + md.emoji + "</div>", iconSize: [26,26], iconAnchor: [13,13]});
+        }
+        var mk = L.marker([md.lat, md.lon], {icon: icon}).addTo(map).bindPopup("<b>" + md.emoji + " " + md.nome + "</b><br>Comune: " + md.comune + "<br>Via: " + md.via + "<br>Emergenza: " + md.emergenza + "<br>Evento: " + md.evento + (md.hasFile ? "<br>📁 FILE: " + md.fileName : ""));
         allMarkers.push(mk);
     });
     if (focusMarker && focusMarker.Lat){
@@ -4655,8 +4747,18 @@ elif cur == "Mappe Postazioni":
             function getColorCodeB(c){ var m={'red':'#d32f2f','blue':'#1976d2','green':'#388e3c','orange':'#f57c00','purple':'#7b1fa2'}; return m[c]||'#388e3c'; }
             var allB = [];
             markersDataBottom.forEach(function(md){
-                var ic = L.divIcon({html: "<div style='background:white;border:2px solid " + getColorCodeB(md.colore) + ";width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;'>" + md.emoji + "</div>", iconSize: [22,22], iconAnchor: [11,11]});
-                var mk = L.marker([md.lat, md.lon], {icon: ic}).addTo(mapB).bindPopup(md.emoji + " " + md.nome + "<br>" + md.comune + " " + md.via);
+                var ic;
+                if(md.hasFile && md.fileB64){
+                    ic = L.icon({
+                        iconUrl: "data:image/png;base64," + md.fileB64,
+                        iconSize: [32, 32],
+                        iconAnchor: [16, 16],
+                        popupAnchor: [0, -16]
+                    });
+                } else {
+                    ic = L.divIcon({html: "<div style='background:white;border:2px solid " + getColorCodeB(md.colore) + ";width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;'>" + md.emoji + "</div>", iconSize: [22,22], iconAnchor: [11,11]});
+                }
+                var mk = L.marker([md.lat, md.lon], {icon: ic}).addTo(mapB).bindPopup(md.emoji + " " + md.nome + "<br>" + md.comune + " " + md.via + (md.hasFile ? "<br>📁 " + md.fileName : ""));
                 allB.push(mk);
             });
             if(allB.length>0){
