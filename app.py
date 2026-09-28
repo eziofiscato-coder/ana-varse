@@ -3715,7 +3715,7 @@ elif cur == "Tabella Interventi Emergenza":
         with h7: st.markdown("**Descrizione**")
         st.divider()
         
-        # Righe tabella con icona cliccabile all'inizio - richiesta Ezio: come volontari - clicca icona per vedere scheda in maschera Interventi Emergenza
+        # Righe tabella con icona CLICCABILE - richiesta Ezio: cliccare su icona (non penna) per aprire form Interventi Emergenza
         for idx_f, (idx_orig, row) in enumerate(df_filtrato.iterrows()):
             c1, c2, c3, c4, c5, c6, c7 = st.columns([0.9, 1, 1, 1.2, 1.5, 1, 2])
             with c1:
@@ -3723,7 +3723,7 @@ elif cur == "Tabella Interventi Emergenza":
                 nome_ico = row.get("IconaNome", "")
                 has_file = row.get("HasFile", False)
                 file_bytes = row.get("FileBytes", None)
-                # Mostra immagine icona
+                # Mostra immagine icona + bottone cliccabile direttamente sull'icona (non penna)
                 if has_file and file_bytes:
                     try:
                         st.image(file_bytes, width=50)
@@ -3733,20 +3733,23 @@ elif cur == "Tabella Interventi Emergenza":
                     st.markdown(f"<div style='font-size:28px;text-align:center;background:white;border:1px solid #1A5D1A;border-radius:6px;padding:4px;'>{emoji}</div>", unsafe_allow_html=True)
                 if nome_ico:
                     st.caption(nome_ico[:12])
-                # Bottone cliccabile icona - carica in maschera Interventi Emergenza come volontari
-                if st.button("✏️", key=f"edit_int_icon_{idx_orig}", help=f"Clicca per vedere scheda {row.get('Tipo','')} in form Interventi Emergenza"):
-                    st.session_state.int_edit_index = int(idx_orig)
-                    # Pulisci chiavi int_ per forzare reload con dati edit
-                    for k in list(st.session_state.keys()):
-                        if k.startswith("int_"):
-                            try:
-                                del st.session_state[k]
-                            except:
-                                pass
-                    # Cambia menu a Interventi Emergenza
+                # CLICCA SULL'ICONA - non penna - richiesta Ezio
+                # Bottone con icona stessa come label - clicca icona per aprire scheda in Interventi Emergenza
+                label_btn = f"{emoji} Apri" if emoji else "📍 Apri"
+                if st.button(label_btn, key=f"edit_int_icon_{idx_orig}", help=f"Clicca sull'icona {nome_ico} per aprire scheda in Interventi Emergenza", use_container_width=True):
+                    # Salva indice PRIMA di pulire
+                    idx_to_edit = int(idx_orig)
+                    # Pulisci chiavi int_ tranne int_edit_index - FIX bug che cancellava edit_index
+                    for k in [k for k in list(st.session_state.keys()) if k.startswith("int_") and k != "int_edit_index"]:
+                        try:
+                            del st.session_state[k]
+                        except:
+                            pass
+                    st.session_state.int_edit_index = idx_to_edit
+                    # Forza cambio menu - sia menu che menu_radio
                     st.session_state.menu = "Interventi Emergenza"
+                    st.session_state["menu_radio"] = "Interventi Emergenza"
                     st.session_state["scroll_top"] = True
-                    st.success(f"Carico intervento {row.get('Tipo','')} in maschera Interventi Emergenza")
                     st.rerun()
             with c2:
                 st.write(row.get("Tipo",""))
@@ -3762,16 +3765,17 @@ elif cur == "Tabella Interventi Emergenza":
                 st.markdown(f"<span style='background:{bg};color:{txt_c};padding:2px 8px;border-radius:10px;font-weight:bold;border:1px solid black;font-size:11px;'>{row.get('Stato','')}</span>", unsafe_allow_html=True)
             with c7:
                 st.write(str(row.get("Descrizione",""))[:100])
-                # Bottone alternativo testo per chi non vede icona
+                # Bottone alternativo
                 if st.button(f"📋 Vedi scheda", key=f"edit_int_text_{idx_orig}", use_container_width=True):
-                    st.session_state.int_edit_index = int(idx_orig)
-                    for k in list(st.session_state.keys()):
-                        if k.startswith("int_"):
-                            try:
-                                del st.session_state[k]
-                            except:
-                                pass
+                    idx_to_edit = int(idx_orig)
+                    for k in [k for k in list(st.session_state.keys()) if k.startswith("int_") and k != "int_edit_index"]:
+                        try:
+                            del st.session_state[k]
+                        except:
+                            pass
+                    st.session_state.int_edit_index = idx_to_edit
                     st.session_state.menu = "Interventi Emergenza"
+                    st.session_state["menu_radio"] = "Interventi Emergenza"
                     st.rerun()
             st.divider()
         
