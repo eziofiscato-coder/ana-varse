@@ -3510,10 +3510,16 @@ elif cur == "Interventi Emergenza":
                 "IconaNome": sel_ico_obj.get("Nome","") if sel_ico_obj else "",
                 "IconaEmoji": sel_ico_obj.get("Emoji","") if sel_ico_obj else "",
                 "IconaColore": sel_ico_obj.get("Colore","") if sel_ico_obj else "",
-                "IconaTipo": sel_ico_obj.get("Tipo","") if sel_ico_obj else ""
+                "IconaTipo": sel_ico_obj.get("Tipo","") if sel_ico_obj else "",
+                "HasFile": sel_ico_obj.get("HasFile", False) if sel_ico_obj else False,
+                "FileBytes": sel_ico_obj.get("FileBytes", None) if sel_ico_obj else None,
+                "FileName": sel_ico_obj.get("FileName", "") if sel_ico_obj else ""
             }
             st.session_state.interventi.append(new_intervento)
             icona_msg = f" con icona {sel_ico_obj.get('Emoji','')} {sel_ico_obj.get('Nome','')}" if sel_ico_obj else ""
+            # Debug per verificare salvataggio immagine
+            if new_intervento.get("HasFile"):
+                icona_msg += f" + file {new_intervento.get('FileName','')}"
             st.success(f"Intervento salvato con stato {label} colorato {bg_color}{icona_msg}")
             st.balloons()
             st.rerun()
@@ -3522,24 +3528,7 @@ elif cur == "Interventi Emergenza":
 
     if st.session_state.interventi:
         st.divider()
-        st.markdown("**Interventi Salvati con Stato Colorato**")
-        for idx, interv in enumerate(st.session_state.interventi):
-            bg = interv.get("StatoColoreBg", "#ffffff")
-            txt = interv.get("StatoColoreTxt", "black")
-            st.markdown(
-                f"""
-                <div style="border:1px solid #ccc;padding:10px;border-radius:8px;
-                margin-bottom:8px;background:white;">
-                <span style="background:{bg};color:{txt};padding:4px 12px;
-                border-radius:12px;font-weight:bold;border:2px solid black;">
-                {interv.get('Stato','')}
-                </span>
-                <strong> {interv.get('Tipo','')} - {interv.get('Comune','')} {interv.get('Via','')}</strong><br>
-                {interv.get('Descrizione','')[:100]}
-                </div>
-                """,
-                unsafe_allow_html=True
-            )
+        st.markdown("**Interventi Salvati - con Icona all'inizio**")
 
         # Tabella interventi con icona all'inizio - senza colonne interne - richiesta Ezio
         df_int_full = pd.DataFrame(st.session_state.interventi)
@@ -3562,15 +3551,20 @@ elif cur == "Interventi Emergenza":
             c1, c2, c3, c4, c5 = st.columns([0.8, 1, 1, 1.5, 2.5])
             with c1:
                 emo = r.get("IconaEmoji","📍")
+                nome = r.get("IconaNome","")
                 fb = r.get("FileBytes")
                 hf = r.get("HasFile")
+                # Mostra immagine vera dell'icona assegnata - fix Ezio: vedeva scritta icona
                 if hf and fb:
                     try:
-                        st.image(fb, width=40)
-                    except:
-                        st.write(emo)
+                        st.image(fb, width=50, caption=nome[:10] if nome else "")
+                    except Exception as e:
+                        st.markdown(f"<div style='font-size:32px;text-align:center;background:#e8f5e9;border:2px solid #1A5D1A;border-radius:8px;padding:4px;'>{emo}</div>", unsafe_allow_html=True)
                 else:
-                    st.write(emo)
+                    # Emoji grande visibile - non scritta icona
+                    st.markdown(f"<div style='font-size:32px;text-align:center;background:white;border:2px solid #1A5D1A;border-radius:8px;padding:6px;'>{emo}</div>", unsafe_allow_html=True)
+                    if nome:
+                        st.caption(nome[:12])
             with c2: st.write(r.get("Tipo",""))
             with c3: st.write(r.get("Squadra",""))
             with c4: st.write(r.get("Comune",""))
