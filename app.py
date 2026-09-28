@@ -1905,28 +1905,16 @@ if st.session_state.page == "entra":
 
     st.stop()
 
-# PAGINA LOGIN - GESTIONE UTENTI MULTI-RUOLO - Ezio - FIX accesso negato
+# PAGINA LOGIN - SENZA INTESTAZIONE - richiesta Ezio: togliere intestazione e etichetta login gestione utenti multiuso
 if st.session_state.page == "login":
-    hdr()
+    # hdr() rimosso - niente loghi su login
+    # Etichetta LOGIN - Gestione Utenti Multi Livello rimossa - richiesta Ezio
     st.write("")
     c1, c2, c3 = st.columns([1, 2, 1])
     with c2:
-        st.markdown(
-            """
-            <div style="background:white;padding:24px;
-            border-radius:12px;box-shadow:0 4px 12px rgba(0,0,0,0.1);
-            border-top:4px solid #1A5D1A;">
-            <h3 style="font-family:Times New Roman;font-weight:bold;text-align:center;">
-            LOGIN - Gestione Utenti - Multi Livello Accesso
-            </h3>
-            <p style="text-align:center;font-size:12px;">Amministratore crea utenti con livelli: admin, coordinatore, operatore, volontario, lettore</p>
-            </div>
-            """,
-            unsafe_allow_html=True
-        )
-        st.write("")
+        # Solo login pulito senza etichetta multiuso
         utenti_list = load_utenti()
-        st.info(f"Utenti configurati: {len(utenti_list)} - Demo: admin / ana2024 (amministratore) | operatore1 / operatore1 | lettore1 / lettore1")
+        # st.info rimosso - non mostrare utenti configurati demo
         
         with st.form("login_form"):
             utente = st.text_input("Utente", key="login_utente_form")
@@ -3442,17 +3430,40 @@ elif cur == "Interventi Emergenza":
         comune_int = combo_comune("Comune Intervento", "int_comune", "Varese")
         via_int = combo_vie("Via Intervento", comune_int, "int_via", "")
         ora_int = st.time_input("Ora Intervento", value=datetime.now().time(), key="int_ora")
-        # Anteprima icona selezionata
+        # Anteprima icona scelta - richiesta Ezio: vedere in anteprima icona scelte - FIX più grande e visibile
+        st.markdown("**🔍 Anteprima Icona Scelta**")
         if sel_ico_obj:
-            st.markdown(f"""
-            <div style="background:white;padding:10px;border-radius:8px;border:2px solid #1A5D1A;text-align:center;margin-top:8px;">
-            <div style="font-size:32px;">{sel_ico_obj.get('Emoji','📍')}</div>
-            <b>{sel_ico_obj.get('Nome','')}</b><br>
-            <small>{sel_ico_obj.get('Tipo','')} - {sel_ico_obj.get('Colore','')}</small>
-            </div>
-            """, unsafe_allow_html=True)
+            # Se ha file immagine, mostra file, altrimenti emoji
+            if sel_ico_obj.get("HasFile") and sel_ico_obj.get("FileBytes"):
+                try:
+                    st.image(sel_ico_obj.get("FileBytes"), caption=f"Icona file: {sel_ico_obj.get('FileName','')} - {sel_ico_obj.get('Nome','')}", width=150)
+                except:
+                    st.markdown(f"""
+                    <div style="background:white;padding:12px;border-radius:10px;border:3px solid #1A5D1A;text-align:center;margin-top:8px;box-shadow:0 2px 8px rgba(0,0,0,0.2);">
+                    <div style="font-size:48px;">{sel_ico_obj.get('Emoji','📍')}</div>
+                    <b style="font-size:16px;">{sel_ico_obj.get('Nome','')}</b><br>
+                    <small style="color:#1A5D1A;">{sel_ico_obj.get('Tipo','')} - {sel_ico_obj.get('Colore','')}</small><br>
+                    <small>{sel_ico_obj.get('Descrizione','')}</small>
+                    </div>
+                    """, unsafe_allow_html=True)
+            else:
+                st.markdown(f"""
+                <div style="background:white;padding:12px;border-radius:10px;border:3px solid #1A5D1A;text-align:center;margin-top:8px;box-shadow:0 2px 8px rgba(0,0,0,0.2);">
+                <div style="font-size:48px;">{sel_ico_obj.get('Emoji','📍')}</div>
+                <b style="font-size:16px;">{sel_ico_obj.get('Nome','')}</b><br>
+                <small style="color:#1A5D1A;font-weight:bold;">{sel_ico_obj.get('Tipo','')} - {sel_ico_obj.get('Colore','')}</small><br>
+                <small>{sel_ico_obj.get('Descrizione','')}</small>
+                </div>
+                """, unsafe_allow_html=True)
+            st.success(f"✅ Icona selezionata: {sel_ico_obj.get('Emoji','')} {sel_ico_obj.get('Nome','')}")
         else:
             st.info("Nessuna icona selezionata - Vai in Libreria Icone per crearne")
+            st.markdown("""
+            <div style="background:#fff3e0;padding:10px;border-radius:8px;border:2px dashed #ff9800;text-align:center;">
+            <div style="font-size:32px;">❓</div>
+            <small>Seleziona icona sopra per vedere anteprima</small>
+            </div>
+            """, unsafe_allow_html=True)
 
     with c3:
         # MODIFICA 4 - STATO CON COLORE FONDO CAMPO
@@ -3597,7 +3608,77 @@ elif cur == "Tabella Interventi Emergenza":
             df_filtrato = df_filtrato[df_filtrato["Tipo"] == filtro_tipo]
 
         st.write(f"Risultati filtrati: {len(df_filtrato)} su {len(df_tab)}")
-        st.dataframe(df_filtrato, use_container_width=True)
+        
+        # Richiesta Ezio: togliere colonne stato colore, stato colore txt, icona nome, icona label, Icona nome, icona colore, icona tipo
+        # e creare all'inizio colonna icona con immagine
+        cols_to_remove = ["StatoColoreBg", "StatoColoreTxt", "StatoColore", "IconaLabel", "IconaNome", "Icona nome", "Icona label", "Icona colore", "Icona tipo", "IconaColore", "IconaTipo", "IconaEmoji", "FileBytes", "FileName", "HasFile"]
+        # Normalizza nomi colonne per rimozione case-insensitive
+        df_display = df_filtrato.copy()
+        for col in list(df_display.columns):
+            if col.lower() in [c.lower() for c in cols_to_remove] or "colore" in col.lower() and "stato" in col.lower() or "icona" in col.lower() and col.lower() not in ["icona"]:
+                if col in ["Icona", "Tipo", "Squadra", "Data", "Comune", "Via", "Ora", "Stato", "Descrizione", "Mezzi", "Volontari"]:
+                    continue
+                # Rimuovi solo se è colonna interna
+                if col in cols_to_remove or col.lower().replace(" ","") in [c.lower().replace(" ","") for c in cols_to_remove]:
+                    try:
+                        df_display = df_display.drop(columns=[col])
+                    except:
+                        pass
+        
+        # Crea tabella custom con icona all'inizio - richiesta Ezio
+        st.markdown("#### 📋 Tabella con Icona all'inizio")
+        for idx_f, (idx_orig, row) in enumerate(df_filtrato.iterrows()):
+            # Recupera icona
+            emoji = row.get("IconaEmoji", "📍")
+            nome_ico = row.get("IconaNome", "")
+            has_file = row.get("HasFile", False)
+            file_bytes = row.get("FileBytes", None)
+            
+            c_icon, c_info = st.columns([0.8, 5.2])
+            with c_icon:
+                st.markdown("**Icona**")
+                if has_file and file_bytes:
+                    try:
+                        st.image(file_bytes, width=60)
+                        st.caption(f"{emoji} {nome_ico}")
+                    except:
+                        st.markdown(f"<div style='font-size:36px;text-align:center;'>{emoji}</div>", unsafe_allow_html=True)
+                        st.caption(nome_ico)
+                else:
+                    st.markdown(f"<div style='font-size:36px;text-align:center;background:white;padding:8px;border-radius:8px;border:2px solid #1A5D1A;'>{emoji}</div>", unsafe_allow_html=True)
+                    if nome_ico:
+                        st.caption(nome_ico)
+            with c_info:
+                bg = row.get("StatoColoreBg", "#e8f5e9")
+                txt_c = row.get("StatoColoreTxt", "black")
+                st.markdown(f"""
+                <div style="background:white;padding:10px;border-radius:8px;border-left:4px solid {bg};margin-bottom:4px;">
+                <span style="background:{bg};color:{txt_c};padding:3px 10px;border-radius:12px;font-weight:bold;border:1px solid black;font-size:12px;">{row.get('Stato','')}</span>
+                <b> {row.get('Tipo','')} - Squadra {row.get('Squadra','')} - {row.get('Comune','')} {row.get('Via','')}</b><br>
+                <small>Data: {row.get('Data','')} {row.get('Ora','')} - Mezzi: {row.get('Mezzi','')} - Volontari: {row.get('Volontari','')}</small><br>
+                {row.get('Descrizione','')[:150]}
+                </div>
+                """, unsafe_allow_html=True)
+        
+        st.divider()
+        # Tabella compatta senza colonne interne - solo colonne utili con icona come emoji all'inizio
+        st.markdown("#### 📊 Tabella compatta (icona + dati principali)")
+        # Costruisci df per display compatto
+        df_compact = []
+        for _, r in df_filtrato.iterrows():
+            df_compact.append({
+                "Icona": f"{r.get('IconaEmoji','📍')} {r.get('IconaNome','')}",
+                "Tipo": r.get("Tipo",""),
+                "Squadra": r.get("Squadra",""),
+                "Data": r.get("Data",""),
+                "Ora": r.get("Ora",""),
+                "Comune": r.get("Comune",""),
+                "Via": r.get("Via",""),
+                "Stato": r.get("Stato",""),
+                "Descrizione": str(r.get("Descrizione",""))[:80]
+            })
+        if df_compact:
+            st.dataframe(pd.DataFrame(df_compact), use_container_width=True)
 
         st.download_button(
             "Excel Filtrato",
@@ -3608,7 +3689,7 @@ elif cur == "Tabella Interventi Emergenza":
         if REPORTLAB_OK:
             st.download_button(
                 "PDF Logo Tabella Estesa Tutto Foglio - Modifica 3",
-                to_pdf(df_filtrato, "TABELLA INTERVENTI FILTRATA"),
+                to_pdf(df_display if not df_display.empty else df_filtrato, "TABELLA INTERVENTI FILTRATA"),
                 "tabella_interventi.pdf",
                 use_container_width=True
             )
@@ -4371,9 +4452,35 @@ elif cur == "Libreria Icone":
         desc_icona = st.text_input("Descrizione Icona", key="ico_desc", placeholder="Descrizione")
         file_icona = st.file_uploader("File Icona (opzionale)", type=["png", "jpg", "svg"], key="ico_file")
     with c4:
-        st.markdown("**Anteprima**")
+        st.markdown("**Anteprima Icona Scelta**")
+        # Anteprima emoji
         preview_emoji = st.session_state.get("ico_emoji", "📍") if "ico_emoji" in st.session_state else emoji_icona
-        st.markdown(f"<div style='font-size:40px;text-align:center;background:white;padding:10px;border-radius:8px;border:2px solid #1A5D1A;'>{preview_emoji}</div>", unsafe_allow_html=True)
+        # Anteprima file caricato - richiesta Ezio: vedere anteprima icona caricata
+        if file_icona is not None:
+            try:
+                file_bytes = file_icona.getvalue()
+                if file_icona.type.startswith("image/"):
+                    st.image(file_bytes, caption=f"Anteprima file: {file_icona.name}", width=120)
+                    st.success(f"File caricato: {file_icona.name} - {len(file_bytes)} bytes")
+                else:
+                    st.markdown(f"<div style='font-size:40px;text-align:center;background:white;padding:10px;border-radius:8px;border:2px solid #1A5D1A;'>{preview_emoji}</div>", unsafe_allow_html=True)
+                    st.caption(f"File: {file_icona.name}")
+                # Salva temporaneo per preview
+                st.session_state["ico_file_bytes"] = file_bytes
+                st.session_state["ico_file_name"] = file_icona.name
+            except Exception as e:
+                st.error(f"Errore anteprima file: {e}")
+                st.markdown(f"<div style='font-size:40px;text-align:center;background:white;padding:10px;border-radius:8px;border:2px solid #1A5D1A;'>{preview_emoji}</div>", unsafe_allow_html=True)
+        else:
+            # Se esiste file precedente in session
+            if "ico_file_bytes" in st.session_state:
+                try:
+                    st.image(st.session_state["ico_file_bytes"], caption=f"Anteprima file: {st.session_state.get('ico_file_name','')}", width=120)
+                except:
+                    st.markdown(f"<div style='font-size:40px;text-align:center;background:white;padding:10px;border-radius:8px;border:2px solid #1A5D1A;'>{preview_emoji}</div>", unsafe_allow_html=True)
+            else:
+                st.markdown(f"<div style='font-size:40px;text-align:center;background:white;padding:10px;border-radius:8px;border:2px solid #1A5D1A;'>{preview_emoji}</div>", unsafe_allow_html=True)
+                st.caption(f"Emoji: {preview_emoji} - Colore: {st.session_state.get('ico_colore','red')}")
 
     if st.button("💾 Salva Icona in Libreria", type="primary", use_container_width=True):
         if nome_icona and emoji_icona:
@@ -4384,15 +4491,31 @@ elif cur == "Libreria Icone":
                     exists = True
                     break
             if not exists:
-                st.session_state.icone.append({
+                new_ico = {
                     "Nome": nome_icona,
                     "Emoji": emoji_icona,
                     "Tipo": tipo_icona,
                     "Colore": colore_icona,
                     "Descrizione": desc_icona,
                     "Data": datetime.now().strftime("%d/%m/%Y %H:%M")
-                })
-                st.success(f"Icona {emoji_icona} {nome_icona} salvata - Ora la puoi usare su Mappe Postazioni")
+                }
+                # Salva anche file se caricato
+                if "ico_file_bytes" in st.session_state:
+                    try:
+                        new_ico["FileBytes"] = st.session_state["ico_file_bytes"]
+                        new_ico["FileName"] = st.session_state.get("ico_file_name","")
+                        new_ico["HasFile"] = True
+                    except:
+                        pass
+                st.session_state.icone.append(new_ico)
+                # Pulisci temp
+                for k in ["ico_file_bytes", "ico_file_name"]:
+                    if k in st.session_state:
+                        try:
+                            del st.session_state[k]
+                        except:
+                            pass
+                st.success(f"Icona {emoji_icona} {nome_icona} salvata - Ora la puoi usare su Mappe Postazioni e Intervento Emergenza")
                 st.rerun()
             else:
                 st.warning("Nome già esistente - cambia nome")
@@ -4403,18 +4526,33 @@ elif cur == "Libreria Icone":
     st.markdown(f"### Libreria Icone - {len(st.session_state.icone)} icone disponibili - Le usi su Mappe Postazioni")
 
     if st.session_state.icone:
+        st.markdown("**Anteprima libreria - clicca per vedere dettaglio**")
         cols = st.columns(4)
         for idx, ico in enumerate(st.session_state.icone):
             col = cols[idx % 4]
             with col:
-                st.markdown(f"""
-                <div style="background:white;padding:8px;border-radius:8px;border:2px solid #1A5D1A;text-align:center;margin-bottom:8px;">
-                <div style="font-size:32px;">{ico.get('Emoji','📍')}</div>
-                <b>{ico.get('Nome','')}</b><br>
-                <small>{ico.get('Tipo','')} - {ico.get('Colore','')}</small><br>
-                <small>{ico.get('Descrizione','')}</small>
-                </div>
-                """, unsafe_allow_html=True)
+                # Se ha file, mostra file, altrimenti emoji
+                if ico.get("HasFile") and ico.get("FileBytes"):
+                    try:
+                        st.image(ico.get("FileBytes"), caption=f"{ico.get('Emoji','')} {ico.get('Nome','')}", width=100)
+                    except:
+                        st.markdown(f"""
+                        <div style="background:white;padding:8px;border-radius:8px;border:2px solid #1A5D1A;text-align:center;margin-bottom:8px;">
+                        <div style="font-size:32px;">{ico.get('Emoji','📍')}</div>
+                        <b>{ico.get('Nome','')}</b><br>
+                        <small>{ico.get('Tipo','')} - {ico.get('Colore','')}</small><br>
+                        <small>{ico.get('Descrizione','')}</small>
+                        </div>
+                        """, unsafe_allow_html=True)
+                else:
+                    st.markdown(f"""
+                    <div style="background:white;padding:8px;border-radius:8px;border:2px solid #1A5D1A;text-align:center;margin-bottom:8px;">
+                    <div style="font-size:32px;">{ico.get('Emoji','📍')}</div>
+                    <b>{ico.get('Nome','')}</b><br>
+                    <small>{ico.get('Tipo','')} - {ico.get('Colore','')}</small><br>
+                    <small>{ico.get('Descrizione','')}</small>
+                    </div>
+                    """, unsafe_allow_html=True)
                 if st.button(f"🗑️ Elimina", key=f"del_ico_{idx}"):
                     st.session_state.icone.pop(idx)
                     st.rerun()
