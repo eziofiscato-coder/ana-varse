@@ -1576,6 +1576,7 @@ def init_session():
         "posizioni_pd785": [],
         "posizioni_anytone": [],
         "vol_edit_index": None,
+        "int_edit_index": None,
         "mappe": []
     }
 
@@ -3393,11 +3394,45 @@ elif cur == "Interventi Emergenza":
     st.markdown(
         """
         <div style="background:#e8f5e9;padding:10px;border-radius:8px;border-left:4px solid #1A5D1A;margin-bottom:10px;">
-        Interventi - Puoi caricare un'icona dalla Libreria Icone
+        Interventi - Puoi caricare un'icona dalla Libreria Icone - Clicca icona in Tabella Interventi per modificare qui
         </div>
         """,
         unsafe_allow_html=True
     )
+    
+    # Edit mode - come volontari - richiesta Ezio: clicca icona in tabella per vedere scheda in maschera
+    edit_mode_int = False
+    edit_data_int = {}
+    if st.session_state.get("int_edit_index") is not None:
+        try:
+            edit_data_int = st.session_state.interventi[st.session_state.int_edit_index]
+            edit_mode_int = True
+        except:
+            edit_data_int = {}
+            edit_mode_int = False
+    
+    if edit_mode_int:
+        st.warning(f"✏️ Modifica Intervento: {edit_data_int.get('Tipo','')} - {edit_data_int.get('Comune','')} - {edit_data_int.get('Data','')} - Icona {edit_data_int.get('IconaEmoji','')} {edit_data_int.get('IconaNome','')}")
+        c_w1, c_w2 = st.columns(2)
+        with c_w1:
+            if st.button("❌ Annulla Modifica - Torna a nuovo intervento", key="annulla_edit_int"):
+                st.session_state.int_edit_index = None
+                for k in list(st.session_state.keys()):
+                    if k.startswith("int_"):
+                        try:
+                            del st.session_state[k]
+                        except:
+                            pass
+                st.rerun()
+        with c_w2:
+            if st.button("🗑️ Elimina questo intervento", key="elimina_edit_int"):
+                try:
+                    st.session_state.interventi.pop(st.session_state.int_edit_index)
+                    st.session_state.int_edit_index = None
+                    st.success("Intervento eliminato")
+                    st.rerun()
+                except Exception as e:
+                    st.error(f"Errore eliminazione: {e}")
 
     # Prepara lista icone da Libreria Icone - Richiesta Ezio
     icone_lib = st.session_state.get("icone", [])
@@ -3417,11 +3452,25 @@ elif cur == "Interventi Emergenza":
         icone_options.append(label)
         icone_map[label] = ico
 
+    # Valori default da edit se in modifica
+    tipo_def = edit_data_int.get("Tipo", "Soccorso") if edit_mode_int else "Soccorso"
+    squadra_def = edit_data_int.get("Squadra", "Squadra A") if edit_mode_int else "Squadra A"
+    comune_def_int = edit_data_int.get("Comune", "Varese") if edit_mode_int else "Varese"
+    via_def_int = edit_data_int.get("Via", "") if edit_mode_int else ""
+    stato_def_int = edit_data_int.get("Stato", "Operativo") if edit_mode_int else "Operativo"
+    desc_def_int = edit_data_int.get("Descrizione", "") if edit_mode_int else ""
+    mezzi_def_int = edit_data_int.get("Mezzi", "") if edit_mode_int else ""
+    vol_def_int = edit_data_int.get("Volontari", "") if edit_mode_int else ""
+    
     c1, c2, c3 = st.columns(3)
     with c1:
-        tipo_int = st.selectbox("Tipo Intervento", ["Soccorso", "Logistica", "Monitoraggio", "Bonifica", "Altro"], key="int_tipo")
-        squadra_int = st.selectbox("Squadra", ["Squadra A", "Squadra B", "Squadra C", "Logistica"], key="int_squadra")
-        data_int = st.date_input("Data Intervento", value=date.today(), format="DD/MM/YYYY", key="int_data")
+        tipo_int = st.selectbox("Tipo Intervento", ["Soccorso", "Logistica", "Monitoraggio", "Bonifica", "Altro"], index=["Soccorso", "Logistica", "Monitoraggio", "Bonifica", "Altro"].index(tipo_def) if tipo_def in ["Soccorso", "Logistica", "Monitoraggio", "Bonifica", "Altro"] else 0, key="int_tipo")
+        squadra_int = st.selectbox("Squadra", ["Squadra A", "Squadra B", "Squadra C", "Logistica"], index=["Squadra A", "Squadra B", "Squadra C", "Logistica"].index(squadra_def) if squadra_def in ["Squadra A", "Squadra B", "Squadra C", "Logistica"] else 0, key="int_squadra")
+        try:
+            data_val = date.fromisoformat(edit_data_int.get("Data","")) if edit_mode_int and edit_data_int.get("Data") else date.today()
+        except:
+            data_val = date.today()
+        data_int = st.date_input("Data Intervento", value=data_val, format="DD/MM/YYYY", key="int_data")
         # ICONA DA LIBRERIA - Richiesta Ezio
         icona_sel_label = st.selectbox("Icona da Libreria Icone", icone_options, index=0, key="int_icona", help="Scegli icona creata in Libreria Icone")
         sel_ico_obj = icone_map.get(icona_sel_label)
@@ -3487,11 +3536,12 @@ elif cur == "Interventi Emergenza":
             unsafe_allow_html=True
         )
 
-    desc_int = st.text_area("Descrizione Intervento *", key="int_desc")
-    mezzi_int = st.text_input("Mezzi Utilizzati", key="int_mezzi")
-    volontari_int = st.text_input("Volontari Coinvolti", key="int_vol")
+    # Campi descrizione con default edit - come volontari
+    desc_int = st.text_area("Descrizione Intervento *", value=desc_def_int, key="int_desc")
+    mezzi_int = st.text_input("Mezzi Utilizzati", value=mezzi_def_int, key="int_mezzi")
+    volontari_int = st.text_input("Volontari Coinvolti", value=vol_def_int, key="int_vol")
 
-    if st.button("Salva Intervento Emergenza con Icona", type="primary", use_container_width=True):
+    if st.button("💾 Aggiorna Intervento" if edit_mode_int else "💾 Salva Intervento Emergenza con Icona", type="primary", use_container_width=True):
         if desc_int:
             new_intervento = {
                 "Tipo": tipo_int,
@@ -3507,16 +3557,27 @@ elif cur == "Interventi Emergenza":
                 "Mezzi": mezzi_int,
                 "Volontari": volontari_int,
                 "IconaLabel": icona_sel_label,
-                "IconaNome": sel_ico_obj.get("Nome","") if sel_ico_obj else "",
-                "IconaEmoji": sel_ico_obj.get("Emoji","") if sel_ico_obj else "",
-                "IconaColore": sel_ico_obj.get("Colore","") if sel_ico_obj else "",
-                "IconaTipo": sel_ico_obj.get("Tipo","") if sel_ico_obj else "",
-                "HasFile": sel_ico_obj.get("HasFile", False) if sel_ico_obj else False,
-                "FileBytes": sel_ico_obj.get("FileBytes", None) if sel_ico_obj else None,
-                "FileName": sel_ico_obj.get("FileName", "") if sel_ico_obj else ""
+                "IconaNome": sel_ico_obj.get("Nome","") if sel_ico_obj else edit_data_int.get("IconaNome",""),
+                "IconaEmoji": sel_ico_obj.get("Emoji","") if sel_ico_obj else edit_data_int.get("IconaEmoji",""),
+                "IconaColore": sel_ico_obj.get("Colore","") if sel_ico_obj else edit_data_int.get("IconaColore",""),
+                "IconaTipo": sel_ico_obj.get("Tipo","") if sel_ico_obj else edit_data_int.get("IconaTipo",""),
+                "HasFile": sel_ico_obj.get("HasFile", False) if sel_ico_obj and sel_ico_obj.get("HasFile") else edit_data_int.get("HasFile", False),
+                "FileBytes": sel_ico_obj.get("FileBytes", None) if sel_ico_obj and sel_ico_obj.get("FileBytes") else edit_data_int.get("FileBytes", None),
+                "FileName": sel_ico_obj.get("FileName", "") if sel_ico_obj and sel_ico_obj.get("FileName") else edit_data_int.get("FileName", "")
             }
-            st.session_state.interventi.append(new_intervento)
-            icona_msg = f" con icona {sel_ico_obj.get('Emoji','')} {sel_ico_obj.get('Nome','')}" if sel_ico_obj else ""
+            if edit_mode_int:
+                st.session_state.interventi[st.session_state.int_edit_index] = new_intervento
+                st.session_state.int_edit_index = None
+                for k in list(st.session_state.keys()):
+                    if k.startswith("int_"):
+                        try:
+                            del st.session_state[k]
+                        except:
+                            pass
+                st.success(f"Intervento aggiornato - {new_intervento.get('IconaEmoji','')} {new_intervento.get('IconaNome','')}")
+            else:
+                st.session_state.interventi.append(new_intervento)
+                icona_msg = f" con icona {sel_ico_obj.get('Emoji','')} {sel_ico_obj.get('Nome','')}" if sel_ico_obj else ""
             # Debug per verificare salvataggio immagine
             if new_intervento.get("HasFile"):
                 icona_msg += f" + file {new_intervento.get('FileName','')}"
@@ -3654,7 +3715,7 @@ elif cur == "Tabella Interventi Emergenza":
         with h7: st.markdown("**Descrizione**")
         st.divider()
         
-        # Righe tabella con icona all'inizio - immagine vera se presente
+        # Righe tabella con icona cliccabile all'inizio - richiesta Ezio: come volontari - clicca icona per vedere scheda in maschera Interventi Emergenza
         for idx_f, (idx_orig, row) in enumerate(df_filtrato.iterrows()):
             c1, c2, c3, c4, c5, c6, c7 = st.columns([0.9, 1, 1, 1.2, 1.5, 1, 2])
             with c1:
@@ -3662,6 +3723,7 @@ elif cur == "Tabella Interventi Emergenza":
                 nome_ico = row.get("IconaNome", "")
                 has_file = row.get("HasFile", False)
                 file_bytes = row.get("FileBytes", None)
+                # Mostra immagine icona
                 if has_file and file_bytes:
                     try:
                         st.image(file_bytes, width=50)
@@ -3671,6 +3733,21 @@ elif cur == "Tabella Interventi Emergenza":
                     st.markdown(f"<div style='font-size:28px;text-align:center;background:white;border:1px solid #1A5D1A;border-radius:6px;padding:4px;'>{emoji}</div>", unsafe_allow_html=True)
                 if nome_ico:
                     st.caption(nome_ico[:12])
+                # Bottone cliccabile icona - carica in maschera Interventi Emergenza come volontari
+                if st.button("✏️", key=f"edit_int_icon_{idx_orig}", help=f"Clicca per vedere scheda {row.get('Tipo','')} in form Interventi Emergenza"):
+                    st.session_state.int_edit_index = int(idx_orig)
+                    # Pulisci chiavi int_ per forzare reload con dati edit
+                    for k in list(st.session_state.keys()):
+                        if k.startswith("int_"):
+                            try:
+                                del st.session_state[k]
+                            except:
+                                pass
+                    # Cambia menu a Interventi Emergenza
+                    st.session_state.menu = "Interventi Emergenza"
+                    st.session_state["scroll_top"] = True
+                    st.success(f"Carico intervento {row.get('Tipo','')} in maschera Interventi Emergenza")
+                    st.rerun()
             with c2:
                 st.write(row.get("Tipo",""))
             with c3:
@@ -3685,6 +3762,17 @@ elif cur == "Tabella Interventi Emergenza":
                 st.markdown(f"<span style='background:{bg};color:{txt_c};padding:2px 8px;border-radius:10px;font-weight:bold;border:1px solid black;font-size:11px;'>{row.get('Stato','')}</span>", unsafe_allow_html=True)
             with c7:
                 st.write(str(row.get("Descrizione",""))[:100])
+                # Bottone alternativo testo per chi non vede icona
+                if st.button(f"📋 Vedi scheda", key=f"edit_int_text_{idx_orig}", use_container_width=True):
+                    st.session_state.int_edit_index = int(idx_orig)
+                    for k in list(st.session_state.keys()):
+                        if k.startswith("int_"):
+                            try:
+                                del st.session_state[k]
+                            except:
+                                pass
+                    st.session_state.menu = "Interventi Emergenza"
+                    st.rerun()
             st.divider()
         
         # Prepara df per export senza colonne interne
