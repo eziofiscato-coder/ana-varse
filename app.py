@@ -3212,11 +3212,16 @@ elif cur == "Tabella Emergenze":
                         except:
                             st.markdown(f"<div style='font-size:28px;text-align:center;'>{emoji}</div>", unsafe_allow_html=True)
                     else:
-                        st.markdown(f"<div style='font-size:28px;text-align:center;background:white;border:1px solid #1A5D1A;border-radius:6px;padding:4px;'>{emoji}</div>", unsafe_allow_html=True)
+                        # Fix quadratino: se emoji è vuoto o quadratino, mostra nome icona o icona sicura
+                        safe_emoji = emoji if emoji and emoji.strip() and len(emoji) < 5 else "📍"
+                        # Usa emoji sicuri universali
+                        if safe_emoji in ["□", "☐", ""]:
+                            safe_emoji = "📍"
+                        st.markdown(f"<div style='font-size:28px;text-align:center;background:white;border:1px solid #1A5D1A;border-radius:6px;padding:4px;font-family:Segoe UI Emoji,Apple Color Emoji,Noto Color Emoji,sans-serif;'>{safe_emoji}</div>", unsafe_allow_html=True)
                     if nome_ico:
                         st.caption(nome_ico[:12])
                     # Clicca icona per aprire Interventi Emergenza - come richiesto
-                    label_btn = f"{emoji} Apri" if emoji else "📍 Apri"
+                    label_btn = "Apri scheda"  # Fix quadratino: testo senza emoji nel bottone
                     if st.button(label_btn, key=f"edit_tab_em_icon_{idx_orig}", help=f"Clicca icona {nome_ico} per aprire in Interventi Emergenza", use_container_width=True):
                         idx_to_edit = int(idx_orig)
                         for k in [k for k in list(st.session_state.keys()) if k.startswith("int_") and k != "int_edit_index"]:
@@ -3226,6 +3231,12 @@ elif cur == "Tabella Emergenze":
                                 pass
                         st.session_state.int_edit_index = idx_to_edit
                         st.session_state.menu = "Interventi Emergenza"
+                        # FIX navigazione: cancella chiave radio così al prossimo run usa index da menu
+                        if "menu_radio" in st.session_state:
+                            try:
+                                del st.session_state["menu_radio"]
+                            except:
+                                pass
                         st.rerun()
                 with c2:
                     st.write(row.get("Tipo",""))
@@ -3250,6 +3261,12 @@ elif cur == "Tabella Emergenze":
                                 pass
                         st.session_state.int_edit_index = idx_to_edit
                         st.session_state.menu = "Interventi Emergenza"
+                        # FIX navigazione: cancella chiave radio così al prossimo run usa index da menu
+                        if "menu_radio" in st.session_state:
+                            try:
+                                del st.session_state["menu_radio"]
+                            except:
+                                pass
                         st.rerun()
                 st.divider()
 
@@ -3822,8 +3839,13 @@ elif cur == "Tabella Interventi Emergenza":
                         st.image(file_bytes, width=50)
                     except:
                         st.markdown(f"<div style='font-size:28px;text-align:center;'>{emoji}</div>", unsafe_allow_html=True)
-                else:
-                    st.markdown(f"<div style='font-size:28px;text-align:center;background:white;border:1px solid #1A5D1A;border-radius:6px;padding:4px;'>{emoji}</div>", unsafe_allow_html=True)
+                    else:
+                        # Fix quadratino: se emoji è vuoto o quadratino, mostra nome icona o icona sicura
+                        safe_emoji = emoji if emoji and emoji.strip() and len(emoji) < 5 else "📍"
+                        # Usa emoji sicuri universali
+                        if safe_emoji in ["□", "☐", ""]:
+                            safe_emoji = "📍"
+                        st.markdown(f"<div style='font-size:28px;text-align:center;background:white;border:1px solid #1A5D1A;border-radius:6px;padding:4px;font-family:Segoe UI Emoji,Apple Color Emoji,Noto Color Emoji,sans-serif;'>{safe_emoji}</div>", unsafe_allow_html=True)
                 if nome_ico:
                     st.caption(nome_ico[:12])
                 # CLICCA SULL'ICONA - non penna - richiesta Ezio
@@ -3839,10 +3861,13 @@ elif cur == "Tabella Interventi Emergenza":
                         except:
                             pass
                     st.session_state.int_edit_index = idx_to_edit
-                    # Forza cambio menu - sia menu che menu_radio
                     st.session_state.menu = "Interventi Emergenza"
-                    # st.session_state["menu_radio"] rimosso - causa StreamlitWidgetAlreadyInstantiatedError
                     st.session_state["scroll_top"] = True
+                    if "menu_radio" in st.session_state:
+                        try:
+                            del st.session_state["menu_radio"]
+                        except:
+                            pass
                     st.rerun()
             with c2:
                 st.write(row.get("Tipo",""))
