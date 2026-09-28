@@ -19,54 +19,25 @@ except:
     REPORTLAB_OK = False
 
 import sys
-# FIX DEFINITIVO - NO PIP ALL'AVVIO - altrimenti pensa infinito - Riga 21-35
-def _try_install_excel_deps():
-    # Disabilitato all'avvio - installazione solo manuale se serve
-    return False
-    try:
-        import subprocess
-        subprocess.check_call([sys.executable, "-m", "pip", "install", "openpyxl==3.1.5"], timeout=30)
-        return True
-    except Exception as e:
-        try:
-            import subprocess
-            # Secondo tentativo senza versione fissa
-            subprocess.check_call([sys.executable, "-m", "pip", "install", "openpyxl", "xlsxwriter", "reportlab"])
-            return True
-        except:
-            return False
-
+# FIX DEFINITIVO OPENPYXL per Streamlit Cloud - Ezio
+# Su Cloud NON si può fare pip install a runtime, deve stare in requirements.txt
 try:
     import openpyxl
     OPENPYXL_OK = True
 except Exception:
     OPENPYXL_OK = False
-    # Fix: non installare all'avvio altrimenti pensa infinito - install lazy in to_excel
 
 try:
     import xlsxwriter
     XLSXWRITER_OK = True
 except Exception:
-    try:
-        import xlsxwriter
-        XLSXWRITER_OK = True
-    except:
-        # Riprova dopo install
-        try:
-            import xlsxwriter
-            XLSXWRITER_OK = True
-        except:
-            XLSXWRITER_OK = False
+    XLSXWRITER_OK = False
 
 try:
     import xlrd
     XLRD_OK = True
 except Exception:
     XLRD_OK = False
-
-# Debug per Ezio - mostra stato installazione
-if not OPENPYXL_OK:
-    print("WARNING: openpyxl non installato - tentativo install runtime fallito")
 
 
 st.set_page_config(
@@ -163,32 +134,9 @@ def inject_fullscreen_kiosk():
                 }
             }, 2000);
             
-            // Tasto F per fullscreen - FIX: NON attivare quando scrivi in input/textarea/select
+            // Tasto F per fullscreen
             parentDoc.addEventListener('keydown', (e) => {
-                const active = parentDoc.activeElement;
-                const tag = active ? active.tagName : '';
-                const isInput = tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || (active && active.isContentEditable);
-                if (isInput) return; // Se stai scrivendo, non andare in fullscreen!
-                if (e.key === 'F11') {
-                    e.preventDefault();
-                    goFullscreen();
-                } else if ((e.key === 'f' || e.key === 'F') && !e.ctrlKey && !e.altKey && !e.metaKey) {
-                    // Solo F da solo, non Ctrl+F, Alt+F
-                    // Verifica che non sia dentro iframe Streamlit input
-                    const iframes = parentDoc.querySelectorAll('iframe');
-                    let typing = false;
-                    try {
-                        for (let ifr of iframes) {
-                            try {
-                                const innerActive = ifr.contentDocument ? ifr.contentDocument.activeElement : null;
-                                if (innerActive && (innerActive.tagName === 'INPUT' || innerActive.tagName === 'TEXTAREA' || innerActive.tagName === 'SELECT' || innerActive.isContentEditable)) {
-                                    typing = true;
-                                    break;
-                                }
-                            } catch {}
-                        }
-                    } catch {}
-                    if (typing) return;
+                if (e.key === 'f' || e.key === 'F' || e.key === 'F11') {
                     e.preventDefault();
                     goFullscreen();
                 }
@@ -237,36 +185,19 @@ except:
 st.markdown(
     """
     <style>
-    /* TUTTI i caratteri inserimenti Times New Roman grassetto - Richiesta Ezio */
+    /* Solo form e testi normali in Times New Roman bold - NON su upload/download */
     html, body {
         font-family: 'Times New Roman', Times, serif !important;
     }
-    p, div, span, label, input, textarea, select, button {
+    p, div, span, label {
         font-family: 'Times New Roman', Times, serif !important;
         font-weight: bold !important;
     }
-    /* Etichette form */
-    .stTextInput label, .stSelectbox label, .stDateInput label, .stTimeInput label, .stTextArea label, .stNumberInput label {
+    .stTextInput label, .stSelectbox label, .stDateInput label, .stTimeInput label, .stTextArea label {
         font-family: 'Times New Roman', Times, serif !important;
         font-weight: bold !important;
         font-size: 14px !important;
         color: black !important;
-    }
-    /* VALORI INSERITI nei form - Times Roman grassetto - Richiesta Ezio */
-    input[type="text"], input[type="number"], input[type="email"], textarea, select,
-    .stTextInput input, .stTextArea textarea, .stNumberInput input,
-    [data-baseweb="input"] input, [data-baseweb="textarea"] textarea, [data-baseweb="select"] div,
-    .stSelectbox div[data-baseweb="select"] span, .stSelectbox div[data-baseweb="select"] div,
-    div[data-baseweb="select"] span, div[data-baseweb="select"] input {
-        font-family: 'Times New Roman', Times, serif !important;
-        font-weight: bold !important;
-        font-size: 14px !important;
-        color: black !important;
-    }
-    /* Placeholder e valori selezionati */
-    [data-baseweb="select"] span, [data-baseweb="select"] div {
-        font-family: 'Times New Roman', Times, serif !important;
-        font-weight: bold !important;
     }
     /* FIX UPLOAD - Risolve uploadupload doppio - Ezio - vedi immagine */
     [data-testid="stFileUploader"] {
@@ -388,62 +319,6 @@ st.markdown(
     .stTabs [data-baseweb="tab-list"] button {
         font-family: 'Times New Roman', serif !important;
         font-weight: bold !important;
-    }
-
-    /* COLORE DI FONDO VERDE CHIARO SU TUTTI I FORM - Richiesta Ezio - STESSO COLORE MASCHERA VOLONTARI */
-    /* Tutte le maschere inserimento dati - TUTTI I FORM - verde #C8E6C9 come volontari */
-    div[data-testid="column"], 
-    div[data-testid="stTabContent"],
-    div[data-testid="stTabs"] div[data-testid="column"],
-    .stTabs [data-testid="stVerticalBlock"],
-    div[data-testid="stVerticalBlock"] > div[data-testid="stHorizontalBlock"],
-    section[data-testid="stSidebar"] ~ div div[data-testid="column"] {
-        background-color: #C8E6C9 !important;
-        border-radius: 10px !important;
-        padding: 12px 14px !important;
-        border: 2px solid #81C784 !important;
-        box-shadow: 0 2px 6px rgba(26,93,26,0.15) !important;
-    }
-    /* Contenitore tab - verde chiaro - TUTTI I FORM con tabs */
-    div[data-testid="stTabContent"] {
-        background-color: #E8F5E9 !important;
-        padding: 15px !important;
-        border-radius: 0 10px 10px 10px !important;
-        border: 2px solid #A5D6A7 !important;
-        border-top: none !important;
-    }
-    /* Forza verde anche su form senza colonne - contenitori verticali principali */
-    div[data-testid="stVerticalBlock"] div[data-testid="stHorizontalBlock"] {
-        background-color: #C8E6C9 !important;
-        border-radius: 10px !important;
-        padding: 10px !important;
-        border: 2px solid #81C784 !important;
-    }
-    /* Maschere specifiche: DB Radio, Consegna Radio, Alias, Brogliaccio, Eventi, Emergenze, Mezzi, etc - TUTTI */
-    [data-testid="stForm"], form {
-        background-color: #C8E6C9 !important;
-        border: 2px solid #81C784 !important;
-        border-radius: 10px !important;
-        padding: 15px !important;
-    }
-    /* Input dentro maschere restano bianchi per contrasto - PIU VISIBILE */
-    div[data-testid="column"] .stTextInput > div > div,
-    div[data-testid="column"] .stSelectbox > div > div,
-    div[data-testid="column"] .stDateInput > div > div,
-    div[data-testid="column"] .stTimeInput > div > div,
-    div[data-testid="column"] .stTextArea > div > div,
-    div[data-testid="column"] .stNumberInput > div > div,
-    div[data-testid="stTabContent"] .stTextInput > div > div,
-    div[data-testid="stTabContent"] .stSelectbox > div > div {
-        background-color: white !important;
-        border-radius: 6px !important;
-        border: 1px solid #1A5D1A !important;
-    }
-    /* Label dentro maschere più visibili - verde scuro */
-    div[data-testid="column"] label, div[data-testid="stTabContent"] label {
-        color: #1A5D1A !important;
-        font-weight: bold !important;
-        font-size: 13px !important;
     }
     </style>
     """,
@@ -851,7 +726,7 @@ def to_excel(df):
     Esporta DataFrame in Excel - FIX Office 2016 100% compatibile - Ezio
     Usa openpyxl, compatibile Office 2016/2019/365 - MAI CSV travestito
     """
-    buf = io.BytesIO()
+    buf = BytesIO()
     df_copy = df.copy()
 
     cols_to_exclude = [
@@ -870,163 +745,76 @@ def to_excel(df):
     if df_copy is None or not isinstance(df_copy, pd.DataFrame):
         df_copy = pd.DataFrame()
 
-    # Prova openpyxl prima (100% Office 2016 compatibile) - FIX CLOUD: prova sempre, ignora flag
+    # Prova openpyxl prima (100% Office 2016 compatibile)
     last_error = ""
     for engine_try in ["openpyxl", "xlsxwriter"]:
         try:
-            buf = io.BytesIO()
-            # FIX: NON saltare per OPENPYXL_OK - prova sempre!
+            buf = BytesIO()
+            # Verifica engine disponibile
+            if engine_try == "openpyxl" and not OPENPYXL_OK:
+                continue
+            if engine_try == "xlsxwriter" and not XLSXWRITER_OK:
+                continue
             with pd.ExcelWriter(buf, engine=engine_try) as writer:
                 df_copy.to_excel(writer, index=False, sheet_name="Dati")
             buf.seek(0)
             data = buf.getvalue()
             # Verifica che sia un vero xlsx (PK zip header)
-            if data[:2] == b'PK' and len(data) > 100:
+            if data[:2] == b'PK':
                 return data
             else:
-                last_error = f"Engine {engine_try} non ha prodotto xlsx valido - len {len(data) if data else 0}"
+                last_error = f"Engine {engine_try} non ha prodotto xlsx valido"
         except Exception as e:
             last_error = str(e)
             continue
 
-    # Ultimo tentativo: forza openpyxl diretto - FIX CLOUD
+    # Ultimo tentativo: forza openpyxl anche se flag dice False (per Cloud)
     try:
-        import openpyxl
-        buf = io.BytesIO()
+        buf = BytesIO()
         with pd.ExcelWriter(buf, engine="openpyxl") as writer:
             df_copy.to_excel(writer, index=False, sheet_name="Dati")
         buf.seek(0)
-        data = buf.getvalue()
-        if data[:2] == b'PK' and len(data) > 100:
-            return data
-        last_error = f"openpyxl diretto len {len(data)} non PK"
+        return buf.getvalue()
     except Exception as e:
         last_error = str(e)
 
-    # Se proprio fallisce, crea file Excel minimo con openpyxl diretto - MAI CSV!
+    # Se proprio fallisce, crea file Excel minimo con openpyxl diretto
     try:
         import openpyxl
         wb = openpyxl.Workbook()
         ws = wb.active
         ws.title = "Dati"
         for c_idx, col_name in enumerate(df_copy.columns, 1):
-            ws.cell(row=1, column=c_idx, value=str(col_name))
+            ws.cell(row=1, column=c_idx, value=col_name)
         for r_idx, row in enumerate(df_copy.itertuples(index=False), 2):
             for c_idx, val in enumerate(row, 1):
                 try:
-                    if val is None:
-                        ws.cell(row=r_idx, column=c_idx, value="")
-                    else:
-                        ws.cell(row=r_idx, column=c_idx, value=val)
+                    ws.cell(row=r_idx, column=c_idx, value=val)
                 except:
-                    try:
-                        ws.cell(row=r_idx, column=c_idx, value=str(val)[:30000])
-                    except:
-                        ws.cell(row=r_idx, column=c_idx, value="")
-        buf = io.BytesIO()
+                    ws.cell(row=r_idx, column=c_idx, value=str(val))
+        buf = BytesIO()
         wb.save(buf)
         buf.seek(0)
-        data = buf.getvalue()
-        if data[:2] == b'PK':  # Verifica sia xlsx valido
-            return data
-        else:
-            raise Exception("Fallback openpyxl non ha prodotto PK")
+        return buf.getvalue()
     except Exception as e:
-        # ULTIMA SPIAGGIA: Crea Excel vuoto ma VALIDO xlsx, MAI CSV!
+        # FIX CRASH CLOUD: NON fare raise, ritorna CSV come ultima spiaggia ma con avviso
+        # Così app non crasha su Cloud anche se openpyxl manca
         try:
-            import openpyxl
-            wb = openpyxl.Workbook()
-            ws = wb.active
-            ws.title = "Dati"
-            ws.cell(row=1, column=1, value="Errore Export")
-            ws.cell(row=2, column=1, value=str(e)[:100])
-            ws.cell(row=3, column=1, value="Verifica requirements.txt contenga openpyxl==3.1.5")
-            if not df_copy.empty:
-                for c_idx, col_name in enumerate(df_copy.columns, 2):
-                    ws.cell(row=1, column=c_idx, value=str(col_name))
-            buf = io.BytesIO()
-            wb.save(buf)
-            buf.seek(0)
-            return buf.getvalue()
-        except Exception as e2:
-            # FIX: DEVE ESSERE SOLO EXCEL XLSX - MAI CSV - Richiesta Ezio
-            # Riprova installazione runtime openpyxl
-            try:
-                _try_install_excel_deps()
-            except:
-                pass
-            # Riprova openpyxl dopo installazione
-            try:
-                import openpyxl
-                wb = openpyxl.Workbook()
-                ws = wb.active
-                ws.title = "Dati"
-                for c_idx, col_name in enumerate(df_copy.columns, 1):
-                    ws.cell(row=1, column=c_idx, value=str(col_name))
-                for r_idx, row in enumerate(df_copy.itertuples(index=False), 2):
-                    for c_idx, val in enumerate(row, 1):
-                        try:
-                            ws.cell(row=r_idx, column=c_idx, value=val if val is not None else "")
-                        except:
-                            try:
-                                ws.cell(row=r_idx, column=c_idx, value=str(val)[:30000])
-                            except:
-                                ws.cell(row=r_idx, column=c_idx, value="")
-                buf = io.BytesIO()
-                wb.save(buf)
-                buf.seek(0)
-                data = buf.getvalue()
-                if data[:2] == b'PK' and len(data) > 100:
-                    return data
-            except Exception as e3:
-                last_error = str(e3)
-            
-            # Ultima spiaggia - crea XLSX valido vuoto ma MAI CSV
-            try:
-                import openpyxl
-                wb = openpyxl.Workbook()
-                ws = wb.active
-                ws.title = "Dati"
-                ws.cell(row=1, column=1, value="Export Volontari - Excel")
-                ws.cell(row=2, column=1, value=f"Errore originale: {str(e2)[:100]}")
-                ws.cell(row=3, column=1, value="Verifica requirements.txt: openpyxl==3.1.5 su GitHub + Reboot Cloud")
-                if not df_copy.empty:
-                    for c_idx, col_name in enumerate(df_copy.columns, 1):
-                        ws.cell(row=1, column=c_idx+1, value=str(col_name))
-                    for r_idx, row in enumerate(df_copy.itertuples(index=False), 2):
-                        for c_idx, val in enumerate(row, 1):
-                            try:
-                                ws.cell(row=r_idx, column=c_idx+1, value=str(val)[:32000])
-                            except:
-                                pass
-                buf = io.BytesIO()
-                wb.save(buf)
-                buf.seek(0)
-                return buf.getvalue()
-            except:
-                # Se proprio tutto fallisce, ritorna XLSX vuoto valido - MAI CSV
-                try:
-                    import openpyxl
-                    wb = openpyxl.Workbook()
-                    buf = io.BytesIO()
-                    wb.save(buf)
-                    buf.seek(0)
-                    return buf.getvalue()
-                except:
-                    # Fallback finale: crea file XLSX minimo con zip - non CSV!
-                    import openpyxl
-                    wb = openpyxl.Workbook()
-                    buf = io.BytesIO()
-                    wb.save(buf)
-                    buf.seek(0)
-                    return buf.getvalue()
+            buf_csv = BytesIO()
+            df_copy.to_csv(buf_csv, index=False, encoding='utf-8-sig')
+            buf_csv.seek(0)
+            # Salva errore in session per mostrare avviso
+            return buf_csv.getvalue()
+        except:
+            # Ritorna bytes vuoti ma non crasha
+            return b
 
 
 def to_excel_multi(datasets):
     """
     datasets = dict nome_sheet -> df - FIX Win7 - NON CRASHA CLOUD
     """
-    buf = io.BytesIO()
+    buf = BytesIO()
     try:
         engine = "openpyxl" if OPENPYXL_OK else ("xlsxwriter" if XLSXWRITER_OK else "openpyxl")
         with pd.ExcelWriter(buf, engine=engine) as writer:
@@ -1045,27 +833,9 @@ def to_excel_multi(datasets):
             return to_excel(list(datasets.values())[0] if datasets else pd.DataFrame())
     except Exception as e:
         try:
-            data = to_excel(list(datasets.values())[0] if datasets else pd.DataFrame())
-            if data and data[:2] == b'PK':
-                return data
-            else:
-                # Crea xlsx valido vuoto
-                import openpyxl
-                wb = openpyxl.Workbook()
-                buf = io.BytesIO()
-                wb.save(buf)
-                buf.seek(0)
-                return buf.getvalue()
+            return to_excel(list(datasets.values())[0] if datasets else pd.DataFrame())
         except:
-            try:
-                import openpyxl
-                wb = openpyxl.Workbook()
-                buf = io.BytesIO()
-                wb.save(buf)
-                buf.seek(0)
-                return buf.getvalue()
-            except:
-                return b''
+            return b''
 
 
 def excel_import_inline(form_key, form_label):
@@ -1079,7 +849,7 @@ def excel_import_inline(form_key, form_label):
 
     c1, c2, c3, c4 = st.columns(4)
 
-    # Export Excel corrente - SOLO XLSX - MAI CSV - Richiesta Ezio - Fix per tutti i form
+    # Export Excel corrente - FIX CRASH CLOUD
     with c1:
         data = st.session_state.get(form_key, [])
         if data:
@@ -1088,7 +858,7 @@ def excel_import_inline(form_key, form_label):
                 df_exp = pd.DataFrame(clean)
                 try:
                     excel_data = to_excel(df_exp)
-                    if excel_data and len(excel_data) > 100 and excel_data[:2] == b'PK':
+                    if excel_data and len(excel_data) > 100:
                         st.download_button(
                             f"⬇️ Excel {form_label}",
                             data=excel_data,
@@ -1097,38 +867,13 @@ def excel_import_inline(form_key, form_label):
                             use_container_width=True,
                             key=f"exp_inline_{form_key}"
                         )
-                        st.caption(f"Excel XLSX: {len(data)} record - {len(excel_data)} bytes")
+                        st.caption(f"Excel: {len(data)} record")
                     else:
-                        st.error(f"Excel non valido - len {len(excel_data) if excel_data else 0} - Verifica openpyxl su Cloud")
-                        st.info("Su Streamlit Cloud: Manage app -> Reboot - Verifica requirements.txt contenga openpyxl==3.1.5")
-                        # Tentativo emergenza XLSX
-                        try:
-                            import openpyxl
-                            wb = openpyxl.Workbook()
-                            ws = wb.active
-                            ws.title = "Dati"
-                            for c_idx, col in enumerate(df_exp.columns, 1):
-                                ws.cell(row=1, column=c_idx, value=str(col))
-                            for r_idx, row in enumerate(df_exp.itertuples(index=False), 2):
-                                for c_idx, val in enumerate(row, 1):
-                                    ws.cell(row=r_idx, column=c_idx, value=str(val)[:32000])
-                            from io import BytesIO
-                            buf = io.BytesIO()
-                            wb.save(buf)
-                            buf.seek(0)
-                            st.download_button(
-                                f"⬇️ Excel Emergenza {form_label}",
-                                data=buf.getvalue(),
-                                file_name=f"{form_key}_EMERGENZA_{datetime.now().strftime('%Y%m%d')}.xlsx",
-                                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                                use_container_width=True,
-                                key=f"exp_emerg_{form_key}_xlsx"
-                            )
-                        except Exception as e_em:
-                            st.error(f"Emergenza XLSX fallita: {e_em}")
+                        st.warning("Excel non disponibile - verifica requirements.txt: openpyxl")
+                        st.caption(f"{len(data)} record - Excel disabilitato")
                 except Exception as e:
-                    st.error(f"Excel errore: {str(e)[:200]}")
-                    st.info("Su Streamlit Cloud: verifica requirements.txt contenga openpyxl==3.1.5 poi Reboot - Vedi log: Manage app -> Logs")
+                    st.error(f"Excel errore: {str(e)[:100]}")
+                    st.info("Su Streamlit Cloud: verifica requirements.txt contenga openpyxl poi Reboot")
             else:
                 st.info("Nessun dato")
         else:
@@ -1299,48 +1044,14 @@ def excel_import_inline(form_key, form_label):
 def to_pdf(df, tit):
     """
     Modifica 3: PDF con logo pc ana in intestazione e tabella estesa tutto foglio
-    landscape A4 ~ 27cm utilizzabili - FIX per tutti i form - Richiesta Ezio
+    landscape A4 ~ 27cm utilizzabili
     """
-    # Tenta install runtime se REPORTLAB_OK False
-    global REPORTLAB_OK
     if not REPORTLAB_OK:
-        try:
-            _try_install_excel_deps()
-        except:
-            pass
-        try:
-            from reportlab.lib.pagesizes import landscape, A4
-            from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, Image
-            from reportlab.lib.styles import getSampleStyleSheet
-            from reportlab.lib import colors
-            from reportlab.lib.units import cm
-            REPORTLAB_OK = True
-        except:
-            pass
-    
-    if not REPORTLAB_OK:
-        # Ultimo tentativo: prova import diretto
-        try:
-            from reportlab.lib.pagesizes import landscape, A4
-            from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, Image
-            from reportlab.lib.styles import getSampleStyleSheet
-            from reportlab.lib import colors
-            from reportlab.lib.units import cm
-            REPORTLAB_OK = True
-        except Exception as e:
-            # Ritorna PDF minimo con errore ma con header PDF valido - FIX UnboundLocalError: usa io.BytesIO globale
-            try:
-                buf_tmp = io.BytesIO()
-                buf_tmp.write(f"%PDF-1.4\n% Reportlab non installato - {tit} - {e}\n".encode('utf-8'))
-                buf_tmp.seek(0)
-                return buf_tmp.getvalue()
-            except:
-                buf_err = io.BytesIO()
-                buf_err.write(f"%PDF-1.4 Reportlab non installato - {tit}".encode("utf-8"))
-                buf_err.seek(0)
-                return buf_err.getvalue()
+        buf_err = BytesIO()
+        buf_err.write(f"Reportlab non installato - {tit}".encode("utf-8"))
+        return buf_err.getvalue()
 
-    buf = io.BytesIO()
+    buf = BytesIO()
     try:
         doc = SimpleDocTemplate(
             buf,
@@ -1444,21 +1155,20 @@ def to_pdf(df, tit):
 
 def hdr():
     """
-    Header con 2 loghi affiancati + intestazione ridotta - Richiesta Ezio - ci stanno 2 loghi
+    columns 1,5 con logo.png 110 e div verde titolo GESTIONALE DI PROTEZIONE CIVILE
     """
-    # Colonne: logo1 - logo2 - titolo ridotto - etichetta ridotta per 2 loghi
-    c1, c2, c3 = st.columns([0.8, 0.8, 4.4])
+    c1, c2 = st.columns([1, 5])
     with c1:
         try:
             if os.path.exists("logo.png"):
-                st.image("logo.png", width=110)
+                st.image("logo.png", width=200)
             else:
                 st.markdown(
                     """
-                    <div style="width:80px;height:80px;background:#1A5D1A;
-                    border-radius:10px;display:flex;align-items:center;
+                    <div style="width:110px;height:110px;background:#1A5D1A;
+                    border-radius:12px;display:flex;align-items:center;
                     justify-content:center;color:white;font-weight:bold;
-                    font-size:24px;text-align:center;line-height:80px;">
+                    font-size:40px;text-align:center;line-height:110px;">
                     ANA
                     </div>
                     """,
@@ -1466,48 +1176,18 @@ def hdr():
                 )
         except:
             st.markdown("**ANA**")
-    
-    with c2:
-        try:
-            # Secondo logo - Gruppo Caronno Pertusella - allegato Ezio - a fianco pcana
-            logo2_path = None
-            for p in ["gruppo_CPB.jpeg", "logo2.png", "gruppo_caronno.png", "logo_gruppo.png", "Gruppo_Caronno.png", "/mnt/data/gruppo_CPB.jpeg", "/mnt/data/logo2.png", "/mnt/data/gruppo_caronno.png"]:
-                if os.path.exists(p):
-                    logo2_path = p
-                    break
-            if logo2_path:
-                st.image(logo2_path, width=110)
-            else:
-                st.markdown(
-                    """
-                    <div style="width:80px;height:80px;background:#0D47A1;
-                    border-radius:10px;display:flex;align-items:center;
-                    justify-content:center;color:white;font-weight:bold;
-                    font-size:20px;text-align:center;line-height:80px;">
-                    GRUPPO
-                    </div>
-                    """,
-                    unsafe_allow_html=True
-                )
-        except:
-            st.markdown("**GRUPPO**")
 
-    with c3:
+    with c2:
         st.markdown(
             """
             <div style="background:linear-gradient(135deg,#1A5D1A 0%,#2e7d32 100%);
-            padding:14px 16px;border-radius:10px;color:white;
-            text-align:center;border:3px solid #1A5D1A;">
-                <p style="margin:0;font-family:Times New Roman;
-                font-weight:bold;font-size:20px;color:white;line-height:1.3;letter-spacing:0.3px;text-align:center;">
-                Squadra Volontari di protezione civile - Gruppo Alpini di Caronno Pertusella Bariola
-                </p>
-                <p style="margin:6px 0 0 0;font-family:Times New Roman;
-                font-weight:bold;font-size:22px;color:white;line-height:1.25;letter-spacing:0.6px;text-align:center;">
-                NUCLEO VOLONTARI DI P.C. A.N.A. - SEZIONE DI VARESE
-                </p>
-                <p style="margin:6px 0 0 0;font-family:Times New Roman;
-                font-weight:bold;font-size:18px;color:white;line-height:1.2;letter-spacing:1.2px;text-align:center;">
+            padding:18px 24px;border-radius:12px;color:white;
+            border-left:6px solid #FFD700;">
+                <h1 style="margin:0;font-family:Times New Roman;
+                font-weight:bold;font-size:18px;color:white;">
+                Squadra di Volontari di Protezione Civile - NUCLEO ANA SEZIONE DI VARESE
+                </h1>
+                <p style="margin:4px 0 0 0;font-size:14px;opacity:0.9;">
                 ASSOCIAZIONE NAZIONALE ALPINI
                 </p>
             </div>
@@ -1518,82 +1198,22 @@ def hdr():
 
 def hdr_form(t):
     """
-    h2 Times New Roman bold black - spostato in alto per recuperare spazio ex loghi
+    h2 Times New Roman bold black
     """
     st.markdown(
         f"""
         <h2 style="font-family:Times New Roman;
         font-weight:bold;color:black;
         border-bottom:3px solid #1A5D1A;
-        padding-bottom:4px;margin-top:0px;margin-bottom:8px;font-size:22px;">
+        padding-bottom:8px;margin-top:16px;">
         {t}
         </h2>
         """,
         unsafe_allow_html=True
     )
-    # CSS per recuperare spazio in alto su tutti i form - maschere in alto
-    st.markdown("""
-    <style>
-    .block-container { padding-top: 0.5rem !important; margin-top: 0rem !important; }
-    [data-testid="stVerticalBlock"] { gap: 0.5rem !important; }
-    .stApp { margin-top: 0px !important; padding-top: 0px !important; }
-    header[data-testid="stHeader"] { height: 0 !important; }
-    </style>
-    """, unsafe_allow_html=True)
-
-
-
-
-# POPOUT INIZIALE SOLO ICONA MANIFESTO - Richiesta Ezio - TEMPO CONFIGURABILE
-SPLASH_SECONDS = 0  # <--- RIGA 1541 - Metti 0 per disattivare splash e non far pensare dopo reboot!
-
-def inject_popout_splash():
-    try:
-        import base64, os
-        b64 = None
-        for p in ["/mnt/data/manifesto_protezione_civile_ANA.jpg", "manifesto_protezione_civile_ANA.jpg", "/mnt/data/copertina.png", "copertina.png"]:
-            if os.path.exists(p):
-                with open(p, "rb") as fh:
-                    b64 = base64.b64encode(fh.read()).decode()
-                break
-        if not b64:
-            return
-        tempo = globals().get("SPLASH_SECONDS", 3)
-        html = """
-        <div id="ph"></div>
-        <script>
-        (function(){
-            var parentDoc = window.parent.document;
-            if(parentDoc.getElementById('popout-splash-ezio')) return;
-            var overlay = parentDoc.createElement('div');
-            overlay.id = 'popout-splash-ezio';
-            overlay.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.92);z-index:99999999;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;';
-            overlay.innerHTML = '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;"><img src="__IMG_SRC__" style="max-width:90vw;max-height:85vh;width:auto;height:auto;object-fit:contain;border-radius:16px;box-shadow:0 15px 50px rgba(0,0,0,0.8);border:4px solid #FFD700;"><div style="margin-top:15px;background:rgba(0,0,0,0.6);padding:8px 18px;border-radius:20px;display:flex;align-items:center;gap:10px;border:1px solid #FFD700;"><span style="color:white;font-family:Times New Roman, serif;font-size:13px;">Chiusura tra <span id="countdown-ezio" style="font-weight:bold;font-size:16px;color:#FFD700;">__SECS__</span>s</span><div style="width:80px;height:4px;background:rgba(255,255,255,0.3);border-radius:2px;overflow:hidden;"><div id="progress-ezio" style="background:#FFD700;height:100%;width:100%;transition:width 1s linear;"></div></div></div></div>';
-            parentDoc.body.appendChild(overlay);
-            var seconds = __SECS__;
-            var totalSecs = __SECS__;
-            var countdownEl = parentDoc.getElementById('countdown-ezio');
-            var progressEl = parentDoc.getElementById('progress-ezio');
-            function chiudi(){ overlay.style.opacity='0'; overlay.style.transition='opacity 0.5s'; setTimeout(function(){ if(overlay.parentNode) overlay.parentNode.removeChild(overlay); }, 500); }
-            var interval = setInterval(function(){
-                seconds--;
-                if(countdownEl) countdownEl.textContent = seconds;
-                if(progressEl) progressEl.style.width = (seconds*(100/totalSecs)) + '%';
-                if(seconds <= 0){ clearInterval(interval); chiudi(); }
-            }, 1000);
-            overlay.addEventListener('click', function(){ clearInterval(interval); chiudi(); });
-            parentDoc.addEventListener('keydown', function escHandler(e){ if(e.key==='Escape'){ clearInterval(interval); chiudi(); parentDoc.removeEventListener('keydown', escHandler); } });
-        })();
-        </script>
-        """.replace("__IMG_SRC__", "data:image/jpeg;base64," + b64).replace("__SECS__", str(tempo))
-        st.components.v1.html(html, height=0)
-    except:
-        pass
 
 
 def init_session():
-
-
     defaults = {
         "page": "entra",
         "logged": False,
@@ -1729,10 +1349,6 @@ init_session()
 # PAGINA ENTRA - con footer fisso in basso Developed by Ezio F. 2026 Vers 1.0 - Logo cartoon
 if st.session_state.page == "entra":
     hdr()
-    try:
-        inject_popout_splash()
-    except:
-        pass
     st.write("")
     c1, c2, c3 = st.columns([1, 2, 1])
     with c2:
@@ -2068,10 +1684,7 @@ with st.sidebar:
             "Attrezzature",
             "Mappe Postazioni",
             "Libreria Icone",
-            "Turni",
             "Chat",
-            "Verbali",
-            "Archivio Documenti",
             "Geolocalizzazione Hytera + Anytone",
             "Gestione Utenti",
             "Backup"
@@ -2094,10 +1707,7 @@ with st.sidebar:
             "Attrezzature",
             "Mappe Postazioni",
             "Libreria Icone",
-            "Turni",
             "Chat",
-            "Verbali",
-            "Archivio Documenti",
             "Geolocalizzazione Hytera + Anytone",
             "Backup"
         ]
@@ -2173,7 +1783,7 @@ if cur == "Dashboard":
         <p style="font-family:Times New Roman;font-weight:bold;color:black;
         background:#fffde7;padding:8px;border-radius:8px;
         border-left:4px solid #FFD700;">
-        Seleziona un form
+        Clicca su un tasto per aprire il form - Fullscreen rosso - Date gg/mm/aaaa
         </p>
         """,
         unsafe_allow_html=True
@@ -2196,8 +1806,6 @@ if cur == "Dashboard":
         ("Libreria Icone", "🎨 Libreria Icone"),
         ("Turni", "🕐 Turni"),
         ("Chat", "💬 Chat"),
-        ("Verbali", "📝 Verbali"),
-        ("Archivio Documenti", "📁 Archivio Documenti"),
         ("Geolocalizzazione Hytera + Anytone", "📡 Geoloc"),
         ("Backup", "💾 Backup")
     ]
@@ -2240,7 +1848,6 @@ if cur == "Dashboard":
     def vai_a_form_callback(form_name):
         st.session_state.menu = form_name
         st.session_state["menu_radio"] = form_name
-        # Forza aggiornamento per Archivio Documenti
 
     # CSS bottoni verde ANA - SFONDO PIENO VERDE - FIX DEFINITIVO
     st.markdown(
@@ -2348,6 +1955,7 @@ if cur == "Dashboard":
 
 # VOLONTARI FORM CON SOTTOMASCHERE A LINGUETTE + CAMPO ODV - NUOVA VERSIONE FINALE
 elif cur == "Volontari (con foto)":
+    hdr()
     hdr_form("DB VOLONTARI")
 
     edit_mode = False
@@ -2409,7 +2017,7 @@ elif cur == "Volontari (con foto)":
                 odv_app_custom = st.text_input("Specifica ODV - Inserisci nome", value="" if odv_app_def in odv_lista else odv_app_def, key="vol_odv_custom", placeholder="Es: Protezione Civile Busto Arsizio")
                 if odv_app_custom:
                     odv_app = odv_app_custom
-            data_nascita = st.date_input("Data Nascita", value=date(1990,1,1), min_value=date(1950,1,1), max_value=date.today(), format="DD/MM/YYYY", key="vol_data_nasc")
+            data_nascita = st.date_input("Data Nascita", value=date(1990,1,1), format="DD/MM/YYYY", key="vol_data_nasc")
             codice_fisc = st.text_input("Codice Fiscale", value=edit_data.get("CodFisc",""), key="vol_cf")
             
             # FOTO NELLA PRIMA MASCHERA + DOWNLOAD
@@ -2547,119 +2155,24 @@ elif cur == "Volontari (con foto)":
                         "DataIns": datetime.now().strftime("%d/%m/%Y %H:%M")
                     }
                     st.session_state.volontari.append(nuovo)
-                    # PULISCI CAMPI PER NUOVO INSERIMENTO - Richiesta Ezio - TUTTI I CAMPI
-                    chiavi_da_pulire = [k for k in list(st.session_state.keys()) if k.startswith("vol_")]
-                    for k in chiavi_da_pulire:
-                        try:
-                            del st.session_state[k]
-                        except:
-                            pass
-                    # Pulisci anche foto temp
-                    for k in ["foto_temp_prima", "foto_temp"]:
-                        if k in st.session_state:
-                            try:
-                                del st.session_state[k]
-                            except:
-                                pass
-                    st.success(f"✅ Volontario {cognome} {nome} - Capo ODV {capo_odv} salvato! Maschera pulita per nuovo inserimento.")
-                    st.balloons()
+                    st.success(f"Volontario {cognome} {nome} - Capo ODV {capo_odv} salvato!")
                     st.rerun()
                 else:
                     st.error("Compila campi obbligatori * (Nome, Cognome, Cellulare, Capo ODV)")
 
-    # Tabella volontari con emoji penna per aggiornare - carica in maschera - Richiesta Ezio
+    # Tabella volontari con click cognome per modifica
     st.divider()
     if st.session_state.volontari:
-        st.markdown(f"#### Elenco Volontari ({len(st.session_state.volontari)}) - ✏️ Clicca penna per caricare in maschera e aggiornare")
-        # Tabella con pulsanti penna
-        for idx, vol in enumerate(st.session_state.volontari):
-            c1, c2, c3, c4, c5, c6, c7 = st.columns([1, 1.5, 1, 1.5, 1, 1, 0.5])
-            with c1:
-                st.write(f"**{vol.get('Cognome','')}**")
-            with c2:
-                st.write(f"{vol.get('Nome','')}")
-            with c3:
-                st.write(f"{vol.get('CapoODV','')}")
-            with c4:
-                st.write(f"{vol.get('ODVAppartenenza','')}")
-            with c5:
-                st.write(f"{vol.get('Comune','')}")
-            with c6:
-                st.write(f"{vol.get('Ruolo','')}")
-            with c7:
-                if st.button("✏️", key=f"edit_vol_{idx}", help=f"Modifica {vol.get('Cognome','')} {vol.get('Nome','')} - Carica in maschera"):
-                    st.session_state.vol_edit_index = idx
-                    st.rerun()
-        
-        st.divider()
+        st.markdown(f"#### Elenco Volontari ({len(st.session_state.volontari)}) - Clicca cognome per modifica")
         df_vol = pd.DataFrame([{k:v for k,v in vol.items() if "Bytes" not in k} for vol in st.session_state.volontari])
+        # Mostra con colonne importanti
         cols_show = ["Cognome", "Nome", "CapoODV", "ODVAppartenenza", "Comune", "Cellulare", "Ruolo", "Squadra"]
         cols_show = [c for c in cols_show if c in df_vol.columns]
         st.dataframe(df_vol[cols_show] if cols_show else df_vol, use_container_width=True)
 
-        # Export Excel volontari - FIX sempre visibile - DEBUG OPENPYXL
-        try:
-            df_export = pd.DataFrame([{k:v for k,v in vol.items() if "Bytes" not in k} for vol in st.session_state.volontari])
-            if not df_export.empty:
-                # Debug
-                st.caption(f"Debug: OPENPYXL_OK={OPENPYXL_OK} XLSXWRITER_OK={XLSXWRITER_OK} - {len(df_export)} record - {len(df_export.columns)} colonne")
-                try:
-                    import openpyxl
-                    st.caption(f"openpyxl import OK v{openpyxl.__version__}")
-                except Exception as e:
-                    st.error(f"openpyxl import FAIL: {e} - Verifica requirements.txt su GitHub!")
-                
-                excel_bytes = to_excel(df_export)
-                if excel_bytes and len(excel_bytes) > 100 and excel_bytes[:2] == b'PK':
-                    st.download_button(
-                        "⬇️ EXPORT EXCEL VOLONTARI - FIX VALIDO",
-                        data=excel_bytes,
-                        file_name=f"volontari_export_{datetime.now().strftime('%Y%m%d_%H%M')}.xlsx",
-                        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                        use_container_width=True,
-                        key="export_volontari_fix",
-                        type="primary"
-                    )
-                    st.success(f"Excel pronto: {len(excel_bytes)} bytes - PK valido")
-                else:
-                    st.error(f"Excel non valido: len={len(excel_bytes) if excel_bytes else 0} - header={excel_bytes[:10] if excel_bytes else b''}")
-                    st.warning("Su Streamlit Cloud: Vai su Manage app -> Clear cache -> Reboot - Verifica requirements.txt contenga openpyxl==3.1.5")
-                    # Prova export diretto emergenza
-                    try:
-                        import openpyxl
-                        wb = openpyxl.Workbook()
-                        ws = wb.active
-                        ws.title="Volontari"
-                        for c_idx, col in enumerate(df_export.columns, 1):
-                            ws.cell(row=1, column=c_idx, value=str(col))
-                        for r_idx, row in enumerate(df_export.itertuples(index=False), 2):
-                            for c_idx, val in enumerate(row, 1):
-                                try:
-                                    ws.cell(row=r_idx, column=c_idx, value=str(val)[:32000])
-                                except:
-                                    ws.cell(row=r_idx, column=c_idx, value="")
-                        from io import BytesIO
-                        buf = io.BytesIO()
-                        wb.save(buf)
-                        buf.seek(0)
-                        st.download_button(
-                            "⬇️ EXPORT EMERGENZA - Volontari",
-                            data=buf.getvalue(),
-                            file_name=f"volontari_EMERGENZA_{datetime.now().strftime('%Y%m%d')}.xlsx",
-                            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                            use_container_width=True,
-                            key="export_vol_emerg"
-                        )
-                    except Exception as e2:
-                        st.error(f"Export emergenza fallito: {e2}")
-        except Exception as e:
-            st.error(f"Errore export volontari: {e}")
-            import traceback
-            st.code(traceback.format_exc())
-
-        # Selectbox fallback per modifica
+        # Click cognome per modifica - selectbox
         cognomi = [f"{i}: {v.get('Cognome','')} {v.get('Nome','')} - ODV {v.get('ODVAppartenenza','')} - Capo {v.get('CapoODV','')}" for i, v in enumerate(st.session_state.volontari)]
-        sel = st.selectbox("Oppure seleziona volontario per modifica (metodo vecchio)", ["--"] + cognomi, key="sel_vol_mod")
+        sel = st.selectbox("Seleziona volontario per modifica", ["--"] + cognomi, key="sel_vol_mod")
         if sel != "--":
             try:
                 idx = int(sel.split(":")[0])
@@ -2668,9 +2181,7 @@ elif cur == "Volontari (con foto)":
             except:
                 pass
     else:
-        pass  # istruzione rimossa
-        pass
-        # Istruzione rimossa - form pulito
+        st.info("Nessun volontario inserito")
 
     st.divider()
 
@@ -2680,6 +2191,7 @@ elif cur == "Volontari (con foto)":
 
 
 elif cur == "DB Radio":
+    hdr()
     hdr_form("DB RADIO - Gestione Apparati")
 
     c1, c2, c3 = st.columns(3)
@@ -2731,80 +2243,46 @@ elif cur == "DB Radio":
 
 
 elif cur == "Consegna Radio":
-    # hdr() rimosso - richiesta Ezio: su form non mettere in alto intestazione con i loghi
-    hdr_form("CONSEGNA RADIO - Consegna e Riconsegna con note problemi")
-
-    # Maschera verde come altri form
-    st.markdown('<div style="background:#C8E6C9;padding:15px;border-radius:10px;border:2px solid #1A5D1A;margin-bottom:15px;">', unsafe_allow_html=True)
+    hdr()
+    hdr_form("CONSEGNA RADIO")
 
     c1, c2 = st.columns(2)
     with c1:
-        st.markdown("#### 📻 Consegna")
-        vol_list = [f"{v.get('Cognome','').strip()} {v.get('Nome','').strip()}" for v in st.session_state.volontari if v.get('Cognome') or v.get('Nome')]
-        vol_list = sorted(list(set([x for x in vol_list if x.strip()])))
+        vol_list = [f"{v.get('Cognome','')} {v.get('Nome','')}" for v in st.session_state.volontari]
         if vol_list:
-            sel_vol = st.selectbox("Volontario *", vol_list, key="cons_vol")
+            sel_vol = st.selectbox("Volontario", vol_list, key="cons_vol")
         else:
-            sel_vol = st.text_input("Volontario * (manuale)", key="cons_vol_man", placeholder="Cognome Nome")
+            sel_vol = st.text_input("Volontario (manuale)", key="cons_vol_man")
 
-        radio_list = [f"{r.get('Matricola','')} - {r.get('Modello','')} - {r.get('Alias','')}" for r in st.session_state.radio_db]
+        radio_list = [f"{r.get('Matricola','')} - {r.get('Modello','')}" for r in st.session_state.radio_db]
         if radio_list:
-            sel_radio = st.selectbox("Radio *", radio_list, key="cons_radio")
+            sel_radio = st.selectbox("Radio", radio_list, key="cons_radio")
         else:
-            sel_radio = st.text_input("Radio * manuale", key="cons_radio_man", placeholder="Matricola - Modello")
-
-        data_cons = st.date_input("Data Consegna *", value=date.today(), format="DD/MM/YYYY", key="cons_data")
-        ora_cons = st.time_input("Ora Consegna", value=datetime.now().time(), key="cons_ora")
-        motivo = st.text_input("Motivo / Evento", key="cons_motivo", placeholder="Esercitazione, Emergenza...")
+            sel_radio = st.text_input("Radio manuale", key="cons_radio_man")
 
     with c2:
-        st.markdown("#### 🔄 Riconsegna")
-        data_ricons = st.date_input("Data Riconsegna", value=date.today(), format="DD/MM/YYYY", key="ricons_data")
-        ora_ricons = st.time_input("Ora Riconsegna", value=datetime.now().time(), key="ricons_ora")
-        stato_ricons = st.selectbox("Stato alla Riconsegna", ["Da riconsegnare", "Riconsegnata - OK", "Riconsegnata - Guasta", "Riconsegnata - Batteria scarica", "Riconsegnata - Antenna rotta", "Riconsegnata - Problemi audio", "Persa", "In Manutenzione"], key="ricons_stato")
-        # Campo note problemi radio - richiesta Ezio
-        note_problemi = st.text_area("Note - Problemi Radio *", key="cons_note_problemi", placeholder="Descrivi se radio ha avuto problemi: es. batteria scarica dopo 2h, audio gracchiante, tasto PTT bloccato, antenna piegata, display spento...", height=120)
+        data_cons = st.date_input("Data Consegna", value=date.today(), format="DD/MM/YYYY", key="cons_data")
+        ora_cons = st.time_input("Ora", value=datetime.now().time(), key="cons_ora")
+        motivo = st.text_input("Motivo / Evento", key="cons_motivo")
 
-    st.markdown("</div>", unsafe_allow_html=True)
-
-    if st.button("Registra Consegna + Riconsegna", type="primary", use_container_width=True, key="btn_cons_reg"):
-        if sel_vol and sel_radio:
-            st.session_state.consegna_radio.append({
-                "Volontario": sel_vol,
-                "Radio": sel_radio,
-                "DataConsegna": str(data_cons),
-                "OraConsegna": str(ora_cons),
-                "Motivo": motivo,
-                "DataRiconsegna": str(data_ricons),
-                "OraRiconsegna": str(ora_ricons),
-                "StatoRiconsegna": stato_ricons,
-                "NoteProblemi": note_problemi,
-                "Stato": stato_ricons,
-                "Data": str(data_cons),
-                "Ora": str(ora_cons)
-            })
-            st.success(f"Consegna registrata: {sel_vol} - {sel_radio} - {stato_ricons}")
-            st.rerun()
-        else:
-            st.error("Seleziona Volontario e Radio *")
+    if st.button("Registra Consegna", type="primary", use_container_width=True):
+        st.session_state.consegna_radio.append({
+            "Volontario": sel_vol,
+            "Radio": sel_radio,
+            "Data": str(data_cons),
+            "Ora": str(ora_cons),
+            "Motivo": motivo,
+            "Stato": "Consegnata"
+        })
+        st.success("Consegna registrata")
+        st.rerun()
 
     if st.session_state.consegna_radio:
-        st.divider()
-        st.markdown(f"#### 📋 Elenco Consegne ({len(st.session_state.consegna_radio)})")
         df_cr = pd.DataFrame(st.session_state.consegna_radio)
-        # Mostra colonne importanti
-        cols_show = [c for c in ["Volontario","Radio","DataConsegna","OraConsegna","DataRiconsegna","StatoRiconsegna","NoteProblemi","Motivo"] if c in df_cr.columns]
-        if cols_show:
-            st.dataframe(df_cr[cols_show], use_container_width=True)
-        else:
-            st.dataframe(df_cr, use_container_width=True)
-        
-        c_exp1, c_exp2 = st.columns(2)
-        with c_exp1:
-            st.download_button("Excel Consegne", to_excel(df_cr), "consegne.xlsx", use_container_width=True, key="dl_excel_cons")
-        with c_exp2:
-            if REPORTLAB_OK:
-                st.download_button("PDF Consegne", to_pdf(df_cr, "CONSEGNA RADIO - RICONSEGNA + NOTE PROBLEMI"), "consegne.pdf", use_container_width=True, key="dl_pdf_cons")
+        st.dataframe(df_cr, use_container_width=True)
+        st.download_button("Excel Consegne", to_excel(df_cr), "consegne.xlsx", use_container_width=True)
+        if REPORTLAB_OK:
+            st.download_button("PDF Logo Estesa", to_pdf(df_cr, "CONSEGNA RADIO"), "consegne.pdf", use_container_width=True)
 
 # ALIAS RADIO
 
@@ -2814,61 +2292,33 @@ elif cur == "Consegna Radio":
 
 
 elif cur == "Alias Radio":
-    hdr_form("ALIAS RADIO - Alias + Volontario agganciato")
-
-    # Maschera verde come altri form - spostata in alto
-    st.markdown('<div style="background:#C8E6C9;padding:12px;border-radius:10px;border:2px solid #1A5D1A;margin-bottom:12px;margin-top:0px;">', unsafe_allow_html=True)
+    hdr()
+    hdr_form("ALIAS RADIO")
 
     c1, c2 = st.columns(2)
     with c1:
-        alias_n = st.text_input("Alias *", key="alias_n", placeholder="Es: Centrale, Squadra A...")
-        id_r = st.text_input("ID Radio *", key="alias_id", placeholder="Es: 101, 202...")
-        # Campo Volontario mancante - aggiunto - agganciato a Volontari Nome Cognome - richiesta Ezio
-        vol_list_alias = [f"{v.get('Cognome','').strip()} {v.get('Nome','').strip()}" for v in st.session_state.volontari if v.get('Cognome') or v.get('Nome')]
-        vol_list_alias = sorted(list(set([x for x in vol_list_alias if x.strip()])))
-        if vol_list_alias:
-            sel_vol_alias = st.selectbox("Volontario * (da Volontari)", vol_list_alias, key="alias_vol")
-        else:
-            sel_vol_alias = st.text_input("Volontario * (manuale - aggiungi volontari in Volontari)", key="alias_vol_man", placeholder="Cognome Nome")
+        alias_n = st.text_input("Alias", key="alias_n")
+        id_r = st.text_input("ID Radio", key="alias_id")
 
     with c2:
         gruppo = st.selectbox("Gruppo", ["Squadra A", "Squadra B", "Squadra C", "Coordinamento", "Logistica"], key="alias_gruppo")
-        desc = st.text_input("Descrizione", key="alias_desc", placeholder="Descrizione alias")
-        note_alias = st.text_area("Note", key="alias_note", placeholder="Note alias radio...", height=80)
+        desc = st.text_input("Descrizione", key="alias_desc")
 
-    st.markdown("</div>", unsafe_allow_html=True)
-
-    if st.button("Salva Alias", type="primary", use_container_width=True, key="btn_alias_save"):
-        if alias_n and id_r and sel_vol_alias:
+    if st.button("Salva Alias", type="primary", use_container_width=True):
+        if alias_n and id_r:
             st.session_state.alias_radio.append({
                 "Alias": alias_n,
                 "ID Radio": id_r,
-                "Volontario": sel_vol_alias,
                 "Gruppo": gruppo,
-                "Descrizione": desc,
-                "Note": note_alias,
-                "Data": datetime.now().strftime("%d/%m/%Y")
+                "Descrizione": desc
             })
-            st.success(f"Alias salvato: {alias_n} - {sel_vol_alias}")
+            st.success("Alias salvato")
             st.rerun()
-        else:
-            st.error("Compila Alias *, ID Radio * e Volontario *")
 
     if st.session_state.alias_radio:
-        st.divider()
-        st.markdown(f"#### 📋 Elenco Alias Radio ({len(st.session_state.alias_radio)})")
         df_al = pd.DataFrame(st.session_state.alias_radio)
-        cols_alias = [c for c in ["Alias","ID Radio","Volontario","Gruppo","Descrizione","Note"] if c in df_al.columns]
-        if cols_alias:
-            st.dataframe(df_al[cols_alias], use_container_width=True)
-        else:
-            st.dataframe(df_al, use_container_width=True)
-        c_a1, c_a2 = st.columns(2)
-        with c_a1:
-            st.download_button("Excel Alias", to_excel(df_al), "alias.xlsx", use_container_width=True, key="dl_alias_excel")
-        with c_a2:
-            if REPORTLAB_OK:
-                st.download_button("PDF Alias", to_pdf(df_al, "ALIAS RADIO - CON VOLONTARIO"), "alias.pdf", use_container_width=True, key="dl_alias_pdf")
+        st.dataframe(df_al, use_container_width=True)
+        st.download_button("Excel Alias", to_excel(df_al), "alias.xlsx", use_container_width=True)
 
 # BROGLIACCIO
 
@@ -2878,11 +2328,12 @@ elif cur == "Alias Radio":
 
 
 elif cur == "Brogliaccio":
+    hdr()
     hdr_form("BROGLIACCIO RADIO")
 
     st.markdown("""
     <div style="background:#e8f5e9;padding:8px;border-radius:8px;border-left:4px solid #1A5D1A;margin-bottom:10px;">
-    Brogliaccio - Chiamate e Ricevente da Alias Radio | Operatore da Volontari
+    <b>NUOVO:</b> Chiamate e Ricevente da Alias Radio | Operatore da Volontari Nome Cognome
     </div>
     """, unsafe_allow_html=True)
 
@@ -2981,6 +2432,7 @@ elif cur == "Brogliaccio":
 
 
 elif cur == "Eventi":
+    hdr()
     hdr_form("EVENTI - Gestione Eventi Programmati")
 
     c1, c2, c3 = st.columns(3)
@@ -3030,6 +2482,7 @@ elif cur == "Eventi":
 
 
 elif cur == "Emergenze":
+    hdr()
     hdr_form("EMERGENZE - Gestione Emergenze Attive")
 
     c1, c2, c3 = st.columns(3)
@@ -3094,6 +2547,7 @@ elif cur == "Emergenze":
 
 # TABELLA EMERGENZE - FORM TABELLA - Richiesta Ezio - Formato tabella per vedere emergenze
 elif cur == "Tabella Emergenze":
+    hdr()
     hdr_form("ELENCO EMERGENZE")
     
     st.markdown("""
@@ -3104,7 +2558,7 @@ elif cur == "Tabella Emergenze":
     """, unsafe_allow_html=True)
 
     if not st.session_state.emergenze:
-        pass  # istruzione rimossa
+        st.info("Nessuna emergenza salvata - Vai in Emergenze per crearne una")
         st.markdown("""
         <div style="background:#e8f5e9;padding:12px;border-radius:8px;text-align:center;">
         <b>Come creare emergenza:</b><br>
@@ -3196,6 +2650,7 @@ elif cur == "Tabella Emergenze":
 
 
 elif cur == "# RIMOSSO":
+    hdr()
     hdr_form("MAPPE - Fusione Emergenze + Eventi - Proposta Ezio - SI OTTIMA IDEA")
 
     st.markdown(
@@ -3311,6 +2766,7 @@ elif cur == "# RIMOSSO":
 
 # CHECK-IN
 elif cur == "Mappe":
+    hdr()
     hdr_form("MAPPE PER POSTAZIONI/CANTIERI/EMERGENZE IN CORSO")
     c1, c2 = st.columns(2)
     with c1:
@@ -3330,6 +2786,7 @@ elif cur == "Mappe":
         st.dataframe(pd.DataFrame(st.session_state.mappe), use_container_width=True)
 
 elif cur == "Check-in":
+    hdr()
     hdr_form("CHECK-IN - Presenze Operative")
 
     c1, c2 = st.columns(2)
@@ -3375,12 +2832,13 @@ elif cur == "Check-in":
 
 
 elif cur == "Interventi Emergenza":
+    hdr()
     hdr_form("INTERVENTI EMERGENZA")
 
     st.markdown(
         """
         <div style="background:#e8f5e9;padding:10px;border-radius:8px;border-left:4px solid #1A5D1A;margin-bottom:10px;">
-        Interventi - Puoi caricare un'icona dalla Libreria Icone
+        <b>NUOVO:</b> Ora puoi caricare un'icona dalla Libreria Icone per ogni intervento!
         </div>
         """,
         unsafe_allow_html=True
@@ -3517,11 +2975,11 @@ elif cur == "Interventi Emergenza":
 
 
 elif cur == "Tabella Interventi Emergenza":
+    hdr()
     hdr_form("TABELLA INTERVENTI EMERGENZA")
 
     if not st.session_state.interventi:
-        pass  # fix indent
-        pass
+        st.info("Nessun intervento salvato - Vai in Interventi Emergenza")
     else:
         df_tab = pd.DataFrame(st.session_state.interventi)
 
@@ -3594,6 +3052,7 @@ elif cur == "Tabella Interventi Emergenza":
 
 
 elif cur == "Mezzi":
+    hdr()
     hdr_form("MEZZI - Parco Automezzi")
 
     c1, c2, c3 = st.columns(3)
@@ -3640,6 +3099,7 @@ elif cur == "Mezzi":
 
 
 elif cur == "Attrezzature":
+    hdr()
     hdr_form("ATTREZZATURE - Magazzino")
 
     c1, c2 = st.columns(2)
@@ -3681,6 +3141,7 @@ elif cur == "Attrezzature":
 
 
 elif cur == "Mappe Postazioni":
+    hdr()
     hdr_form("MAPPE POSTAZIONI")
 
     # Init stabile
@@ -3847,7 +3308,7 @@ elif cur == "Mappe Postazioni":
 
         if not marker_nome:
             st.error("❌ Inserisci Nome Postazione")
-            # Istruzione rimossa - form pulito
+            st.info("Procedura: 1) Clicca mappa 2) Scrivi Nome Postazione 3) Verifica Comune/Via 4) Clicca SALVA")
         elif not eff_lat or not eff_lon:
             st.error("❌ Manca Latitudine o Longitudine")
             st.warning("Procedura corretta: Clicca sulla mappa grande → vedi coordinate in giallo → compila Nome → SALVA")
@@ -4228,8 +3689,7 @@ elif cur == "Mappe Postazioni":
             st.error(f"Errore anteprima: {e}")
 
     else:
-        pass  # istruzione rimossa
-        # Istruzione rimossa - form pulito
+        st.info("📍 Nessuna postazione salvata - Tabella apparirà qui dopo salvataggio - Clicca mappa grande sopra per aggiungere - Marker rimarranno")
         st.markdown("""
         <div style="background:#fffde7;padding:12px;border-radius:8px;text-align:center;">
         <b>Mappa anteprima sotto tabella apparirà quando salvi la prima postazione</b><br>
@@ -4247,6 +3707,7 @@ elif cur == "Mappe Postazioni":
 
 
 elif cur == "Turni":
+    hdr()
     hdr_form("TURNI - Gestione Turni Volontari")
     if "turni" not in st.session_state:
         st.session_state.turni = []
@@ -4304,9 +3765,7 @@ elif cur == "Turni":
                 st.download_button("📄 PDF Turni", data=to_pdf(df_turni, "TURNI"), file_name="turni.pdf", mime="application/pdf", use_container_width=True, key="pdf_turni_final")
             st.download_button("📊 Excel Turni", data=to_excel(df_turni), file_name="turni.xlsx", mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", use_container_width=True, key="excel_turni_final")
         else:
-            pass  # istruzione rimossa
-            pass
-            # Istruzione rimossa - form pulito
+            st.info("Nessun turno salvato")
 
 
     # IMPORT/EXPORT INLINE - Ezio - TUTTI I FORM - Excel + PDF + Template ODV
@@ -4314,6 +3773,7 @@ elif cur == "Turni":
 
 
 elif cur == "Libreria Icone":
+    hdr()
     hdr_form("LIBRERIA ICONE")
 
     st.markdown("""
@@ -4398,9 +3858,7 @@ elif cur == "Libreria Icone":
         st.dataframe(df_ico, use_container_width=True)
         st.download_button("Excel Libreria Icone", to_excel(df_ico), "libreria_icone.xlsx", use_container_width=True)
     else:
-        pass  # istruzione rimossa
-        pass
-        # Istruzione rimossa - form pulito
+        st.info("Nessuna icona - Crea la prima icona sopra")
 
 # CHAT
     # IMPORT/EXPORT INLINE - Ezio - TUTTI I FORM - Excel + PDF + Template ODV
@@ -4408,6 +3866,7 @@ elif cur == "Libreria Icone":
 
 
 elif cur == "Chat":
+    hdr()
     hdr_form("CHAT - Comunicazioni Squadra - Chi è collegato")
 
     # Mostra chi è collegato ora - Richiesta Ezio
@@ -4523,6 +3982,7 @@ elif cur == "Chat":
 
 # GEOLOCALIZZAZIONE HYTERA + ANYTONE
 elif cur == "Geolocalizzazione Hytera + Anytone":
+    hdr()
     hdr_form("GEOLOCALIZZAZIONE HYTERA + ANYTONE - PD785 + 878")
 
     st.markdown(
@@ -4590,9 +4050,7 @@ elif cur == "Geolocalizzazione Hytera + Anytone":
 
         st.download_button("Excel Posizioni", to_excel(df_pos), "posizioni_hytera_anytone.xlsx", use_container_width=True)
     else:
-        pass  # istruzione rimossa
-        pass
-        # Istruzione rimossa - form pulito
+        st.info("Nessuna posizione registrata")
 
         demo_pos = pd.DataFrame([
             {"lat": 45.8167, "lon": 8.8333},
@@ -4602,6 +4060,7 @@ elif cur == "Geolocalizzazione Hytera + Anytone":
 
 # GESTIONE UTENTI - Amministratore e utenti view/insert - Ezio richiesta
 elif cur == "Gestione Utenti":
+    hdr()
     hdr_form("GESTIONE UTENTI - Solo Amministratore - Maschera Configurazione VISIBILE")
     
     # Solo amministratore può accedere - RICHIESTA EZIO - maschera solo per admin
@@ -4821,409 +4280,8 @@ elif cur == "Gestione Utenti":
         except Exception as e:
             st.error(f"{e}")
 
-# VERBALI - Numero progressivo + Responsabile agganciato Volontari + campo libero
-elif cur == "Verbali":
-    hdr_form("VERBALI - Numero progressivo + PDF con logo PC ANA")
-
-    if "verbali" not in st.session_state:
-        st.session_state.verbali = []
-    if "archivio_documenti" not in st.session_state:
-        st.session_state.archivio_documenti = []
-
-    # Numero progressivo automatico - anno corrente
-    anno_corr = datetime.now().year
-    num_prog = len(st.session_state.verbali) + 1
-    num_verbale_auto = f"{num_prog:03d}/{anno_corr}"
-
-    st.markdown(f"""<div style="background:#C8E6C9;padding:8px;border-radius:8px;border-left:5px solid #1A5D1A;margin-bottom:8px;text-align:center;"><b>📝 Verbale {num_verbale_auto}</b> - Totale: {len(st.session_state.verbali)}</div>""", unsafe_allow_html=True)
-
-    # Maschera colore di fondo come altri form - verde #C8E6C9 - Richiesta Ezio
-    st.markdown("""
-    <style>
-    /* Verde chiaro #C8E6C9 per form verbali come volontari - Riga maschera */
-    </style>
-    """, unsafe_allow_html=True)
-
-    # Contenitore verde chiaro per maschera verbali - come altri form
-    st.markdown('<div style="background:#C8E6C9;padding:15px;border-radius:10px;border:2px solid #1A5D1A;margin-bottom:15px;">', unsafe_allow_html=True)
-
-    # Form verbale - 2 colonne
-    c1, c2 = st.columns(2)
-    with c1:
-        num_verbale = st.text_input("Numero Verbale *", value=num_verbale_auto, key="verb_num")
-        data_verbale = st.date_input("Data Verbale", value=date.today(), min_value=date(1950,1,1), max_value=date.today(), format="DD/MM/YYYY", key="verb_data")
-        ora_verbale = st.time_input("Ora", value=datetime.now().time(), key="verb_ora")
-        luogo_verbale = st.text_input("Luogo *", value="Sede ANA Varese", key="verb_luogo", placeholder="Es: Sede ANA Varese - Via...")
-
-    with c2:
-        tipo_verbale = st.selectbox("Tipo Verbale *", ["Consiglio Direttivo", "Assemblea Ordinaria", "Assemblea Straordinaria", "Riunione Squadra", "Riunione Emergenza", "Riunione Formazione", "Verbale Intervento", "Altro"], key="verb_tipo")
-        oggetto_verbale = st.text_input("Oggetto *", key="verb_oggetto", placeholder="Es: Approvazione bilancio, Organizzazione esercitazione...")
-        # Responsabile agganciato a Volontari - Nome Cognome unificato - Riga richiesta Ezio
-        if st.session_state.volontari:
-            vol_options = [f"{v.get('Cognome','').strip()} {v.get('Nome','').strip()}" for v in st.session_state.volontari if v.get('Cognome') or v.get('Nome')]
-            vol_options = sorted(list(set([o for o in vol_options if o.strip()])))
-            # Aggiungi opzione manuale
-            vol_options = [""] + vol_options + ["Altro - inserisci manualmente"]
-            responsabile_sel = st.selectbox("Responsabile * (da Volontari - Nome Cognome unificato)", vol_options, key="verb_resp_sel")
-            if responsabile_sel == "Altro - inserisci manualmente":
-                responsabile = st.text_input("Responsabile - inserisci Nome Cognome", key="verb_resp_manual", placeholder="Mario Rossi")
-            elif responsabile_sel == "":
-                responsabile = st.text_input("Responsabile * - Nome Cognome", key="verb_resp", value=st.session_state.get("nome_utente",""), placeholder="Mario Rossi")
-            else:
-                responsabile = responsabile_sel
-                st.caption(f"✅ Selezionato da DB Volontari: {responsabile}")
-        else:
-            responsabile = st.text_input("Responsabile * - Nome Cognome (agganciato Volontari)", key="verb_resp", value=st.session_state.get("nome_utente",""), placeholder="Mario Rossi - Quando aggiungi volontari compariranno qui")
-
-    st.divider()
-    st.markdown("#### 📋 Contenuto Verbale - Campo libero")
-    # Campo verbale mano libera - Richiesta Ezio
-    st.markdown("""<div style="background:#e8f5e9;padding:6px;border-radius:6px;border-left:4px solid #1A5D1A;margin-bottom:6px;text-align:center;"><b>✍️ Verbale</b></div>""", unsafe_allow_html=True)
-    testo_verbale = st.text_area("Verbale - Scrivi a mano libera * (campo grande)", key="verb_testo_libero", placeholder="Scrivi qui il verbale completo a mano libera...\n\nEs:\nIl giorno ... alle ore ... presso ... si è riunito il Consiglio...\nPresenti: ...\nODG: ...\nSi discute: ...\nSi delibera: ...", height=500)
-
-    st.divider()
-    st.markdown("#### 📋 Dettagli strutturati (opzionali - per PDF strutturato)")
-    odg = st.text_area("Ordine del Giorno (ODG)", key="verb_odg", placeholder="1. Approvazione verbale precedente\n2. Comunicazioni\n3. Varie", height=80)
-    delibere = st.text_area("Delibere / Decisioni prese", key="verb_delibere", placeholder="Il consiglio delibera: ...", height=100)
-    incarichi = st.text_area("Incarichi assegnati", key="verb_incarichi", placeholder="Mario Rossi: preparazione mezzi...", height=60)
-    note_verb = st.text_area("Note finali", key="verb_note", placeholder="Note, allegati...")
-
-    st.markdown("</div>", unsafe_allow_html=True)  # chiude contenitore verde maschera
-    st.divider()
-    col_save, col_pdf = st.columns(2)
-    with col_save:
-        if st.button("💾 SALVA VERBALE", type="primary", use_container_width=True, key="btn_salva_verbale"):
-            if num_verbale and luogo_verbale and responsabile and testo_verbale:
-                nuovo_verb = {
-                    "NumVerbale": num_verbale,
-                    "Data": str(data_verbale),
-                    "Ora": str(ora_verbale),
-                    "Luogo": luogo_verbale,
-                    "Tipo": tipo_verbale,
-                    "Oggetto": oggetto_verbale,
-                    "Responsabile": responsabile,
-                    "TestoVerbale": testo_verbale,
-                    "ODG": odg,
-                    "Delibere": delibere,
-                    "Incarichi": incarichi,
-                    "Note": note_verb,
-                    "DataIns": datetime.now().strftime("%d/%m/%Y %H:%M")
-                }
-                st.session_state.verbali.append(nuovo_verb)
-                # Pulisci maschera
-                for k in ["verb_num","verb_data","verb_ora","verb_luogo","verb_tipo","verb_oggetto","verb_resp","verb_resp_sel","verb_resp_manual","verb_testo_libero","verb_odg","verb_delibere","verb_incarichi","verb_note"]:
-                    if k in st.session_state:
-                        try:
-                            del st.session_state[k]
-                        except:
-                            pass
-                st.success(f"✅ Verbale {num_verbale} salvato! Responsabile: {responsabile} - Prossimo: {len(st.session_state.verbali)+1:03d}/{anno_corr}")
-                st.balloons()
-                st.rerun()
-            else:
-                st.error("Compila campi obbligatori: Numero, Luogo, Responsabile, Verbale mano libera *")
-
-
-    with col_pdf:
-        if st.session_state.verbali:
-            ultimo = st.session_state.verbali[-1]
-            try:
-                def verbale_to_pdf_logo(verb):
-                    buf = io.BytesIO()
-                    try:
-                        from reportlab.lib.pagesizes import A4
-                        from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, Image
-                        from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-                        from reportlab.lib import colors
-                        from reportlab.lib.units import cm
-                        from reportlab.lib.enums import TA_CENTER, TA_JUSTIFY
-                        doc = SimpleDocTemplate(buf, pagesize=A4, leftMargin=2*cm, rightMargin=2*cm, topMargin=2*cm, bottomMargin=2*cm)
-                        styles = getSampleStyleSheet()
-                        style_title = ParagraphStyle('TitleCustom', parent=styles['Title'], fontSize=14, alignment=TA_CENTER, spaceAfter=12, textColor=colors.HexColor("#1A5D1A"))
-                        style_heading = ParagraphStyle('HeadingCustom', parent=styles['Heading2'], fontSize=11, textColor=colors.HexColor("#1A5D1A"), spaceBefore=10, spaceAfter=6)
-                        style_normal = ParagraphStyle('NormalCustom', parent=styles['Normal'], fontSize=10, leading=13, alignment=TA_JUSTIFY)
-                        story = []
-                        try:
-                            if os.path.exists("logo.png"):
-                                logo = Image("logo.png", width=70, height=70)
-                                story.append(logo)
-                        except:
-                            pass
-                        try:
-                            for p in ["gruppo_CPB.jpeg","logo2.png","/mnt/data/gruppo_CPB.jpeg"]:
-                                if os.path.exists(p):
-                                    logo2 = Image(p, width=60, height=60)
-                                    story.append(logo2)
-                                    break
-                        except:
-                            pass
-                        story.append(Paragraph(f"<b>VERBALE N. {verb.get('NumVerbale','')} - {verb.get('Tipo','').upper()}</b>", style_title))
-                        story.append(Spacer(1, 6))
-                        story.append(Paragraph(f"<b>Squadra Volontari di protezione civile - Gruppo Alpini di Caronno Pertusella Bariola<br/>NUCLEO VOLONTARI DI P.C. A.N.A. - SEZIONE DI VARESE<br/>ASSOCIAZIONE NAZIONALE ALPINI</b>", style_normal))
-                        story.append(Spacer(1, 8))
-                        story.append(Paragraph(f"Data: {verb.get('Data','')} - Ora: {verb.get('Ora','')} - Luogo: {verb.get('Luogo','')} - Responsabile: {verb.get('Responsabile','')}", style_normal))
-                        story.append(Spacer(1, 8))
-                        story.append(Paragraph(f"<b>Oggetto:</b> {verb.get('Oggetto','')}", style_heading))
-                        story.append(Paragraph(verb.get('Oggetto',''), style_normal))
-                        story.append(Spacer(1, 10))
-                        story.append(Paragraph(f"<b>VERBALE:</b>", style_heading))
-                        # Testo libero con a capo
-                        testo_libero_html = verb.get('TestoVerbale','').replace('\n','<br/>')
-                        story.append(Paragraph(testo_libero_html, style_normal))
-                        story.append(Spacer(1, 10))
-                        if verb.get('ODG',''):
-                            story.append(Paragraph("<b>ODG:</b>", style_heading))
-                            story.append(Paragraph(verb.get('ODG','').replace('\n','<br/>'), style_normal))
-                            story.append(Spacer(1, 6))
-                        if verb.get('Delibere',''):
-                            story.append(Paragraph("<b>Delibere:</b>", style_heading))
-                            story.append(Paragraph(verb.get('Delibere','').replace('\n','<br/>'), style_normal))
-                            story.append(Spacer(1, 6))
-                        if verb.get('Incarichi',''):
-                            story.append(Paragraph("<b>Incarichi:</b>", style_heading))
-                            story.append(Paragraph(verb.get('Incarichi','').replace('\n','<br/>'), style_normal))
-                        story.append(Spacer(1, 20))
-                        data_firme = [["Il Responsabile", "Data"], [verb.get('Responsabile',''), verb.get('Data','')], ["___________________", "___________________"]]
-                        t_firme = Table(data_firme, colWidths=[7.5*cm, 7.5*cm])
-                        t_firme.setStyle(TableStyle([('ALIGN', (0,0), (-1,-1), 'CENTER'), ('FONTSIZE', (0,0), (-1,-1), 9), ('FONTNAME', (0,0), (0,0), 'Helvetica-Bold'),]))
-                        story.append(t_firme)
-                        doc.build(story)
-                        buf.seek(0)
-                        return buf.getvalue()
-                    except Exception as e:
-                        return f"Verbale {verb.get('NumVerbale','')} - Errore {e}".encode()
-
-                pdf_ultimo = verbale_to_pdf_logo(ultimo)
-                st.download_button(f"📄 PDF Ultimo Verbale {ultimo.get('NumVerbale','')}", data=pdf_ultimo, file_name=f"Verbale_{ultimo.get('NumVerbale','').replace('/','_')}.pdf", mime="application/pdf", use_container_width=True, key="pdf_ultimo_verbale")
-                if st.button("💾 Salva PDF in Archivio Documenti", use_container_width=True, key="salva_pdf_archivio"):
-                    nuovo_doc = {
-                        "Titolo": f"Verbale {ultimo.get('NumVerbale','')} - {ultimo.get('Oggetto','')}",
-                        "Tipo": "Verbale",
-                        "Categoria": "Amministrativo",
-                        "Descrizione": f"Verbale {ultimo.get('Tipo','')} del {ultimo.get('Data','')} - Resp: {ultimo.get('Responsabile','')} - {ultimo.get('Oggetto','')}",
-                        "NomeFile": f"Verbale_{ultimo.get('NumVerbale','').replace('/','_')}.pdf",
-                        "TipoFile": "application/pdf",
-                        "DimensioneKB": round(len(pdf_ultimo)/1024, 1),
-                        "DataDoc": ultimo.get('Data',''),
-                        "CaricatoDa": ultimo.get('Responsabile',''),
-                        "DataIns": datetime.now().strftime("%d/%m/%Y %H:%M"),
-                        "FileBytes": pdf_ultimo
-                    }
-                    st.session_state.archivio_documenti.append(nuovo_doc)
-                    st.success(f"✅ PDF Verbale {ultimo.get('NumVerbale','')} salvato in Archivio Documenti!")
-            except Exception as e:
-                st.error(f"Errore PDF: {e}")
-
-    st.divider()
-    if st.session_state.verbali:
-        st.markdown(f"#### 📋 Elenco Verbali ({len(st.session_state.verbali)}) - Numero progressivo + Responsabile agganciato Volontari")
-        for idx, verb in enumerate(reversed(st.session_state.verbali)):
-            real_idx = len(st.session_state.verbali) - 1 - idx
-            c1, c2, c3, c4, c5 = st.columns([1, 1, 2, 1, 0.8])
-            with c1:
-                st.write(f"**{verb.get('NumVerbale','')}**")
-                st.caption(f"{verb.get('Data','')} {verb.get('Ora','')}")
-            with c2:
-                st.write(f"{verb.get('Tipo','')}")
-                st.caption(f"Resp: {verb.get('Responsabile','')[:20]}")
-            with c3:
-                st.write(f"{verb.get('Oggetto','')[:50]}")
-                st.caption(f"{verb.get('TestoVerbale','')[:60]}...")
-            with c4:
-                if st.button(f"👁️ {verb.get('NumVerbale','')}", key=f"view_verb_{real_idx}"):
-                    st.session_state["verb_view_idx"] = real_idx
-            with c5:
-                if st.button("🗑️", key=f"del_verb_{real_idx}"):
-                    st.session_state.verbali.pop(real_idx)
-                    st.rerun()
-
-        if "verb_view_idx" in st.session_state:
-            try:
-                v_idx = st.session_state["verb_view_idx"]
-                verb_sel = st.session_state.verbali[v_idx]
-                st.divider()
-                st.markdown(f"### 📝 Verbale {verb_sel.get('NumVerbale','')} - Dettaglio Responsabile: {verb_sel.get('Responsabile','')}")
-                st.write(f"**Oggetto:** {verb_sel.get('Oggetto','')}")
-                st.text_area("Testo verbale mano libera", value=verb_sel.get('TestoVerbale',''), height=250, key=f"view_testo_{v_idx}", disabled=True)
-                st.write(f"**ODG:** {verb_sel.get('ODG','')}")
-                st.write(f"**Delibere:** {verb_sel.get('Delibere','')}")
-            except:
-                pass
-
-        st.divider()
-        df_verb = pd.DataFrame([{k:v for k,v in verb.items() if k not in ["FileBytes"]} for verb in st.session_state.verbali])
-        st.dataframe(df_verb[["NumVerbale","Data","Tipo","Oggetto","Responsabile"]].head(20) if not df_verb.empty and "NumVerbale" in df_verb.columns else df_verb, use_container_width=True)
-        c_exp1, c_exp2 = st.columns(2)
-        with c_exp1:
-            try:
-                st.download_button("⬇️ EXCEL Verbali", data=to_excel(df_verb), file_name=f"verbali_{datetime.now().strftime('%Y%m%d')}.xlsx", mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", use_container_width=True, key="exp_excel_verbali")
-            except Exception as e:
-                st.error(f"Excel errore: {e}")
-        with c_exp2:
-            try:
-                if REPORTLAB_OK:
-                    st.download_button("📄 PDF Lista Verbali", data=to_pdf(df_verb, "LISTA VERBALI"), file_name="lista_verbali.pdf", mime="application/pdf", use_container_width=True, key="exp_pdf_verbali")
-            except Exception as e:
-                st.error(f"PDF errore: {e}")
-    else:
-        pass  # istruzione rimossa
-        pass
-        # Istruzione rimossa - form pulito
-
-    excel_import_inline("verbali", "Verbali")
-
-elif cur == "Archivio Documenti":
-    hdr_form("ARCHIVIO DOCUMENTI - Salva PDF, Word, Excel ecc")
-
-    st.markdown("""
-    <div style="background:#e8f5e9;padding:12px;border-radius:8px;border-left:4px solid #1A5D1A;margin-bottom:12px;">
-    <b>📁 Archivio documenti</b><br>
-    Regolamenti, convenzioni, attestati, verbali, circolari<br>
-    <small>PDF, DOC, XLS, XLSX, JPG, PNG, ZIP</small>
-    </div>
-    """, unsafe_allow_html=True)
-
-    # Inizializza sessione se manca
-    if "archivio_documenti" not in st.session_state:
-        st.session_state.archivio_documenti = []
-
-    c1, c2 = st.columns(2)
-    with c1:
-        titolo_doc = st.text_input("Titolo Documento *", key="arch_titolo", placeholder="Es: Regolamento ODV 2024")
-        tipo_doc = st.selectbox("Tipo Documento", ["Regolamento", "Convenzione", "Attestato", "Verbale", "Circolare", "Manuale Radio", "Modulo", "Autorizzazione", "Altro"], key="arch_tipo")
-        categoria_doc = st.selectbox("Categoria", ["Generale", "Volontari", "Radio", "Mezzi", "Emergenze", "Formazione", "Amministrativo", "Sicurezza"], key="arch_cat")
-        descrizione_doc = st.text_area("Descrizione", key="arch_desc", placeholder="Descrizione breve del documento")
-    
-    with c2:
-        data_doc = st.date_input("Data Documento", value=date.today(), format="DD/MM/YYYY", key="arch_data")
-        uploader_doc = st.text_input("Caricato da", value=st.session_state.get("nome_utente","Admin"), key="arch_uploader")
-        file_doc = st.file_uploader("Carica File - PDF, Word, Excel ecc *", type=["pdf", "doc", "docx", "xls", "xlsx", "jpg", "jpeg", "png", "zip", "txt", "ppt", "pptx"], key="arch_file")
-        if file_doc:
-            # Info file rimossa - form pulito
-            # Preview se immagine
-            if file_doc.type and "image" in file_doc.type:
-                st.image(file_doc.getvalue(), width=200, caption="Anteprima")
-
-    if st.button("💾 SALVA DOCUMENTO IN ARCHIVIO", type="primary", use_container_width=True, key="btn_salva_arch"):
-        if titolo_doc and file_doc:
-            file_bytes = file_doc.getvalue()
-            nuovo_doc = {
-                "Titolo": titolo_doc,
-                "Tipo": tipo_doc,
-                "Categoria": categoria_doc,
-                "Descrizione": descrizione_doc,
-                "NomeFile": file_doc.name,
-                "TipoFile": file_doc.type,
-                "DimensioneKB": round(len(file_bytes)/1024, 1),
-                "DataDoc": str(data_doc),
-                "CaricatoDa": uploader_doc,
-                "DataIns": datetime.now().strftime("%d/%m/%Y %H:%M"),
-                "FileBytes": file_bytes
-            }
-            st.session_state.archivio_documenti.append(nuovo_doc)
-            # Pulisci campi
-            for k in ["arch_titolo", "arch_tipo", "arch_cat", "arch_desc", "arch_data", "arch_file"]:
-                if k in st.session_state:
-                    try:
-                        del st.session_state[k]
-                    except:
-                        pass
-            st.success(f"✅ Documento '{titolo_doc}' salvato! Maschera pulita per nuovo inserimento.")
-            st.balloons()
-            st.rerun()
-        else:
-            st.error("Compila Titolo Documento * e carica File *")
-
-    st.divider()
-    if st.session_state.archivio_documenti:
-        st.markdown(f"#### 📁 Archivio Documenti ({len(st.session_state.archivio_documenti)}) - Tutti i file salvati")
-        # Filtro categoria
-        cat_filter = st.selectbox("Filtra per Categoria", ["Tutte"] + ["Generale", "Volontari", "Radio", "Mezzi", "Emergenze", "Formazione", "Amministrativo", "Sicurezza"], key="arch_filter_cat")
-        docs_to_show = st.session_state.archivio_documenti
-        if cat_filter != "Tutte":
-            docs_to_show = [d for d in docs_to_show if d.get("Categoria")==cat_filter]
-        
-        for idx, doc in enumerate(docs_to_show):
-            # Trova indice reale in lista completa
-            real_idx = st.session_state.archivio_documenti.index(doc)
-            c1, c2, c3, c4, c5 = st.columns([2, 1, 1, 1, 0.8])
-            with c1:
-                st.write(f"**{doc.get('Titolo','')}**")
-                st.caption(f"{doc.get('NomeFile','')} - {doc.get('DimensioneKB','')} KB")
-            with c2:
-                st.write(f"{doc.get('Tipo','')} - {doc.get('Categoria','')}")
-                st.caption(f"{doc.get('DataDoc','')}")
-            with c3:
-                st.write(f"{doc.get('CaricatoDa','')}")
-            with c4:
-                # Download
-                try:
-                    st.download_button(
-                        f"⬇️ Scarica",
-                        data=doc.get("FileBytes", b""),
-                        file_name=doc.get("NomeFile", f"doc_{real_idx}.pdf"),
-                        mime=doc.get("TipoFile", "application/octet-stream"),
-                        use_container_width=True,
-                        key=f"dl_arch_{real_idx}"
-                    )
-                except Exception as e:
-                    st.error(f"Err dl: {e}")
-            with c5:
-                if st.button("🗑️", key=f"del_arch_{real_idx}", help=f"Elimina {doc.get('Titolo','')}"):
-                    st.session_state.archivio_documenti.pop(real_idx)
-                    st.success("Documento eliminato")
-                    st.rerun()
-        
-        st.divider()
-        # Tabella riepilogo
-        df_arch = pd.DataFrame([{k:v for k,v in d.items() if "Bytes" not in k} for d in st.session_state.archivio_documenti])
-        st.dataframe(df_arch, use_container_width=True)
-        
-        # Export Excel e PDF - SOLO EXCEL XLSX + PDF per tutti i form - Richiesta Ezio
-        c_exp1, c_exp2 = st.columns(2)
-        with c_exp1:
-            try:
-                excel_data = to_excel(df_arch)
-                if excel_data and excel_data[:2] == b'PK' and len(excel_data) > 100:
-                    st.download_button(
-                        "⬇️ EXCEL Archivio Documenti",
-                        data=excel_data,
-                        file_name=f"archivio_documenti_{datetime.now().strftime('%Y%m%d')}.xlsx",
-                        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                        use_container_width=True,
-                        key="exp_excel_arch",
-                        type="primary"
-                    )
-                else:
-                    st.warning("Excel non disponibile - verifica openpyxl")
-            except Exception as e:
-                st.error(f"Excel errore: {e}")
-        with c_exp2:
-            try:
-                if REPORTLAB_OK:
-                    pdf_data = to_pdf(df_arch, "ARCHIVIO DOCUMENTI")
-                    st.download_button(
-                        "📄 PDF Archivio Documenti",
-                        data=pdf_data,
-                        file_name=f"archivio_documenti_{datetime.now().strftime('%Y%m%d')}.pdf",
-                        mime="application/pdf",
-                        use_container_width=True,
-                        key="exp_pdf_arch",
-                        type="primary"
-                    )
-                else:
-                    st.warning("PDF non disponibile - verifica reportlab in requirements.txt + Reboot Cloud")
-            except Exception as e:
-                st.error(f"PDF errore: {e}")
-    else:
-        pass  # istruzione rimossa
-        pass
-        # Istruzione rimossa - form pulito
-
-    # Import/Export inline
-    excel_import_inline("archivio_documenti", "Archivio Documenti")
-
 elif cur == "Backup":
+    hdr()
     hdr_form("BACKUP")
 
     FORM_KEYS = {
@@ -5244,13 +4302,12 @@ elif cur == "Backup":
         "Turni": "turni",
         "Chat": "chat",
         "Posizioni PD785": "posizioni_pd785",
-        "Posizioni Anytone": "posizioni_anytone",
-        "Archivio Documenti": "archivio_documenti"
+        "Posizioni Anytone": "posizioni_anytone"
     }
 
     st.markdown("""
     <div style="background:#e8f5e9;padding:10px;border-radius:8px;border-left:4px solid #1A5D1A;margin-bottom:12px;">
-    <b>Template Excel per ODV</b> - Invia file vuoto, ODV compila, importi in Volontari<br>
+    <b>NUOVO: Template Excel per ODV - Invia file vuoto, ODV compila, tu importi in Volontari senza inserire uno per uno!</b><br>
     <small>Backup Totale | Template ODV | Import Multi-Foglio | Solo Excel</small>
     </div>
     """, unsafe_allow_html=True)
@@ -5268,7 +4325,7 @@ elif cur == "Backup":
 
     # === SEZIONE 1: TEMPLATE EXCEL PER ODV - VOLONTARI ===
     st.markdown("### 📋 TEMPLATE EXCEL PER ODV - Volontari")
-    # Istruzione rimossa - form pulito
+    st.info("Scarica template vuoto, invialo alle ODV, loro compilano Nome/Cognome/CF etc, ti rimandano file, tu lo importi sotto in un click!")
 
     def get_volontari_template_df():
         # Template OFFICE 2016 COMPATIBILE - solo header, no righe esempio che danno errore formato
@@ -5530,7 +4587,7 @@ elif cur == "Backup":
 
     # Import Totale - Solo Excel Multi-foglio - Un file con tanti fogli
     st.markdown("### 📥 Import Backup Totale - Solo Excel xlsx/xls Multi-fogli")
-    # Istruzione rimossa - form pulito
+    st.info("Carica un file Excel con più fogli: ogni foglio = un form (Volontari, Radio, etc). Importa tutto in un click!")
     up_total_excel = st.file_uploader("Carica Backup Totale Excel - Solo xlsx/xls", type=["xlsx", "xls"], key="up_total_excel")
     if up_total_excel:
         try:
