@@ -1691,30 +1691,8 @@ def rimuovi_presenza(username):
 
 init_session()
 
-# FIX GLOBALE: Gestione click icona immagine come tasto - se ?edit_idx= presente, apri Interventi Emergenza
-try:
-    if "edit_idx" in st.query_params:
-        try:
-            idx_q = int(st.query_params.get("edit_idx"))
-            for k in [k for k in list(st.session_state.keys()) if k.startswith("int_") and k != "int_edit_index"]:
-                try:
-                    del st.session_state[k]
-                except:
-                    pass
-            st.session_state.int_edit_index = idx_q
-            st.session_state.menu = "Interventi Emergenza"
-            if "menu_radio" in st.session_state:
-                try:
-                    del st.session_state["menu_radio"]
-                except:
-                    pass
-            # Pulisci query param per non rimanere in loop
-            del st.query_params["edit_idx"]
-            st.rerun()
-        except Exception as e:
-            pass
-except Exception:
-    pass
+# FIX GLOBALE DISABILITATO - ora icona è vero tasto bottone, non link
+# Gestione query param disabilitata - icona ora è vero bottone st.button, non link <a>
 
 # PAGINA ENTRA - con footer fisso in basso Developed by Ezio F. 2026 Vers 1.0 - Logo cartoon
 if st.session_state.page == "entra":
@@ -3149,19 +3127,19 @@ elif cur == "Emergenze":
 
 # TABELLA EMERGENZE - FORM TABELLA - Richiesta Ezio - Formato tabella per vedere emergenze - FIX non vedo niente
 elif cur == "Tabella Emergenze":
-    hdr_form("TABELLA EMERGENZE - GRIGLIA CAMPI IN RIGA")
+    hdr_form("TABELLA EMERGENZE - GRIGLIA EXCEL")
 
     st.markdown("""
     <div style="background:#e3f2fd;padding:10px;border-radius:8px;border-left:4px solid #1976d2;margin-bottom:12px;">
-    <b>📋 Tabella Emergenze - Griglia: campi su una riga, ogni colonna è un campo - Icona è tasto</b><br>
-    Clicca direttamente sull'immagine/icona per aprire Interventi Emergenza e aggiornare
+    <b>📋 Tabella Emergenze - Griglia Excel con celle evidenziate</b><br>
+    Icona è un vero tasto - Clicca immagine per aprire Interventi Emergenza e aggiornare - Celle come Excel
     </div>
     """, unsafe_allow_html=True)
 
-    st.info(f"Debug: {len(st.session_state.interventi)} interventi - Icona è tasto cliccabile")
+    st.info(f"Debug: {len(st.session_state.interventi)} interventi di emergenza - Icona cliccabile come tasto")
 
     if not st.session_state.interventi:
-        st.warning("⚠️ Nessun intervento - Vai in Interventi Emergenza")
+        st.warning("⚠️ Nessun intervento - Vai in Interventi Emergenza e crea con icona")
         st.dataframe(pd.DataFrame(columns=["Icona","Tipo","Squadra","Data","Comune","Via","Stato","Descrizione"]).head(), use_container_width=True)
     else:
         df_tab_em = pd.DataFrame(st.session_state.interventi)
@@ -3174,13 +3152,13 @@ elif cur == "Tabella Emergenze":
 
         c1, c2, c3, c4 = st.columns(4)
         with c1:
-            filtro_sq_em = st.selectbox("Filtra Squadra", ["Tutte"] + squadre_list_em, key="tab_em_sq_grid2")
+            filtro_sq_em = st.selectbox("Filtra Squadra", ["Tutte"] + squadre_list_em, key="tab_em_sq_excel")
         with c2:
-            filtro_com_em = st.selectbox("Filtra Comune", ["Tutti"] + comuni_list_em, key="tab_em_com_grid2")
+            filtro_com_em = st.selectbox("Filtra Comune", ["Tutti"] + comuni_list_em, key="tab_em_com_excel")
         with c3:
-            filtro_stato_em = st.selectbox("Filtra Stato", ["Tutti"] + stati_list_em, key="tab_em_stato_grid2")
+            filtro_stato_em = st.selectbox("Filtra Stato", ["Tutti"] + stati_list_em, key="tab_em_stato_excel")
         with c4:
-            filtro_tipo_em = st.selectbox("Filtra Tipo", ["Tutti"] + tipi_list_em, key="tab_em_tipo_grid2")
+            filtro_tipo_em = st.selectbox("Filtra Tipo", ["Tutti"] + tipi_list_em, key="tab_em_tipo_excel")
 
         df_filtrato_em = df_tab_em.copy()
         if filtro_sq_em != "Tutte" and "Squadra" in df_filtrato_em.columns:
@@ -3192,46 +3170,77 @@ elif cur == "Tabella Emergenze":
         if filtro_tipo_em != "Tutti" and "Tipo" in df_filtrato_em.columns:
             df_filtrato_em = df_filtrato_em[df_filtrato_em["Tipo"] == filtro_tipo_em]
 
-        st.write(f"**Risultati: {len(df_filtrato_em)} su {len(df_tab_em)} - Griglia con campi in riga**")
+        st.write(f"**Risultati: {len(df_filtrato_em)} su {len(df_tab_em)} - Celle come Excel**")
 
-        # HEADER griglia - campi su una riga, ogni colonna è un campo
-        h_cols = st.columns([0.8, 1, 1, 1, 1.2, 1.2, 1, 2])
-        with h_cols[0]: st.markdown("**ICONA (tasto)**")
-        with h_cols[1]: st.markdown("**Tipo**")
-        with h_cols[2]: st.markdown("**Squadra**")
-        with h_cols[3]: st.markdown("**Data/Ora**")
-        with h_cols[4]: st.markdown("**Comune**")
-        with h_cols[5]: st.markdown("**Via**")
-        with h_cols[6]: st.markdown("**Stato**")
-        with h_cols[7]: st.markdown("**Descrizione**")
-        st.divider()
+        # STILE EXCEL per celle
+        st.markdown("""
+        <style>
+        .excel-header {
+            background:#1A5D1A !important;
+            color:white !important;
+            font-weight:bold;
+            border:1px solid #000 !important;
+            padding:8px !important;
+            text-align:center;
+            font-size:12px;
+        }
+        .excel-cell {
+            border:1px solid #999 !important;
+            padding:6px 8px !important;
+            background:white !important;
+            font-size:11px;
+            min-height:40px;
+            display:flex;
+            align-items:center;
+        }
+        .excel-cell-icon {
+            border:2px solid #1A5D1A !important;
+            background:#e8f5e9 !important;
+            cursor:pointer;
+        }
+        </style>
+        """, unsafe_allow_html=True)
 
-        # RIGHE griglia - ogni riga è un intervento, campi in colonna
+        # HEADER Excel-like
+        h_cols = st.columns([0.9, 1, 1, 1.1, 1.2, 1.2, 1, 2.2])
+        headers = ["ICONA (Tasto)", "Tipo", "Squadra", "Data/Ora", "Comune", "Via", "Stato", "Descrizione"]
+        for col, header in zip(h_cols, headers):
+            with col:
+                st.markdown(f'<div class="excel-header">{header}</div>', unsafe_allow_html=True)
+        
+        # RIGHE con celle evidenziate come Excel
         for idx_orig, row in df_filtrato_em.iterrows():
-            r_cols = st.columns([0.8, 1, 1, 1, 1.2, 1.2, 1, 2])
+            r_cols = st.columns([0.9, 1, 1, 1.1, 1.2, 1.2, 1, 2.2])
             emoji = row.get("IconaEmoji", "📍")
             nome_ico = row.get("IconaNome", "")
             has_file = row.get("HasFile", False)
             file_bytes = row.get("FileBytes", None)
 
+            # COLONNA ICONA - VERO TASTO, non link <a> che va a prima pagina
             with r_cols[0]:
-                # ICONA COME TASTO - clicca immagine per aprire Interventi Emergenza
+                # Cella Excel evidenziata
+                st.markdown('<div class="excel-cell excel-cell-icon" style="justify-content:center;">', unsafe_allow_html=True)
                 if has_file and file_bytes:
                     try:
-                        b64 = base64.b64encode(file_bytes).decode()
-                        # Icona immagine cliccabile come tasto - link con query param
-                        html_btn = f"""
-                        <a href="?edit_idx={int(idx_orig)}" target="_self" style="text-decoration:none;display:block;text-align:center;">
-                            <img src="data:image/png;base64,{b64}" width="50" height="50" 
-                            style="border:2px solid #1A5D1A;border-radius:8px;cursor:pointer;object-fit:contain;background:white;padding:2px;"
-                            title="Clicca per aggiornare - {nome_ico}">
-                            <div style="font-size:10px;color:#1A5D1A;font-weight:bold;">{nome_ico[:10]}</div>
-                        </a>
-                        """
-                        st.markdown(html_btn, unsafe_allow_html=True)
+                        # Mostra immagine piccola
+                        st.image(file_bytes, width=45)
+                        # Bottone vero che apre Interventi Emergenza - icona diventa tasto
+                        if st.button(f"✏️ {nome_ico[:8]}", key=f"excel_icon_img_{idx_orig}", help=f"Clicca icona {nome_ico} per aprire Interventi Emergenza e modificare", use_container_width=True):
+                            for k in [k for k in list(st.session_state.keys()) if k.startswith("int_") and k != "int_edit_index"]:
+                                try:
+                                    del st.session_state[k]
+                                except:
+                                    pass
+                            st.session_state.int_edit_index = int(idx_orig)
+                            st.session_state.menu = "Interventi Emergenza"
+                            if "menu_radio" in st.session_state:
+                                try:
+                                    del st.session_state["menu_radio"]
+                                except:
+                                    pass
+                            st.rerun()
                     except:
-                        # Fallback bottone con emoji che è tasto
-                        if st.button(f"{emoji}", key=f"icon_btn_{idx_orig}", help=f"Clicca per aggiornare {nome_ico}"):
+                        if st.button(f"{emoji}", key=f"excel_icon_fallback_{idx_orig}", use_container_width=True):
                             for k in [k for k in list(st.session_state.keys()) if k.startswith("int_") and k != "int_edit_index"]:
                                 try:
                                     del st.session_state[k]
@@ -3246,8 +3255,8 @@ elif cur == "Tabella Emergenze":
                                     pass
                             st.rerun()
                 else:
-                    # Emoji come tasto
-                    if st.button(f"{emoji}\n{nome_ico[:8]}", key=f"emoji_btn_{idx_orig}", help=f"Clicca icona {nome_ico} per aggiornare", use_container_width=True):
+                    # Emoji come tasto grande
+                    if st.button(f"{emoji}\n{nome_ico[:8]}", key=f"excel_emoji_{idx_orig}", help=f"Clicca per modificare {nome_ico}", use_container_width=True):
                         for k in [k for k in list(st.session_state.keys()) if k.startswith("int_") and k != "int_edit_index"]:
                             try:
                                 del st.session_state[k]
@@ -3261,25 +3270,25 @@ elif cur == "Tabella Emergenze":
                             except:
                                 pass
                         st.rerun()
+                st.markdown('</div>', unsafe_allow_html=True)
 
+            # COLONNE DATI con celle Excel evidenziate
             with r_cols[1]:
-                st.write(row.get("Tipo",""))
+                st.markdown(f'<div class="excel-cell">{row.get("Tipo","")}</div>', unsafe_allow_html=True)
             with r_cols[2]:
-                st.write(row.get("Squadra",""))
+                st.markdown(f'<div class="excel-cell">{row.get("Squadra","")}</div>', unsafe_allow_html=True)
             with r_cols[3]:
-                st.write(f"{row.get('Data','')[:10]} {row.get('Ora','')[:5]}")
+                st.markdown(f'<div class="excel-cell">{row.get("Data","")[:10]} {row.get("Ora","")[:5]}</div>', unsafe_allow_html=True)
             with r_cols[4]:
-                st.write(row.get("Comune",""))
+                st.markdown(f'<div class="excel-cell"><b>{row.get("Comune","")}</b></div>', unsafe_allow_html=True)
             with r_cols[5]:
-                st.write(row.get("Via","")[:20])
+                st.markdown(f'<div class="excel-cell">{row.get("Via","")[:25]}</div>', unsafe_allow_html=True)
             with r_cols[6]:
                 bg = row.get("StatoColoreBg", "#e8f5e9")
                 txt_c = row.get("StatoColoreTxt", "black")
-                st.markdown(f"<span style='background:{bg};color:{txt_c};padding:2px 6px;border-radius:8px;font-size:10px;font-weight:bold;border:1px solid black;'>{row.get('Stato','')}</span>", unsafe_allow_html=True)
+                st.markdown(f'<div class="excel-cell" style="background:{bg} !important;color:{txt_c};font-weight:bold;text-align:center;border:2px solid black !important;">{row.get("Stato","")}</div>', unsafe_allow_html=True)
             with r_cols[7]:
-                st.write(str(row.get("Descrizione",""))[:80])
-
-            st.divider()
+                st.markdown(f'<div class="excel-cell">{str(row.get("Descrizione",""))[:90]}</div>', unsafe_allow_html=True)
 
         # Export
         st.divider()
@@ -3290,12 +3299,13 @@ elif cur == "Tabella Emergenze":
                 df_export_em = df_export_em.drop(columns=[col])
         c_exp1, c_exp2 = st.columns(2)
         with c_exp1:
-            st.download_button("Excel Griglia", data=to_excel(df_export_em), file_name="tabella_emergenze_griglia.xlsx", use_container_width=True, key="exp_tab_em_grid2")
+            st.download_button("Excel Griglia Excel", data=to_excel(df_export_em), file_name="tabella_emergenze_excel.xlsx", use_container_width=True, key="exp_tab_em_excel")
         with c_exp2:
             if REPORTLAB_OK:
-                st.download_button("PDF Griglia", data=to_pdf(df_export_em, "TABELLA EMERGENZE - GRIGLIA"), file_name="tabella_emergenze_griglia.pdf", use_container_width=True, key="pdf_tab_em_grid2")
+                st.download_button("PDF Griglia Excel", data=to_pdf(df_export_em, "TABELLA EMERGENZE - EXCEL"), file_name="tabella_emergenze_excel.pdf", use_container_width=True, key="pdf_tab_em_excel")
 
-    excel_import_inline("interventi", "Tabella Emergenze - Griglia")
+    excel_import_inline("interventi", "Tabella Emergenze - Excel")
+
 
 
 
