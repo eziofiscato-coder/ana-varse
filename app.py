@@ -2339,7 +2339,6 @@ if cur == "Dashboard":
 
 # VOLONTARI FORM CON SOTTOMASCHERE A LINGUETTE + CAMPO ODV - NUOVA VERSIONE FINALE
 elif cur == "Volontari (con foto)":
-    hdr()
     hdr_form("DB VOLONTARI")
 
     edit_mode = False
@@ -2672,7 +2671,6 @@ elif cur == "Volontari (con foto)":
 
 
 elif cur == "DB Radio":
-    hdr()
     hdr_form("DB RADIO - Gestione Apparati")
 
     c1, c2, c3 = st.columns(3)
@@ -2724,46 +2722,80 @@ elif cur == "DB Radio":
 
 
 elif cur == "Consegna Radio":
-    hdr()
-    hdr_form("CONSEGNA RADIO")
+    # hdr() rimosso - richiesta Ezio: su form non mettere in alto intestazione con i loghi
+    hdr_form("CONSEGNA RADIO - Consegna e Riconsegna con note problemi")
+
+    # Maschera verde come altri form
+    st.markdown('<div style="background:#C8E6C9;padding:15px;border-radius:10px;border:2px solid #1A5D1A;margin-bottom:15px;">', unsafe_allow_html=True)
 
     c1, c2 = st.columns(2)
     with c1:
-        vol_list = [f"{v.get('Cognome','')} {v.get('Nome','')}" for v in st.session_state.volontari]
+        st.markdown("#### 📻 Consegna")
+        vol_list = [f"{v.get('Cognome','').strip()} {v.get('Nome','').strip()}" for v in st.session_state.volontari if v.get('Cognome') or v.get('Nome')]
+        vol_list = sorted(list(set([x for x in vol_list if x.strip()])))
         if vol_list:
-            sel_vol = st.selectbox("Volontario", vol_list, key="cons_vol")
+            sel_vol = st.selectbox("Volontario *", vol_list, key="cons_vol")
         else:
-            sel_vol = st.text_input("Volontario (manuale)", key="cons_vol_man")
+            sel_vol = st.text_input("Volontario * (manuale)", key="cons_vol_man", placeholder="Cognome Nome")
 
-        radio_list = [f"{r.get('Matricola','')} - {r.get('Modello','')}" for r in st.session_state.radio_db]
+        radio_list = [f"{r.get('Matricola','')} - {r.get('Modello','')} - {r.get('Alias','')}" for r in st.session_state.radio_db]
         if radio_list:
-            sel_radio = st.selectbox("Radio", radio_list, key="cons_radio")
+            sel_radio = st.selectbox("Radio *", radio_list, key="cons_radio")
         else:
-            sel_radio = st.text_input("Radio manuale", key="cons_radio_man")
+            sel_radio = st.text_input("Radio * manuale", key="cons_radio_man", placeholder="Matricola - Modello")
+
+        data_cons = st.date_input("Data Consegna *", value=date.today(), format="DD/MM/YYYY", key="cons_data")
+        ora_cons = st.time_input("Ora Consegna", value=datetime.now().time(), key="cons_ora")
+        motivo = st.text_input("Motivo / Evento", key="cons_motivo", placeholder="Esercitazione, Emergenza...")
 
     with c2:
-        data_cons = st.date_input("Data Consegna", value=date.today(), format="DD/MM/YYYY", key="cons_data")
-        ora_cons = st.time_input("Ora", value=datetime.now().time(), key="cons_ora")
-        motivo = st.text_input("Motivo / Evento", key="cons_motivo")
+        st.markdown("#### 🔄 Riconsegna")
+        data_ricons = st.date_input("Data Riconsegna", value=date.today(), format="DD/MM/YYYY", key="ricons_data")
+        ora_ricons = st.time_input("Ora Riconsegna", value=datetime.now().time(), key="ricons_ora")
+        stato_ricons = st.selectbox("Stato alla Riconsegna", ["Da riconsegnare", "Riconsegnata - OK", "Riconsegnata - Guasta", "Riconsegnata - Batteria scarica", "Riconsegnata - Antenna rotta", "Riconsegnata - Problemi audio", "Persa", "In Manutenzione"], key="ricons_stato")
+        # Campo note problemi radio - richiesta Ezio
+        note_problemi = st.text_area("Note - Problemi Radio *", key="cons_note_problemi", placeholder="Descrivi se radio ha avuto problemi: es. batteria scarica dopo 2h, audio gracchiante, tasto PTT bloccato, antenna piegata, display spento...", height=120)
 
-    if st.button("Registra Consegna", type="primary", use_container_width=True):
-        st.session_state.consegna_radio.append({
-            "Volontario": sel_vol,
-            "Radio": sel_radio,
-            "Data": str(data_cons),
-            "Ora": str(ora_cons),
-            "Motivo": motivo,
-            "Stato": "Consegnata"
-        })
-        st.success("Consegna registrata")
-        st.rerun()
+    st.markdown("</div>", unsafe_allow_html=True)
+
+    if st.button("Registra Consegna + Riconsegna", type="primary", use_container_width=True, key="btn_cons_reg"):
+        if sel_vol and sel_radio:
+            st.session_state.consegna_radio.append({
+                "Volontario": sel_vol,
+                "Radio": sel_radio,
+                "DataConsegna": str(data_cons),
+                "OraConsegna": str(ora_cons),
+                "Motivo": motivo,
+                "DataRiconsegna": str(data_ricons),
+                "OraRiconsegna": str(ora_ricons),
+                "StatoRiconsegna": stato_ricons,
+                "NoteProblemi": note_problemi,
+                "Stato": stato_ricons,
+                "Data": str(data_cons),
+                "Ora": str(ora_cons)
+            })
+            st.success(f"Consegna registrata: {sel_vol} - {sel_radio} - {stato_ricons}")
+            st.rerun()
+        else:
+            st.error("Seleziona Volontario e Radio *")
 
     if st.session_state.consegna_radio:
+        st.divider()
+        st.markdown(f"#### 📋 Elenco Consegne ({len(st.session_state.consegna_radio)})")
         df_cr = pd.DataFrame(st.session_state.consegna_radio)
-        st.dataframe(df_cr, use_container_width=True)
-        st.download_button("Excel Consegne", to_excel(df_cr), "consegne.xlsx", use_container_width=True)
-        if REPORTLAB_OK:
-            st.download_button("PDF Logo Estesa", to_pdf(df_cr, "CONSEGNA RADIO"), "consegne.pdf", use_container_width=True)
+        # Mostra colonne importanti
+        cols_show = [c for c in ["Volontario","Radio","DataConsegna","OraConsegna","DataRiconsegna","StatoRiconsegna","NoteProblemi","Motivo"] if c in df_cr.columns]
+        if cols_show:
+            st.dataframe(df_cr[cols_show], use_container_width=True)
+        else:
+            st.dataframe(df_cr, use_container_width=True)
+        
+        c_exp1, c_exp2 = st.columns(2)
+        with c_exp1:
+            st.download_button("Excel Consegne", to_excel(df_cr), "consegne.xlsx", use_container_width=True, key="dl_excel_cons")
+        with c_exp2:
+            if REPORTLAB_OK:
+                st.download_button("PDF Consegne", to_pdf(df_cr, "CONSEGNA RADIO - RICONSEGNA + NOTE PROBLEMI"), "consegne.pdf", use_container_width=True, key="dl_pdf_cons")
 
 # ALIAS RADIO
 
@@ -2773,7 +2805,6 @@ elif cur == "Consegna Radio":
 
 
 elif cur == "Alias Radio":
-    hdr()
     hdr_form("ALIAS RADIO")
 
     c1, c2 = st.columns(2)
@@ -2809,7 +2840,6 @@ elif cur == "Alias Radio":
 
 
 elif cur == "Brogliaccio":
-    hdr()
     hdr_form("BROGLIACCIO RADIO")
 
     st.markdown("""
@@ -2913,7 +2943,6 @@ elif cur == "Brogliaccio":
 
 
 elif cur == "Eventi":
-    hdr()
     hdr_form("EVENTI - Gestione Eventi Programmati")
 
     c1, c2, c3 = st.columns(3)
@@ -2963,7 +2992,6 @@ elif cur == "Eventi":
 
 
 elif cur == "Emergenze":
-    hdr()
     hdr_form("EMERGENZE - Gestione Emergenze Attive")
 
     c1, c2, c3 = st.columns(3)
@@ -3028,7 +3056,6 @@ elif cur == "Emergenze":
 
 # TABELLA EMERGENZE - FORM TABELLA - Richiesta Ezio - Formato tabella per vedere emergenze
 elif cur == "Tabella Emergenze":
-    hdr()
     hdr_form("ELENCO EMERGENZE")
     
     st.markdown("""
@@ -3131,7 +3158,6 @@ elif cur == "Tabella Emergenze":
 
 
 elif cur == "# RIMOSSO":
-    hdr()
     hdr_form("MAPPE - Fusione Emergenze + Eventi - Proposta Ezio - SI OTTIMA IDEA")
 
     st.markdown(
@@ -3247,7 +3273,6 @@ elif cur == "# RIMOSSO":
 
 # CHECK-IN
 elif cur == "Mappe":
-    hdr()
     hdr_form("MAPPE PER POSTAZIONI/CANTIERI/EMERGENZE IN CORSO")
     c1, c2 = st.columns(2)
     with c1:
@@ -3267,7 +3292,6 @@ elif cur == "Mappe":
         st.dataframe(pd.DataFrame(st.session_state.mappe), use_container_width=True)
 
 elif cur == "Check-in":
-    hdr()
     hdr_form("CHECK-IN - Presenze Operative")
 
     c1, c2 = st.columns(2)
@@ -3313,7 +3337,6 @@ elif cur == "Check-in":
 
 
 elif cur == "Interventi Emergenza":
-    hdr()
     hdr_form("INTERVENTI EMERGENZA")
 
     st.markdown(
@@ -3456,7 +3479,6 @@ elif cur == "Interventi Emergenza":
 
 
 elif cur == "Tabella Interventi Emergenza":
-    hdr()
     hdr_form("TABELLA INTERVENTI EMERGENZA")
 
     if not st.session_state.interventi:
@@ -3534,7 +3556,6 @@ elif cur == "Tabella Interventi Emergenza":
 
 
 elif cur == "Mezzi":
-    hdr()
     hdr_form("MEZZI - Parco Automezzi")
 
     c1, c2, c3 = st.columns(3)
@@ -3581,7 +3602,6 @@ elif cur == "Mezzi":
 
 
 elif cur == "Attrezzature":
-    hdr()
     hdr_form("ATTREZZATURE - Magazzino")
 
     c1, c2 = st.columns(2)
@@ -3623,7 +3643,6 @@ elif cur == "Attrezzature":
 
 
 elif cur == "Mappe Postazioni":
-    hdr()
     hdr_form("MAPPE POSTAZIONI")
 
     # Init stabile
@@ -4190,7 +4209,6 @@ elif cur == "Mappe Postazioni":
 
 
 elif cur == "Turni":
-    hdr()
     hdr_form("TURNI - Gestione Turni Volontari")
     if "turni" not in st.session_state:
         st.session_state.turni = []
@@ -4258,7 +4276,6 @@ elif cur == "Turni":
 
 
 elif cur == "Libreria Icone":
-    hdr()
     hdr_form("LIBRERIA ICONE")
 
     st.markdown("""
@@ -4353,7 +4370,6 @@ elif cur == "Libreria Icone":
 
 
 elif cur == "Chat":
-    hdr()
     hdr_form("CHAT - Comunicazioni Squadra - Chi è collegato")
 
     # Mostra chi è collegato ora - Richiesta Ezio
@@ -4469,7 +4485,6 @@ elif cur == "Chat":
 
 # GEOLOCALIZZAZIONE HYTERA + ANYTONE
 elif cur == "Geolocalizzazione Hytera + Anytone":
-    hdr()
     hdr_form("GEOLOCALIZZAZIONE HYTERA + ANYTONE - PD785 + 878")
 
     st.markdown(
@@ -4549,7 +4564,6 @@ elif cur == "Geolocalizzazione Hytera + Anytone":
 
 # GESTIONE UTENTI - Amministratore e utenti view/insert - Ezio richiesta
 elif cur == "Gestione Utenti":
-    hdr()
     hdr_form("GESTIONE UTENTI - Solo Amministratore - Maschera Configurazione VISIBILE")
     
     # Solo amministratore può accedere - RICHIESTA EZIO - maschera solo per admin
@@ -4771,7 +4785,6 @@ elif cur == "Gestione Utenti":
 
 # VERBALI - Numero progressivo + Responsabile agganciato Volontari + campo libero
 elif cur == "Verbali":
-    hdr()
     hdr_form("VERBALI - Numero progressivo + PDF con logo PC ANA")
 
     if "verbali" not in st.session_state:
@@ -5022,7 +5035,6 @@ elif cur == "Verbali":
     excel_import_inline("verbali", "Verbali")
 
 elif cur == "Archivio Documenti":
-    hdr()
     hdr_form("ARCHIVIO DOCUMENTI - Salva PDF, Word, Excel ecc")
 
     st.markdown("""
@@ -5174,7 +5186,6 @@ elif cur == "Archivio Documenti":
     excel_import_inline("archivio_documenti", "Archivio Documenti")
 
 elif cur == "Backup":
-    hdr()
     hdr_form("BACKUP")
 
     FORM_KEYS = {
