@@ -3555,8 +3555,22 @@ elif cur == "Interventi Emergenza":
         except:
             data_val = date.today()
         data_int = st.date_input("Data Intervento", value=data_val, format="DD/MM/YYYY", key="int_data")
-        # ICONA DA LIBRERIA - Richiesta Ezio
-        icona_sel_label = st.selectbox("Icona da Libreria Icone", icone_options, index=0, key="int_icona", help="Scegli icona creata in Libreria Icone")
+        # ICONA DA LIBRERIA - Richiesta Ezio - FIX mantiene icona salvata in edit
+        # Trova index di default da edit_data_int
+        default_icon_idx = 0
+        if edit_mode_int and edit_data_int.get("IconaLabel"):
+            try:
+                if edit_data_int.get("IconaLabel") in icone_options:
+                    default_icon_idx = icone_options.index(edit_data_int.get("IconaLabel"))
+                elif edit_data_int.get("IconaNome"):
+                    # Cerca per nome
+                    for i, opt in enumerate(icone_options):
+                        if edit_data_int.get("IconaNome") in opt:
+                            default_icon_idx = i
+                            break
+            except:
+                default_icon_idx = 0
+        icona_sel_label = st.selectbox("Icona da Libreria Icone", icone_options, index=default_icon_idx, key="int_icona", help="Scegli icona creata in Libreria Icone")
         sel_ico_obj = icone_map.get(icona_sel_label)
 
     with c2:
@@ -3661,8 +3675,15 @@ elif cur == "Interventi Emergenza":
                 icona_msg_edit = f" {new_intervento.get('IconaEmoji','')} {new_intervento.get('IconaNome','')}"
                 if new_intervento.get("HasFile"):
                     icona_msg_edit += f" + file {new_intervento.get('FileName','')}"
-                st.success(f"Intervento aggiornato - {icona_msg_edit}")
+                st.success(f"Intervento aggiornato - {icona_msg_edit} - Torno a Tabella Emergenze")
                 st.balloons()
+                # FIX richiesta Ezio: dopo aggiornamento salva e torna su tabella emergenze
+                st.session_state.menu = "Tabella Emergenze"
+                if "menu_radio" in st.session_state:
+                    try:
+                        del st.session_state["menu_radio"]
+                    except:
+                        pass
                 st.rerun()
             else:
                 st.session_state.interventi.append(new_intervento)
