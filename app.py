@@ -1691,6 +1691,31 @@ def rimuovi_presenza(username):
 
 init_session()
 
+# FIX GLOBALE: Gestione click icona immagine come tasto - se ?edit_idx= presente, apri Interventi Emergenza
+try:
+    if "edit_idx" in st.query_params:
+        try:
+            idx_q = int(st.query_params.get("edit_idx"))
+            for k in [k for k in list(st.session_state.keys()) if k.startswith("int_") and k != "int_edit_index"]:
+                try:
+                    del st.session_state[k]
+                except:
+                    pass
+            st.session_state.int_edit_index = idx_q
+            st.session_state.menu = "Interventi Emergenza"
+            if "menu_radio" in st.session_state:
+                try:
+                    del st.session_state["menu_radio"]
+                except:
+                    pass
+            # Pulisci query param per non rimanere in loop
+            del st.query_params["edit_idx"]
+            st.rerun()
+        except Exception as e:
+            pass
+except Exception:
+    pass
+
 # PAGINA ENTRA - con footer fisso in basso Developed by Ezio F. 2026 Vers 1.0 - Logo cartoon
 if st.session_state.page == "entra":
     hdr()
@@ -3124,47 +3149,20 @@ elif cur == "Emergenze":
 
 # TABELLA EMERGENZE - FORM TABELLA - Richiesta Ezio - Formato tabella per vedere emergenze - FIX non vedo niente
 elif cur == "Tabella Emergenze":
-    hdr_form("TABELLA EMERGENZE - GRIGLIA INTERVENTI")
+    hdr_form("TABELLA EMERGENZE - GRIGLIA CAMPI IN RIGA")
 
     st.markdown("""
     <div style="background:#e3f2fd;padding:10px;border-radius:8px;border-left:4px solid #1976d2;margin-bottom:12px;">
-    <b>📋 Tabella Emergenze - Griglia con Icona Cliccabile come Tasto</b><br>
-    Clicca direttamente sull'immagine dell'icona per aprire Interventi Emergenza e aggiornare - Righe in griglia
+    <b>📋 Tabella Emergenze - Griglia: campi su una riga, ogni colonna è un campo - Icona è tasto</b><br>
+    Clicca direttamente sull'immagine/icona per aprire Interventi Emergenza e aggiornare
     </div>
     """, unsafe_allow_html=True)
 
-    # Gestione click su icona immagine via query param ?edit_idx=
-    try:
-        qp = st.query_params
-        if "edit_idx" in qp:
-            try:
-                idx_q = int(qp.get("edit_idx"))
-                # Pulisci chiavi int_ prima
-                for k in [k for k in list(st.session_state.keys()) if k.startswith("int_") and k != "int_edit_index"]:
-                    try:
-                        del st.session_state[k]
-                    except:
-                        pass
-                st.session_state.int_edit_index = idx_q
-                st.session_state.menu = "Interventi Emergenza"
-                if "menu_radio" in st.session_state:
-                    try:
-                        del st.session_state["menu_radio"]
-                    except:
-                        pass
-                # Pulisci query param
-                del st.query_params["edit_idx"]
-                st.rerun()
-            except Exception as e:
-                st.error(f"Errore apertura scheda: {e}")
-    except:
-        pass
-
-    st.info(f"Debug: {len(st.session_state.interventi)} interventi di emergenza - Clicca immagine icona per aggiornare")
+    st.info(f"Debug: {len(st.session_state.interventi)} interventi - Icona è tasto cliccabile")
 
     if not st.session_state.interventi:
-        st.warning("⚠️ Nessun intervento - Vai in Interventi Emergenza e crea con icona")
-        st.dataframe(pd.DataFrame(columns=["Icona","Tipo","Squadra","Data","Comune","Stato","Descrizione"]).head(), use_container_width=True)
+        st.warning("⚠️ Nessun intervento - Vai in Interventi Emergenza")
+        st.dataframe(pd.DataFrame(columns=["Icona","Tipo","Squadra","Data","Comune","Via","Stato","Descrizione"]).head(), use_container_width=True)
     else:
         df_tab_em = pd.DataFrame(st.session_state.interventi)
         
@@ -3176,13 +3174,13 @@ elif cur == "Tabella Emergenze":
 
         c1, c2, c3, c4 = st.columns(4)
         with c1:
-            filtro_sq_em = st.selectbox("Filtra Squadra", ["Tutte"] + squadre_list_em, key="tab_em_sq_int_grid")
+            filtro_sq_em = st.selectbox("Filtra Squadra", ["Tutte"] + squadre_list_em, key="tab_em_sq_grid2")
         with c2:
-            filtro_com_em = st.selectbox("Filtra Comune", ["Tutti"] + comuni_list_em, key="tab_em_com_int_grid")
+            filtro_com_em = st.selectbox("Filtra Comune", ["Tutti"] + comuni_list_em, key="tab_em_com_grid2")
         with c3:
-            filtro_stato_em = st.selectbox("Filtra Stato", ["Tutti"] + stati_list_em, key="tab_em_stato_int_grid")
+            filtro_stato_em = st.selectbox("Filtra Stato", ["Tutti"] + stati_list_em, key="tab_em_stato_grid2")
         with c4:
-            filtro_tipo_em = st.selectbox("Filtra Tipo", ["Tutti"] + tipi_list_em, key="tab_em_tipo_int_grid")
+            filtro_tipo_em = st.selectbox("Filtra Tipo", ["Tutti"] + tipi_list_em, key="tab_em_tipo_grid2")
 
         df_filtrato_em = df_tab_em.copy()
         if filtro_sq_em != "Tutte" and "Squadra" in df_filtrato_em.columns:
@@ -3194,70 +3192,46 @@ elif cur == "Tabella Emergenze":
         if filtro_tipo_em != "Tutti" and "Tipo" in df_filtrato_em.columns:
             df_filtrato_em = df_filtrato_em[df_filtrato_em["Tipo"] == filtro_tipo_em]
 
-        st.write(f"**Risultati: {len(df_filtrato_em)} su {len(df_tab_em)} - Griglia 3 colonne - Clicca immagine per aggiornare**")
+        st.write(f"**Risultati: {len(df_filtrato_em)} su {len(df_tab_em)} - Griglia con campi in riga**")
 
-        # GRIGLIA - Richiesta Ezio: righe in griglia
-        # 3 colonne per griglia
-        num_cols = 3
-        rows = list(df_filtrato_em.iterrows())
-        for i in range(0, len(rows), num_cols):
-            cols = st.columns(num_cols)
-            for j in range(num_cols):
-                if i+j >= len(rows):
-                    break
-                idx_orig, row = rows[i+j]
-                with cols[j]:
-                    # Card con bordo
-                    emoji = row.get("IconaEmoji", "📍")
-                    nome_ico = row.get("IconaNome", "")
-                    has_file = row.get("HasFile", False)
-                    file_bytes = row.get("FileBytes", None)
-                    tipo = row.get("Tipo","")
-                    squadra = row.get("Squadra","")
-                    comune = row.get("Comune","")
-                    via = row.get("Via","")
-                    data = row.get("Data","")
-                    ora = row.get("Ora","")
-                    stato = row.get("Stato","")
-                    desc = str(row.get("Descrizione",""))[:80]
-                    bg = row.get("StatoColoreBg", "#e8f5e9")
-                    txt_c = row.get("StatoColoreTxt", "black")
+        # HEADER griglia - campi su una riga, ogni colonna è un campo
+        h_cols = st.columns([0.8, 1, 1, 1, 1.2, 1.2, 1, 2])
+        with h_cols[0]: st.markdown("**ICONA (tasto)**")
+        with h_cols[1]: st.markdown("**Tipo**")
+        with h_cols[2]: st.markdown("**Squadra**")
+        with h_cols[3]: st.markdown("**Data/Ora**")
+        with h_cols[4]: st.markdown("**Comune**")
+        with h_cols[5]: st.markdown("**Via**")
+        with h_cols[6]: st.markdown("**Stato**")
+        with h_cols[7]: st.markdown("**Descrizione**")
+        st.divider()
 
-                    # Icona come tasto - immagine cliccabile
-                    if has_file and file_bytes:
-                        try:
-                            b64 = base64.b64encode(file_bytes).decode()
-                            # Immagine cliccabile che va a ?edit_idx=
-                            html_icon = f"""
-                            <a href="?edit_idx={int(idx_orig)}" target="_self" style="text-decoration:none;">
-                                <img src="data:image/png;base64,{b64}" width="80" height="80" 
-                                style="border:3px solid #1A5D1A;border-radius:12px;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,0.2);object-fit:contain;background:white;padding:4px;"
-                                title="Clicca immagine per aprire Interventi Emergenza e aggiornare - {nome_ico}">
-                            </a>
-                            <div style="text-align:center;font-size:11px;font-weight:bold;margin-top:4px;">{nome_ico[:14]}</div>
-                            <div style="text-align:center;font-size:10px;color:green;">👆 Clicca immagine</div>
-                            """
-                            st.markdown(html_icon, unsafe_allow_html=True)
-                        except Exception as e:
-                            # Fallback emoji come tasto
-                            if st.button(f"{emoji} {nome_ico[:10]}", key=f"grid_icon_btn_{idx_orig}", help="Clicca per aprire Interventi Emergenza", use_container_width=True):
-                                for k in [k for k in list(st.session_state.keys()) if k.startswith("int_") and k != "int_edit_index"]:
-                                    try:
-                                        del st.session_state[k]
-                                    except:
-                                        pass
-                                st.session_state.int_edit_index = int(idx_orig)
-                                st.session_state.menu = "Interventi Emergenza"
-                                if "menu_radio" in st.session_state:
-                                    try:
-                                        del st.session_state["menu_radio"]
-                                    except:
-                                        pass
-                                st.rerun()
-                    else:
-                        # Emoji come tasto grande
-                        safe_emoji = emoji if emoji and emoji.strip() else "📍"
-                        if st.button(f"{safe_emoji}\n{nome_ico[:12]}", key=f"grid_emoji_btn_{idx_orig}", help=f"Clicca icona {nome_ico} per aggiornare", use_container_width=True):
+        # RIGHE griglia - ogni riga è un intervento, campi in colonna
+        for idx_orig, row in df_filtrato_em.iterrows():
+            r_cols = st.columns([0.8, 1, 1, 1, 1.2, 1.2, 1, 2])
+            emoji = row.get("IconaEmoji", "📍")
+            nome_ico = row.get("IconaNome", "")
+            has_file = row.get("HasFile", False)
+            file_bytes = row.get("FileBytes", None)
+
+            with r_cols[0]:
+                # ICONA COME TASTO - clicca immagine per aprire Interventi Emergenza
+                if has_file and file_bytes:
+                    try:
+                        b64 = base64.b64encode(file_bytes).decode()
+                        # Icona immagine cliccabile come tasto - link con query param
+                        html_btn = f"""
+                        <a href="?edit_idx={int(idx_orig)}" target="_self" style="text-decoration:none;display:block;text-align:center;">
+                            <img src="data:image/png;base64,{b64}" width="50" height="50" 
+                            style="border:2px solid #1A5D1A;border-radius:8px;cursor:pointer;object-fit:contain;background:white;padding:2px;"
+                            title="Clicca per aggiornare - {nome_ico}">
+                            <div style="font-size:10px;color:#1A5D1A;font-weight:bold;">{nome_ico[:10]}</div>
+                        </a>
+                        """
+                        st.markdown(html_btn, unsafe_allow_html=True)
+                    except:
+                        # Fallback bottone con emoji che è tasto
+                        if st.button(f"{emoji}", key=f"icon_btn_{idx_orig}", help=f"Clicca per aggiornare {nome_ico}"):
                             for k in [k for k in list(st.session_state.keys()) if k.startswith("int_") and k != "int_edit_index"]:
                                 try:
                                     del st.session_state[k]
@@ -3271,21 +3245,9 @@ elif cur == "Tabella Emergenze":
                                 except:
                                     pass
                             st.rerun()
-                        st.caption("👆 Clicca icona per aggiornare")
-
-                    # Dati sotto icona - griglia
-                    st.markdown(f"""
-                    <div style="background:white;border:1px solid #ccc;border-radius:8px;padding:8px;margin-top:6px;">
-                    <b>{tipo}</b> - {squadra}<br>
-                    <small>{data} {ora}</small><br>
-                    <small><b>{comune}</b> {via}</small><br>
-                    <span style="background:{bg};color:{txt_c};padding:2px 6px;border-radius:8px;font-size:10px;font-weight:bold;border:1px solid black;">{stato}</span><br>
-                    <small>{desc}</small>
-                    </div>
-                    """, unsafe_allow_html=True)
-
-                    # Tasto Vedi scheda alternativo sotto
-                    if st.button("Vedi scheda", key=f"grid_vedi_{idx_orig}", use_container_width=True):
+                else:
+                    # Emoji come tasto
+                    if st.button(f"{emoji}\n{nome_ico[:8]}", key=f"emoji_btn_{idx_orig}", help=f"Clicca icona {nome_ico} per aggiornare", use_container_width=True):
                         for k in [k for k in list(st.session_state.keys()) if k.startswith("int_") and k != "int_edit_index"]:
                             try:
                                 del st.session_state[k]
@@ -3300,6 +3262,25 @@ elif cur == "Tabella Emergenze":
                                 pass
                         st.rerun()
 
+            with r_cols[1]:
+                st.write(row.get("Tipo",""))
+            with r_cols[2]:
+                st.write(row.get("Squadra",""))
+            with r_cols[3]:
+                st.write(f"{row.get('Data','')[:10]} {row.get('Ora','')[:5]}")
+            with r_cols[4]:
+                st.write(row.get("Comune",""))
+            with r_cols[5]:
+                st.write(row.get("Via","")[:20])
+            with r_cols[6]:
+                bg = row.get("StatoColoreBg", "#e8f5e9")
+                txt_c = row.get("StatoColoreTxt", "black")
+                st.markdown(f"<span style='background:{bg};color:{txt_c};padding:2px 6px;border-radius:8px;font-size:10px;font-weight:bold;border:1px solid black;'>{row.get('Stato','')}</span>", unsafe_allow_html=True)
+            with r_cols[7]:
+                st.write(str(row.get("Descrizione",""))[:80])
+
+            st.divider()
+
         # Export
         st.divider()
         cols_to_remove_em = ["StatoColoreBg", "StatoColoreTxt", "IconaLabel", "IconaNome", "IconaColore", "IconaTipo", "IconaEmoji", "FileBytes", "FileName", "HasFile"]
@@ -3309,17 +3290,13 @@ elif cur == "Tabella Emergenze":
                 df_export_em = df_export_em.drop(columns=[col])
         c_exp1, c_exp2 = st.columns(2)
         with c_exp1:
-            st.download_button("Excel Griglia", data=to_excel(df_export_em), file_name="tabella_emergenze_griglia.xlsx", use_container_width=True, key="exp_tab_em_int_grid")
+            st.download_button("Excel Griglia", data=to_excel(df_export_em), file_name="tabella_emergenze_griglia.xlsx", use_container_width=True, key="exp_tab_em_grid2")
         with c_exp2:
             if REPORTLAB_OK:
-                st.download_button("PDF Griglia", data=to_pdf(df_export_em, "TABELLA EMERGENZE - GRIGLIA"), file_name="tabella_emergenze_griglia.pdf", use_container_width=True, key="pdf_tab_em_int_grid")
-
-        if st.session_state.emergenze:
-            st.divider()
-            st.markdown("#### Emergenze classiche")
-            st.dataframe(pd.DataFrame(st.session_state.emergenze), use_container_width=True)
+                st.download_button("PDF Griglia", data=to_pdf(df_export_em, "TABELLA EMERGENZE - GRIGLIA"), file_name="tabella_emergenze_griglia.pdf", use_container_width=True, key="pdf_tab_em_grid2")
 
     excel_import_inline("interventi", "Tabella Emergenze - Griglia")
+
 
 
 
