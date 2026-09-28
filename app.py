@@ -851,7 +851,7 @@ def to_excel(df):
     Esporta DataFrame in Excel - FIX Office 2016 100% compatibile - Ezio
     Usa openpyxl, compatibile Office 2016/2019/365 - MAI CSV travestito
     """
-    buf = BytesIO()
+    buf = io.BytesIO()
     df_copy = df.copy()
 
     cols_to_exclude = [
@@ -874,7 +874,7 @@ def to_excel(df):
     last_error = ""
     for engine_try in ["openpyxl", "xlsxwriter"]:
         try:
-            buf = BytesIO()
+            buf = io.BytesIO()
             # FIX: NON saltare per OPENPYXL_OK - prova sempre!
             with pd.ExcelWriter(buf, engine=engine_try) as writer:
                 df_copy.to_excel(writer, index=False, sheet_name="Dati")
@@ -892,7 +892,7 @@ def to_excel(df):
     # Ultimo tentativo: forza openpyxl diretto - FIX CLOUD
     try:
         import openpyxl
-        buf = BytesIO()
+        buf = io.BytesIO()
         with pd.ExcelWriter(buf, engine="openpyxl") as writer:
             df_copy.to_excel(writer, index=False, sheet_name="Dati")
         buf.seek(0)
@@ -923,7 +923,7 @@ def to_excel(df):
                         ws.cell(row=r_idx, column=c_idx, value=str(val)[:30000])
                     except:
                         ws.cell(row=r_idx, column=c_idx, value="")
-        buf = BytesIO()
+        buf = io.BytesIO()
         wb.save(buf)
         buf.seek(0)
         data = buf.getvalue()
@@ -944,7 +944,7 @@ def to_excel(df):
             if not df_copy.empty:
                 for c_idx, col_name in enumerate(df_copy.columns, 2):
                     ws.cell(row=1, column=c_idx, value=str(col_name))
-            buf = BytesIO()
+            buf = io.BytesIO()
             wb.save(buf)
             buf.seek(0)
             return buf.getvalue()
@@ -972,7 +972,7 @@ def to_excel(df):
                                 ws.cell(row=r_idx, column=c_idx, value=str(val)[:30000])
                             except:
                                 ws.cell(row=r_idx, column=c_idx, value="")
-                buf = BytesIO()
+                buf = io.BytesIO()
                 wb.save(buf)
                 buf.seek(0)
                 data = buf.getvalue()
@@ -999,7 +999,7 @@ def to_excel(df):
                                 ws.cell(row=r_idx, column=c_idx+1, value=str(val)[:32000])
                             except:
                                 pass
-                buf = BytesIO()
+                buf = io.BytesIO()
                 wb.save(buf)
                 buf.seek(0)
                 return buf.getvalue()
@@ -1008,7 +1008,7 @@ def to_excel(df):
                 try:
                     import openpyxl
                     wb = openpyxl.Workbook()
-                    buf = BytesIO()
+                    buf = io.BytesIO()
                     wb.save(buf)
                     buf.seek(0)
                     return buf.getvalue()
@@ -1016,7 +1016,7 @@ def to_excel(df):
                     # Fallback finale: crea file XLSX minimo con zip - non CSV!
                     import openpyxl
                     wb = openpyxl.Workbook()
-                    buf = BytesIO()
+                    buf = io.BytesIO()
                     wb.save(buf)
                     buf.seek(0)
                     return buf.getvalue()
@@ -1026,7 +1026,7 @@ def to_excel_multi(datasets):
     """
     datasets = dict nome_sheet -> df - FIX Win7 - NON CRASHA CLOUD
     """
-    buf = BytesIO()
+    buf = io.BytesIO()
     try:
         engine = "openpyxl" if OPENPYXL_OK else ("xlsxwriter" if XLSXWRITER_OK else "openpyxl")
         with pd.ExcelWriter(buf, engine=engine) as writer:
@@ -1052,7 +1052,7 @@ def to_excel_multi(datasets):
                 # Crea xlsx valido vuoto
                 import openpyxl
                 wb = openpyxl.Workbook()
-                buf = BytesIO()
+                buf = io.BytesIO()
                 wb.save(buf)
                 buf.seek(0)
                 return buf.getvalue()
@@ -1060,7 +1060,7 @@ def to_excel_multi(datasets):
             try:
                 import openpyxl
                 wb = openpyxl.Workbook()
-                buf = BytesIO()
+                buf = io.BytesIO()
                 wb.save(buf)
                 buf.seek(0)
                 return buf.getvalue()
@@ -1113,7 +1113,7 @@ def excel_import_inline(form_key, form_label):
                                 for c_idx, val in enumerate(row, 1):
                                     ws.cell(row=r_idx, column=c_idx, value=str(val)[:32000])
                             from io import BytesIO
-                            buf = BytesIO()
+                            buf = io.BytesIO()
                             wb.save(buf)
                             buf.seek(0)
                             st.download_button(
@@ -1328,21 +1328,19 @@ def to_pdf(df, tit):
             from reportlab.lib.units import cm
             REPORTLAB_OK = True
         except Exception as e:
-            # Ritorna PDF minimo con errore ma con header PDF valido
+            # Ritorna PDF minimo con errore ma con header PDF valido - FIX UnboundLocalError: usa io.BytesIO globale
             try:
-                from io import BytesIO
-                buf = BytesIO()
-                # Crea PDF minimo con reportlab se possibile, altrimenti testo
-                buf.write(f"%PDF-1.4\n% Reportlab non installato - {tit} - {e}\n".encode('utf-8'))
-                buf.seek(0)
-                return buf.getvalue()
+                buf_tmp = io.BytesIO()
+                buf_tmp.write(f"%PDF-1.4\n% Reportlab non installato - {tit} - {e}\n".encode('utf-8'))
+                buf_tmp.seek(0)
+                return buf_tmp.getvalue()
             except:
-                buf_err = BytesIO()
+                buf_err = io.BytesIO()
                 buf_err.write(f"%PDF-1.4 Reportlab non installato - {tit}".encode("utf-8"))
                 buf_err.seek(0)
                 return buf_err.getvalue()
 
-    buf = BytesIO()
+    buf = io.BytesIO()
     try:
         doc = SimpleDocTemplate(
             buf,
@@ -2633,7 +2631,7 @@ elif cur == "Volontari (con foto)":
                                 except:
                                     ws.cell(row=r_idx, column=c_idx, value="")
                         from io import BytesIO
-                        buf = BytesIO()
+                        buf = io.BytesIO()
                         wb.save(buf)
                         buf.seek(0)
                         st.download_button(
@@ -4880,7 +4878,7 @@ elif cur == "Verbali":
             ultimo = st.session_state.verbali[-1]
             try:
                 def verbale_to_pdf_logo(verb):
-                    buf = BytesIO()
+                    buf = io.BytesIO()
                     try:
                         from reportlab.lib.pagesizes import A4
                         from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, Image
