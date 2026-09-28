@@ -1,24 +1,7 @@
 import streamlit as st
 
-# FIX EMOJI QUADRATINI - Ezio - Aggiunge font emoji compatibili per Streamlit Cloud
-try:
-    st.markdown("""
-    <style>
-    /* Fix emoji quadratini - forza font emoji su Streamlit Cloud */
-    html, body, div, span, p, h1, h2, h3, h4, button {
-        font-family: "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", "Segoe UI Symbol", "Android Emoji", "EmojiSymbols", sans-serif !important;
-    }
-    /* Forza emoji grandi visibili */
-    .emoji-fix {
-        font-family: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji" !important;
-        font-size: 32px !important;
-        line-height: 1.2 !important;
-    }
-    </style>
-    """, unsafe_allow_html=True)
-except:
-    pass
-
+# FIX QUADRATINI - Usa icone testuali sicure invece di emoji problematici
+# Niente CSS forzato - lascia browser usare emoji nativi
 
 import pandas as pd
 import os
@@ -789,6 +772,18 @@ def get_vie(comune):
     pref = "Via " + comune
     custom = [pref + " Centro", pref + " Nord", pref + " Sud"]
     return VIE_STANDARD + custom
+
+
+
+def emoji_sicura(emoji_char, fallback_text="📍"):
+    """Ritorna emoji se valida, altrimenti fallback testo - evita quadratini"""
+    if not emoji_char or emoji_char in ["□", "☐", "�", ""]:
+        return fallback_text
+    # Lista emoji sicure 100% compatibili su Streamlit Cloud
+    sicure = ["🚨", "📅", "🚐", "👤", "🏥", "🔥", "💧", "📻", "📍", "✅", "❌", "⚠️", "💾", "📋", "🗑️", "🔄", "🗺️"]
+    if emoji_char in sicure or len(emoji_char) <= 2:
+        return emoji_char
+    return fallback_text
 
 
 def combo_comune(label, key, default=""):
@@ -3212,12 +3207,11 @@ elif cur == "Tabella Emergenze":
                         except:
                             st.markdown(f"<div style='font-size:28px;text-align:center;'>{emoji}</div>", unsafe_allow_html=True)
                     else:
-                        # Fix quadratino: se emoji è vuoto o quadratino, mostra nome icona o icona sicura
-                        safe_emoji = emoji if emoji and emoji.strip() and len(emoji) < 5 else "📍"
-                        # Usa emoji sicuri universali
-                        if safe_emoji in ["□", "☐", ""]:
-                            safe_emoji = "📍"
-                        st.markdown(f"<div style='font-size:28px;text-align:center;background:white;border:1px solid #1A5D1A;border-radius:6px;padding:4px;font-family:Segoe UI Emoji,Apple Color Emoji,Noto Color Emoji,sans-serif;'>{safe_emoji}</div>", unsafe_allow_html=True)
+                        # Fix quadratino: mostra emoji o nome - evita quadrato
+                        safe_emoji = emoji if emoji and emoji.strip() else "📍"
+                        if safe_emoji in ["□", "☐", "", "�"]:
+                            safe_emoji = nome_ico[:3].upper() if nome_ico else "📍"
+                        st.markdown(f"<div style='font-size:24px;text-align:center;background:white;border:1px solid #1A5D1A;border-radius:6px;padding:6px;'>{safe_emoji}</div>", unsafe_allow_html=True)
                     if nome_ico:
                         st.caption(nome_ico[:12])
                     # Clicca icona per aprire Interventi Emergenza - come richiesto
@@ -3574,8 +3568,9 @@ elif cur == "Interventi Emergenza":
         sel_ico_obj = icone_map.get(icona_sel_label)
 
     with c2:
-        comune_int = combo_comune("Comune Intervento", "int_comune", "Varese")
-        via_int = combo_vie("Via Intervento", comune_int, "int_via", "")
+        # FIX: usa comune_def_int e via_def_int da edit per mantenere valore salvato - altrimenti aggiorna con Varese
+        comune_int = combo_comune("Comune Intervento", "int_comune", comune_def_int)
+        via_int = combo_vie("Via Intervento", comune_int, "int_via", via_def_int)
         ora_int = st.time_input("Ora Intervento", value=datetime.now().time(), key="int_ora")
         # Anteprima icona scelta - richiesta Ezio: vedere in anteprima icona scelte - FIX più grande e visibile
         st.markdown("**🔍 Anteprima Icona Scelta**")
@@ -3587,7 +3582,7 @@ elif cur == "Interventi Emergenza":
                 except:
                     st.markdown(f"""
                     <div style="background:white;padding:12px;border-radius:10px;border:3px solid #1A5D1A;text-align:center;margin-top:8px;box-shadow:0 2px 8px rgba(0,0,0,0.2);">
-                    <div style="font-size:48px;font-family:'Segoe UI Emoji','Apple Color Emoji','Noto Color Emoji',sans-serif;">{sel_ico_obj.get('Emoji','📍')}</div>
+                    <div style="font-size:48px;">{sel_ico_obj.get('Emoji','📍')}</div>
                     <b style="font-size:16px;">{sel_ico_obj.get('Nome','')}</b><br>
                     <small style="color:#1A5D1A;">{sel_ico_obj.get('Tipo','')} - {sel_ico_obj.get('Colore','')}</small><br>
                     <small>{sel_ico_obj.get('Descrizione','')}</small>
@@ -3596,7 +3591,7 @@ elif cur == "Interventi Emergenza":
             else:
                 st.markdown(f"""
                 <div style="background:white;padding:12px;border-radius:10px;border:3px solid #1A5D1A;text-align:center;margin-top:8px;box-shadow:0 2px 8px rgba(0,0,0,0.2);">
-                <div style="font-size:48px;font-family:'Segoe UI Emoji','Apple Color Emoji','Noto Color Emoji',sans-serif;">{sel_ico_obj.get('Emoji','📍')}</div>
+                <div style="font-size:48px;">{sel_ico_obj.get('Emoji','📍')}</div>
                 <b style="font-size:16px;">{sel_ico_obj.get('Nome','')}</b><br>
                 <small style="color:#1A5D1A;font-weight:bold;">{sel_ico_obj.get('Tipo','')} - {sel_ico_obj.get('Colore','')}</small><br>
                 <small>{sel_ico_obj.get('Descrizione','')}</small>
@@ -3607,7 +3602,7 @@ elif cur == "Interventi Emergenza":
             st.info("Nessuna icona selezionata - Vai in Libreria Icone per crearne")
             st.markdown("""
             <div style="background:#fff3e0;padding:10px;border-radius:8px;border:2px dashed #ff9800;text-align:center;">
-            <div style="font-size:32px;font-family:'Segoe UI Emoji','Apple Color Emoji','Noto Color Emoji',sans-serif;">❓</div>
+            <div style="font-size:32px;">❓</div>
             <small>Seleziona icona sopra per vedere anteprima</small>
             </div>
             """, unsafe_allow_html=True)
@@ -3861,17 +3856,20 @@ elif cur == "Tabella Interventi Emergenza":
                     except:
                         st.markdown(f"<div style='font-size:28px;text-align:center;'>{emoji}</div>", unsafe_allow_html=True)
                     else:
-                        # Fix quadratino: se emoji è vuoto o quadratino, mostra nome icona o icona sicura
-                        safe_emoji = emoji if emoji and emoji.strip() and len(emoji) < 5 else "📍"
-                        # Usa emoji sicuri universali
-                        if safe_emoji in ["□", "☐", ""]:
-                            safe_emoji = "📍"
-                        st.markdown(f"<div style='font-size:28px;text-align:center;background:white;border:1px solid #1A5D1A;border-radius:6px;padding:4px;font-family:Segoe UI Emoji,Apple Color Emoji,Noto Color Emoji,sans-serif;'>{safe_emoji}</div>", unsafe_allow_html=True)
+                        # Fix quadratino: mostra emoji se valida, altrimenti mostra nome icona come testo grande - evita quadratini
+                        safe_emoji = emoji if emoji and emoji.strip() else "📍"
+                        if safe_emoji in ["□", "☐", "", "�"]:
+                            safe_emoji = nome_ico[:3].upper() if nome_ico else "📍"
+                        # Usa st.markdown semplice senza font-family forzato - browser usa emoji nativo
+                        try:
+                            st.markdown(f"<div style='font-size:24px;text-align:center;background:white;border:1px solid #1A5D1A;border-radius:6px;padding:6px;'>{safe_emoji}</div>", unsafe_allow_html=True)
+                        except:
+                            st.write(safe_emoji)
                 if nome_ico:
                     st.caption(nome_ico[:12])
                 # CLICCA SULL'ICONA - non penna - richiesta Ezio
                 # Bottone con icona stessa come label - clicca icona per aprire scheda in Interventi Emergenza
-                label_btn = f"{emoji} Apri" if emoji else "📍 Apri"
+                label_btn = "Apri scheda"
                 if st.button(label_btn, key=f"edit_int_icon_{idx_orig}", help=f"Clicca sull'icona {nome_ico} per aprire scheda in Interventi Emergenza", use_container_width=True):
                     # Salva indice PRIMA di pulire
                     idx_to_edit = int(idx_orig)
@@ -4707,23 +4705,23 @@ elif cur == "Libreria Icone":
                     st.image(file_bytes, caption=f"Anteprima file: {file_icona.name}", width=120)
                     st.success(f"File caricato: {file_icona.name} - {len(file_bytes)} bytes")
                 else:
-                    st.markdown(f"<div style='font-size:40px;text-align:center;font-family:'Segoe UI Emoji','Apple Color Emoji','Noto Color Emoji',sans-serif;background:white;padding:10px;border-radius:8px;border:2px solid #1A5D1A;'>{preview_emoji}</div>", unsafe_allow_html=True)
+                    st.markdown(f"<div style='font-size:40px;text-align:center;background:white;padding:10px;border-radius:8px;border:2px solid #1A5D1A;'>{preview_emoji}</div>", unsafe_allow_html=True)
                     st.caption(f"File: {file_icona.name}")
                 # Salva temporaneo per preview
                 st.session_state["ico_file_bytes"] = file_bytes
                 st.session_state["ico_file_name"] = file_icona.name
             except Exception as e:
                 st.error(f"Errore anteprima file: {e}")
-                st.markdown(f"<div style='font-size:40px;text-align:center;font-family:'Segoe UI Emoji','Apple Color Emoji','Noto Color Emoji',sans-serif;background:white;padding:10px;border-radius:8px;border:2px solid #1A5D1A;'>{preview_emoji}</div>", unsafe_allow_html=True)
+                st.markdown(f"<div style='font-size:40px;text-align:center;background:white;padding:10px;border-radius:8px;border:2px solid #1A5D1A;'>{preview_emoji}</div>", unsafe_allow_html=True)
         else:
             # Se esiste file precedente in session
             if "ico_file_bytes" in st.session_state:
                 try:
                     st.image(st.session_state["ico_file_bytes"], caption=f"Anteprima file: {st.session_state.get('ico_file_name','')}", width=120)
                 except:
-                    st.markdown(f"<div style='font-size:40px;text-align:center;font-family:'Segoe UI Emoji','Apple Color Emoji','Noto Color Emoji',sans-serif;background:white;padding:10px;border-radius:8px;border:2px solid #1A5D1A;'>{preview_emoji}</div>", unsafe_allow_html=True)
+                    st.markdown(f"<div style='font-size:40px;text-align:center;background:white;padding:10px;border-radius:8px;border:2px solid #1A5D1A;'>{preview_emoji}</div>", unsafe_allow_html=True)
             else:
-                st.markdown(f"<div style='font-size:40px;text-align:center;font-family:'Segoe UI Emoji','Apple Color Emoji','Noto Color Emoji',sans-serif;background:white;padding:10px;border-radius:8px;border:2px solid #1A5D1A;'>{preview_emoji}</div>", unsafe_allow_html=True)
+                st.markdown(f"<div style='font-size:40px;text-align:center;background:white;padding:10px;border-radius:8px;border:2px solid #1A5D1A;'>{preview_emoji}</div>", unsafe_allow_html=True)
                 st.caption(f"Emoji: {preview_emoji} - Colore: {st.session_state.get('ico_colore','red')}")
 
     if st.button("💾 Salva Icona in Libreria", type="primary", use_container_width=True):
@@ -4782,7 +4780,7 @@ elif cur == "Libreria Icone":
                     except:
                         st.markdown(f"""
                         <div style="background:white;padding:8px;border-radius:8px;border:2px solid #1A5D1A;text-align:center;margin-bottom:8px;">
-                        <div style="font-size:32px;font-family:'Segoe UI Emoji','Apple Color Emoji','Noto Color Emoji',sans-serif;">{ico.get('Emoji','📍')}</div>
+                        <div style="font-size:32px;">{ico.get('Emoji','📍')}</div>
                         <b>{ico.get('Nome','')}</b><br>
                         <small>{ico.get('Tipo','')} - {ico.get('Colore','')}</small><br>
                         <small>{ico.get('Descrizione','')}</small>
@@ -4791,7 +4789,7 @@ elif cur == "Libreria Icone":
                 else:
                     st.markdown(f"""
                     <div style="background:white;padding:8px;border-radius:8px;border:2px solid #1A5D1A;text-align:center;margin-bottom:8px;">
-                    <div style="font-size:32px;font-family:'Segoe UI Emoji','Apple Color Emoji','Noto Color Emoji',sans-serif;">{ico.get('Emoji','📍')}</div>
+                    <div style="font-size:32px;">{ico.get('Emoji','📍')}</div>
                     <b>{ico.get('Nome','')}</b><br>
                     <small>{ico.get('Tipo','')} - {ico.get('Colore','')}</small><br>
                     <small>{ico.get('Descrizione','')}</small>
