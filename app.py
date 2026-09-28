@@ -3106,7 +3106,7 @@ elif cur == "Emergenze":
     excel_import_inline("emergenze", "Emergenze")
 
 
-# TABELLA EMERGENZE - FORM TABELLA - Richiesta Ezio - Formato tabella per vedere emergenze
+# TABELLA EMERGENZE - FORM TABELLA - Richiesta Ezio - Formato tabella per vedere emergenze - FIX non vedo niente
 elif cur == "Tabella Emergenze":
     hdr_form("ELENCO EMERGENZE")
     
@@ -3117,16 +3117,24 @@ elif cur == "Tabella Emergenze":
     </div>
     """, unsafe_allow_html=True)
 
+    # Debug - mostra sempre quante emergenze ci sono - richiesta Ezio: non vedo niente
+    st.info(f"Debug Tabella Emergenze: {len(st.session_state.emergenze)} emergenze in memoria - Se 0, vai in Emergenze e creane una")
+
     if not st.session_state.emergenze:
-        pass  # istruzione rimossa
+        st.warning("⚠️ Nessuna emergenza in memoria - Crea emergenza in form Emergenze")
         st.markdown("""
         <div style="background:#e8f5e9;padding:12px;border-radius:8px;text-align:center;">
         <b>Come creare emergenza:</b><br>
-        1. Vai in <b>Emergenze</b><br>
-        2. Compila Nome, Tipo, Comune, Via, Priorità, Stato<br>
-        3. Salva - Apparirà qui in tabella
+        1. Vai in <b>Emergenze</b> dal menu a sinistra<br>
+        2. Compila Nome *, Tipo, Comune, Via, Priorità, Stato<br>
+        3. Clicca Salva Emergenza<br>
+        4. Torna qui in Tabella Emergenze - Apparirà in tabella<br><br>
+        <b>Nota:</b> Se hai fatto Reboot su Streamlit Cloud, i dati in memoria si azzerano - usa Import Excel per ricaricare
         </div>
         """, unsafe_allow_html=True)
+        # Mostra comunque tabella vuota per debug
+        st.markdown("#### Tabella vuota - esempio colonne")
+        st.dataframe(pd.DataFrame(columns=["Nome","Tipo","Data","Comune","Via","Priorita","Stato","Coordinate","Note"]).head(), use_container_width=True)
     else:
         df_em = pd.DataFrame(st.session_state.emergenze)
         
@@ -3569,21 +3577,25 @@ elif cur == "Interventi Emergenza":
                 st.session_state.interventi[st.session_state.int_edit_index] = new_intervento
                 st.session_state.int_edit_index = None
                 for k in list(st.session_state.keys()):
-                    if k.startswith("int_"):
+                    if k.startswith("int_") and k != "int_edit_index":
                         try:
                             del st.session_state[k]
                         except:
                             pass
-                st.success(f"Intervento aggiornato - {new_intervento.get('IconaEmoji','')} {new_intervento.get('IconaNome','')}")
+                icona_msg_edit = f" {new_intervento.get('IconaEmoji','')} {new_intervento.get('IconaNome','')}"
+                if new_intervento.get("HasFile"):
+                    icona_msg_edit += f" + file {new_intervento.get('FileName','')}"
+                st.success(f"Intervento aggiornato - {icona_msg_edit}")
+                st.balloons()
+                st.rerun()
             else:
                 st.session_state.interventi.append(new_intervento)
                 icona_msg = f" con icona {sel_ico_obj.get('Emoji','')} {sel_ico_obj.get('Nome','')}" if sel_ico_obj else ""
-            # Debug per verificare salvataggio immagine
-            if new_intervento.get("HasFile"):
-                icona_msg += f" + file {new_intervento.get('FileName','')}"
-            st.success(f"Intervento salvato con stato {label} colorato {bg_color}{icona_msg}")
-            st.balloons()
-            st.rerun()
+                if new_intervento.get("HasFile"):
+                    icona_msg += f" + file {new_intervento.get('FileName','')}"
+                st.success(f"Intervento salvato con stato {label} colorato {bg_color}{icona_msg}")
+                st.balloons()
+                st.rerun()
         else:
             st.error("Compila Descrizione Intervento *")
 
@@ -3748,7 +3760,7 @@ elif cur == "Tabella Interventi Emergenza":
                     st.session_state.int_edit_index = idx_to_edit
                     # Forza cambio menu - sia menu che menu_radio
                     st.session_state.menu = "Interventi Emergenza"
-                    st.session_state["menu_radio"] = "Interventi Emergenza"
+                    # st.session_state["menu_radio"] rimosso - causa StreamlitWidgetAlreadyInstantiatedError
                     st.session_state["scroll_top"] = True
                     st.rerun()
             with c2:
@@ -3775,7 +3787,7 @@ elif cur == "Tabella Interventi Emergenza":
                             pass
                     st.session_state.int_edit_index = idx_to_edit
                     st.session_state.menu = "Interventi Emergenza"
-                    st.session_state["menu_radio"] = "Interventi Emergenza"
+                    st.session_state["scroll_top"] = True
                     st.rerun()
             st.divider()
         
