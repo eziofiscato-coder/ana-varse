@@ -1518,19 +1518,28 @@ def hdr():
 
 def hdr_form(t):
     """
-    h2 Times New Roman bold black
+    h2 Times New Roman bold black - spostato in alto per recuperare spazio ex loghi
     """
     st.markdown(
         f"""
         <h2 style="font-family:Times New Roman;
         font-weight:bold;color:black;
         border-bottom:3px solid #1A5D1A;
-        padding-bottom:8px;margin-top:16px;">
+        padding-bottom:4px;margin-top:0px;margin-bottom:8px;font-size:22px;">
         {t}
         </h2>
         """,
         unsafe_allow_html=True
     )
+    # CSS per recuperare spazio in alto su tutti i form - maschere in alto
+    st.markdown("""
+    <style>
+    .block-container { padding-top: 0.5rem !important; margin-top: 0rem !important; }
+    [data-testid="stVerticalBlock"] { gap: 0.5rem !important; }
+    .stApp { margin-top: 0px !important; padding-top: 0px !important; }
+    header[data-testid="stHeader"] { height: 0 !important; }
+    </style>
+    """, unsafe_allow_html=True)
 
 
 
@@ -2805,32 +2814,61 @@ elif cur == "Consegna Radio":
 
 
 elif cur == "Alias Radio":
-    hdr_form("ALIAS RADIO")
+    hdr_form("ALIAS RADIO - Alias + Volontario agganciato")
+
+    # Maschera verde come altri form - spostata in alto
+    st.markdown('<div style="background:#C8E6C9;padding:12px;border-radius:10px;border:2px solid #1A5D1A;margin-bottom:12px;margin-top:0px;">', unsafe_allow_html=True)
 
     c1, c2 = st.columns(2)
     with c1:
-        alias_n = st.text_input("Alias", key="alias_n")
-        id_r = st.text_input("ID Radio", key="alias_id")
+        alias_n = st.text_input("Alias *", key="alias_n", placeholder="Es: Centrale, Squadra A...")
+        id_r = st.text_input("ID Radio *", key="alias_id", placeholder="Es: 101, 202...")
+        # Campo Volontario mancante - aggiunto - agganciato a Volontari Nome Cognome - richiesta Ezio
+        vol_list_alias = [f"{v.get('Cognome','').strip()} {v.get('Nome','').strip()}" for v in st.session_state.volontari if v.get('Cognome') or v.get('Nome')]
+        vol_list_alias = sorted(list(set([x for x in vol_list_alias if x.strip()])))
+        if vol_list_alias:
+            sel_vol_alias = st.selectbox("Volontario * (da Volontari)", vol_list_alias, key="alias_vol")
+        else:
+            sel_vol_alias = st.text_input("Volontario * (manuale - aggiungi volontari in Volontari)", key="alias_vol_man", placeholder="Cognome Nome")
 
     with c2:
         gruppo = st.selectbox("Gruppo", ["Squadra A", "Squadra B", "Squadra C", "Coordinamento", "Logistica"], key="alias_gruppo")
-        desc = st.text_input("Descrizione", key="alias_desc")
+        desc = st.text_input("Descrizione", key="alias_desc", placeholder="Descrizione alias")
+        note_alias = st.text_area("Note", key="alias_note", placeholder="Note alias radio...", height=80)
 
-    if st.button("Salva Alias", type="primary", use_container_width=True):
-        if alias_n and id_r:
+    st.markdown("</div>", unsafe_allow_html=True)
+
+    if st.button("Salva Alias", type="primary", use_container_width=True, key="btn_alias_save"):
+        if alias_n and id_r and sel_vol_alias:
             st.session_state.alias_radio.append({
                 "Alias": alias_n,
                 "ID Radio": id_r,
+                "Volontario": sel_vol_alias,
                 "Gruppo": gruppo,
-                "Descrizione": desc
+                "Descrizione": desc,
+                "Note": note_alias,
+                "Data": datetime.now().strftime("%d/%m/%Y")
             })
-            st.success("Alias salvato")
+            st.success(f"Alias salvato: {alias_n} - {sel_vol_alias}")
             st.rerun()
+        else:
+            st.error("Compila Alias *, ID Radio * e Volontario *")
 
     if st.session_state.alias_radio:
+        st.divider()
+        st.markdown(f"#### 📋 Elenco Alias Radio ({len(st.session_state.alias_radio)})")
         df_al = pd.DataFrame(st.session_state.alias_radio)
-        st.dataframe(df_al, use_container_width=True)
-        st.download_button("Excel Alias", to_excel(df_al), "alias.xlsx", use_container_width=True)
+        cols_alias = [c for c in ["Alias","ID Radio","Volontario","Gruppo","Descrizione","Note"] if c in df_al.columns]
+        if cols_alias:
+            st.dataframe(df_al[cols_alias], use_container_width=True)
+        else:
+            st.dataframe(df_al, use_container_width=True)
+        c_a1, c_a2 = st.columns(2)
+        with c_a1:
+            st.download_button("Excel Alias", to_excel(df_al), "alias.xlsx", use_container_width=True, key="dl_alias_excel")
+        with c_a2:
+            if REPORTLAB_OK:
+                st.download_button("PDF Alias", to_pdf(df_al, "ALIAS RADIO - CON VOLONTARIO"), "alias.pdf", use_container_width=True, key="dl_alias_pdf")
 
 # BROGLIACCIO
 
