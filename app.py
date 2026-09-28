@@ -3541,11 +3541,45 @@ elif cur == "Interventi Emergenza":
                 unsafe_allow_html=True
             )
 
-        df_int = pd.DataFrame(st.session_state.interventi)
-        st.dataframe(df_int, use_container_width=True)
-        st.download_button("Excel Interventi", to_excel(df_int), "interventi.xlsx", use_container_width=True)
+        # Tabella interventi con icona all'inizio - senza colonne interne - richiesta Ezio
+        df_int_full = pd.DataFrame(st.session_state.interventi)
+        # Rimuovi colonne interne per visualizzazione
+        cols_remove_int = ["StatoColoreBg", "StatoColoreTxt", "IconaLabel", "IconaNome", "IconaColore", "IconaTipo", "IconaEmoji", "FileBytes", "FileName", "HasFile"]
+        df_int_display = df_int_full.copy()
+        for c in cols_remove_int:
+            if c in df_int_display.columns:
+                df_int_display = df_int_display.drop(columns=[c])
+        
+        # Mostra con icona all'inizio
+        st.markdown("**Interventi con Icona**")
+        h1, h2, h3, h4, h5 = st.columns([0.8, 1, 1, 1.5, 2.5])
+        with h1: st.markdown("**ICONA**")
+        with h2: st.markdown("**Tipo**")
+        with h3: st.markdown("**Squadra**")
+        with h4: st.markdown("**Comune**")
+        with h5: st.markdown("**Descrizione**")
+        for _, r in df_int_full.iterrows():
+            c1, c2, c3, c4, c5 = st.columns([0.8, 1, 1, 1.5, 2.5])
+            with c1:
+                emo = r.get("IconaEmoji","📍")
+                fb = r.get("FileBytes")
+                hf = r.get("HasFile")
+                if hf and fb:
+                    try:
+                        st.image(fb, width=40)
+                    except:
+                        st.write(emo)
+                else:
+                    st.write(emo)
+            with c2: st.write(r.get("Tipo",""))
+            with c3: st.write(r.get("Squadra",""))
+            with c4: st.write(r.get("Comune",""))
+            with c5: st.write(str(r.get("Descrizione",""))[:80])
+        
+        st.dataframe(df_int_display, use_container_width=True)
+        st.download_button("Excel Interventi (pulito)", to_excel(df_int_display), "interventi.xlsx", use_container_width=True)
         if REPORTLAB_OK:
-            st.download_button("PDF Logo Estesa", to_pdf(df_int, "INTERVENTI EMERGENZA"), "interventi.pdf", use_container_width=True)
+            st.download_button("PDF Logo Estesa", to_pdf(df_int_display, "INTERVENTI EMERGENZA"), "interventi.pdf", use_container_width=True)
 
 # TABELLA INTERVENTI EMERGENZA
     # IMPORT/EXPORT INLINE - Ezio - TUTTI I FORM - Excel + PDF + Template ODV
@@ -3609,87 +3643,72 @@ elif cur == "Tabella Interventi Emergenza":
 
         st.write(f"Risultati filtrati: {len(df_filtrato)} su {len(df_tab)}")
         
-        # Richiesta Ezio: togliere colonne stato colore, stato colore txt, icona nome, icona label, Icona nome, icona colore, icona tipo
-        # e creare all'inizio colonna icona con immagine
-        cols_to_remove = ["StatoColoreBg", "StatoColoreTxt", "StatoColore", "IconaLabel", "IconaNome", "Icona nome", "Icona label", "Icona colore", "Icona tipo", "IconaColore", "IconaTipo", "IconaEmoji", "FileBytes", "FileName", "HasFile"]
-        # Normalizza nomi colonne per rimozione case-insensitive
-        df_display = df_filtrato.copy()
-        for col in list(df_display.columns):
-            if col.lower() in [c.lower() for c in cols_to_remove] or "colore" in col.lower() and "stato" in col.lower() or "icona" in col.lower() and col.lower() not in ["icona"]:
-                if col in ["Icona", "Tipo", "Squadra", "Data", "Comune", "Via", "Ora", "Stato", "Descrizione", "Mezzi", "Volontari"]:
-                    continue
-                # Rimuovi solo se è colonna interna
-                if col in cols_to_remove or col.lower().replace(" ","") in [c.lower().replace(" ","") for c in cols_to_remove]:
-                    try:
-                        df_display = df_display.drop(columns=[col])
-                    except:
-                        pass
+        # RICHIESTA EZIO: togliere colonne interne e aggiungere colonna icona all'inizio con immagine
+        # Colonne da togliere: stato colore, stato colore txt, icona nome, icona label, Icona nome, icona colore, icona tipo
+        cols_to_remove = ["StatoColoreBg", "StatoColoreTxt", "IconaLabel", "IconaNome", "IconaColore", "IconaTipo", "IconaEmoji", "FileBytes", "FileName", "HasFile", "StatoColore", "Icona nome", "Icona label", "Icona colore", "Icona tipo"]
         
-        # Crea tabella custom con icona all'inizio - richiesta Ezio
-        st.markdown("#### 📋 Tabella con Icona all'inizio")
+        st.markdown("#### 📋 Tabella Interventi con Icona assegnata all'inizio")
+        
+        # Header tabella
+        h1, h2, h3, h4, h5, h6, h7 = st.columns([0.9, 1, 1, 1.2, 1.5, 1, 2])
+        with h1: st.markdown("**ICONA**")
+        with h2: st.markdown("**Tipo**")
+        with h3: st.markdown("**Squadra**")
+        with h4: st.markdown("**Data/Ora**")
+        with h5: st.markdown("**Comune/Via**")
+        with h6: st.markdown("**Stato**")
+        with h7: st.markdown("**Descrizione**")
+        st.divider()
+        
+        # Righe tabella con icona all'inizio - immagine vera se presente
         for idx_f, (idx_orig, row) in enumerate(df_filtrato.iterrows()):
-            # Recupera icona
-            emoji = row.get("IconaEmoji", "📍")
-            nome_ico = row.get("IconaNome", "")
-            has_file = row.get("HasFile", False)
-            file_bytes = row.get("FileBytes", None)
-            
-            c_icon, c_info = st.columns([0.8, 5.2])
-            with c_icon:
-                st.markdown("**Icona**")
+            c1, c2, c3, c4, c5, c6, c7 = st.columns([0.9, 1, 1, 1.2, 1.5, 1, 2])
+            with c1:
+                emoji = row.get("IconaEmoji", "📍")
+                nome_ico = row.get("IconaNome", "")
+                has_file = row.get("HasFile", False)
+                file_bytes = row.get("FileBytes", None)
                 if has_file and file_bytes:
                     try:
-                        st.image(file_bytes, width=60)
-                        st.caption(f"{emoji} {nome_ico}")
+                        st.image(file_bytes, width=50)
                     except:
-                        st.markdown(f"<div style='font-size:36px;text-align:center;'>{emoji}</div>", unsafe_allow_html=True)
-                        st.caption(nome_ico)
+                        st.markdown(f"<div style='font-size:28px;text-align:center;'>{emoji}</div>", unsafe_allow_html=True)
                 else:
-                    st.markdown(f"<div style='font-size:36px;text-align:center;background:white;padding:8px;border-radius:8px;border:2px solid #1A5D1A;'>{emoji}</div>", unsafe_allow_html=True)
-                    if nome_ico:
-                        st.caption(nome_ico)
-            with c_info:
+                    st.markdown(f"<div style='font-size:28px;text-align:center;background:white;border:1px solid #1A5D1A;border-radius:6px;padding:4px;'>{emoji}</div>", unsafe_allow_html=True)
+                if nome_ico:
+                    st.caption(nome_ico[:12])
+            with c2:
+                st.write(row.get("Tipo",""))
+            with c3:
+                st.write(row.get("Squadra",""))
+            with c4:
+                st.write(f"{row.get('Data','')} {row.get('Ora','')}")
+            with c5:
+                st.write(f"{row.get('Comune','')} {row.get('Via','')}")
+            with c6:
                 bg = row.get("StatoColoreBg", "#e8f5e9")
                 txt_c = row.get("StatoColoreTxt", "black")
-                st.markdown(f"""
-                <div style="background:white;padding:10px;border-radius:8px;border-left:4px solid {bg};margin-bottom:4px;">
-                <span style="background:{bg};color:{txt_c};padding:3px 10px;border-radius:12px;font-weight:bold;border:1px solid black;font-size:12px;">{row.get('Stato','')}</span>
-                <b> {row.get('Tipo','')} - Squadra {row.get('Squadra','')} - {row.get('Comune','')} {row.get('Via','')}</b><br>
-                <small>Data: {row.get('Data','')} {row.get('Ora','')} - Mezzi: {row.get('Mezzi','')} - Volontari: {row.get('Volontari','')}</small><br>
-                {row.get('Descrizione','')[:150]}
-                </div>
-                """, unsafe_allow_html=True)
+                st.markdown(f"<span style='background:{bg};color:{txt_c};padding:2px 8px;border-radius:10px;font-weight:bold;border:1px solid black;font-size:11px;'>{row.get('Stato','')}</span>", unsafe_allow_html=True)
+            with c7:
+                st.write(str(row.get("Descrizione",""))[:100])
+            st.divider()
         
-        st.divider()
-        # Tabella compatta senza colonne interne - solo colonne utili con icona come emoji all'inizio
-        st.markdown("#### 📊 Tabella compatta (icona + dati principali)")
-        # Costruisci df per display compatto
-        df_compact = []
-        for _, r in df_filtrato.iterrows():
-            df_compact.append({
-                "Icona": f"{r.get('IconaEmoji','📍')} {r.get('IconaNome','')}",
-                "Tipo": r.get("Tipo",""),
-                "Squadra": r.get("Squadra",""),
-                "Data": r.get("Data",""),
-                "Ora": r.get("Ora",""),
-                "Comune": r.get("Comune",""),
-                "Via": r.get("Via",""),
-                "Stato": r.get("Stato",""),
-                "Descrizione": str(r.get("Descrizione",""))[:80]
-            })
-        if df_compact:
-            st.dataframe(pd.DataFrame(df_compact), use_container_width=True)
-
+        # Prepara df per export senza colonne interne
+        df_export = df_filtrato.copy()
+        for col in cols_to_remove:
+            if col in df_export.columns:
+                df_export = df_export.drop(columns=[col])
+        
         st.download_button(
-            "Excel Filtrato",
-            to_excel(df_filtrato),
+            "Excel Filtrato (senza colonne interne)",
+            to_excel(df_export),
             "tabella_interventi_filtrata.xlsx",
             use_container_width=True
         )
         if REPORTLAB_OK:
             st.download_button(
-                "PDF Logo Tabella Estesa Tutto Foglio - Modifica 3",
-                to_pdf(df_display if not df_display.empty else df_filtrato, "TABELLA INTERVENTI FILTRATA"),
+                "PDF Tabella",
+                to_pdf(df_export, "TABELLA INTERVENTI EMERGENZA - CON ICONA"),
                 "tabella_interventi.pdf",
                 use_container_width=True
             )
