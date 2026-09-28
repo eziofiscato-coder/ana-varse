@@ -1,4 +1,25 @@
 import streamlit as st
+
+# FIX EMOJI QUADRATINI - Ezio - Aggiunge font emoji compatibili per Streamlit Cloud
+try:
+    st.markdown("""
+    <style>
+    /* Fix emoji quadratini - forza font emoji su Streamlit Cloud */
+    html, body, div, span, p, h1, h2, h3, h4, button {
+        font-family: "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", "Segoe UI Symbol", "Android Emoji", "EmojiSymbols", sans-serif !important;
+    }
+    /* Forza emoji grandi visibili */
+    .emoji-fix {
+        font-family: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji" !important;
+        font-size: 32px !important;
+        line-height: 1.2 !important;
+    }
+    </style>
+    """, unsafe_allow_html=True)
+except:
+    pass
+
+
 import pandas as pd
 import os
 import io
@@ -3108,113 +3129,151 @@ elif cur == "Emergenze":
 
 # TABELLA EMERGENZE - FORM TABELLA - Richiesta Ezio - Formato tabella per vedere emergenze - FIX non vedo niente
 elif cur == "Tabella Emergenze":
-    hdr_form("ELENCO EMERGENZE")
+    hdr_form("ELENCO EMERGENZE - CON INTERVENTI DI EMERGENZA")
     
     st.markdown("""
-    <div style="background:#fff3e0;padding:10px;border-radius:8px;border-left:4px solid #ff9800;margin-bottom:12px;">
-    <b>📋 Tabella Emergenze - Formato Tabella</b><br>
-    Vedi tutte le emergenze in tabella con filtri per Tipo, Comune, Stato, Priorità - Stato colorato
+    <div style="background:#e3f2fd;padding:10px;border-radius:8px;border-left:4px solid #1976d2;margin-bottom:12px;">
+    <b>📋 Tabella Emergenze - Mostra Interventi di Emergenza</b><br>
+    Richiesta Ezio: deve far vedere gli interventi di emergenza - Tabella creata da form Interventi Emergenza con icona cliccabile
     </div>
     """, unsafe_allow_html=True)
 
-    # Debug - mostra sempre quante emergenze ci sono - richiesta Ezio: non vedo niente
-    st.info(f"Debug Tabella Emergenze: {len(st.session_state.emergenze)} emergenze in memoria - Se 0, vai in Emergenze e creane una")
+    # Debug - mostra quanti interventi di emergenza
+    st.info(f"Debug: {len(st.session_state.interventi)} interventi di emergenza in memoria + {len(st.session_state.emergenze)} emergenze - Se 0 interventi, vai in Interventi Emergenza")
 
-    if not st.session_state.emergenze:
-        st.warning("⚠️ Nessuna emergenza in memoria - Crea emergenza in form Emergenze")
+    if not st.session_state.interventi and not st.session_state.emergenze:
+        st.warning("⚠️ Nessun intervento di emergenza in memoria")
         st.markdown("""
         <div style="background:#e8f5e9;padding:12px;border-radius:8px;text-align:center;">
-        <b>Come creare emergenza:</b><br>
-        1. Vai in <b>Emergenze</b> dal menu a sinistra<br>
-        2. Compila Nome *, Tipo, Comune, Via, Priorità, Stato<br>
-        3. Clicca Salva Emergenza<br>
-        4. Torna qui in Tabella Emergenze - Apparirà in tabella<br><br>
-        <b>Nota:</b> Se hai fatto Reboot su Streamlit Cloud, i dati in memoria si azzerano - usa Import Excel per ricaricare
+        <b>Come creare:</b><br>
+        1. Vai in <b>Interventi Emergenza</b><br>
+        2. Compila Tipo, Squadra, Comune, Icona, Descrizione<br>
+        3. Salva - Apparirà qui in Tabella Emergenze
         </div>
         """, unsafe_allow_html=True)
-        # Mostra comunque tabella vuota per debug
-        st.markdown("#### Tabella vuota - esempio colonne")
-        st.dataframe(pd.DataFrame(columns=["Nome","Tipo","Data","Comune","Via","Priorita","Stato","Coordinate","Note"]).head(), use_container_width=True)
+        st.dataframe(pd.DataFrame(columns=["Icona","Tipo","Squadra","Data","Comune","Stato","Descrizione"]).head(), use_container_width=True)
     else:
-        df_em = pd.DataFrame(st.session_state.emergenze)
-        
-        # Filtri
-        tipi_list = sorted(list(set([str(x) for x in df_em.get("Tipo", []).tolist() if x]))) if "Tipo" in df_em.columns else []
-        comuni_list = sorted(list(set([str(x) for x in df_em.get("Comune", []).tolist() if x]))) if "Comune" in df_em.columns else []
-        stati_list = sorted(list(set([str(x) for x in df_em.get("Stato", []).tolist() if x]))) if "Stato" in df_em.columns else []
-        prior_list = sorted(list(set([str(x) for x in df_em.get("Priorita", []).tolist() if x]))) if "Priorita" in df_em.columns else []
-        
-        c1, c2, c3, c4 = st.columns(4)
-        with c1:
-            filtro_tipo = st.selectbox("Filtra Tipo", ["Tutti"] + tipi_list, key="tab_em_tipo")
-        with c2:
-            filtro_comune = st.selectbox("Filtra Comune", ["Tutti"] + comuni_list, key="tab_em_comune")
-        with c3:
-            filtro_stato = st.selectbox("Filtra Stato", ["Tutti"] + stati_list, key="tab_em_stato")
-        with c4:
-            filtro_prior = st.selectbox("Filtra Priorità", ["Tutte"] + prior_list, key="tab_em_prior")
-        
-        df_filtrato = df_em.copy()
-        if filtro_tipo != "Tutti" and "Tipo" in df_filtrato.columns:
-            df_filtrato = df_filtrato[df_filtrato["Tipo"] == filtro_tipo]
-        if filtro_comune != "Tutti" and "Comune" in df_filtrato.columns:
-            df_filtrato = df_filtrato[df_filtrato["Comune"] == filtro_comune]
-        if filtro_stato != "Tutti" and "Stato" in df_filtrato.columns:
-            df_filtrato = df_filtrato[df_filtrato["Stato"] == filtro_stato]
-        if filtro_prior != "Tutte" and "Priorita" in df_filtrato.columns:
-            df_filtrato = df_filtrato[df_filtrato["Priorita"] == filtro_prior]
-        
-        st.write(f"**Risultati: {len(df_filtrato)} su {len(df_em)} emergenze**")
-        
-        # Tabella formattata con stato colorato
-        if not df_filtrato.empty:
-            for idx, row in df_filtrato.iterrows():
-                bg_c = row.get("StatoColoreBg", "#e8f5e9")
-                txt_c = row.get("StatoColoreTxt", "black")
-                stato = row.get("Stato","")
-                prior = row.get("Priorita","")
-                col_prior = {"Bassa":"#4caf50","Media":"#ff9800","Alta":"#ff5722","Critica":"#d32f2f"}.get(prior, "#9e9e9e")
-                
-                c1, c2, c3 = st.columns([3,1,1])
-                with c1:
-                    st.markdown(f"""
-                    <div style="background:white;padding:8px;border-radius:8px;border-left:4px solid {bg_c};margin-bottom:4px;">
-                    <b>{row.get('Nome','')}</b> - Tipo: {row.get('Tipo','')} - Comune: {row.get('Comune','')} {row.get('Via','')}<br>
-                    <small>Data: {row.get('Data','')} - Coord: {row.get('Coordinate','')} - Note: {row.get('Note','')[:80]}</small>
-                    </div>
-                    """, unsafe_allow_html=True)
-                with c2:
-                    st.markdown(f"""
-                    <div style="background:{bg_c};color:{txt_c};padding:8px;border-radius:8px;text-align:center;font-weight:bold;border:2px solid black;">
-                    {stato}
-                    </div>
-                    """, unsafe_allow_html=True)
-                with c3:
-                    st.markdown(f"""
-                    <div style="background:{col_prior};color:white;padding:4px;border-radius:4px;text-align:center;font-weight:bold;">
-                    {prior}
-                    </div>
-                    """, unsafe_allow_html=True)
-                st.divider()
+        # MOSTRA INTERVENTI DI EMERGENZA - richiesta Ezio
+        if st.session_state.interventi:
+            st.markdown("#### 🚨 Interventi di Emergenza (da form Interventi Emergenza)")
+            df_tab_em = pd.DataFrame(st.session_state.interventi)
             
-            st.markdown("#### 📊 Tabella Completa Emergenze")
-            cols_show = ["Nome","Tipo","Data","Comune","Via","Priorita","Stato","Coordinate","Note"]
-            cols_show = [c for c in cols_show if c in df_filtrato.columns]
-            st.dataframe(df_filtrato[cols_show], use_container_width=True)
-        else:
-            st.warning("Nessuna emergenza con questi filtri")
-        
-        # Export
-        st.divider()
-        c_exp1, c_exp2 = st.columns(2)
-        with c_exp1:
-            st.download_button("⬇️ Excel Emergenze Filtrate", data=to_excel(df_filtrato), file_name="tabella_emergenze_filtrata.xlsx", use_container_width=True, key="exp_tab_em")
-        with c_exp2:
-            if REPORTLAB_OK:
-                st.download_button("📄 PDF Emergenze Filtrate", data=to_pdf(df_filtrato, "TABELLA EMERGENZE"), file_name="tabella_emergenze.pdf", use_container_width=True, key="pdf_tab_em")
+            # Filtri per interventi
+            squadre_list_em = sorted(list(set([str(x) for x in df_tab_em["Squadra"].tolist() if x]))) if "Squadra" in df_tab_em.columns else []
+            comuni_list_em = sorted(list(set([str(x) for x in df_tab_em["Comune"].tolist() if x]))) if "Comune" in df_tab_em.columns else []
+            stati_list_em = sorted(list(set([str(x) for x in df_tab_em["Stato"].tolist() if x]))) if "Stato" in df_tab_em.columns else []
+            tipi_list_em = sorted(list(set([str(x) for x in df_tab_em["Tipo"].tolist() if x]))) if "Tipo" in df_tab_em.columns else []
+
+            c1, c2, c3, c4 = st.columns(4)
+            with c1:
+                filtro_sq_em = st.selectbox("Filtra Squadra", ["Tutte"] + squadre_list_em, key="tab_em_sq_int")
+            with c2:
+                filtro_com_em = st.selectbox("Filtra Comune", ["Tutti"] + comuni_list_em, key="tab_em_com_int")
+            with c3:
+                filtro_stato_em = st.selectbox("Filtra Stato", ["Tutti"] + stati_list_em, key="tab_em_stato_int")
+            with c4:
+                filtro_tipo_em = st.selectbox("Filtra Tipo", ["Tutti"] + tipi_list_em, key="tab_em_tipo_int")
+
+            df_filtrato_em = df_tab_em.copy()
+            if filtro_sq_em != "Tutte" and "Squadra" in df_filtrato_em.columns:
+                df_filtrato_em = df_filtrato_em[df_filtrato_em["Squadra"] == filtro_sq_em]
+            if filtro_com_em != "Tutti" and "Comune" in df_filtrato_em.columns:
+                df_filtrato_em = df_filtrato_em[df_filtrato_em["Comune"] == filtro_com_em]
+            if filtro_stato_em != "Tutti" and "Stato" in df_filtrato_em.columns:
+                df_filtrato_em = df_filtrato_em[df_filtrato_em["Stato"] == filtro_stato_em]
+            if filtro_tipo_em != "Tutti" and "Tipo" in df_filtrato_em.columns:
+                df_filtrato_em = df_filtrato_em[df_filtrato_em["Tipo"] == filtro_tipo_em]
+
+            st.write(f"**Risultati interventi: {len(df_filtrato_em)} su {len(df_tab_em)}**")
+
+            # Tabella con icona cliccabile all'inizio - come Tabella Interventi Emergenza
+            cols_to_remove_em = ["StatoColoreBg", "StatoColoreTxt", "IconaLabel", "IconaNome", "IconaColore", "IconaTipo", "IconaEmoji", "FileBytes", "FileName", "HasFile"]
+            
+            h1, h2, h3, h4, h5, h6, h7 = st.columns([0.9, 1, 1, 1.2, 1.5, 1, 2])
+            with h1: st.markdown("**ICONA**")
+            with h2: st.markdown("**Tipo**")
+            with h3: st.markdown("**Squadra**")
+            with h4: st.markdown("**Data/Ora**")
+            with h5: st.markdown("**Comune/Via**")
+            with h6: st.markdown("**Stato**")
+            with h7: st.markdown("**Descrizione**")
+            st.divider()
+
+            for idx_f, (idx_orig, row) in enumerate(df_filtrato_em.iterrows()):
+                c1, c2, c3, c4, c5, c6, c7 = st.columns([0.9, 1, 1, 1.2, 1.5, 1, 2])
+                with c1:
+                    emoji = row.get("IconaEmoji", "📍")
+                    nome_ico = row.get("IconaNome", "")
+                    has_file = row.get("HasFile", False)
+                    file_bytes = row.get("FileBytes", None)
+                    if has_file and file_bytes:
+                        try:
+                            st.image(file_bytes, width=50)
+                        except:
+                            st.markdown(f"<div style='font-size:28px;text-align:center;'>{emoji}</div>", unsafe_allow_html=True)
+                    else:
+                        st.markdown(f"<div style='font-size:28px;text-align:center;background:white;border:1px solid #1A5D1A;border-radius:6px;padding:4px;'>{emoji}</div>", unsafe_allow_html=True)
+                    if nome_ico:
+                        st.caption(nome_ico[:12])
+                    # Clicca icona per aprire Interventi Emergenza - come richiesto
+                    label_btn = f"{emoji} Apri" if emoji else "📍 Apri"
+                    if st.button(label_btn, key=f"edit_tab_em_icon_{idx_orig}", help=f"Clicca icona {nome_ico} per aprire in Interventi Emergenza", use_container_width=True):
+                        idx_to_edit = int(idx_orig)
+                        for k in [k for k in list(st.session_state.keys()) if k.startswith("int_") and k != "int_edit_index"]:
+                            try:
+                                del st.session_state[k]
+                            except:
+                                pass
+                        st.session_state.int_edit_index = idx_to_edit
+                        st.session_state.menu = "Interventi Emergenza"
+                        st.rerun()
+                with c2:
+                    st.write(row.get("Tipo",""))
+                with c3:
+                    st.write(row.get("Squadra",""))
+                with c4:
+                    st.write(f"{row.get('Data','')} {row.get('Ora','')}")
+                with c5:
+                    st.write(f"{row.get('Comune','')} {row.get('Via','')}")
+                with c6:
+                    bg = row.get("StatoColoreBg", "#e8f5e9")
+                    txt_c = row.get("StatoColoreTxt", "black")
+                    st.markdown(f"<span style='background:{bg};color:{txt_c};padding:2px 8px;border-radius:10px;font-weight:bold;border:1px solid black;font-size:11px;'>{row.get('Stato','')}</span>", unsafe_allow_html=True)
+                with c7:
+                    st.write(str(row.get("Descrizione",""))[:100])
+                    if st.button(f"📋 Vedi scheda", key=f"edit_tab_em_text_{idx_orig}", use_container_width=True):
+                        idx_to_edit = int(idx_orig)
+                        for k in [k for k in list(st.session_state.keys()) if k.startswith("int_") and k != "int_edit_index"]:
+                            try:
+                                del st.session_state[k]
+                            except:
+                                pass
+                        st.session_state.int_edit_index = idx_to_edit
+                        st.session_state.menu = "Interventi Emergenza"
+                        st.rerun()
+                st.divider()
+
+            # Export interventi
+            df_export_em = df_filtrato_em.copy()
+            for col in cols_to_remove_em:
+                if col in df_export_em.columns:
+                    df_export_em = df_export_em.drop(columns=[col])
+            c_exp1, c_exp2 = st.columns(2)
+            with c_exp1:
+                st.download_button("⬇️ Excel Interventi di Emergenza", data=to_excel(df_export_em), file_name="tabella_emergenze_interventi.xlsx", use_container_width=True, key="exp_tab_em_int")
+            with c_exp2:
+                if REPORTLAB_OK:
+                    st.download_button("📄 PDF Interventi di Emergenza", data=to_pdf(df_export_em, "TABELLA EMERGENZE - INTERVENTI"), file_name="tabella_emergenze_interventi.pdf", use_container_width=True, key="pdf_tab_em_int")
+
+        # Se ci sono anche emergenze classiche, mostrale sotto
+        if st.session_state.emergenze:
+            st.divider()
+            st.markdown("#### 📋 Emergenze classiche (da form Emergenze)")
+            df_em = pd.DataFrame(st.session_state.emergenze)
+            st.dataframe(df_em, use_container_width=True)
 
     # IMPORT/EXPORT INLINE
-    excel_import_inline("emergenze", "Tabella Emergenze")
+    excel_import_inline("interventi", "Tabella Emergenze - Interventi di Emergenza")
 
 
 elif cur == "# RIMOSSO":
@@ -3278,7 +3337,7 @@ elif cur == "# RIMOSSO":
     with c4:
         lat_mappa = st.text_input("Latitudine", value="45.8167", key="mappa_lat")
         lon_mappa = st.text_input("Longitudine", value="8.8333", key="mappa_lon")
-        icona_mappa = st.selectbox("Icona", ["🚨", "📅", "🚒", "⛑️", "📍", "⚠️"], key="mappa_icona")
+        icona_mappa = st.selectbox("Icona", ["🚨", "📅", "🚒", "👷", "📍", "⚠️"], key="mappa_icona")
 
     with c5:
         desc_mappa = st.text_area("Descrizione", key="mappa_desc")
@@ -3447,7 +3506,7 @@ elif cur == "Interventi Emergenza":
     if not icone_lib:
         icone_lib = [
             {"Nome": "Emergenza", "Emoji": "🚨", "Tipo": "Emergenza", "Colore": "red"},
-            {"Nome": "Soccorso", "Emoji": "⛑️", "Tipo": "Emergenza", "Colore": "red"},
+            {"Nome": "Soccorso", "Emoji": "👷", "Tipo": "Emergenza", "Colore": "red"},
             {"Nome": "Mezzo", "Emoji": "🚐", "Tipo": "Mezzo", "Colore": "green"},
             {"Nome": "Logistica", "Emoji": "📦", "Tipo": "Logistica", "Colore": "blue"},
         ]
@@ -3497,7 +3556,7 @@ elif cur == "Interventi Emergenza":
                 except:
                     st.markdown(f"""
                     <div style="background:white;padding:12px;border-radius:10px;border:3px solid #1A5D1A;text-align:center;margin-top:8px;box-shadow:0 2px 8px rgba(0,0,0,0.2);">
-                    <div style="font-size:48px;">{sel_ico_obj.get('Emoji','📍')}</div>
+                    <div style="font-size:48px;font-family:'Segoe UI Emoji','Apple Color Emoji','Noto Color Emoji',sans-serif;">{sel_ico_obj.get('Emoji','📍')}</div>
                     <b style="font-size:16px;">{sel_ico_obj.get('Nome','')}</b><br>
                     <small style="color:#1A5D1A;">{sel_ico_obj.get('Tipo','')} - {sel_ico_obj.get('Colore','')}</small><br>
                     <small>{sel_ico_obj.get('Descrizione','')}</small>
@@ -3506,7 +3565,7 @@ elif cur == "Interventi Emergenza":
             else:
                 st.markdown(f"""
                 <div style="background:white;padding:12px;border-radius:10px;border:3px solid #1A5D1A;text-align:center;margin-top:8px;box-shadow:0 2px 8px rgba(0,0,0,0.2);">
-                <div style="font-size:48px;">{sel_ico_obj.get('Emoji','📍')}</div>
+                <div style="font-size:48px;font-family:'Segoe UI Emoji','Apple Color Emoji','Noto Color Emoji',sans-serif;">{sel_ico_obj.get('Emoji','📍')}</div>
                 <b style="font-size:16px;">{sel_ico_obj.get('Nome','')}</b><br>
                 <small style="color:#1A5D1A;font-weight:bold;">{sel_ico_obj.get('Tipo','')} - {sel_ico_obj.get('Colore','')}</small><br>
                 <small>{sel_ico_obj.get('Descrizione','')}</small>
@@ -3517,7 +3576,7 @@ elif cur == "Interventi Emergenza":
             st.info("Nessuna icona selezionata - Vai in Libreria Icone per crearne")
             st.markdown("""
             <div style="background:#fff3e0;padding:10px;border-radius:8px;border:2px dashed #ff9800;text-align:center;">
-            <div style="font-size:32px;">❓</div>
+            <div style="font-size:32px;font-family:'Segoe UI Emoji','Apple Color Emoji','Noto Color Emoji',sans-serif;">❓</div>
             <small>Seleziona icona sopra per vedere anteprima</small>
             </div>
             """, unsafe_allow_html=True)
@@ -3984,7 +4043,7 @@ elif cur == "Mappe Postazioni":
     icone_disponibili = st.session_state.get("icone", [])
     if not icone_disponibili:
         icone_disponibili = [
-            {"Nome": "Postazione", "Emoji": "⛑️", "Tipo": "Postazione", "Colore": "green"},
+            {"Nome": "Postazione", "Emoji": "👷", "Tipo": "Postazione", "Colore": "green"},
             {"Nome": "Emergenza", "Emoji": "🚨", "Tipo": "Emergenza", "Colore": "red"},
             {"Nome": "Evento", "Emoji": "📅", "Tipo": "Evento", "Colore": "blue"},
             {"Nome": "Mezzo", "Emoji": "🚐", "Tipo": "Mezzo", "Colore": "green"},
@@ -4019,7 +4078,7 @@ elif cur == "Mappe Postazioni":
     st.markdown("""
     <div style="background:#fffde7;padding:12px;border-radius:8px;border-left:4px solid #FFD700;margin-bottom:12px;">
     <b>📋 PROCEDURA PER SALVARE POSIZIONE:</b><br>
-    1. <b>Scegli icona</b> dalla libreria sopra (es: ⛑️ Postazione)<br>
+    1. <b>Scegli icona</b> dalla libreria sopra (es: 👷 Postazione)<br>
     2. <b>Clicca sulla mappa grande</b> dove vuoi la postazione - vedi marker temporaneo + coordinate in giallo<br>
     3. <b>Controlla maschera</b>: Lat/Lon si compilano da soli, Comune/Via da Nominatim<br>
     4. <b>Scrivi Nome Postazione</b> * obbligatorio (es: Postazione 1 Varese)<br>
@@ -4048,8 +4107,8 @@ elif cur == "Mappe Postazioni":
     with c3:
         marker_icona_label = st.selectbox("Icona Libreria", icone_options, index=default_idx, key="adv_marker_icona_select")
         st.session_state.selected_icon_label = marker_icona_label
-        selected_ico_obj = icone_map.get(marker_icona_label, {"Emoji":"⛑️","Nome":"Postazione","Colore":"green","Tipo":"Postazione"})
-        st.markdown(f"<div style='font-size:24px;text-align:center;background:#e8f5e9;padding:8px;border-radius:8px;border:2px solid #1A5D1A;'>{selected_ico_obj.get('Emoji','⛑️')} {selected_ico_obj.get('Nome','')}</div>", unsafe_allow_html=True)
+        selected_ico_obj = icone_map.get(marker_icona_label, {"Emoji":"👷","Nome":"Postazione","Colore":"green","Tipo":"Postazione"})
+        st.markdown(f"<div style='font-size:24px;text-align:center;background:#e8f5e9;padding:8px;border-radius:8px;border:2px solid #1A5D1A;'>{selected_ico_obj.get('Emoji','👷')} {selected_ico_obj.get('Nome','')}</div>", unsafe_allow_html=True)
         marker_tipo = st.selectbox("Tipo", ["Postazione", "Emergenza", "Evento", "Mezzo", "Volontario"], key="adv_marker_tipo")
         marker_desc = st.text_input("Descrizione", key="adv_marker_desc")
 
@@ -4110,7 +4169,7 @@ elif cur == "Mappe Postazioni":
                     "Via": marker_via,
                     "NomeEmergenza": nome_emergenza,
                     "NomeEvento": nome_evento,
-                    "Emoji": sel_obj.get("Emoji","⛑️"),
+                    "Emoji": sel_obj.get("Emoji","👷"),
                     "Colore": sel_obj.get("Colore","green"),
                     "IconaNome": sel_obj.get("Nome","Postazione"),
                     "Icona": st.session_state.selected_icon_label,
@@ -4122,7 +4181,7 @@ elif cur == "Mappe Postazioni":
                 st.session_state.map_focus = nuovo
                 st.session_state.last_clicked_lat = str(lat_f)
                 st.session_state.last_clicked_lon = str(lon_f)
-                st.success(f"✅ SALVATA {sel_obj.get('Emoji','⛑️')} {marker_nome} - {marker_comune} {marker_via} - Emergenza: {nome_emergenza} Evento: {nome_evento} - Totale {len(st.session_state.mappa_avanzata_markers)} - Ora vedi tabella sotto mappa")
+                st.success(f"✅ SALVATA {sel_obj.get('Emoji','👷')} {marker_nome} - {marker_comune} {marker_via} - Emergenza: {nome_emergenza} Evento: {nome_evento} - Totale {len(st.session_state.mappa_avanzata_markers)} - Ora vedi tabella sotto mappa")
                 # Pulisci query params
                 try:
                     st.query_params.clear()
@@ -4142,7 +4201,7 @@ elif cur == "Mappe Postazioni":
         try:
             p_lat = float(str(preview_lat).replace(",", "."))
             p_lon = float(str(preview_lon).replace(",", "."))
-            sel_e = selected_ico_obj.get('Emoji','⛑️')
+            sel_e = selected_ico_obj.get('Emoji','👷')
             sel_c = selected_ico_obj.get('Colore','green')
             preview_html = f"""
             <div style="border:2px solid #1A5D1A;border-radius:8px;overflow:hidden;">
@@ -4172,7 +4231,7 @@ elif cur == "Mappe Postazioni":
     focus_marker = st.session_state.get("map_focus")
 
     import json as json_lib
-    markers_for_js = json_lib.dumps([{"lat": m["Lat"], "lon": m["Lon"], "nome": m["Nome"], "emoji": m.get("Emoji","⛑️"), "colore": m.get("Colore","green"), "iconaNome": m.get("IconaNome",""), "comune": m.get("Comune",""), "via": m.get("Via",""), "emergenza": m.get("NomeEmergenza",""), "evento": m.get("NomeEvento","")} for m in all_markers])
+    markers_for_js = json_lib.dumps([{"lat": m["Lat"], "lon": m["Lon"], "nome": m["Nome"], "emoji": m.get("Emoji","👷"), "colore": m.get("Colore","green"), "iconaNome": m.get("IconaNome",""), "comune": m.get("Comune",""), "via": m.get("Via",""), "emergenza": m.get("NomeEmergenza",""), "evento": m.get("NomeEvento","")} for m in all_markers])
     focus_for_js = json_lib.dumps(focus_marker) if focus_marker else "null"
 
     st.markdown("#### 🌍 Mappa Grande - Tutti i marker rimangono - Non si cancellano")
@@ -4376,7 +4435,7 @@ elif cur == "Mappe Postazioni":
     </script>
     """
     import json as json_lib2
-    sel_e = selected_ico_obj.get('Emoji','⛑️')
+    sel_e = selected_ico_obj.get('Emoji','👷')
     sel_c = selected_ico_obj.get('Colore','green')
     html_code = html_code.replace("MARKERS_JSON_PLACEHOLDER", markers_for_js)
     html_code = html_code.replace("FOCUS_JSON_PLACEHOLDER", focus_for_js)
@@ -4395,7 +4454,7 @@ elif cur == "Mappe Postazioni":
             border = "#FFD700" if is_focus else "#1A5D1A"
             c1, c2, c3, c4 = st.columns([1,2,2,2])
             with c1:
-                st.markdown(f"<div style='background:{bg};padding:6px;border-radius:8px;border:2px solid {border};text-align:center;'><div style='font-size:22px;'>{m.get('Emoji','⛑️')}</div><div style='font-size:10px;'>{m.get('IconaNome','')}</div></div>", unsafe_allow_html=True)
+                st.markdown(f"<div style='background:{bg};padding:6px;border-radius:8px;border:2px solid {border};text-align:center;'><div style='font-size:22px;'>{m.get('Emoji','👷')}</div><div style='font-size:10px;'>{m.get('IconaNome','')}</div></div>", unsafe_allow_html=True)
                 if is_focus:
                     st.caption("👆 IN VISTA")
             with c2:
@@ -4583,7 +4642,7 @@ elif cur == "Libreria Icone":
     c1, c2, c3, c4 = st.columns(4)
     with c1:
         nome_icona = st.text_input("Nome Icona *", key="ico_nome", placeholder="Es: Postazione 1")
-        emoji_icona = st.text_input("Emoji Icona *", value="📍", key="ico_emoji", help="Inserisci emoji: 🚨 📅 🚐 👤 🏥 🔥 💧 📻 ⛑️ 🚒 🚑")
+        emoji_icona = st.text_input("Emoji Icona *", value="📍", key="ico_emoji", help="Inserisci emoji: 🚨 📅 🚐 👤 🏥 🔥 💧 📻 👷 🚒 🚑")
     with c2:
         tipo_icona = st.selectbox("Tipo", ["Emergenza", "Evento", "Mezzo", "Volontario", "Postazione", "Punto Interesse", "Altro"], key="ico_tipo")
         colore_icona = st.selectbox("Colore Marker", ["red", "blue", "green", "orange", "purple", "darkred", "darkblue", "cadetblue"], key="ico_colore")
@@ -4602,23 +4661,23 @@ elif cur == "Libreria Icone":
                     st.image(file_bytes, caption=f"Anteprima file: {file_icona.name}", width=120)
                     st.success(f"File caricato: {file_icona.name} - {len(file_bytes)} bytes")
                 else:
-                    st.markdown(f"<div style='font-size:40px;text-align:center;background:white;padding:10px;border-radius:8px;border:2px solid #1A5D1A;'>{preview_emoji}</div>", unsafe_allow_html=True)
+                    st.markdown(f"<div style='font-size:40px;text-align:center;font-family:'Segoe UI Emoji','Apple Color Emoji','Noto Color Emoji',sans-serif;background:white;padding:10px;border-radius:8px;border:2px solid #1A5D1A;'>{preview_emoji}</div>", unsafe_allow_html=True)
                     st.caption(f"File: {file_icona.name}")
                 # Salva temporaneo per preview
                 st.session_state["ico_file_bytes"] = file_bytes
                 st.session_state["ico_file_name"] = file_icona.name
             except Exception as e:
                 st.error(f"Errore anteprima file: {e}")
-                st.markdown(f"<div style='font-size:40px;text-align:center;background:white;padding:10px;border-radius:8px;border:2px solid #1A5D1A;'>{preview_emoji}</div>", unsafe_allow_html=True)
+                st.markdown(f"<div style='font-size:40px;text-align:center;font-family:'Segoe UI Emoji','Apple Color Emoji','Noto Color Emoji',sans-serif;background:white;padding:10px;border-radius:8px;border:2px solid #1A5D1A;'>{preview_emoji}</div>", unsafe_allow_html=True)
         else:
             # Se esiste file precedente in session
             if "ico_file_bytes" in st.session_state:
                 try:
                     st.image(st.session_state["ico_file_bytes"], caption=f"Anteprima file: {st.session_state.get('ico_file_name','')}", width=120)
                 except:
-                    st.markdown(f"<div style='font-size:40px;text-align:center;background:white;padding:10px;border-radius:8px;border:2px solid #1A5D1A;'>{preview_emoji}</div>", unsafe_allow_html=True)
+                    st.markdown(f"<div style='font-size:40px;text-align:center;font-family:'Segoe UI Emoji','Apple Color Emoji','Noto Color Emoji',sans-serif;background:white;padding:10px;border-radius:8px;border:2px solid #1A5D1A;'>{preview_emoji}</div>", unsafe_allow_html=True)
             else:
-                st.markdown(f"<div style='font-size:40px;text-align:center;background:white;padding:10px;border-radius:8px;border:2px solid #1A5D1A;'>{preview_emoji}</div>", unsafe_allow_html=True)
+                st.markdown(f"<div style='font-size:40px;text-align:center;font-family:'Segoe UI Emoji','Apple Color Emoji','Noto Color Emoji',sans-serif;background:white;padding:10px;border-radius:8px;border:2px solid #1A5D1A;'>{preview_emoji}</div>", unsafe_allow_html=True)
                 st.caption(f"Emoji: {preview_emoji} - Colore: {st.session_state.get('ico_colore','red')}")
 
     if st.button("💾 Salva Icona in Libreria", type="primary", use_container_width=True):
@@ -4677,7 +4736,7 @@ elif cur == "Libreria Icone":
                     except:
                         st.markdown(f"""
                         <div style="background:white;padding:8px;border-radius:8px;border:2px solid #1A5D1A;text-align:center;margin-bottom:8px;">
-                        <div style="font-size:32px;">{ico.get('Emoji','📍')}</div>
+                        <div style="font-size:32px;font-family:'Segoe UI Emoji','Apple Color Emoji','Noto Color Emoji',sans-serif;">{ico.get('Emoji','📍')}</div>
                         <b>{ico.get('Nome','')}</b><br>
                         <small>{ico.get('Tipo','')} - {ico.get('Colore','')}</small><br>
                         <small>{ico.get('Descrizione','')}</small>
@@ -4686,7 +4745,7 @@ elif cur == "Libreria Icone":
                 else:
                     st.markdown(f"""
                     <div style="background:white;padding:8px;border-radius:8px;border:2px solid #1A5D1A;text-align:center;margin-bottom:8px;">
-                    <div style="font-size:32px;">{ico.get('Emoji','📍')}</div>
+                    <div style="font-size:32px;font-family:'Segoe UI Emoji','Apple Color Emoji','Noto Color Emoji',sans-serif;">{ico.get('Emoji','📍')}</div>
                     <b>{ico.get('Nome','')}</b><br>
                     <small>{ico.get('Tipo','')} - {ico.get('Colore','')}</small><br>
                     <small>{ico.get('Descrizione','')}</small>
