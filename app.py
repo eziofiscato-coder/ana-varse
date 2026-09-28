@@ -1258,7 +1258,11 @@ def excel_import_inline(form_key, form_label):
                     else:
                         st.success(f"✅ {len(df_imp)} righe lette da Excel - {len(df_imp.columns)} colonne")
                         st.write(f"Colonne: {list(df_imp.columns)}")
-                        st.dataframe(df_imp.head(20), use_container_width=True)
+                        # Richiesta Ezio: non mostrare tabella sotto, solo con tasto
+                        if st.button(f"📋 Mostra anteprima {len(df_imp)} righe", key=f"btn_preview_{form_key}_{len(df_imp)}"):
+                            st.session_state[f"show_preview_{form_key}"] = not st.session_state.get(f"show_preview_{form_key}", False)
+                        if st.session_state.get(f"show_preview_{form_key}", False):
+                            st.dataframe(df_imp.head(20), use_container_width=True)
 
                         if st.button(f"✅ Importa {len(df_imp)} righe in {form_label}", type="primary", use_container_width=True, key=f"btn_imp_inline_{form_key}"):
                             imported = df_imp.to_dict(orient="records")
@@ -2365,7 +2369,7 @@ elif cur == "Volontari (con foto)":
                 odv_app_custom = st.text_input("Specifica ODV - Inserisci nome", value="" if odv_app_def in odv_lista else odv_app_def, key="vol_odv_custom", placeholder="Es: Protezione Civile Busto Arsizio")
                 if odv_app_custom:
                     odv_app = odv_app_custom
-            data_nascita = st.date_input("Data Nascita", value=date(1990,1,1), min_value=date(1950,1,1), max_value=date.today(), format="DD/MM/YYYY", key="vol_data_nasc")
+            data_nascita = st.date_input("Data Nascita", value=date(1970,1,1), min_value=date(1950,1,1), max_value=date.today(), format="DD/MM/YYYY", key="vol_data_nasc")
             codice_fisc = st.text_input("Codice Fiscale", value=edit_data.get("CodFisc",""), key="vol_cf")
             
             # FOTO NELLA PRIMA MASCHERA + DOWNLOAD
@@ -2523,67 +2527,85 @@ elif cur == "Volontari (con foto)":
                 else:
                     st.error("Compila campi obbligatori * (Nome, Cognome, Cellulare, Capo ODV)")
 
-    # Tabella volontari con emoji penna per aggiornare - carica in maschera - Richiesta Ezio
+    # Elenco volontari - COMBO invece di lista lunga 200 - richiesta Ezio + tasto mostra tabella
     st.divider()
     if st.session_state.volontari:
-        st.markdown(f"#### Elenco Volontari ({len(st.session_state.volontari)}) - ✏️ Clicca penna per caricare in maschera e aggiornare")
-        # Tabella con pulsanti penna
-        for idx, vol in enumerate(st.session_state.volontari):
-            c1, c2, c3, c4, c5, c6, c7 = st.columns([1, 1.5, 1, 1.5, 1, 1, 0.5])
-            with c1:
-                st.write(f"**{vol.get('Cognome','')}**")
-            with c2:
-                st.write(f"{vol.get('Nome','')}")
-            with c3:
-                st.write(f"{vol.get('CapoODV','')}")
-            with c4:
-                st.write(f"{vol.get('ODVAppartenenza','')}")
-            with c5:
-                st.write(f"{vol.get('Comune','')}")
-            with c6:
-                st.write(f"{vol.get('Ruolo','')}")
-            with c7:
-                if st.button("✏️", key=f"edit_vol_{idx}", help=f"Modifica {vol.get('Cognome','')} {vol.get('Nome','')} - Carica in maschera"):
-                    try:
-                        vd = st.session_state.volontari[idx]
-                        # Salva indice
-                        st.session_state.vol_edit_index = idx
-                        # Salva direttamente i valori in session_state che verranno usati come default
-                        # Pulisci prima le chiavi vol_ per forzare reload
-                        for k in [k for k in list(st.session_state.keys()) if k.startswith("vol_")]:
+        st.markdown(f"#### Elenco Volontari ({len(st.session_state.volontari)}) - Usa combo per modifica")
+        
+        # COMBO per selezionare volontario - non mostra tutti i 200 sotto
+        vol_options = []
+        for i, v in enumerate(st.session_state.volontari):
+            label = f"{i+1:03d}: {v.get('Cognome','')} {v.get('Nome','')} - {v.get('ODVAppartenenza','')} - Capo {v.get('CapoODV','')} - {v.get('Comune','')}"
+            vol_options.append((i, label))
+        
+        # Selectbox combo
+        combo_labels = ["-- Seleziona volontario per modifica --"] + [lbl for _, lbl in vol_options]
+        sel_combo = st.selectbox("🔍 Cerca e seleziona volontario (combo) - per 200 volontari", combo_labels, key="vol_combo_modifica")
+        
+        if sel_combo != "-- Seleziona volontario per modifica --":
+            try:
+                # Trova indice
+                idx_sel = None
+                for idx, lbl in vol_options:
+                    if lbl == sel_combo:
+                        idx_sel = idx
+                        break
+                if idx_sel is not None:
+                    c_mod1, c_mod2 = st.columns([1,1])
+                    with c_mod1:
+                        if st.button("✏️ Carica in maschera per modifica", type="primary", use_container_width=True, key=f"btn_load_vol_{idx_sel}"):
                             try:
-                                del st.session_state[k]
-                            except:
-                                pass
-                        # Reimposta con valori del volontario selezionato
-                        st.session_state["vol_nome_tab"] = vd.get("Nome","")
-                        st.session_state["vol_cognome_tab"] = vd.get("Cognome","")
-                        st.session_state["vol_comune_tab"] = vd.get("Comune","Varese")
-                        st.session_state["vol_via_tab"] = vd.get("Via","")
-                        st.session_state["vol_capo_odv"] = vd.get("CapoODV","")
-                        st.session_state["vol_odv_app"] = vd.get("ODVAppartenenza","ANA Varese")
-                        st.session_state["vol_cell_tab"] = vd.get("Cellulare","")
-                        st.session_state["vol_email_tab"] = vd.get("Email","")
-                        st.session_state["vol_tel_em"] = vd.get("TelEmergenza","")
-                        st.session_state["vol_ruolo_tab"] = vd.get("Ruolo","Volontario")
-                        st.session_state["vol_squadra_tab"] = vd.get("Squadra","Squadra A")
-                        st.session_state["vol_radio_id"] = vd.get("RadioID","")
-                        st.session_state["vol_cf"] = vd.get("CodFisc","")
-                        st.session_state["vol_doc_tipo"] = vd.get("Documento","")
-                        st.session_state["vol_doc_num"] = vd.get("DocNum","")
-                        if vd.get("FotoBytes"):
-                            st.session_state["foto_temp_prima"] = vd.get("FotoBytes")
-                        # Flag per scroll in alto
-                        st.session_state["scroll_top"] = True
-                    except Exception as e:
-                        st.error(f"Errore caricamento modifica: {e}")
-                    st.rerun()
+                                vd = st.session_state.volontari[idx_sel]
+                                st.session_state.vol_edit_index = idx_sel
+                                for k in [k for k in list(st.session_state.keys()) if k.startswith("vol_")]:
+                                    try:
+                                        del st.session_state[k]
+                                    except:
+                                        pass
+                                st.session_state["vol_nome_tab"] = vd.get("Nome","")
+                                st.session_state["vol_cognome_tab"] = vd.get("Cognome","")
+                                st.session_state["vol_comune_tab"] = vd.get("Comune","Varese")
+                                st.session_state["vol_via_tab"] = vd.get("Via","")
+                                st.session_state["vol_capo_odv"] = vd.get("CapoODV","")
+                                st.session_state["vol_odv_app"] = vd.get("ODVAppartenenza","ANA Varese")
+                                st.session_state["vol_cell_tab"] = vd.get("Cellulare","")
+                                st.session_state["vol_email_tab"] = vd.get("Email","")
+                                st.session_state["vol_tel_em"] = vd.get("TelEmergenza","")
+                                st.session_state["vol_ruolo_tab"] = vd.get("Ruolo","Volontario")
+                                st.session_state["vol_squadra_tab"] = vd.get("Squadra","Squadra A")
+                                st.session_state["vol_radio_id"] = vd.get("RadioID","")
+                                st.session_state["vol_cf"] = vd.get("CodFisc","")
+                                st.session_state["vol_doc_tipo"] = vd.get("Documento","")
+                                st.session_state["vol_doc_num"] = vd.get("DocNum","")
+                                if vd.get("FotoBytes"):
+                                    st.session_state["foto_temp_prima"] = vd.get("FotoBytes")
+                                st.success(f"Caricato {vd.get('Cognome','')} {vd.get('Nome','')} in maschera")
+                                st.rerun()
+                            except Exception as e:
+                                st.error(f"Errore caricamento: {e}")
+                    with c_mod2:
+                        if st.button("🗑️ Elimina volontario", use_container_width=True, key=f"btn_del_vol_{idx_sel}"):
+                            try:
+                                st.session_state.volontari.pop(idx_sel)
+                                st.session_state.vol_edit_index = None
+                                st.success("Volontario eliminato")
+                                st.rerun()
+                            except Exception as e:
+                                st.error(f"Errore eliminazione: {e}")
+            except Exception as e:
+                st.error(f"Errore combo: {e}")
         
         st.divider()
-        df_vol = pd.DataFrame([{k:v for k,v in vol.items() if "Bytes" not in k} for vol in st.session_state.volontari])
-        cols_show = ["Cognome", "Nome", "CapoODV", "ODVAppartenenza", "Comune", "Cellulare", "Ruolo", "Squadra"]
-        cols_show = [c for c in cols_show if c in df_vol.columns]
-        st.dataframe(df_vol[cols_show] if cols_show else df_vol, use_container_width=True)
+        # Tasto per vedere tabella volontari - richiesta Ezio: non mostrare automaticamente sotto
+        if st.button(f"📋 Mostra/Nascondi Tabella Volontari ({len(st.session_state.volontari)} record)", key="btn_toggle_tabella_vol"):
+            st.session_state["show_vol_table"] = not st.session_state.get("show_vol_table", False)
+        
+        if st.session_state.get("show_vol_table", False):
+            df_vol = pd.DataFrame([{k:v for k,v in vol.items() if "Bytes" not in k} for vol in st.session_state.volontari])
+            cols_show = ["Cognome", "Nome", "CapoODV", "ODVAppartenenza", "Comune", "Cellulare", "Ruolo", "Squadra"]
+            cols_show = [c for c in cols_show if c in df_vol.columns]
+            st.dataframe(df_vol[cols_show] if cols_show else df_vol, use_container_width=True)
+            st.caption("Tabella nascosta dietro bottone per non occupare spazio con 200 volontari")
 
         # Export Excel volontari - FIX sempre visibile - DEBUG OPENPYXL
         try:
