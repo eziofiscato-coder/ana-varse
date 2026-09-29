@@ -1925,9 +1925,9 @@ if st.session_state.page == "entra":
 
     st.stop()
 
-# PAGINA LOGIN - SENZA INTESTAZIONE - richiesta Ezio: togliere intestazione e etichetta login gestione utenti multiuso
+# PAGINA LOGIN - CON INTESTAZIONE - richiesta Ezio: metti intestazione prima pagina anche in login
 if st.session_state.page == "login":
-    # hdr() rimosso - niente loghi su login
+    hdr()  # Intestazione con 2 loghi + Squadra Volontari... - richiesta Ezio - messa anche in login
     # Etichetta LOGIN - Gestione Utenti Multi Livello rimossa - richiesta Ezio
     st.write("")
     c1, c2, c3 = st.columns([1, 2, 1])
@@ -2134,9 +2134,9 @@ with st.sidebar:
         unsafe_allow_html=True
     )
 
-# DASHBOARD MODIFICATA RICHIESTA 1 e 2 - FULLSCREEN ROSSO + BOTTONI ON_CLICK
+# DASHBOARD - SENZA INTESTAZIONE - richiesta Ezio: togli intestazione dalla dashboard, metti in login
 if cur == "Dashboard":
-    hdr()
+    # hdr() rimosso da dashboard - messo in login - richiesta Ezio
     hdr_form("MENU'")
 
     st.markdown(
@@ -4263,11 +4263,28 @@ elif cur == "Mappe Postazioni":
     if st.session_state.get("last_clicked_via") and not st.session_state.get("adv_marker_via"):
         st.session_state["adv_marker_via"] = str(st.session_state["last_clicked_via"])
 
-    # FIX Pulisci maschera - metodo che funziona davvero - controlla flag prima di creare widget
+    # FIX Pulisci maschera - metodo DEFINITIVO che pulisce davvero - prima dei widget
     if st.session_state.get("do_clear_maschera"):
-        # Pulisci TUTTE le chiavi maschera PRIMA che widget vengano creati
-        for k in ["adv_marker_nome", "adv_alias_combo", "adv_marker_alias_new", "adv_marker_lat", "adv_marker_lon", "adv_marker_comune", "adv_marker_via", "nome_emergenza_combo", "nome_evento_combo", "adv_marker_icona_select", "adv_marker_tipo", "adv_marker_desc", "last_clicked_lat", "last_clicked_lon", "last_clicked_comune", "last_clicked_via", "map_focus", "selected_icon_label"]:
+        # Pulisci TUTTE le chiavi maschera PRIMA che widget vengano creati - metodo aggressivo
+        keys_maschera = ["adv_marker_nome", "adv_alias_combo", "adv_marker_alias_new", "adv_marker_lat", "adv_marker_lon", "adv_marker_comune", "adv_marker_via", "nome_emergenza_combo", "nome_evento_combo", "adv_marker_icona_select", "adv_marker_tipo", "adv_marker_desc", "last_clicked_lat", "last_clicked_lon", "last_clicked_comune", "last_clicked_via", "map_focus", "selected_icon_label", "adv_marker_nome", "adv_marker_desc", "adv_marker_via"]
+        for k in keys_maschera:
             if k in st.session_state:
+                try:
+                    del st.session_state[k]
+                except:
+                    pass
+            # Forza a vuoto per sicurezza
+            try:
+                st.session_state[k] = ""
+            except:
+                pass
+        # Pulisci anche tutti gli adv_ generici
+        for k in list(st.session_state.keys()):
+            if k.startswith("adv_marker_") or k.startswith("last_clicked_"):
+                try:
+                    st.session_state[k] = ""
+                except:
+                    pass
                 try:
                     del st.session_state[k]
                 except:
@@ -4277,6 +4294,8 @@ elif cur == "Mappe Postazioni":
         except:
             pass
         st.session_state["do_clear_maschera"] = False
+        # Forza rerun per pulire davvero
+        st.rerun()
 
     c1, c2, c3 = st.columns(3)
     with c1:
@@ -4340,13 +4359,24 @@ elif cur == "Mappe Postazioni":
     with col_save1:
         save_clicked = st.button("💾 SALVA POSTAZIONE", type="primary", use_container_width=True, key="btn_salva_postazione")
     with col_save2:
-        # RIGA Pulisci maschera - FIX definitivo che pulisce davvero tutti i dati vecchi
-        if st.button("🧹 Pulisci maschera", type="primary", use_container_width=True, key="btn_pulisci_maschera_postazioni_v4", help="Pulisce TUTTA la maschera - nome, alias, lat, lon, comune, via"):
-            st.session_state["do_clear_maschera"] = True
+        # RIGA Pulisci maschera - FIX definitivo che pulisce davvero - richiesta Ezio tante volte
+        if st.button("🧹 Pulisci maschera", type="primary", use_container_width=True, key="btn_pulisci_maschera_postazioni_v5", help="Pulisce TUTTA la maschera dai vecchi dati - nome, alias, lat, lon, comune, via - FIX definitivo"):
+            # Pulisci subito tutte le chiavi qui prima del rerun
+            for k in ["adv_marker_nome", "adv_alias_combo", "adv_marker_alias_new", "adv_marker_lat", "adv_marker_lon", "adv_marker_comune", "adv_marker_via", "nome_emergenza_combo", "nome_evento_combo", "adv_marker_icona_select", "adv_marker_tipo", "adv_marker_desc", "last_clicked_lat", "last_clicked_lon", "last_clicked_comune", "last_clicked_via"]:
+                if k in st.session_state:
+                    try:
+                        st.session_state[k] = ""
+                    except:
+                        pass
+                    try:
+                        del st.session_state[k]
+                    except:
+                        pass
             try:
                 st.query_params.clear()
             except:
                 pass
+            st.session_state["do_clear_maschera"] = True
             st.rerun()
 
 
