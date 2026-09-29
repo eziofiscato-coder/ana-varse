@@ -4363,51 +4363,169 @@ elif cur == "Mappe Postazioni":
                 except:
                     sel_file_b64 = ""
             
-            # Se ha file immagine, usa iconUrl con base64, altrimenti divIcon con emoji
+            # Anteprima con tutti i marker visibili - FIX richiesta Ezio: tutti i marker devono rimanere visibili in anteprima e altra mappa
+            # Prepara markers_for_js per anteprima
+            try:
+                import json as json_lib_preview
+                all_markers_preview = st.session_state.get("mappa_avanzata_markers", [])
+                # Riusa clean_marker_for_json se esiste, altrimenti definisci veloce
+                def clean_preview(m):
+                    b64 = ""
+                    if m.get("HasFile") and m.get("FileBytes"):
+                        try:
+                            import base64 as b64lib
+                            fb = m.get("FileBytes")
+                            if isinstance(fb, bytes):
+                                b64 = b64lib.b64encode(fb).decode()
+                        except:
+                            b64 = ""
+                    return {
+                        "lat": m.get("Lat"),
+                        "lon": m.get("Lon"),
+                        "nome": m.get("Nome",""),
+                        "emoji": m.get("Emoji","👷"),
+                        "colore": m.get("Colore","green"),
+                        "hasFile": m.get("HasFile", False),
+                        "fileB64": b64
+                    }
+                markers_preview_js = json_lib_preview.dumps([clean_preview(m) for m in all_markers_preview])
+            except:
+                markers_preview_js = "[]"
+
             if sel_file_b64:
-                # Icona con immagine file da libreria
                 preview_html = f"""
                 <div style="border:2px solid #1A5D1A;border-radius:8px;overflow:hidden;">
-                <div style="background:#1A5D1A;color:white;padding:6px;text-align:center;">Anteprima FILE: {sel_e} {marker_nome or 'Nuova'} - {marker_comune} {marker_via} - Icona: {selected_ico_obj.get('Nome','')} - {selected_ico_obj.get('FileName','')}</div>
-                <div id="preview_map_top" style="height:250px;width:100%;"></div>
+                <div style="background:#1A5D1A;color:white;padding:6px;text-align:center;">Anteprima FILE: {sel_e} {marker_nome or 'Nuova'} - {marker_comune} {marker_via} - Tutti i {len(all_markers_preview)} marker visibili - Icona: {selected_ico_obj.get('Nome','')}</div>
+                <div id="preview_map_top" style="height:300px;width:100%;"></div>
                 </div>
                 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
                 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
                 <script>
-                var pMap = L.map('preview_map_top').setView([{p_lat}, {p_lon}], 15);
+                var pMap = L.map('preview_map_top').setView([{p_lat}, {p_lon}], 13);
                 L.tileLayer('https://{{s}}.tile.openstreetmap.org/{{z}}/{{x}}/{{y}}.png').addTo(pMap);
+                function getColorCodeP(c){{ var m={{'red':'#d32f2f','blue':'#1976d2','green':'#388e3c','orange':'#f57c00','purple':'#7b1fa2'}}; return m[c]||'#388e3c'; }}
+                var markersPreview = {markers_preview_js};
+                var allPrev = [];
+                markersPreview.forEach(function(md){{
+                    var ic;
+                    if(md.hasFile && md.fileB64){{
+                        ic = L.icon({{iconUrl: "data:image/png;base64," + md.fileB64, iconSize: [32,32], iconAnchor: [16,16]}});
+                    }} else {{
+                        ic = L.divIcon({{html: "<div style='background:white;border:2px solid " + getColorCodeP(md.colore) + ";width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;'>" + md.emoji + "</div>", iconSize: [24,24], iconAnchor: [12,12]}});
+                    }}
+                    var mk = L.marker([md.lat, md.lon], {{icon: ic}}).addTo(pMap).bindPopup("<b>" + md.emoji + " " + md.nome + "</b>");
+                    allPrev.push(mk);
+                }});
                 var fileIcon = L.icon({{
                     iconUrl: "data:image/png;base64,{sel_file_b64}",
-                    iconSize: [40, 40],
-                    iconAnchor: [20, 20],
-                    popupAnchor: [0, -20]
+                    iconSize: [44, 44],
+                    iconAnchor: [22, 22],
+                    popupAnchor: [0, -22]
                 }});
-                L.marker([{p_lat}, {p_lon}], {{icon: fileIcon}}).addTo(pMap).bindPopup("{sel_e} {marker_nome or 'Nuova'} - FILE").openPopup();
-                // Marker rimane visibile nella prima mappa
+                var newMk = L.marker([{p_lat}, {p_lon}], {{icon: fileIcon}}).addTo(pMap).bindPopup("{sel_e} {marker_nome or 'Nuova'} - NUOVA - FILE").openPopup();
+                allPrev.push(newMk);
+                if(allPrev.length>1){{
+                    var g = L.featureGroup(allPrev);
+                    pMap.fitBounds(g.getBounds().pad(0.4));
+                }}
                 </script>
                 """
             else:
                 preview_html = f"""
                 <div style="border:2px solid #1A5D1A;border-radius:8px;overflow:hidden;">
-                <div style="background:#1A5D1A;color:white;padding:6px;text-align:center;">Anteprima: {sel_e} {marker_nome or 'Nuova'} - {marker_comune} {marker_via} - Emergenza: {nome_emergenza} - Evento: {nome_evento}</div>
-                <div id="preview_map_top" style="height:250px;width:100%;"></div>
+                <div style="background:#1A5D1A;color:white;padding:6px;text-align:center;">Anteprima: {sel_e} {marker_nome or 'Nuova'} - {marker_comune} {marker_via} - Tutti i {len(all_markers_preview)} marker visibili + nuova</div>
+                <div id="preview_map_top" style="height:300px;width:100%;"></div>
                 </div>
                 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
                 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
                 <script>
-                var pMap = L.map('preview_map_top').setView([{p_lat}, {p_lon}], 15);
+                var pMap = L.map('preview_map_top').setView([{p_lat}, {p_lon}], 13);
                 L.tileLayer('https://{{s}}.tile.openstreetmap.org/{{z}}/{{x}}/{{y}}.png').addTo(pMap);
+                function getColorCodeP(c){{ var m={{'red':'#d32f2f','blue':'#1976d2','green':'#388e3c','orange':'#f57c00','purple':'#7b1fa2'}}; return m[c]||'#388e3c'; }}
+                var markersPreview = {markers_preview_js};
+                var allPrev = [];
+                markersPreview.forEach(function(md){{
+                    var ic;
+                    if(md.hasFile && md.fileB64){{
+                        ic = L.icon({{iconUrl: "data:image/png;base64," + md.fileB64, iconSize: [32,32], iconAnchor: [16,16]}});
+                    }} else {{
+                        ic = L.divIcon({{html: "<div style='background:white;border:2px solid " + getColorCodeP(md.colore) + ";width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;'>" + md.emoji + "</div>", iconSize: [24,24], iconAnchor: [12,12]}});
+                    }}
+                    var mk = L.marker([md.lat, md.lon], {{icon: ic}}).addTo(pMap).bindPopup("<b>" + md.emoji + " " + md.nome + "</b>");
+                    allPrev.push(mk);
+                }});
                 var colMap = {{'red':'#d32f2f','blue':'#1976d2','green':'#388e3c','orange':'#f57c00','purple':'#7b1fa2'}};
                 var cCode = colMap['{sel_c}'] || '#388e3c';
-                var pIcon = L.divIcon({{html: "<div style='background:white;border:2px solid " + cCode + ";width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;'>"+ "{sel_e}" + "</div>", iconSize: [26,26], iconAnchor: [13,13]}});
-                L.marker([{p_lat}, {p_lon}], {{icon: pIcon}}).addTo(pMap).bindPopup("{sel_e} Anteprima").openPopup();
+                var pIcon = L.divIcon({{html: "<div style='background:#fffde7;border:3px dashed " + cCode + ";width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;'>"+ "{sel_e}" + "</div>", iconSize: [30,30], iconAnchor: [15,15]}});
+                var newMk = L.marker([{p_lat}, {p_lon}], {{icon: pIcon}}).addTo(pMap).bindPopup("{sel_e} Nuova - Anteprima").openPopup();
+                allPrev.push(newMk);
+                if(allPrev.length>1){{
+                    var g = L.featureGroup(allPrev);
+                    pMap.fitBounds(g.getBounds().pad(0.4));
+                }}
                 </script>
                 """
             st.components.v1.html(preview_html, height=300)
         except Exception as e:
             st.info(f"Anteprima non disponibile - clicca mappa grande - Errore: {e}")
     else:
-        st.info("Clicca mappa grande per anteprima qui - L'anteprima mostra icona selezionata da Libreria e rimane visibile nella prima mappa")
+        # Anche senza click, mostra anteprima con tutti i marker esistenti - richiesta Ezio: tutti i marker devono rimanere visibili
+        try:
+            import json as json_lib_preview2
+            all_markers_preview2 = st.session_state.get("mappa_avanzata_markers", [])
+            def clean_preview2(m):
+                b64 = ""
+                if m.get("HasFile") and m.get("FileBytes"):
+                    try:
+                        import base64 as b64lib
+                        fb = m.get("FileBytes")
+                        if isinstance(fb, bytes):
+                            b64 = b64lib.b64encode(fb).decode()
+                    except:
+                        b64 = ""
+                return {
+                    "lat": m.get("Lat"),
+                    "lon": m.get("Lon"),
+                    "nome": m.get("Nome",""),
+                    "emoji": m.get("Emoji","👷"),
+                    "colore": m.get("Colore","green"),
+                    "hasFile": m.get("HasFile", False),
+                    "fileB64": b64
+                }
+            markers_preview_js2 = json_lib_preview2.dumps([clean_preview2(m) for m in all_markers_preview2])
+            no_preview_html = f"""
+            <div style="border:2px solid #1A5D1A;border-radius:8px;overflow:hidden;">
+            <div style="background:#1A5D1A;color:white;padding:6px;text-align:center;">Anteprima - {len(all_markers_preview2)} marker salvati - Tutti visibili - Clicca mappa grande per aggiungere</div>
+            <div id="preview_map_top_empty" style="height:300px;width:100%;"></div>
+            </div>
+            <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+            <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+            <script>
+            var pMap2 = L.map('preview_map_top_empty').setView([45.8167, 8.8333], 12);
+            L.tileLayer('https://{{s}}.tile.openstreetmap.org/{{z}}/{{x}}/{{y}}.png').addTo(pMap2);
+            function getColorCodeP2(c){{ var m={{'red':'#d32f2f','blue':'#1976d2','green':'#388e3c','orange':'#f57c00','purple':'#7b1fa2'}}; return m[c]||'#388e3c'; }}
+            var markersPreview2 = {markers_preview_js2};
+            var allPrev2 = [];
+            markersPreview2.forEach(function(md){{
+                var ic;
+                if(md.hasFile && md.fileB64){{
+                    ic = L.icon({{iconUrl: "data:image/png;base64," + md.fileB64, iconSize: [32,32], iconAnchor: [16,16]}});
+                }} else {{
+                    ic = L.divIcon({{html: "<div style='background:white;border:2px solid " + getColorCodeP2(md.colore) + ";width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;'>" + md.emoji + "</div>", iconSize: [24,24], iconAnchor: [12,12]}});
+                }}
+                var mk = L.marker([md.lat, md.lon], {{icon: ic}}).addTo(pMap2).bindPopup("<b>" + md.emoji + " " + md.nome + "</b>");
+                allPrev2.push(mk);
+            }});
+            if(allPrev2.length>0){{
+                var g = L.featureGroup(allPrev2);
+                pMap2.fitBounds(g.getBounds().pad(0.4));
+            }}
+            </script>
+            """
+            st.components.v1.html(no_preview_html, height=350)
+        except Exception as e:
+            st.info(f"Clicca mappa grande per anteprima - {len(st.session_state.get('mappa_avanzata_markers', []))} marker salvati - Errore: {e}")
+            st.info("Clicca mappa grande per anteprima qui - L'anteprima mostra icona selezionata da Libreria e rimane visibile nella prima mappa")
 
     # MAPPA GRANDE - NESSUN DEFAULT - MARKER RIMANGONO
     st.divider()
