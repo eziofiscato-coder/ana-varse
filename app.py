@@ -4162,7 +4162,6 @@ elif cur == "Mappe Postazioni":
     with c4:
         st.markdown(f'<span style="background:#1A5D1A;color:white;padding:6px 12px;border-radius:6px;font-weight:bold;">🗺️ {len(st.session_state.mappa_avanzata_markers)} postazioni</span>', unsafe_allow_html=True)
 
-    # LIBRERIA ICONE
     icone_disponibili = st.session_state.get("icone", [])
     if not icone_disponibili:
         icone_disponibili = [
@@ -4171,7 +4170,7 @@ elif cur == "Mappe Postazioni":
             {"Nome": "Evento", "Emoji": "📅", "Tipo": "Evento", "Colore": "blue"},
             {"Nome": "Mezzo", "Emoji": "🚐", "Tipo": "Mezzo", "Colore": "green"},
         ]
-    st.info(f"📚 Libreria Icone: {len(icone_disponibili)} icone - Clicca mappa per usare marker")
+    st.info(f"📚 Libreria Icone: {len(icone_disponibili)} icone")
     icone_options = []
     icone_map = {}
     for ico in icone_disponibili:
@@ -4197,7 +4196,6 @@ elif cur == "Mappe Postazioni":
                     st.markdown(f"<div style='font-size:32px;text-align:center;'>{ico.get('Emoji','📍')}</div>", unsafe_allow_html=True)
             else:
                 st.markdown(f"<div style='font-size:32px;text-align:center;background:white;border:2px solid #1A5D1A;border-radius:8px;padding:4px;'>{ico.get('Emoji','📍')}</div>", unsafe_allow_html=True)
-            st.caption(f"{ico.get('Nome','')} - {ico.get('Tipo','')}")
             if st.button(f"Seleziona", key=f"sel_ico_{idx}", use_container_width=True, type="primary" if is_sel else "secondary"):
                 for opt in icone_options:
                     if ico.get('Nome','') in opt:
@@ -4210,33 +4208,12 @@ elif cur == "Mappe Postazioni":
     except:
         default_idx = 0
 
-    st.markdown("""
-    <div style="background:#fffde7;padding:12px;border-radius:8px;border-left:4px solid #FFD700;margin-bottom:12px;">
-    <b>📋 PROCEDURA:</b> 1. Scegli icona 2. Clicca mappa grande 3. Lat/Lon vanno in maschera automatico 4. Scrivi Nome 5. SALVA
-    </div>
-    """, unsafe_allow_html=True)
-
     st.markdown("#### 📍 Maschera Postazione")
     c1, c2, c3 = st.columns(3)
     with c1:
         marker_nome = st.text_input("Nome Postazione *", key="adv_marker_nome", placeholder="Es: Postazione 1")
-        marker_lat = st.text_input("Latitudine *", value=st.session_state.last_clicked_lat, key="adv_marker_lat", placeholder="Clicca mappa - si compila da solo")
-        marker_lon = st.text_input("Longitudine *", value=st.session_state.last_clicked_lon, key="adv_marker_lon", placeholder="Clicca mappa - si compila da solo")
-        # Bottone per aggiornare coordinate da mappa se non si sono aggiornate
-        if st.button("🔄 Aggiorna coordinate da mappa", key="btn_update_coords"):
-            try:
-                qp_lat = st.query_params.get("lat", "")
-                qp_lon = st.query_params.get("lon", "")
-                if qp_lat and qp_lon:
-                    st.session_state.last_clicked_lat = str(qp_lat)
-                    st.session_state.last_clicked_lon = str(qp_lon)
-                    st.success(f"Coordinate aggiornate: {qp_lat}, {qp_lon}")
-                    st.rerun()
-                else:
-                    # Prova localStorage via query params
-                    st.info("Clicca prima sulla mappa grande, poi premi questo bottone")
-            except:
-                st.info("Clicca sulla mappa grande")
+        marker_lat = st.text_input("Latitudine *", value=st.session_state.last_clicked_lat, key="adv_marker_lat", placeholder="Clicca mappa")
+        marker_lon = st.text_input("Longitudine *", value=st.session_state.last_clicked_lon, key="adv_marker_lon", placeholder="Clicca mappa")
     with c2:
         marker_comune = st.text_input("Comune *", value="Varese", key="adv_marker_comune")
         marker_via = st.text_input("Via *", value="", key="adv_marker_via", placeholder="Via + civico")
@@ -4246,22 +4223,14 @@ elif cur == "Mappe Postazioni":
         marker_icona_label = st.selectbox("Icona Libreria", icone_options, index=default_idx, key="adv_marker_icona_select")
         st.session_state.selected_icon_label = marker_icona_label
         selected_ico_obj = icone_map.get(marker_icona_label, {"Emoji":"👷","Nome":"Postazione","Colore":"green","Tipo":"Postazione"})
-        has_file_sel = selected_ico_obj.get("HasFile", False)
-        file_bytes_sel = selected_ico_obj.get("FileBytes")
-        if has_file_sel and file_bytes_sel:
-            try:
-                st.image(file_bytes_sel, width=80, caption=f"Icona: {selected_ico_obj.get('Nome','')}")
-            except:
-                st.markdown(f"<div style='font-size:24px;text-align:center;background:#e8f5e9;padding:8px;border-radius:8px;border:2px solid #1A5D1A;'>{selected_ico_obj.get('Emoji','👷')} {selected_ico_obj.get('Nome','')}</div>", unsafe_allow_html=True)
-        else:
-            st.markdown(f"<div style='font-size:24px;text-align:center;background:#e8f5e9;padding:8px;border-radius:8px;border:2px solid #1A5D1A;'>{selected_ico_obj.get('Emoji','👷')} {selected_ico_obj.get('Nome','')}</div>", unsafe_allow_html=True)
-        st.caption(f"Colore: {selected_ico_obj.get('Colore','green')} - Tipo: {selected_ico_obj.get('Tipo','Postazione')}")
+        # Anteprima loghi tolta - non interessa
+        st.caption(f"Icona selezionata: {selected_ico_obj.get('Emoji','👷')} {selected_ico_obj.get('Nome','Postazione')}")
         marker_tipo = st.selectbox("Tipo", ["Postazione", "Emergenza", "Evento", "Mezzo", "Volontario"], key="adv_marker_tipo")
         marker_desc = st.text_input("Descrizione", key="adv_marker_desc")
 
     col_save1, col_save2 = st.columns([3,1])
     with col_save1:
-        save_clicked = st.button("💾 SALVA POSTAZIONE - RIMANE su mappa", type="primary", use_container_width=True, key="btn_salva_postazione")
+        save_clicked = st.button("💾 SALVA POSTAZIONE", type="primary", use_container_width=True, key="btn_salva_postazione")
     with col_save2:
         if st.button("🔄 Pulisci campi", use_container_width=True, key="btn_pulisci_campi"):
             st.session_state.last_clicked_lat = ""
@@ -4270,9 +4239,8 @@ elif cur == "Mappe Postazioni":
             st.rerun()
 
     try:
-        q_params = st.query_params
-        qp_lat = q_params.get("lat", "")
-        qp_lon = q_params.get("lon", "")
+        qp_lat = st.query_params.get("lat", "")
+        qp_lon = st.query_params.get("lon", "")
         if qp_lat and qp_lon:
             st.session_state.last_clicked_lat = str(qp_lat)
             st.session_state.last_clicked_lon = str(qp_lon)
@@ -4282,17 +4250,10 @@ elif cur == "Mappe Postazioni":
     if save_clicked:
         eff_lat = marker_lat or st.session_state.get("last_clicked_lat") or ""
         eff_lon = marker_lon or st.session_state.get("last_clicked_lon") or ""
-        try:
-            if not eff_lat:
-                eff_lat = st.query_params.get("lat", "")
-            if not eff_lon:
-                eff_lon = st.query_params.get("lon", "")
-        except:
-            pass
         if not marker_nome:
             st.error("❌ Inserisci Nome Postazione")
         elif not eff_lat or not eff_lon:
-            st.error("❌ Manca Latitudine o Longitudine - Clicca mappa grande poi Aggiorna coordinate")
+            st.error("❌ Manca Latitudine o Longitudine - Clicca mappa")
         else:
             try:
                 lat_f = float(str(eff_lat).replace(",", "."))
@@ -4320,9 +4281,7 @@ elif cur == "Mappe Postazioni":
                 }
                 st.session_state.mappa_avanzata_markers.append(nuovo)
                 st.session_state.map_focus = nuovo
-                st.session_state.last_clicked_lat = str(lat_f)
-                st.session_state.last_clicked_lon = str(lon_f)
-                st.success(f"✅ SALVATA {sel_obj.get('Emoji','👷')} {marker_nome} - Totale {len(st.session_state.mappa_avanzata_markers)}")
+                st.success(f"✅ SALVATA {marker_nome} - Totale {len(st.session_state.mappa_avanzata_markers)}")
                 try:
                     st.query_params.clear()
                 except:
@@ -4331,14 +4290,10 @@ elif cur == "Mappe Postazioni":
             except Exception as e:
                 st.error(f"❌ Errore: {e}")
 
-    # ANTEPRIMA SOPRA MAPPA
     st.divider()
-    st.markdown("#### 🗺️ Anteprima - Tutti i marker visibili")
-    preview_lat = st.session_state.last_clicked_lat
-    preview_lon = st.session_state.last_clicked_lon
+    st.markdown("#### 🗺️ Anteprima - Tutti i marker visibili - +/- sotto")
     all_markers = st.session_state.get("mappa_avanzata_markers", [])
     focus_marker = st.session_state.get("map_focus")
-
     import json as json_lib
     def clean_marker_for_json(m):
         b64 = ""
@@ -4350,7 +4305,7 @@ elif cur == "Mappe Postazioni":
                     b64 = b64lib.b64encode(fb).decode()
             except:
                 b64 = ""
-        return {"lat": m.get("Lat"), "lon": m.get("Lon"), "nome": m.get("Nome",""), "emoji": m.get("Emoji","👷"), "colore": m.get("Colore","green"), "iconaNome": m.get("IconaNome",""), "comune": m.get("Comune",""), "via": m.get("Via",""), "emergenza": m.get("NomeEmergenza",""), "evento": m.get("NomeEvento",""), "hasFile": m.get("HasFile", False), "fileName": m.get("FileName",""), "fileB64": b64}
+        return {"lat": m.get("Lat"), "lon": m.get("Lon"), "nome": m.get("Nome",""), "emoji": m.get("Emoji","👷"), "colore": m.get("Colore","green"), "hasFile": m.get("HasFile", False), "fileB64": b64, "comune": m.get("Comune",""), "via": m.get("Via",""), "emergenza": m.get("NomeEmergenza",""), "evento": m.get("NomeEvento","")}
     markers_for_js = json_lib.dumps([clean_marker_for_json(m) for m in all_markers])
     if focus_marker:
         focus_clean = clean_marker_for_json(focus_marker)
@@ -4360,56 +4315,101 @@ elif cur == "Mappe Postazioni":
     else:
         focus_for_js = "null"
 
-    # Mappa anteprima semplice con tutti marker
-    if all_markers or (preview_lat and preview_lon):
-        try:
-            p_lat = float(str(preview_lat).replace(",", ".")) if preview_lat else 45.8167
-            p_lon = float(str(preview_lon).replace(",", ".")) if preview_lon else 8.8333
-        except:
-            p_lat, p_lon = 45.8167, 8.8333
-        sel_e = selected_ico_obj.get('Emoji','👷')
-        sel_c = selected_ico_obj.get('Colore','green')
-        # Anteprima HTML con +/- sotto
-        preview_html = """
-        <div style="border:2px solid #1A5D1A;border-radius:8px;overflow:hidden;">
-        <div style="background:#1A5D1A;color:white;padding:6px;text-align:center;">Anteprima - Tutti i marker visibili - """ + str(len(all_markers)) + """ - +/- sotto a sinistra</div>
-        <div id="preview_map_top" style="height:350px;width:100%;"></div>
-        </div>
-        <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
-        <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-        <script>
-        var markersPreview = MARKERS_PREVIEW_PLACEHOLDER;
-        var pMap = L.map('preview_map_top', {zoomControl: false}).setView([PREVIEW_LAT, PREVIEW_LON], 13);
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(pMap);
-        L.control.zoom({position: 'bottomleft'}).addTo(pMap);
-        var FsTop = L.Control.extend({onAdd: function(m){var cEl=L.DomUtil.create('div','leaflet-bar leaflet-control');cEl.style.background='white';cEl.style.width='34px';cEl.style.height='34px';cEl.style.lineHeight='34px';cEl.style.textAlign='center';cEl.style.cursor='pointer';cEl.style.fontSize='22px';cEl.style.fontWeight='bold';cEl.innerHTML='⛶';cEl.title='Fullscreen 100%';cEl.onclick=function(){var contEl=document.getElementById('preview_map_top').parentElement;if(!document.fullscreenElement){if(contEl.requestFullscreen)contEl.requestFullscreen();}else{if(document.exitFullscreen)document.exitFullscreen();}setTimeout(function(){m.invalidateSize();},600);};return cEl;}}); new FsTop({position: 'bottomleft'}).addTo(pMap);
-        function getColorCode(c){var m={'red':'#d32f2f','blue':'#1976d2','green':'#388e3c','orange':'#f57c00','purple':'#7b1fa2'};return m[c]||'#388e3c';}
-        var allPrev=[];
-        markersPreview.forEach(function(md){
-            var ic;
-            if(md.hasFile && md.fileB64){ic=L.icon({iconUrl:'data:image/png;base64,'+md.fileB64,iconSize:[32,32],iconAnchor:[16,16]});}else{ic=L.divIcon({html:"<div style='background:white;border:2px solid "+getColorCode(md.colore)+";width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;'>"+md.emoji+"</div>",iconSize:[24,24],iconAnchor:[12,12]});}
-            var mk=L.marker([md.lat,md.lon],{icon:ic}).addTo(pMap).bindPopup("<b>"+md.emoji+" "+md.nome+"</b>");
-            allPrev.push(mk);
-        });
-        if(allPrev.length>1){var g=L.featureGroup(allPrev);pMap.fitBounds(g.getBounds().pad(0.4));}
-        </script>
-        """
-        preview_html = preview_html.replace("MARKERS_PREVIEW_PLACEHOLDER", markers_for_js)
-        preview_html = preview_html.replace("PREVIEW_LAT", str(p_lat))
-        preview_html = preview_html.replace("PREVIEW_LON", str(p_lon))
-        st.components.v1.html(preview_html, height=400)
-    else:
-        st.info("Nessun marker - Clicca mappa grande per aggiungere - Anteprima con tutti i marker")
+    # ANTEPRIMA - marker fissati qui e visionabili in mappa grande - lat/lon automatico in maschera senza bottone
+    preview_html = """
+    <div style="border:3px solid #1A5D1A;border-radius:8px;overflow:hidden;">
+    <div style="background:#1A5D1A;color:white;padding:6px;text-align:center;">ANTEPRIMA - Clicca qui per mettere marker - Si fissano e si vedono in mappa grande - """ + str(len(all_markers)) + """ marker</div>
+    <div id="preview_map_top" style="height:400px;width:100%;"></div>
+    </div>
+    <div id="preview_coords" style="background:#fffde7;padding:6px;border-radius:6px;margin-top:6px;font-weight:bold;border-left:4px solid #FFD700;">📍 Clicca anteprima per aggiungere marker - Lat/Lon vanno in maschera automatico</div>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+    var markersPreview = MARKERS_PREVIEW_PLACEHOLDER;
+    var focusPreview = FOCUS_PREVIEW_PLACEHOLDER;
+    var selEmojiPrev = SELECTED_EMOJI_PREVIEW;
+    var selColorPrev = SELECTED_COLOR_PREVIEW;
+    var pMap = L.map('preview_map_top', {zoomControl: false}).setView([45.8167, 8.8333], 12);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(pMap);
+    L.control.zoom({position: 'bottomleft'}).addTo(pMap);
+    var FsTop = L.Control.extend({onAdd: function(m){var cEl=L.DomUtil.create('div','leaflet-bar leaflet-control');cEl.style.background='white';cEl.style.width='34px';cEl.style.height='34px';cEl.style.lineHeight='34px';cEl.style.textAlign='center';cEl.style.cursor='pointer';cEl.style.fontSize='22px';cEl.style.fontWeight='bold';cEl.innerHTML='⛶';cEl.title='Fullscreen 100%';cEl.onclick=function(){var contEl=document.getElementById('preview_map_top').parentElement;if(!document.fullscreenElement){if(contEl.requestFullscreen)contEl.requestFullscreen();}else{if(document.exitFullscreen)document.exitFullscreen();}setTimeout(function(){m.invalidateSize();},600);};return cEl;}}); new FsTop({position: 'bottomleft'}).addTo(pMap);
+    function getColorCodePrev(c){var m={'red':'#d32f2f','blue':'#1976d2','green':'#388e3c','orange':'#f57c00','purple':'#7b1fa2'};return m[c]||'#388e3c';}
+    var allPrev=[];
+    markersPreview.forEach(function(md){
+        var ic;
+        if(md.hasFile && md.fileB64){ic=L.icon({iconUrl:'data:image/png;base64,'+md.fileB64,iconSize:[32,32],iconAnchor:[16,16]});}else{ic=L.divIcon({html:"<div style='background:white;border:2px solid "+getColorCodePrev(md.colore)+";width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;'>"+md.emoji+"</div>",iconSize:[24,24],iconAnchor:[12,12]});}
+        var mk=L.marker([md.lat,md.lon],{icon:ic}).addTo(pMap).bindPopup("<b>"+md.emoji+" "+md.nome+"</b><br>"+md.comune+" "+md.via);
+        allPrev.push(mk);
+    });
+    // Se c'è focus da vedi su mappa, ingrandisce
+    if(focusPreview && focusPreview.Lat){
+        pMap.setView([focusPreview.Lat, focusPreview.Lon], 17);
+        // Evidenzia focus
+        var focusIcon = L.divIcon({html:"<div style='background:#FFD700;border:3px solid #d32f2f;width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:18px;box-shadow:0 0 10px #FFD700;'>"+focusPreview.emoji+"</div>",iconSize:[36,36],iconAnchor:[18,18]});
+        L.marker([focusPreview.Lat, focusPreview.Lon], {icon: focusIcon}).addTo(pMap).bindPopup("<b>📍 SELEZIONATA: "+focusPreview.nome+"</b>").openPopup();
+        document.getElementById('preview_coords').innerHTML = "📍 Focus su: "+focusPreview.emoji+" "+focusPreview.nome+" - "+focusPreview.comune+" "+focusPreview.via+" - Ingrandita";
+    } else if(allPrev.length>0){
+        var g=L.featureGroup(allPrev);pMap.fitBounds(g.getBounds().pad(0.4));
+    }
+    // Click su anteprima per mettere marker fissi - lat/lon automatico in maschera senza bottone
+    pMap.on('click', function(e){
+        var lat = e.latlng.lat.toFixed(6);
+        var lon = e.latlng.lng.toFixed(6);
+        var tmpIcon = L.divIcon({html:"<div style='background:#fffde7;border:3px dashed "+getColorCodePrev(selColorPrev)+";width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;'>"+selEmojiPrev+"</div>",iconSize:[34,34],iconAnchor:[17,17]});
+        L.marker([lat, lon], {icon: tmpIcon}).addTo(pMap).bindPopup("Nuova "+selEmojiPrev+"<br>"+lat+","+lon).openPopup();
+        document.getElementById('preview_coords').innerHTML = "📍 Nuova da anteprima: "+selEmojiPrev+" Lat: "+lat+" Lon: "+lon+" - Inserita in maschera automatico";
+        // Inserisce lat/lon automatico in maschera - senza bottone - come prima faceva
+        try {
+            var url = new URL(window.parent.location.href);
+            url.searchParams.set('lat', lat);
+            url.searchParams.set('lon', lon);
+            window.parent.history.replaceState(null, '', url.toString());
+            // Setta direttamente input maschera
+            var pd = window.parent.document;
+            var inputs = pd.querySelectorAll('input[type="text"]');
+            if(inputs.length >= 3){
+                // inputs[1]=lat, inputs[2]=lon
+                try{inputs[1].value=lat; inputs[1].dispatchEvent(new Event('input',{bubbles:true})); inputs[1].dispatchEvent(new Event('change',{bubbles:true}));}catch(e){}
+                try{inputs[2].value=lon; inputs[2].dispatchEvent(new Event('input',{bubbles:true})); inputs[2].dispatchEvent(new Event('change',{bubbles:true}));}catch(e){}
+            }
+        } catch(err){}
+        // Geocode per comune/via
+        try{
+            fetch('https://nominatim.openstreetmap.org/reverse?format=json&lat='+lat+'&lon='+lon)
+                .then(r=>r.json()).then(d=>{
+                    var com = d.address.city||d.address.town||d.address.village||"";
+                    var via = d.address.road||"";
+                    document.getElementById('preview_coords').innerHTML += "<br>Comune: "+com+" Via: "+via;
+                    try{
+                        var pd = window.parent.document;
+                        var inputs = pd.querySelectorAll('input[type="text"]');
+                        if(inputs.length >= 5){
+                            if(com){inputs[3].value=com; inputs[3].dispatchEvent(new Event('input',{bubbles:true}));}
+                            if(via){inputs[4].value=via; inputs[4].dispatchEvent(new Event('input',{bubbles:true}));}
+                        }
+                    }catch(e){}
+                });
+        }catch(e){}
+    });
+    </script>
+    """
+    import json as json_lib_prev
+    sel_e_prev = selected_ico_obj.get('Emoji','👷')
+    sel_c_prev = selected_ico_obj.get('Colore','green')
+    preview_html = preview_html.replace("MARKERS_PREVIEW_PLACEHOLDER", markers_for_js)
+    preview_html = preview_html.replace("FOCUS_PREVIEW_PLACEHOLDER", focus_for_js)
+    preview_html = preview_html.replace("SELECTED_EMOJI_PREVIEW", json_lib_prev.dumps(sel_e_prev))
+    preview_html = preview_html.replace("SELECTED_COLOR_PREVIEW", json_lib_prev.dumps(sel_c_prev))
+    st.components.v1.html(preview_html, height=450)
 
-    # MAPPA GRANDE
     st.divider()
-    st.markdown("#### 🌍 Mappa Grande - Tutti i marker rimangono - Clicca per usare marker - +/- sotto")
+    st.markdown("#### 🌍 Mappa Grande - Tutti i marker rimangono")
 
     html_code = """
     <div id="map-container" style="position:relative; background:white; border-radius:12px;">
         <div id="map" style="height:650px; width:100%; border-radius:12px; border:3px solid #1A5D1A;"></div>
     </div>
-    <div id="coords" style="background:#fffde7;padding:8px;border-radius:6px;margin-top:8px;font-weight:bold;border-left:4px solid #FFD700;">📍 Clicca mappa per aggiungere marker - Lat/Lon vanno in maschera - Tutti rimangono</div>
+    <div id="coords" style="background:#fffde7;padding:8px;border-radius:6px;margin-top:8px;font-weight:bold;border-left:4px solid #FFD700;">📍 Clicca per aggiungere marker</div>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
@@ -4418,7 +4418,7 @@ elif cur == "Mappe Postazioni":
     var selectedIconEmoji = SELECTED_EMOJI_PLACEHOLDER;
     var selectedIconColor = SELECTED_COLOR_PLACEHOLDER;
     var map = L.map('map', {zoomControl: false}).setView([45.8167, 8.8333], 13);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {attribution: 'ANA Varese'}).addTo(map);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
     L.control.zoom({position: 'bottomleft'}).addTo(map);
     var FullscreenControl = L.Control.extend({
         onAdd: function(map) {
@@ -4431,12 +4431,9 @@ elif cur == "Mappe Postazioni":
             container.style.cursor = 'pointer';
             container.style.fontSize = '22px';
             container.style.fontWeight = 'bold';
-            container.style.border = '2px solid rgba(0,0,0,0.2)';
-            container.style.borderRadius = '4px';
             container.innerHTML = '⛶';
             container.title = 'Fullscreen 100%';
             container.onclick = function(){
-                var mapContainer = document.getElementById('map');
                 var parentContainer = document.getElementById('map-container');
                 if (!document.fullscreenElement) {
                     if (parentContainer.requestFullscreen) parentContainer.requestFullscreen();
@@ -4454,78 +4451,37 @@ elif cur == "Mappe Postazioni":
     markersData.forEach(function(md){
         var icon;
         if(md.hasFile && md.fileB64){
-            icon = L.icon({iconUrl: "data:image/png;base64," + md.fileB64, iconSize: [36, 36], iconAnchor: [18, 18], popupAnchor: [0, -18]});
+            icon = L.icon({iconUrl: "data:image/png;base64," + md.fileB64, iconSize: [36, 36], iconAnchor: [18, 18]});
         } else {
-            icon = L.divIcon({html: "<div style='background:white;border:2px solid " + getColorCode(md.colore) + ";width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;box-shadow:0 2px 4px rgba(0,0,0,0.3);'>" + md.emoji + "</div>", iconSize: [26,26], iconAnchor: [13,13]});
+            icon = L.divIcon({html: "<div style='background:white;border:2px solid " + getColorCode(md.colore) + ";width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;'>" + md.emoji + "</div>", iconSize: [26,26], iconAnchor: [13,13]});
         }
-        var mk = L.marker([md.lat, md.lon], {icon: icon}).addTo(map).bindPopup("<b>" + md.emoji + " " + md.nome + "</b><br>Comune: " + md.comune + "<br>Via: " + md.via);
+        var mk = L.marker([md.lat, md.lon], {icon: icon}).addTo(map).bindPopup("<b>" + md.emoji + " " + md.nome + "</b><br>" + md.comune + " " + md.via);
         allMarkers.push(mk);
     });
     if (focusMarker && focusMarker.Lat){
-        map.setView([focusMarker.Lat, focusMarker.Lon], 16);
-        document.getElementById('coords').innerHTML = "📍 Focus: " + focusMarker.emoji + " " + focusMarker.nome;
+        map.setView([focusMarker.Lat, focusMarker.Lon], 17);
+        // Evidenzia postazione selezionata con icona grande gialla
+        var focusIconBig = L.divIcon({html:"<div style='background:#FFD700;border:3px solid #d32f2f;width:42px;height:42px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:20px;box-shadow:0 0 12px #FFD700;'>"+focusMarker.emoji+"</div>",iconSize:[42,42],iconAnchor:[21,21]});
+        L.marker([focusMarker.Lat, focusMarker.Lon], {icon: focusIconBig}).addTo(map).bindPopup("<b>📍 SELEZIONATA: "+focusMarker.nome+"</b><br>"+focusMarker.comune+" "+focusMarker.via).openPopup();
+        document.getElementById('coords').innerHTML = "📍 Focus ingrandito su: "+focusMarker.emoji+" "+focusMarker.nome+" - "+focusMarker.comune+" "+focusMarker.via;
     } else {
         if(allMarkers.length>0){
             var g = new L.featureGroup(allMarkers);
             map.fitBounds(g.getBounds().pad(0.3));
-            document.getElementById('coords').innerHTML = "📍 " + markersData.length + " postazioni - Tutti rimangono - Clicca per aggiungere";
-        } else {
-            document.getElementById('coords').innerHTML = "📍 Nessun marker - Clicca mappa per aggiungere - Marker usabile";
         }
     }
-    var tempMarker = null;
     map.on('click', function(e){
         var lat = e.latlng.lat.toFixed(6);
         var lon = e.latlng.lng.toFixed(6);
-        if(tempMarker){ try{ map.removeLayer(tempMarker); } catch(err){} }
-        var tmpIcon = L.divIcon({html: "<div style='background:#fffde7;border:3px dashed " + getColorCode(selectedIconColor) + ";width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;box-shadow:0 2px 6px rgba(0,0,0,0.4);'>" + selectedIconEmoji + "</div>", iconSize: [34,34], iconAnchor: [17,17]});
-        tempMarker = L.marker([lat, lon], {draggable:true, icon: tmpIcon}).addTo(map).bindPopup("📍 Nuova<br>" + selectedIconEmoji + "<br>Lat: " + lat + "<br>Lon: " + lon + "<br>Trascina per spostare").openPopup();
-        tempMarker.on('dragend', function(ev){
-            var newLat = ev.target.getLatLng().lat.toFixed(6);
-            var newLon = ev.target.getLatLng().lng.toFixed(6);
-            document.getElementById('coords').innerHTML = "📍 Trascinato " + selectedIconEmoji + " " + newLat + "," + newLon;
-            syncWithPython(newLat, newLon);
-        });
-        document.getElementById('coords').innerHTML = "📍 Nuovo " + selectedIconEmoji + " Lat: " + lat + " Lon: " + lon + " - Inserito in maschera - Compila Nome e SALVA";
-        function syncWithPython(latVal, lonVal){
-            try {
-                var url = new URL(window.parent.location.href);
-                url.searchParams.set('lat', latVal);
-                url.searchParams.set('lon', lonVal);
-                window.parent.history.replaceState(null, '', url.toString());
-            } catch(err) {}
-        }
-        syncWithPython(lat, lon);
-        // Prova anche a settare input direttamente
-        try{
-            var pd = window.parent.document;
-            var inputs = pd.querySelectorAll('input[type="text"]');
-            if(inputs.length >= 3){
-                inputs[1].value = lat;
-                inputs[1].dispatchEvent(new Event('input', {bubbles:true}));
-                inputs[1].dispatchEvent(new Event('change', {bubbles:true}));
-                inputs[2].value = lon;
-                inputs[2].dispatchEvent(new Event('input', {bubbles:true}));
-                inputs[2].dispatchEvent(new Event('change', {bubbles:true}));
-            }
-        }catch(err){}
-        // Geocode
-        try{
-            fetch('https://nominatim.openstreetmap.org/reverse?format=json&lat='+lat+'&lon='+lon)
-                .then(r=>r.json()).then(d=>{
-                    var com = d.address.city||d.address.town||d.address.village||"";
-                    var via = d.address.road||"";
-                    document.getElementById('coords').innerHTML += "<br>🏘️ Comune: "+com+" Via: "+via;
-                    try{
-                        var pd = window.parent.document;
-                        var inputs = pd.querySelectorAll('input[type="text"]');
-                        if(inputs.length >= 5){
-                            if(com){inputs[3].value=com; inputs[3].dispatchEvent(new Event('input',{bubbles:true}));}
-                            if(via){inputs[4].value=via; inputs[4].dispatchEvent(new Event('input',{bubbles:true}));}
-                        }
-                    }catch(e){}
-                });
-        }catch(err){}
+        var tmpIcon = L.divIcon({html: "<div style='background:#fffde7;border:3px dashed " + getColorCode(selectedIconColor) + ";width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;'>" + selectedIconEmoji + "</div>", iconSize: [34,34], iconAnchor: [17,17]});
+        L.marker([lat, lon], {icon: tmpIcon}).addTo(map).bindPopup("Nuova " + lat + "," + lon).openPopup();
+        document.getElementById('coords').innerHTML = "📍 Nuovo " + selectedIconEmoji + " " + lat + "," + lon + " - Lat/Lon in maschera automatico";
+        try {
+            var url = new URL(window.parent.location.href);
+            url.searchParams.set('lat', lat);
+            url.searchParams.set('lon', lon);
+            window.parent.history.replaceState(null, '', url.toString());
+        } catch(err) {}
     });
     </script>
     """
@@ -4538,25 +4494,32 @@ elif cur == "Mappe Postazioni":
     html_code = html_code.replace("SELECTED_COLOR_PLACEHOLDER", json_lib2.dumps(sel_c))
     st.components.v1.html(html_code, height=700)
 
-    # TABELLA SOTTO MAPPA
     st.divider()
-    st.markdown(f"### 📋 Tabella Postazioni - {len(all_markers)} salvate")
+    st.markdown(f"### 📋 Tabella Postazioni Salvate - {len(all_markers)} - Clicca Vedi su mappa per ingrandire")
     if all_markers:
         for idx, m in enumerate(all_markers):
-            is_focus = focus_marker and str(focus_marker.get('Lat')) == str(m['Lat']) and focus_marker.get('Nome')==m['Nome']
+            is_focus = focus_marker and str(focus_marker.get('Lat')) == str(m['Lat']) and str(focus_marker.get('Lon')) == str(m['Lon'])
+            bg = "#fffde7" if is_focus else "white"
+            border = "#FFD700" if is_focus else "#e0e0e0"
             c1, c2, c3, c4 = st.columns([1,2,2,2])
             with c1:
-                st.markdown(f"<div style='text-align:center;'><div style='font-size:22px;'>{m.get('Emoji','👷')}</div><div style='font-size:10px;'>{m.get('IconaNome','')}</div></div>", unsafe_allow_html=True)
+                with st.container(border=True):
+                    st.markdown(f"<div style='text-align:center;background:{bg};border:2px solid {border};border-radius:8px;padding:4px;'><div style='font-size:26px;'>{m.get('Emoji','👷')}</div><small>{m.get('IconaNome','')}</small></div>", unsafe_allow_html=True)
+                    if is_focus:
+                        st.caption("👆 SELEZIONATA - Ingrandita su mappa")
             with c2:
                 st.write(f"**{m['Nome']}**")
-                st.caption(f"Tipo: {m.get('Tipo','')}")
+                st.caption(f"Tipo: {m.get('Tipo','')} - {m.get('IconaNome','')}")
+                st.caption(f"Emergenza: {m.get('NomeEmergenza','--')}")
             with c3:
-                st.markdown(f"**Comune:** {m.get('Comune','')}")
-                st.markdown(f"**Via:** {m.get('Via','')}")
+                st.write(f"**{m.get('Comune','')}**")
+                st.write(f"{m.get('Via','')}")
                 st.caption(f"Lat: {m['Lat']} Lon: {m['Lon']}")
             with c4:
-                if st.button("📍 Vedi su mappa", key=f"focus_{idx}", use_container_width=True, type="primary" if is_focus else "secondary"):
+                if st.button("📍 Vedi su mappa", key=f"focus_{idx}", use_container_width=True, type="primary" if is_focus else "secondary", help="Ingrandisce postazione su anteprima e mappa grande"):
                     st.session_state.map_focus = m
+                    st.session_state.last_clicked_lat = str(m['Lat'])
+                    st.session_state.last_clicked_lon = str(m['Lon'])
                     st.rerun()
                 col_del, col_dup = st.columns(2)
                 with col_del:
@@ -4572,49 +4535,6 @@ elif cur == "Mappe Postazioni":
                         st.session_state.mappa_avanzata_markers.append(nm)
                         st.rerun()
             st.divider()
-
-        c_exp1, c_exp2 = st.columns(2)
-        with c_exp1:
-            df_exp = pd.DataFrame(all_markers)
-            st.download_button("⬇️ Excel Postazioni", data=to_excel(df_exp), file_name="postazioni.xlsx", use_container_width=True)
-        with c_exp2:
-            if st.button("🧹 Pulisci TUTTI", key="clear_bottom", use_container_width=True):
-                st.session_state.mappa_avanzata_markers = []
-                st.session_state.map_focus = None
-                st.rerun()
-
-        st.divider()
-        st.markdown("#### 🗺️ Anteprima sotto tabella - Tutti i marker - +/- sotto")
-        try:
-            preview_all_html = """
-            <div style="border:2px solid #1A5D1A;border-radius:8px;overflow:hidden;">
-            <div style="background:#1A5D1A;color:white;padding:6px;text-align:center;">Anteprima sotto tabella - Tutti i marker - """ + str(len(all_markers)) + """ - +/- sotto a sinistra - Fullscreen 100%</div>
-            <div id="preview_bottom" style="height:400px;width:100%;"></div>
-            </div>
-            <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
-            <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-            <script>
-            var markersDataBottom = """ + markers_for_js + """;
-            var mapB = L.map('preview_bottom', {zoomControl: false}).setView([45.8167, 8.8333], 12);
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(mapB);
-            L.control.zoom({position: 'bottomleft'}).addTo(mapB);
-            var FsBottom = L.Control.extend({onAdd: function(m){var cEl=L.DomUtil.create('div','leaflet-bar leaflet-control');cEl.style.background='white';cEl.style.width='34px';cEl.style.height='34px';cEl.style.lineHeight='34px';cEl.style.textAlign='center';cEl.style.cursor='pointer';cEl.style.fontSize='22px';cEl.style.fontWeight='bold';cEl.innerHTML='⛶';cEl.title='Fullscreen 100%';cEl.onclick=function(){var contEl=document.getElementById('preview_bottom').parentElement;if(!document.fullscreenElement){if(contEl.requestFullscreen)contEl.requestFullscreen();}else{if(document.exitFullscreen)document.exitFullscreen();}setTimeout(function(){m.invalidateSize();},600);};return cEl;}}); new FsBottom({position:'bottomleft'}).addTo(mapB);
-            function getColorCodeB(c){ var m={'red':'#d32f2f','blue':'#1976d2','green':'#388e3c','orange':'#f57c00','purple':'#7b1fa2'}; return m[c]||'#388e3c'; }
-            var allB = [];
-            markersDataBottom.forEach(function(md){
-                var ic;
-                if(md.hasFile && md.fileB64){ic=L.icon({iconUrl:'data:image/png;base64,'+md.fileB64,iconSize:[32,32],iconAnchor:[16,16]});}else{ic=L.divIcon({html:"<div style='background:white;border:2px solid "+getColorCodeB(md.colore)+";width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;'>"+md.emoji+"</div>",iconSize:[24,24],iconAnchor:[12,12]});}
-                var mk=L.marker([md.lat,md.lon],{icon:ic}).addTo(mapB).bindPopup("<b>"+md.emoji+" "+md.nome+"</b>");
-                allB.push(mk);
-            });
-            if(allB.length>0){var g=new L.featureGroup(allB);mapB.fitBounds(g.getBounds().pad(0.4));}
-            </script>
-            """
-            st.components.v1.html(preview_all_html, height=450)
-        except Exception as e:
-            st.info(f"Anteprima sotto tabella non disponibile: {e}")
-    else:
-        st.info("Nessun marker salvato - Clicca mappa grande per aggiungere")
 
     excel_import_inline("mappa_postazioni", "Mappe Postazioni")
 
