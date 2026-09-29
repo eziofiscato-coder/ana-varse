@@ -4163,16 +4163,18 @@ elif cur == "Mappe Postazioni":
         st.markdown(f'<span style="background:#1A5D1A;color:white;padding:6px 12px;border-radius:6px;font-weight:bold;">🗺️ {len(st.session_state.mappa_avanzata_markers)} postazioni</span>', unsafe_allow_html=True)
 
     icone_disponibili = st.session_state.get("icone", [])
+    # Icone di default tolte - le carichi tu in Libreria Icone - richiesta Ezio
     if not icone_disponibili:
-        icone_disponibili = [
-            {"Nome": "Postazione", "Emoji": "👷", "Tipo": "Postazione", "Colore": "green"},
-            {"Nome": "Emergenza", "Emoji": "🚨", "Tipo": "Emergenza", "Colore": "red"},
-            {"Nome": "Evento", "Emoji": "📅", "Tipo": "Evento", "Colore": "blue"},
-            {"Nome": "Mezzo", "Emoji": "🚐", "Tipo": "Mezzo", "Colore": "green"},
-        ]
-    st.info(f"📚 Libreria Icone: {len(icone_disponibili)} icone")
+        st.warning("⚠️ Libreria Icone vuota - Vai in Libreria Icone e carica le tue icone")
+        st.info("Carica le tue icone con file PNG/JPG - poi le usi qui su Mappe Postazioni")
+        icone_disponibili = []
+    else:
+        st.info(f"📚 Libreria Icone: {len(icone_disponibili)} icone caricate da te")
     icone_options = []
     icone_map = {}
+    # Se libreria vuota, aggiungi placeholder per evitare errori ma non mostra icone di default
+    if not icone_disponibili:
+        icone_disponibili_placeholder = []
     for ico in icone_disponibili:
         has_file = ico.get("HasFile", False)
         file_info = " [FILE]" if has_file else ""
@@ -4182,7 +4184,7 @@ elif cur == "Mappe Postazioni":
     if not st.session_state.selected_icon_label and icone_options:
         st.session_state.selected_icon_label = icone_options[0]
 
-    st.markdown("**Scegli icona dalla Libreria:**")
+    # Scegli icona dalla Libreria tolto
     cols_ico = st.columns(4)
     for idx, ico in enumerate(icone_disponibili[:12]):
         with cols_ico[idx % 4]:
@@ -4329,6 +4331,8 @@ elif cur == "Mappe Postazioni":
     var focusPreview = FOCUS_PREVIEW_PLACEHOLDER;
     var selEmojiPrev = SELECTED_EMOJI_PREVIEW;
     var selColorPrev = SELECTED_COLOR_PREVIEW;
+    var selIconHasFilePrev = SELECTED_HASFILE_PREVIEW;
+    var selIconFileB64Prev = SELECTED_FILEB64_PREVIEW;
     var pMap = L.map('preview_map_top', {zoomControl: false}).setView([45.8167, 8.8333], 12);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(pMap);
     L.control.zoom({position: 'bottomleft'}).addTo(pMap);
@@ -4351,11 +4355,16 @@ elif cur == "Mappe Postazioni":
     } else if(allPrev.length>0){
         var g=L.featureGroup(allPrev);pMap.fitBounds(g.getBounds().pad(0.4));
     }
-    // Click su anteprima per mettere marker fissi - lat/lon automatico in maschera senza bottone
+    // Click su anteprima per mettere marker fissi - icona scelta non cerchio giallo - richiesta Ezio
     pMap.on('click', function(e){
         var lat = e.latlng.lat.toFixed(6);
         var lon = e.latlng.lng.toFixed(6);
-        var tmpIcon = L.divIcon({html:"<div style='background:#fffde7;border:3px dashed "+getColorCodePrev(selColorPrev)+";width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;'>"+selEmojiPrev+"</div>",iconSize:[34,34],iconAnchor:[17,17]});
+        var tmpIcon;
+        if(selIconHasFilePrev && selIconFileB64Prev){
+            tmpIcon = L.icon({iconUrl: 'data:image/png;base64,'+selIconFileB64Prev, iconSize: [38,38], iconAnchor: [19,19]});
+        } else {
+            tmpIcon = L.divIcon({html:"<div style='background:white;border:2px solid "+getColorCodePrev(selColorPrev)+";width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:18px;box-shadow:0 2px 4px rgba(0,0,0,0.3);'>"+selEmojiPrev+"</div>",iconSize:[32,32],iconAnchor:[16,16]});
+        }
         L.marker([lat, lon], {icon: tmpIcon}).addTo(pMap).bindPopup("Nuova "+selEmojiPrev+"<br>"+lat+","+lon).openPopup();
         document.getElementById('preview_coords').innerHTML = "📍 Nuova da anteprima: "+selEmojiPrev+" Lat: "+lat+" Lon: "+lon+" - Inserita in maschera automatico";
         // Inserisce lat/lon automatico in maschera - senza bottone - come prima faceva
@@ -4394,12 +4403,24 @@ elif cur == "Mappe Postazioni":
     </script>
     """
     import json as json_lib_prev
+    import base64 as b64lib_prev
     sel_e_prev = selected_ico_obj.get('Emoji','👷')
     sel_c_prev = selected_ico_obj.get('Colore','green')
+    sel_hasfile_prev = selected_ico_obj.get("HasFile", False)
+    sel_fileb64_prev = ""
+    if sel_hasfile_prev and selected_ico_obj.get("FileBytes"):
+        try:
+            fb = selected_ico_obj.get("FileBytes")
+            if isinstance(fb, bytes):
+                sel_fileb64_prev = b64lib_prev.b64encode(fb).decode()
+        except:
+            sel_fileb64_prev = ""
     preview_html = preview_html.replace("MARKERS_PREVIEW_PLACEHOLDER", markers_for_js)
     preview_html = preview_html.replace("FOCUS_PREVIEW_PLACEHOLDER", focus_for_js)
     preview_html = preview_html.replace("SELECTED_EMOJI_PREVIEW", json_lib_prev.dumps(sel_e_prev))
     preview_html = preview_html.replace("SELECTED_COLOR_PREVIEW", json_lib_prev.dumps(sel_c_prev))
+    preview_html = preview_html.replace("SELECTED_HASFILE_PREVIEW", json_lib_prev.dumps(sel_hasfile_prev))
+    preview_html = preview_html.replace("SELECTED_FILEB64_PREVIEW", json_lib_prev.dumps(sel_fileb64_prev))
     st.components.v1.html(preview_html, height=450)
 
     st.divider()
@@ -4417,6 +4438,8 @@ elif cur == "Mappe Postazioni":
     var focusMarker = FOCUS_JSON_PLACEHOLDER;
     var selectedIconEmoji = SELECTED_EMOJI_PLACEHOLDER;
     var selectedIconColor = SELECTED_COLOR_PLACEHOLDER;
+    var selectedIconHasFile = SELECTED_HASFILE_PLACEHOLDER;
+    var selectedIconFileB64 = SELECTED_FILEB64_PLACEHOLDER;
     var map = L.map('map', {zoomControl: false}).setView([45.8167, 8.8333], 13);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
     L.control.zoom({position: 'bottomleft'}).addTo(map);
@@ -4473,8 +4496,13 @@ elif cur == "Mappe Postazioni":
     map.on('click', function(e){
         var lat = e.latlng.lat.toFixed(6);
         var lon = e.latlng.lng.toFixed(6);
-        var tmpIcon = L.divIcon({html: "<div style='background:#fffde7;border:3px dashed " + getColorCode(selectedIconColor) + ";width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;'>" + selectedIconEmoji + "</div>", iconSize: [34,34], iconAnchor: [17,17]});
-        L.marker([lat, lon], {icon: tmpIcon}).addTo(map).bindPopup("Nuova " + lat + "," + lon).openPopup();
+        var tmpIcon;
+        if(selectedIconHasFile && selectedIconFileB64){
+            tmpIcon = L.icon({iconUrl: "data:image/png;base64," + selectedIconFileB64, iconSize: [38,38], iconAnchor: [19,19]});
+        } else {
+            tmpIcon = L.divIcon({html: "<div style='background:white;border:2px solid " + getColorCode(selectedIconColor) + ";width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:18px;box-shadow:0 2px 4px rgba(0,0,0,0.3);'>" + selectedIconEmoji + "</div>", iconSize: [32,32], iconAnchor: [16,16]});
+        }
+        L.marker([lat, lon], {icon: tmpIcon}).addTo(map).bindPopup("Nuova " + selectedIconEmoji + "<br>" + lat + "," + lon).openPopup();
         document.getElementById('coords').innerHTML = "📍 Nuovo " + selectedIconEmoji + " " + lat + "," + lon + " - Lat/Lon in maschera automatico";
         try {
             var url = new URL(window.parent.location.href);
@@ -4486,12 +4514,24 @@ elif cur == "Mappe Postazioni":
     </script>
     """
     import json as json_lib2
+    import base64 as b64lib_main
     sel_e = selected_ico_obj.get('Emoji','👷')
     sel_c = selected_ico_obj.get('Colore','green')
+    sel_hasfile_main = selected_ico_obj.get("HasFile", False)
+    sel_fileb64_main = ""
+    if sel_hasfile_main and selected_ico_obj.get("FileBytes"):
+        try:
+            fb = selected_ico_obj.get("FileBytes")
+            if isinstance(fb, bytes):
+                sel_fileb64_main = b64lib_main.b64encode(fb).decode()
+        except:
+            sel_fileb64_main = ""
     html_code = html_code.replace("MARKERS_JSON_PLACEHOLDER", markers_for_js)
     html_code = html_code.replace("FOCUS_JSON_PLACEHOLDER", focus_for_js)
     html_code = html_code.replace("SELECTED_EMOJI_PLACEHOLDER", json_lib2.dumps(sel_e))
     html_code = html_code.replace("SELECTED_COLOR_PLACEHOLDER", json_lib2.dumps(sel_c))
+    html_code = html_code.replace("SELECTED_HASFILE_PLACEHOLDER", json_lib2.dumps(sel_hasfile_main))
+    html_code = html_code.replace("SELECTED_FILEB64_PLACEHOLDER", json_lib2.dumps(sel_fileb64_main))
     st.components.v1.html(html_code, height=700)
 
     st.divider()
@@ -4615,18 +4655,11 @@ elif cur == "Libreria Icone":
     </div>
     """, unsafe_allow_html=True)
 
-    # Icone predefinite se vuoto
-    if not st.session_state.icone:
-        st.session_state.icone = [
-            {"Nome": "Emergenza", "Emoji": "🚨", "Tipo": "Emergenza", "Colore": "red", "Descrizione": "Emergenza", "Data": datetime.now().strftime("%d/%m/%Y")},
-            {"Nome": "Evento", "Emoji": "📅", "Tipo": "Evento", "Colore": "blue", "Descrizione": "Evento", "Data": datetime.now().strftime("%d/%m/%Y")},
-            {"Nome": "Mezzo", "Emoji": "🚐", "Tipo": "Mezzo", "Colore": "green", "Descrizione": "Mezzo", "Data": datetime.now().strftime("%d/%m/%Y")},
-            {"Nome": "Volontario", "Emoji": "👤", "Tipo": "Volontario", "Colore": "orange", "Descrizione": "Volontario", "Data": datetime.now().strftime("%d/%m/%Y")},
-            {"Nome": "Ospedale", "Emoji": "🏥", "Tipo": "Emergenza", "Colore": "red", "Descrizione": "Ospedale", "Data": datetime.now().strftime("%d/%m/%Y")},
-            {"Nome": "Incendio", "Emoji": "🔥", "Tipo": "Emergenza", "Colore": "red", "Descrizione": "Incendio", "Data": datetime.now().strftime("%d/%m/%Y")},
-            {"Nome": "Alluvione", "Emoji": "💧", "Tipo": "Emergenza", "Colore": "blue", "Descrizione": "Alluvione", "Data": datetime.now().strftime("%d/%m/%Y")},
-            {"Nome": "Radio", "Emoji": "📻", "Tipo": "Mezzo", "Colore": "purple", "Descrizione": "Radio", "Data": datetime.now().strftime("%d/%m/%Y")},
-        ]
+    # Icone di default tolte - le carichi tu - richiesta Ezio
+    # Nessuna icona predefinita - libreria vuota all'inizio
+    if "icone" not in st.session_state:
+        st.session_state.icone = []
+    # Se vuoi ripristinare, carica da Excel o crea manualmente
 
     c1, c2, c3, c4 = st.columns(4)
     with c1:
