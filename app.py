@@ -4205,11 +4205,25 @@ elif cur == "Mappe Postazioni":
     # Se libreria vuota, default_idx 0 ma icone_options vuoto - gestito sotto
 
     st.markdown("#### 📍 Maschera Postazione")
+    # Alias esistenti per collegare - vedi solo alias e non tutti i dati - richiesta Ezio
+    alias_esistenti = [m.get('Alias','') for m in st.session_state.get('mappa_avanzata_markers', []) if m.get('Alias')]
+    alias_esistenti = sorted(list(set(alias_esistenti)))
+    if alias_esistenti:
+        st.info(f"📻 Alias già inseriti: {', '.join(alias_esistenti[:20])} - Seleziona sotto per vedere solo alias")
+
     c1, c2, c3 = st.columns(3)
     with c1:
         marker_nome = st.text_input("Nome Postazione *", key="adv_marker_nome", placeholder="Es: Postazione 1")
-        # RIGA 4211 - Alias per radio - richiesta Ezio - associa alias per chiamare con radio
-        marker_alias = st.text_input("Alias Radio *", key="adv_marker_alias", placeholder="Es: Alfa 1, Base, 01, PM1", help="Alias per chiamata radio - es: Alfa 1, Base, Postazione 1")
+        # RIGA 4211-4215 - Alias per radio - collegato agli alias che inserisci - vedi solo alias
+        if alias_esistenti:
+            # Seleziona alias esistente o scrivi nuovo
+            sel_alias_exist = st.selectbox("Alias esistenti (vedi solo alias)", ["-- Nuovo Alias --"] + alias_esistenti, key="adv_alias_select")
+            if sel_alias_exist != "-- Nuovo Alias --":
+                marker_alias = st.text_input("Alias Radio *", value=sel_alias_exist, key="adv_marker_alias", help="Alias selezionato - puoi modificarlo")
+            else:
+                marker_alias = st.text_input("Alias Radio *", key="adv_marker_alias", placeholder="Es: Alfa 1, Base, 01, PM1", help="Nuovo alias radio")
+        else:
+            marker_alias = st.text_input("Alias Radio *", key="adv_marker_alias", placeholder="Es: Alfa 1, Base, 01, PM1", help="Alias per chiamata radio")
         marker_lat = st.text_input("Latitudine *", value=st.session_state.last_clicked_lat, key="adv_marker_lat", placeholder="Clicca mappa")
         marker_lon = st.text_input("Longitudine *", value=st.session_state.last_clicked_lon, key="adv_marker_lon", placeholder="Clicca mappa")
     with c2:
@@ -4249,15 +4263,15 @@ elif cur == "Mappe Postazioni":
     with col_save1:
         save_clicked = st.button("💾 SALVA POSTAZIONE", type="primary", use_container_width=True, key="btn_salva_postazione")
     with col_save2:
-        # Tasto pulisci campi attivato - pulisce tutti i campi maschera - richiesta Ezio
-        if st.button("🔄 Pulisci campi", use_container_width=True, key="btn_pulisci_campi", help="Pulisce tutti i campi della maschera"):
-            # Pulisci tutti i campi maschera postazione
-            for k in ["adv_marker_nome", "adv_marker_alias", "adv_marker_lat", "adv_marker_lon", "adv_marker_comune", "adv_marker_via", "nome_emergenza_combo", "nome_evento_combo", "adv_marker_icona_select", "adv_marker_tipo", "adv_marker_desc"]:
-                if k in st.session_state:
-                    try:
-                        del st.session_state[k]
-                    except:
-                        pass
+        # RIGA 4251-4275 - Pulisci maschera FIX - non eseguiva - ora setta vuoto e rerun - Ezio
+        if st.button("🔄 Pulisci campi", use_container_width=True, key="btn_pulisci_campi", help="Pulisce tutti i campi"):
+            # Setta vuoto invece di del - Streamlit mantiene meglio
+            for k in ["adv_marker_nome", "adv_marker_alias", "adv_marker_lat", "adv_marker_lon", "adv_marker_comune", "adv_marker_via", "adv_marker_tipo", "adv_marker_desc"]:
+                st.session_state[k] = ""
+            st.session_state["nome_emergenza_combo"] = "-- Nessuna --"
+            st.session_state["nome_evento_combo"] = "-- Nessuno --"
+            st.session_state["adv_marker_icona_select"] = ""
+            st.session_state.selected_icon_label = ""
             st.session_state.last_clicked_lat = ""
             st.session_state.last_clicked_lon = ""
             st.session_state.map_focus = None
@@ -4265,7 +4279,7 @@ elif cur == "Mappe Postazioni":
                 st.query_params.clear()
             except:
                 pass
-            st.success("Campi puliti")
+            st.toast("✅ Maschera pulita", icon="🧹")
             st.rerun()
 
     try:
@@ -4714,9 +4728,28 @@ elif cur == "Mappe Postazioni":
     st.components.v1.html(html_code, height=700)
 
     st.divider()
-    st.markdown(f"### 📋 Tabella Postazioni Salvate - {len(all_markers)} - Clicca Vedi su mappa per ingrandire")
-    if all_markers:
-        for idx, m in enumerate(all_markers):
+    # Filtro per vedere solo alias e non tutti i dati - richiesta Ezio
+    if all_markers and alias_esistenti:
+        col_f1, col_f2 = st.columns([2,1])
+        with col_f1:
+            filtro_alias = st.selectbox("🔍 Filtra per Alias (vedi solo alias)", ["-- Tutti --"] + alias_esistenti, key="filtro_alias_tab")
+        with col_f2:
+            if st.button("🧹 Pulisci filtro Alias", key="btn_pulisci_filtro_alias"):
+                st.session_state["filtro_alias_tab"] = "-- Tutti --"
+                st.rerun()
+        if filtro_alias != "-- Tutti --":
+            all_markers_filtered = [m for m in all_markers if m.get('Alias','') == filtro_alias]
+            st.success(f"📻 Vedo solo alias: {filtro_alias} - {len(all_markers_filtered)} postazioni")
+            all_markers_display = all_markers_filtered
+        else:
+            all_markers_display = all_markers
+    else:
+        all_markers_display = all_markers
+        filtro_alias = "-- Tutti --"
+
+    st.markdown(f"### 📋 Tabella Postazioni Salvate - {len(all_markers_display)} / {len(all_markers)} - Alias: {filtro_alias} - Clicca Vedi su mappa")
+    if all_markers_display:
+        for idx, m in enumerate(all_markers_display):
             is_focus = focus_marker and str(focus_marker.get('Lat')) == str(m['Lat']) and str(focus_marker.get('Lon')) == str(m['Lon'])
             bg = "#fffde7" if is_focus else "white"
             border = "#FFD700" if is_focus else "#e0e0e0"
