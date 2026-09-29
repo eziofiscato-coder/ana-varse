@@ -4263,6 +4263,21 @@ elif cur == "Mappe Postazioni":
     if st.session_state.get("last_clicked_via") and not st.session_state.get("adv_marker_via"):
         st.session_state["adv_marker_via"] = str(st.session_state["last_clicked_via"])
 
+    # FIX Pulisci maschera - metodo che funziona davvero - controlla flag prima di creare widget
+    if st.session_state.get("do_clear_maschera"):
+        # Pulisci TUTTE le chiavi maschera PRIMA che widget vengano creati
+        for k in ["adv_marker_nome", "adv_alias_combo", "adv_marker_alias_new", "adv_marker_lat", "adv_marker_lon", "adv_marker_comune", "adv_marker_via", "nome_emergenza_combo", "nome_evento_combo", "adv_marker_icona_select", "adv_marker_tipo", "adv_marker_desc", "last_clicked_lat", "last_clicked_lon", "last_clicked_comune", "last_clicked_via", "map_focus", "selected_icon_label"]:
+            if k in st.session_state:
+                try:
+                    del st.session_state[k]
+                except:
+                    pass
+        try:
+            st.query_params.clear()
+        except:
+            pass
+        st.session_state["do_clear_maschera"] = False
+
     c1, c2, c3 = st.columns(3)
     with c1:
         marker_nome = st.text_input("Nome Postazione *", key="adv_marker_nome", placeholder="Es: Postazione 1")
@@ -4321,28 +4336,19 @@ elif cur == "Mappe Postazioni":
         marker_desc = st.text_input("Descrizione", key="adv_marker_desc")
 
     # Callback pulisci maschera - DEVE pulire tutti i dati che vedo - FIX definitivo - richiesta Ezio
-    def clear_maschera_callback():
-        # Pulisci TUTTI i campi maschera postazioni - quando inserisco postazione con tutti i campi, li deve pulire
-        # Solo del, niente set dopo del - evita AlreadyInstantiatedError che blocca pulizia
-        keys_to_del = ["adv_marker_nome", "adv_alias_combo", "adv_marker_alias_new", "adv_marker_alias", "adv_alias_select", "adv_marker_lat", "adv_marker_lon", "adv_marker_comune", "adv_marker_via", "nome_emergenza_combo", "nome_evento_combo", "adv_marker_icona_select", "adv_marker_tipo", "adv_marker_desc", "last_clicked_lat", "last_clicked_lon", "last_clicked_comune", "last_clicked_via", "map_focus", "selected_icon_label", "adv_marker_nome", "adv_marker_desc"]
-        for k in keys_to_del:
-            if k in st.session_state:
-                try:
-                    del st.session_state[k]
-                except:
-                    pass
-        # Pulisci query params lat/lon/comune/via
-        try:
-            st.query_params.clear()
-        except:
-            pass
-
     col_save1, col_save2 = st.columns([3,1])
     with col_save1:
         save_clicked = st.button("💾 SALVA POSTAZIONE", type="primary", use_container_width=True, key="btn_salva_postazione")
     with col_save2:
-        # RIGA 4348 - Pulisci maschera - deve pulire maschera dai dati che vedo - se inserisco postazione con tutti i campi, li deve pulire - Ezio
-        st.button("🧹 Pulisci maschera", type="primary", use_container_width=True, key="btn_pulisci_maschera_postazioni_v3", help="Pulisce TUTTA la maschera - nome, alias, lat, lon, comune, via", on_click=clear_maschera_callback)
+        # RIGA Pulisci maschera - FIX definitivo che pulisce davvero tutti i dati vecchi
+        if st.button("🧹 Pulisci maschera", type="primary", use_container_width=True, key="btn_pulisci_maschera_postazioni_v4", help="Pulisce TUTTA la maschera - nome, alias, lat, lon, comune, via"):
+            st.session_state["do_clear_maschera"] = True
+            try:
+                st.query_params.clear()
+            except:
+                pass
+            st.rerun()
+
 
     try:
         qp_lat = st.query_params.get("lat", "")
