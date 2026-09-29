@@ -4205,25 +4205,24 @@ elif cur == "Mappe Postazioni":
     # Se libreria vuota, default_idx 0 ma icone_options vuoto - gestito sotto
 
     st.markdown("#### 📍 Maschera Postazione")
-    # Alias esistenti per collegare - vedi solo alias e non tutti i dati - richiesta Ezio
+    # Alias esistenti - solo combo alias non obbligatorio - richiesta Ezio
     alias_esistenti = [m.get('Alias','') for m in st.session_state.get('mappa_avanzata_markers', []) if m.get('Alias')]
     alias_esistenti = sorted(list(set(alias_esistenti)))
     if alias_esistenti:
-        st.info(f"📻 Alias già inseriti: {', '.join(alias_esistenti[:20])} - Seleziona sotto per vedere solo alias")
+        st.caption(f"📻 Alias già usati: {', '.join(alias_esistenti[:15])}")
 
     c1, c2, c3 = st.columns(3)
     with c1:
         marker_nome = st.text_input("Nome Postazione *", key="adv_marker_nome", placeholder="Es: Postazione 1")
-        # RIGA 4211-4215 - Alias per radio - collegato agli alias che inserisci - vedi solo alias
-        if alias_esistenti:
-            # Seleziona alias esistente o scrivi nuovo
-            sel_alias_exist = st.selectbox("Alias esistenti (vedi solo alias)", ["-- Nuovo Alias --"] + alias_esistenti, key="adv_alias_select")
-            if sel_alias_exist != "-- Nuovo Alias --":
-                marker_alias = st.text_input("Alias Radio *", value=sel_alias_exist, key="adv_marker_alias", help="Alias selezionato - puoi modificarlo")
-            else:
-                marker_alias = st.text_input("Alias Radio *", key="adv_marker_alias", placeholder="Es: Alfa 1, Base, 01, PM1", help="Nuovo alias radio")
+        # RIGA 4211-4220 - FIX: solo combo alias non obbligatorio - tolto campo Alias Radio *
+        alias_options = ["-- Nessun Alias --"] + alias_esistenti + ["-- Nuovo Alias --"]
+        sel_alias_combo = st.selectbox("Alias (combo) - radio - non obbligatorio", alias_options, key="adv_alias_combo", help="Seleziona alias esistente o crea nuovo - non obbligatorio")
+        if sel_alias_combo == "-- Nuovo Alias --":
+            marker_alias = st.text_input("Nuovo Alias", key="adv_marker_alias_new", placeholder="Es: Alfa 1, Base, 01", help="Scrivi nuovo alias - non obbligatorio")
+        elif sel_alias_combo == "-- Nessun Alias --":
+            marker_alias = ""
         else:
-            marker_alias = st.text_input("Alias Radio *", key="adv_marker_alias", placeholder="Es: Alfa 1, Base, 01, PM1", help="Alias per chiamata radio")
+            marker_alias = sel_alias_combo
         marker_lat = st.text_input("Latitudine *", value=st.session_state.last_clicked_lat, key="adv_marker_lat", placeholder="Clicca mappa")
         marker_lon = st.text_input("Longitudine *", value=st.session_state.last_clicked_lon, key="adv_marker_lon", placeholder="Clicca mappa")
     with c2:
@@ -4263,14 +4262,32 @@ elif cur == "Mappe Postazioni":
     with col_save1:
         save_clicked = st.button("💾 SALVA POSTAZIONE", type="primary", use_container_width=True, key="btn_salva_postazione")
     with col_save2:
-        # RIGA 4251-4275 - Pulisci maschera FIX - non eseguiva - ora setta vuoto e rerun - Ezio
-        if st.button("🔄 Pulisci campi", use_container_width=True, key="btn_pulisci_campi", help="Pulisce tutti i campi"):
-            # Setta vuoto invece di del - Streamlit mantiene meglio
-            for k in ["adv_marker_nome", "adv_marker_alias", "adv_marker_lat", "adv_marker_lon", "adv_marker_comune", "adv_marker_via", "adv_marker_tipo", "adv_marker_desc"]:
-                st.session_state[k] = ""
+        # RIGA 4262-4285 - FIX DEFINITIVO Pulisci tutti i campi maschera postazioni - Ezio
+        if st.button("🔄 Pulisci campi", use_container_width=True, key="btn_pulisci_campi", help="Pulisce TUTTI i campi maschera per nuovo inserimento"):
+            # Pulisci TUTTI i campi maschera postazioni - fix non puliva
+            keys_to_clear = ["adv_marker_nome", "adv_alias_combo", "adv_marker_alias_new", "adv_marker_alias", "adv_alias_select", "adv_marker_lat", "adv_marker_lon", "adv_marker_comune", "adv_marker_via", "nome_emergenza_combo", "nome_evento_combo", "adv_marker_icona_select", "adv_marker_tipo", "adv_marker_desc", "last_clicked_lat", "last_clicked_lon"]
+            for k in keys_to_clear:
+                try:
+                    if k in st.session_state:
+                        st.session_state[k] = ""
+                    else:
+                        st.session_state[k] = ""
+                except:
+                    pass
+            # Reset specifici
+            st.session_state["adv_marker_nome"] = ""
+            st.session_state["adv_alias_combo"] = "-- Nessun Alias --"
+            st.session_state["adv_marker_alias_new"] = ""
+            st.session_state["adv_marker_lat"] = ""
+            st.session_state["adv_marker_lon"] = ""
+            st.session_state["adv_marker_comune"] = ""
+            st.session_state["adv_marker_via"] = ""
+            st.session_state["adv_marker_desc"] = ""
             st.session_state["nome_emergenza_combo"] = "-- Nessuna --"
             st.session_state["nome_evento_combo"] = "-- Nessuno --"
+            st.session_state["adv_marker_tipo"] = "Postazione"
             st.session_state["adv_marker_icona_select"] = ""
+            st.session_state["adv_alias_select"] = "-- Nuovo Alias --"
             st.session_state.selected_icon_label = ""
             st.session_state.last_clicked_lat = ""
             st.session_state.last_clicked_lon = ""
@@ -4279,7 +4296,7 @@ elif cur == "Mappe Postazioni":
                 st.query_params.clear()
             except:
                 pass
-            st.toast("✅ Maschera pulita", icon="🧹")
+            st.toast("✅ Maschera pulita - campi azzerati per nuova postazione", icon="🧹")
             st.rerun()
 
     try:
