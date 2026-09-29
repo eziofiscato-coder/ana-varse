@@ -4251,16 +4251,16 @@ elif cur == "Mappe Postazioni":
     elif alias_esistenti:
         st.caption(f"📻 Alias già usati in postazioni: {', '.join(alias_esistenti[:15])}")
 
-    # FIX: pre-fill lat/lon/comune/via da mappa PRIMA dei widget - richiesta Ezio
+    # FIX: pre-fill lat/lon/comune/via da mappa PRIMA dei widget - solo se campo vuoto - richiesta Ezio
     # Quando metti marker deve compilarmi la maschera postazioni con lat long comune e via
-    if st.session_state.get("last_clicked_lat"):
+    # Ma se pulisci maschera, non deve ricompilare
+    if st.session_state.get("last_clicked_lat") and not st.session_state.get("adv_marker_lat"):
         st.session_state["adv_marker_lat"] = str(st.session_state["last_clicked_lat"])
-    if st.session_state.get("last_clicked_lon"):
+    if st.session_state.get("last_clicked_lon") and not st.session_state.get("adv_marker_lon"):
         st.session_state["adv_marker_lon"] = str(st.session_state["last_clicked_lon"])
-    # Comune e Via da geocode se presenti in last_clicked
-    if st.session_state.get("last_clicked_comune"):
+    if st.session_state.get("last_clicked_comune") and not st.session_state.get("adv_marker_comune"):
         st.session_state["adv_marker_comune"] = str(st.session_state["last_clicked_comune"])
-    if st.session_state.get("last_clicked_via"):
+    if st.session_state.get("last_clicked_via") and not st.session_state.get("adv_marker_via"):
         st.session_state["adv_marker_via"] = str(st.session_state["last_clicked_via"])
 
     c1, c2, c3 = st.columns(3)
@@ -4320,33 +4320,29 @@ elif cur == "Mappe Postazioni":
         marker_tipo = st.selectbox("Tipo", ["Postazione", "Emergenza", "Evento", "Mezzo", "Volontario"], key="adv_marker_tipo")
         marker_desc = st.text_input("Descrizione", key="adv_marker_desc")
 
-    # Callback pulisci maschera - DEVE pulire tutti i campi compilati - richiesta Ezio
+    # Callback pulisci maschera - DEVE pulire tutti i dati che vedo - FIX definitivo - richiesta Ezio
     def clear_maschera_callback():
         # Pulisci TUTTI i campi maschera postazioni - quando inserisco postazione con tutti i campi, li deve pulire
-        keys_to_del = ["adv_marker_nome", "adv_alias_combo", "adv_marker_alias_new", "adv_marker_alias", "adv_alias_select", "adv_marker_lat", "adv_marker_lon", "adv_marker_comune", "adv_marker_via", "nome_emergenza_combo", "nome_evento_combo", "adv_marker_icona_select", "adv_marker_tipo", "adv_marker_desc", "last_clicked_lat", "last_clicked_lon", "last_clicked_comune", "last_clicked_via", "map_focus", "selected_icon_label"]
+        # Solo del, niente set dopo del - evita AlreadyInstantiatedError che blocca pulizia
+        keys_to_del = ["adv_marker_nome", "adv_alias_combo", "adv_marker_alias_new", "adv_marker_alias", "adv_alias_select", "adv_marker_lat", "adv_marker_lon", "adv_marker_comune", "adv_marker_via", "nome_emergenza_combo", "nome_evento_combo", "adv_marker_icona_select", "adv_marker_tipo", "adv_marker_desc", "last_clicked_lat", "last_clicked_lon", "last_clicked_comune", "last_clicked_via", "map_focus", "selected_icon_label", "adv_marker_nome", "adv_marker_desc"]
         for k in keys_to_del:
             if k in st.session_state:
                 try:
                     del st.session_state[k]
                 except:
                     pass
-        # Pulisci anche query params lat/lon/comune/via
+        # Pulisci query params lat/lon/comune/via
         try:
             st.query_params.clear()
         except:
             pass
-        # Azzera anche variabili dirette
-        st.session_state["last_clicked_lat"] = ""
-        st.session_state["last_clicked_lon"] = ""
-        st.session_state["last_clicked_comune"] = ""
-        st.session_state["last_clicked_via"] = ""
 
     col_save1, col_save2 = st.columns([3,1])
     with col_save1:
         save_clicked = st.button("💾 SALVA POSTAZIONE", type="primary", use_container_width=True, key="btn_salva_postazione")
     with col_save2:
-        # RIGA 4340 - Pulisci maschera - deve pulire maschera dai dati che vedo - Ezio
-        st.button("🧹 Pulisci maschera", type="primary", use_container_width=True, key="btn_pulisci_maschera_postazioni", help="Pulisce TUTTA la maschera postazioni - lat, lon, comune, via, nome", on_click=clear_maschera_callback)
+        # RIGA 4348 - Pulisci maschera - deve pulire maschera dai dati che vedo - se inserisco postazione con tutti i campi, li deve pulire - Ezio
+        st.button("🧹 Pulisci maschera", type="primary", use_container_width=True, key="btn_pulisci_maschera_postazioni_v3", help="Pulisce TUTTA la maschera - nome, alias, lat, lon, comune, via", on_click=clear_maschera_callback)
 
     try:
         qp_lat = st.query_params.get("lat", "")
@@ -4508,13 +4504,13 @@ elif cur == "Mappe Postazioni":
         var mk;
         if(md.hasFile && md.fileB64){
             var ic = L.icon({iconUrl:'data:image/png;base64,'+md.fileB64,iconSize:[36,36],iconAnchor:[18,18]});
-            mk=L.marker([md.lat,md.lon],{icon:ic}).addTo(pMap).bindPopup("<b>"+md.nome+"</b><br>📻 Alias: "+(md.alias||"")+"<br>Comune: "+md.comune+"<br>Via: "+md.via+"<br>Lat: "+md.lat+" Lon: "+md.lon);
+            mk=L.marker([md.lat,md.lon],{icon:ic}).addTo(pMap).bindPopup("<b>📍 "+md.nome+"</b><br>📻 Alias Radio: <b>"+(md.alias||"--")+"</b> - Chiamata<br>🏙️ Comune: "+md.comune+"<br>📍 Via: "+md.via+"<br>Lat: "+md.lat+" Lon: "+md.lon+"<br><small>Emergenza: "+(md.emergenza||"--")+" | Evento: "+(md.evento||"--")+"</small>");
         } else {
             // Fallback emoji/colore se non ha file - mostra comunque marker
             var colorMap = {'red':'#d32f2f','blue':'#1976d2','green':'#388e3c','orange':'#f57c00','purple':'#7b1fa2'};
             var col = colorMap[md.colore] || '#388e3c';
             var divIcon = L.divIcon({html:"<div style='background:white;border:2px solid "+col+";width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:18px;box-shadow:0 2px 4px rgba(0,0,0,0.3);'>"+(md.emoji||"📍")+"</div>",iconSize:[32,32],iconAnchor:[16,16]});
-            mk=L.marker([md.lat,md.lon],{icon:divIcon}).addTo(pMap).bindPopup("<b>"+md.nome+"</b><br>📻 Alias: "+(md.alias||"")+"<br>Comune: "+md.comune+"<br>Via: "+md.via+"<br>Lat: "+md.lat+" Lon: "+md.lon);
+            mk=L.marker([md.lat,md.lon],{icon:divIcon}).addTo(pMap).bindPopup("<b>📍 "+md.nome+"</b><br>📻 Alias Radio: <b>"+(md.alias||"--")+"</b> - Chiamata<br>🏙️ Comune: "+md.comune+"<br>📍 Via: "+md.via+"<br>Lat: "+md.lat+" Lon: "+md.lon+"<br><small>Emergenza: "+(md.emergenza||"--")+" | Evento: "+(md.evento||"--")+"</small>");
         }
         allPrev.push(mk);
     });
@@ -4778,12 +4774,12 @@ elif cur == "Mappe Postazioni":
         var mk;
         if(md.hasFile && md.fileB64){
             var icon = L.icon({iconUrl: "data:image/png;base64," + md.fileB64, iconSize: [40, 40], iconAnchor: [20, 20]});
-            mk = L.marker([md.lat, md.lon], {icon: icon}).addTo(map).bindPopup("<b>" + md.nome + "</b><br>📻 Alias: " + (md.alias||"") + "<br>Comune: " + md.comune + "<br>Via: " + md.via + "<br>Lat: " + md.lat + " Lon: " + md.lon);
+            mk = L.marker([md.lat, md.lon], {icon: icon}).addTo(map).bindPopup("<b>📍 " + md.nome + "</b><br>📻 Alias Radio: <b>" + (md.alias||"--") + "</b> - Chiamata radio<br>🏙️ Comune: " + md.comune + "<br>📍 Via: " + md.via + "<br>Lat: " + md.lat + " Lon: " + md.lon + "<br><small>Emergenza: " + (md.emergenza||"--") + " | Evento: " + (md.evento||"--") + "</small>");
         } else {
             var colorMapMain = {'red':'#d32f2f','blue':'#1976d2','green':'#388e3c','orange':'#f57c00','purple':'#7b1fa2'};
             var colMain = colorMapMain[md.colore] || '#388e3c';
             var divIconMain = L.divIcon({html:"<div style='background:white;border:2px solid "+colMain+";width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:20px;box-shadow:0 2px 6px rgba(0,0,0,0.3);'>"+(md.emoji||"📍")+"</div>",iconSize:[36,36],iconAnchor:[18,18]});
-            mk = L.marker([md.lat, md.lon], {icon: divIconMain}).addTo(map).bindPopup("<b>" + md.nome + "</b><br>📻 Alias: " + (md.alias||"") + "<br>Comune: " + md.comune + "<br>Via: " + md.via + "<br>Lat: " + md.lat + " Lon: " + md.lon);
+            mk = L.marker([md.lat, md.lon], {icon: divIconMain}).addTo(map).bindPopup("<b>📍 " + md.nome + "</b><br>📻 Alias Radio: <b>" + (md.alias||"--") + "</b> - Chiamata radio<br>🏙️ Comune: " + md.comune + "<br>📍 Via: " + md.via + "<br>Lat: " + md.lat + " Lon: " + md.lon + "<br><small>Emergenza: " + (md.emergenza||"--") + " | Evento: " + (md.evento||"--") + "</small>");
         }
         allMarkers.push(mk);
     });
@@ -4792,7 +4788,7 @@ elif cur == "Mappe Postazioni":
         // Zoom su mappa grande - icona selezionata ingrandita, non cerchio giallo
         if(focusMarker.hasFile && focusMarker.fileB64){
             var focusIconBig = L.icon({iconUrl: "data:image/png;base64," + focusMarker.fileB64, iconSize: [52, 52], iconAnchor: [26, 26]});
-            L.marker([focusMarker.Lat, focusMarker.Lon], {icon: focusIconBig}).addTo(map).bindPopup("<b>📍 SELEZIONATA: "+focusMarker.nome+"</b><br>"+focusMarker.comune+" "+focusMarker.via).openPopup();
+            L.marker([focusMarker.Lat, focusMarker.Lon], {icon: focusIconBig}).addTo(map).bindPopup("<b>📍 SELEZIONATA: "+focusMarker.nome+"</b><br>📻 Alias Radio: <b>"+(focusMarker.alias||"--")+"</b><br>🏙️ "+focusMarker.comune+"<br>📍 "+focusMarker.via).openPopup();
         }
         document.getElementById('coords').innerHTML = "📍 Zoom su: "+focusMarker.nome+" - "+focusMarker.comune+" "+focusMarker.via+" - Ingrandita su mappa grande";
     } else {
