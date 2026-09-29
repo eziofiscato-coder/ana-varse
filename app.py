@@ -1410,10 +1410,24 @@ def to_pdf(df, tit):
 def hdr():
 
     """
-    Header con 2 loghi affiancati + intestazione ridotta - Richiesta Ezio - ci stanno 2 loghi
+    Header con 2 loghi affiancati + intestazione centrata - FIX etichetta verde scuro centrata nel verde chiaro
     """
-    # Colonne: logo1 - logo2 - titolo ridotto - etichetta ridotta per 2 loghi
-    c1, c2, c3 = st.columns([0.8, 0.8, 4.4])
+    # Colonne con allineamento verticale centrato - FIX etichetta verde scuro centrata
+    try:
+        c1, c2, c3 = st.columns([0.8, 0.8, 4.4], vertical_alignment="center")
+    except:
+        c1, c2, c3 = st.columns([0.8, 0.8, 4.4])
+    # CSS per centrare verticalmente loghi e etichetta verde
+    st.markdown("""
+    <style>
+    [data-testid="column"] {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+    }
+    </style>
+    """, unsafe_allow_html=True)
     with c1:
         try:
             if os.path.exists("logo.png"):
@@ -1462,8 +1476,9 @@ def hdr():
         st.markdown(
             """
             <div style="background:linear-gradient(135deg,#1A5D1A 0%,#2e7d32 100%);
-            padding:14px 16px;border-radius:10px;color:white;
-            text-align:center;border:3px solid #1A5D1A;">
+            padding:18px 16px;border-radius:10px;color:white;
+            text-align:center;border:3px solid #1A5D1A;
+            display:flex;flex-direction:column;justify-content:center;align-items:center;min-height:110px;">
                 <p style="margin:0;font-family:Times New Roman;
                 font-weight:bold;font-size:20px;color:white;line-height:1.3;letter-spacing:0.3px;text-align:center;">
                 Squadra Volontari di protezione civile - Gruppo Alpini di Caronno Pertusella Bariola
@@ -1498,6 +1513,31 @@ def hdr_form(t):
         unsafe_allow_html=True
     )
     # CSS leggero per maschere in alto - NON toglie verde
+
+def get_form_key(base, form_ver_key):
+    """Restituisce chiave versionata per pulisci maschera che funziona - Ezio"""
+    ver = st.session_state.get(form_ver_key, 0)
+    return f"{base}_v{ver}"
+
+def pulisci_maschera_form(form_ver_key, keys_prefixes):
+    """Pulisci maschera con versionamento - funziona davvero - Ezio"""
+    # Incrementa versione
+    st.session_state[form_ver_key] = st.session_state.get(form_ver_key, 0) + 1
+    # Cancella chiavi con prefissi
+    for k in list(st.session_state.keys()):
+        for pref in keys_prefixes:
+            if k.startswith(pref):
+                try:
+                    del st.session_state[k]
+                except:
+                    pass
+    try:
+        st.query_params.clear()
+    except:
+        pass
+    st.rerun()
+
+
     st.markdown("""
     <style>
     .block-container { padding-top: 1rem !important; }
@@ -2467,6 +2507,25 @@ elif cur == "Volontari (con foto)":
     st.divider()
 
     col_btn1, col_btn2, col_btn3 = st.columns([1,1,2])
+    with col_btn3:
+        # Pulisci maschera Volontari - FIX che funziona - Ezio
+        if st.button("🧹 Pulisci maschera", use_container_width=True, key="btn_pulisci_volontari"):
+            for k in [k for k in list(st.session_state.keys()) if k.startswith("vol_")]:
+                try:
+                    del st.session_state[k]
+                except:
+                    pass
+            for k in ["foto_temp_prima", "foto_temp", "vol_edit_index"]:
+                if k in st.session_state:
+                    try:
+                        del st.session_state[k]
+                    except:
+                        pass
+            try:
+                st.query_params.clear()
+            except:
+                pass
+            st.rerun()
     if edit_mode:
         with col_btn1:
             if st.button("🔄 AGGIORNA VOLONTARIO", type="primary", use_container_width=True):
@@ -3678,7 +3737,8 @@ elif cur == "Interventi Emergenza":
                 """, unsafe_allow_html=True)
             st.success(f"✅ Icona selezionata: {sel_ico_obj.get('Emoji','')} {sel_ico_obj.get('Nome','')}")
         else:
-            st.info("Nessuna icona selezionata - Vai in Libreria Icone per crearne")
+            # Etichetta nessuna icona rimossa - Ezio
+            pass
             st.markdown("""
             <div style="background:#fff3e0;padding:10px;border-radius:8px;border:2px dashed #ff9800;text-align:center;">
             <div style="font-size:32px;">❓</div>
@@ -4211,13 +4271,12 @@ elif cur == "Mappe Postazioni":
         st.markdown(f'<span style="background:#1A5D1A;color:white;padding:6px 12px;border-radius:6px;font-weight:bold;">🗺️ {len(st.session_state.mappa_avanzata_markers)} postazioni</span>', unsafe_allow_html=True)
 
     icone_disponibili = st.session_state.get("icone", [])
-    # Icone di default tolte - le carichi tu in Libreria Icone - richiesta Ezio
+    # Icone di default tolte - le carichi tu in Libreria Icone - richiesta Ezio - etichette rimosse
     if not icone_disponibili:
-        st.warning("⚠️ Libreria Icone vuota - Vai in Libreria Icone e carica le tue icone")
-        st.info("Carica le tue icone con file PNG/JPG - poi le usi qui su Mappe Postazioni")
+        # Etichetta Libreria Icone vuota rimossa - richiesta Ezio - non mostrare
         icone_disponibili = []
     else:
-        st.info(f"📚 Libreria Icone: {len(icone_disponibili)} icone caricate da te")
+        st.caption(f"📚 Libreria: {len(icone_disponibili)} icone")
     icone_options = []
     icone_map = {}
     # Se libreria vuota, aggiungi placeholder per evitare errori ma non mostra icone di default
@@ -4337,7 +4396,7 @@ elif cur == "Mappe Postazioni":
             st.session_state.selected_icon_label = marker_icona_label
             selected_ico_obj = icone_map.get(marker_icona_label, {"Emoji":"👷","Nome":"Postazione","Colore":"green","Tipo":"Postazione"})
         else:
-            st.warning("Libreria vuota - carica icone in Libreria Icone")
+            # Etichetta rimossa - richiesta Ezio - togli queste etichette anche negli altri form
             marker_icona_label = ""
             selected_ico_obj = {"Emoji":"👷","Nome":"Postazione","Colore":"green","Tipo":"Postazione","HasFile":False}
             st.session_state.selected_icon_label = ""
@@ -4352,7 +4411,8 @@ elif cur == "Mappe Postazioni":
             if icone_options:
                 st.markdown(f"<div style='font-size:32px;text-align:center;background:#e8f5e9;padding:10px;border-radius:10px;border:2px solid #1A5D1A;'>{selected_ico_obj.get('Emoji','👷')}<br><small>{selected_ico_obj.get('Nome','Postazione')}</small></div>", unsafe_allow_html=True)
             else:
-                st.info("Nessuna icona caricata - vai in Libreria Icone")
+                # Etichetta rimossa - richiesta Ezio
+                pass
         marker_tipo = st.selectbox("Tipo", ["Postazione", "Emergenza", "Evento", "Mezzo", "Volontario"], key=k_map("adv_marker_tipo"))
         marker_desc = st.text_input("Descrizione", key=k_map("adv_marker_desc"))
 
