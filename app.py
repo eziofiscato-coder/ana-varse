@@ -4251,15 +4251,17 @@ elif cur == "Mappe Postazioni":
     elif alias_esistenti:
         st.caption(f"📻 Alias già usati in postazioni: {', '.join(alias_esistenti[:15])}")
 
-    # FIX CAMPI SBALLATI: pre-fill lat/lon da mappa PRIMA dei widget - RIGA 4220
-    if st.session_state.get("last_clicked_lat") and not st.session_state.get("adv_marker_lat"):
+    # FIX: pre-fill lat/lon/comune/via da mappa PRIMA dei widget - richiesta Ezio
+    # Quando metti marker deve compilarmi la maschera postazioni con lat long comune e via
+    if st.session_state.get("last_clicked_lat"):
         st.session_state["adv_marker_lat"] = str(st.session_state["last_clicked_lat"])
-    if st.session_state.get("last_clicked_lon") and not st.session_state.get("adv_marker_lon"):
+    if st.session_state.get("last_clicked_lon"):
         st.session_state["adv_marker_lon"] = str(st.session_state["last_clicked_lon"])
-    # Comune default solo se vuoto - FIX: non sovrascrivere lon/comune
-    if not st.session_state.get("adv_marker_comune"):
-        st.session_state["adv_marker_comune"] = ""
-    # Non impostare Varese automatico se lon contiene già valore - evita confusione
+    # Comune e Via da geocode se presenti in last_clicked
+    if st.session_state.get("last_clicked_comune"):
+        st.session_state["adv_marker_comune"] = str(st.session_state["last_clicked_comune"])
+    if st.session_state.get("last_clicked_via"):
+        st.session_state["adv_marker_via"] = str(st.session_state["last_clicked_via"])
 
     c1, c2, c3 = st.columns(3)
     with c1:
@@ -4318,36 +4320,63 @@ elif cur == "Mappe Postazioni":
         marker_tipo = st.selectbox("Tipo", ["Postazione", "Emergenza", "Evento", "Mezzo", "Volontario"], key="adv_marker_tipo")
         marker_desc = st.text_input("Descrizione", key="adv_marker_desc")
 
-    # Callback pulisci - FIX funziona davvero - RIGA 4276
+    # Callback pulisci maschera - DEVE pulire tutti i campi compilati - richiesta Ezio
     def clear_maschera_callback():
-        # Pulisci TUTTI i campi maschera postazioni - callback prima di rerun - FIX Ezio
-        for k in ["adv_marker_nome", "adv_alias_combo", "adv_marker_alias_new", "adv_marker_alias", "adv_alias_select", "adv_marker_lat", "adv_marker_lon", "adv_marker_comune", "adv_marker_via", "nome_emergenza_combo", "nome_evento_combo", "adv_marker_icona_select", "adv_marker_tipo", "adv_marker_desc"]:
+        # Pulisci TUTTI i campi maschera postazioni - quando inserisco postazione con tutti i campi, li deve pulire
+        keys_to_del = ["adv_marker_nome", "adv_alias_combo", "adv_marker_alias_new", "adv_marker_alias", "adv_alias_select", "adv_marker_lat", "adv_marker_lon", "adv_marker_comune", "adv_marker_via", "nome_emergenza_combo", "nome_evento_combo", "adv_marker_icona_select", "adv_marker_tipo", "adv_marker_desc", "last_clicked_lat", "last_clicked_lon", "last_clicked_comune", "last_clicked_via", "map_focus", "selected_icon_label"]
+        for k in keys_to_del:
             if k in st.session_state:
-                del st.session_state[k]
-        st.session_state["last_clicked_lat"] = ""
-        st.session_state["last_clicked_lon"] = ""
-        st.session_state["map_focus"] = None
-        st.session_state["selected_icon_label"] = ""
-        # Reset a vuoti espliciti per prossimo run
-        st.session_state["adv_marker_comune"] = ""
+                try:
+                    del st.session_state[k]
+                except:
+                    pass
+        # Pulisci anche query params lat/lon/comune/via
         try:
             st.query_params.clear()
         except:
             pass
+        # Azzera anche variabili dirette
+        st.session_state["last_clicked_lat"] = ""
+        st.session_state["last_clicked_lon"] = ""
+        st.session_state["last_clicked_comune"] = ""
+        st.session_state["last_clicked_via"] = ""
 
     col_save1, col_save2 = st.columns([3,1])
     with col_save1:
         save_clicked = st.button("💾 SALVA POSTAZIONE", type="primary", use_container_width=True, key="btn_salva_postazione")
     with col_save2:
-        # RIGA 4291-4296 - Pulisci maschera postazioni FIX - funziona - Ezio
-        st.button("🔄 Pulisci maschera", use_container_width=True, key="btn_pulisci_campi", help="Pulisce TUTTI i campi maschera postazioni per nuova postazione", on_click=clear_maschera_callback)
+        # RIGA 4340 - Pulisci maschera - deve pulire maschera dai dati che vedo - Ezio
+        st.button("🧹 Pulisci maschera", type="primary", use_container_width=True, key="btn_pulisci_maschera_postazioni", help="Pulisce TUTTA la maschera postazioni - lat, lon, comune, via, nome", on_click=clear_maschera_callback)
 
     try:
         qp_lat = st.query_params.get("lat", "")
         qp_lon = st.query_params.get("lon", "")
+        qp_comune = st.query_params.get("comune", "")
+        qp_via = st.query_params.get("via", "")
         if qp_lat and qp_lon:
             st.session_state.last_clicked_lat = str(qp_lat)
             st.session_state.last_clicked_lon = str(qp_lon)
+            # Se arrivano anche comune/via da JS, usali
+            if qp_comune:
+                st.session_state.last_clicked_comune = str(qp_comune)
+            if qp_via:
+                st.session_state.last_clicked_via = str(qp_via)
+            # Se non arrivano, fai reverse geocode qui per comune/via
+            if not qp_comune or not qp_via:
+                try:
+                    import requests as req_geo
+                    r = req_geo.get(f"https://nominatim.openstreetmap.org/reverse?format=json&lat={qp_lat}&lon={qp_lon}", headers={"User-Agent": "ANA-Varese"}, timeout=3)
+                    if r.status_code == 200:
+                        d = r.json()
+                        addr = d.get("address", {})
+                        com = addr.get("city") or addr.get("town") or addr.get("village") or addr.get("municipality") or ""
+                        via = addr.get("road") or ""
+                        if com and not st.session_state.get("last_clicked_comune"):
+                            st.session_state.last_clicked_comune = com
+                        if via and not st.session_state.get("last_clicked_via"):
+                            st.session_state.last_clicked_via = via
+                except:
+                    pass
     except:
         pass
 
@@ -4475,13 +4504,19 @@ elif cur == "Mappe Postazioni":
     function getColorCodePrev(c){var m={'red':'#d32f2f','blue':'#1976d2','green':'#388e3c','orange':'#f57c00','purple':'#7b1fa2'};return m[c]||'#388e3c';}
     var allPrev=[];
     markersPreview.forEach(function(md){
-        // Solo icone caricate da te - niente cerchio giallo, niente emoji - richiesta Ezio
+        // FIX: Vedi tutti i marker nelle mappe - richiesta Ezio - non solo con file
+        var mk;
         if(md.hasFile && md.fileB64){
             var ic = L.icon({iconUrl:'data:image/png;base64,'+md.fileB64,iconSize:[36,36],iconAnchor:[18,18]});
-            var mk=L.marker([md.lat,md.lon],{icon:ic}).addTo(pMap).bindPopup("<b>"+md.nome+"</b><br>📻 Alias: "+(md.alias||"")+"<br>"+md.comune+" "+md.via);
-            allPrev.push(mk);
+            mk=L.marker([md.lat,md.lon],{icon:ic}).addTo(pMap).bindPopup("<b>"+md.nome+"</b><br>📻 Alias: "+(md.alias||"")+"<br>Comune: "+md.comune+"<br>Via: "+md.via+"<br>Lat: "+md.lat+" Lon: "+md.lon);
+        } else {
+            // Fallback emoji/colore se non ha file - mostra comunque marker
+            var colorMap = {'red':'#d32f2f','blue':'#1976d2','green':'#388e3c','orange':'#f57c00','purple':'#7b1fa2'};
+            var col = colorMap[md.colore] || '#388e3c';
+            var divIcon = L.divIcon({html:"<div style='background:white;border:2px solid "+col+";width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:18px;box-shadow:0 2px 4px rgba(0,0,0,0.3);'>"+(md.emoji||"📍")+"</div>",iconSize:[32,32],iconAnchor:[16,16]});
+            mk=L.marker([md.lat,md.lon],{icon:divIcon}).addTo(pMap).bindPopup("<b>"+md.nome+"</b><br>📻 Alias: "+(md.alias||"")+"<br>Comune: "+md.comune+"<br>Via: "+md.via+"<br>Lat: "+md.lat+" Lon: "+md.lon);
         }
-        // Se non ha file, non mostrare nulla - niente cerchio, niente emoji
+        allPrev.push(mk);
     });
     // Se c'è focus da vedi su mappa, ingrandisce su mappa grande (non qui) - solo centra
     if(focusPreview && focusPreview.Lat){
@@ -4506,23 +4541,42 @@ elif cur == "Mappe Postazioni":
         }
         L.marker([lat, lon], {icon: tmpIcon}).addTo(pMap).bindPopup("Nuova "+selEmojiPrev+"<br>"+lat+","+lon).openPopup();
         document.getElementById('preview_coords').innerHTML = "📍 Nuova da anteprima: "+selEmojiPrev+" Lat: "+lat+" Lon: "+lon+" - Inserita in maschera automatico";
-        // Inserisce lat/lon automatico in maschera - FIX: solo query_params, no scrittura diretta inputs - evita comune in longitudine
-        try {
-            var url = new URL(window.parent.location.href);
-            url.searchParams.set('lat', lat);
-            url.searchParams.set('lon', lon);
-            window.parent.history.replaceState(null, '', url.toString());
-        } catch(err){}
-        // Geocode per comune/via - solo preview, non scrive in maschera (evita sballamento campi)
+        // FIX: Quando metti marker deve compilarmi maschera con lat long comune e via - richiesta Ezio
+        var currentComune = "";
+        var currentVia = "";
         try{
             fetch('https://nominatim.openstreetmap.org/reverse?format=json&lat='+lat+'&lon='+lon)
                 .then(r=>r.json()).then(d=>{
                     var com = d.address.city||d.address.town||d.address.village||"";
                     var via = d.address.road||"";
-                    document.getElementById('preview_coords').innerHTML += "<br>Comune: "+com+" Via: "+via+" - Inserisci manualmente in maschera";
+                    currentComune = com;
+                    currentVia = via;
+                    document.getElementById('preview_coords').innerHTML = "📍 Nuova: Lat "+lat+" Lon "+lon+"<br>Comune: "+com+" Via: "+via+" - Compilo maschera automatico";
+                    try{
+                        var url = new URL(window.parent.location.href);
+                        url.searchParams.set('lat', lat);
+                        url.searchParams.set('lon', lon);
+                        url.searchParams.set('comune', com);
+                        url.searchParams.set('via', via);
+                        window.parent.history.replaceState(null, '', url.toString());
+                    }catch(e){}
                 });
-        }catch(e){}
-        // Marker spostabile - drag per correggere posizione - richiesta Ezio
+        }catch(e){
+            try{
+                var url = new URL(window.parent.location.href);
+                url.searchParams.set('lat', lat);
+                url.searchParams.set('lon', lon);
+                window.parent.history.replaceState(null, '', url.toString());
+            }catch(err){}
+        }
+        // Fallback immediato lat/lon
+        try{
+            var url = new URL(window.parent.location.href);
+            url.searchParams.set('lat', lat);
+            url.searchParams.set('lon', lon);
+            window.parent.history.replaceState(null, '', url.toString());
+        }catch(err){}
+        // Marker spostabile
         var draggableMarker = L.marker([lat, lon], {icon: tmpIcon, draggable: true}).addTo(pMap);
         draggableMarker.on('dragend', function(ev){
             var newLat = ev.target.getLatLng().lat.toFixed(6);
@@ -4532,6 +4586,8 @@ elif cur == "Mappe Postazioni":
                 var url2 = new URL(window.parent.location.href);
                 url2.searchParams.set('lat', newLat);
                 url2.searchParams.set('lon', newLon);
+                url2.searchParams.set('comune', currentComune);
+                url2.searchParams.set('via', currentVia);
                 window.parent.history.replaceState(null, '', url2.toString());
             }catch(e){}
         });
@@ -4718,13 +4774,18 @@ elif cur == "Mappe Postazioni":
     function getColorCode(c){ var m={'red':'#d32f2f','blue':'#1976d2','green':'#388e3c','orange':'#f57c00','purple':'#7b1fa2'}; return m[c]||'#388e3c'; }
     var allMarkers = [];
     markersData.forEach(function(md){
-        // Solo icone caricate da te - niente cerchio giallo, niente emoji - richiesta Ezio
+        // FIX: Vedi tutti i marker nelle mappe - richiesta Ezio - mostra tutti, non solo con file
+        var mk;
         if(md.hasFile && md.fileB64){
             var icon = L.icon({iconUrl: "data:image/png;base64," + md.fileB64, iconSize: [40, 40], iconAnchor: [20, 20]});
-            var mk = L.marker([md.lat, md.lon], {icon: icon}).addTo(map).bindPopup("<b>" + md.nome + "</b><br>📻 Alias: " + (md.alias||"") + "<br>" + md.comune + " " + md.via);
-            allMarkers.push(mk);
+            mk = L.marker([md.lat, md.lon], {icon: icon}).addTo(map).bindPopup("<b>" + md.nome + "</b><br>📻 Alias: " + (md.alias||"") + "<br>Comune: " + md.comune + "<br>Via: " + md.via + "<br>Lat: " + md.lat + " Lon: " + md.lon);
+        } else {
+            var colorMapMain = {'red':'#d32f2f','blue':'#1976d2','green':'#388e3c','orange':'#f57c00','purple':'#7b1fa2'};
+            var colMain = colorMapMain[md.colore] || '#388e3c';
+            var divIconMain = L.divIcon({html:"<div style='background:white;border:2px solid "+colMain+";width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:20px;box-shadow:0 2px 6px rgba(0,0,0,0.3);'>"+(md.emoji||"📍")+"</div>",iconSize:[36,36],iconAnchor:[18,18]});
+            mk = L.marker([md.lat, md.lon], {icon: divIconMain}).addTo(map).bindPopup("<b>" + md.nome + "</b><br>📻 Alias: " + (md.alias||"") + "<br>Comune: " + md.comune + "<br>Via: " + md.via + "<br>Lat: " + md.lat + " Lon: " + md.lon);
         }
-        // Se non ha file, non mostrare - niente cerchio giallo, niente emoji
+        allMarkers.push(mk);
     });
     if (focusMarker && focusMarker.Lat){
         map.setView([focusMarker.Lat, focusMarker.Lon], 18);
@@ -4747,19 +4808,36 @@ elif cur == "Mappe Postazioni":
         if(selectedIconHasFile && selectedIconFileB64){
             var tmpIcon = L.icon({iconUrl: "data:image/png;base64," + selectedIconFileB64, iconSize: [40,40], iconAnchor: [20,20]});
             L.marker([lat, lon], {icon: tmpIcon}).addTo(map).bindPopup("Nuova<br>" + lat + "," + lon).openPopup();
-            document.getElementById('coords').innerHTML = "📍 Nuovo marker - Lat: " + lat + " Lon: " + lon + " - Inserito in maschera";
+            document.getElementById('coords').innerHTML = "📍 Nuovo marker - Lat: " + lat + " Lon: " + lon + " - Compilo maschera lat/lon/comune/via";
         } else {
             // Se non hai caricato icona, avvisa - non mettere cerchio giallo né emoji
             document.getElementById('coords').innerHTML = "⚠️ Carica prima un'icona in Libreria Icone - poi selezionala - niente cerchio giallo";
             return;
         }
-        document.getElementById('coords').innerHTML = "📍 Nuovo " + selectedIconEmoji + " " + lat + "," + lon + " - Lat/Lon in maschera automatico";
-        try {
-            var url = new URL(window.parent.location.href);
-            url.searchParams.set('lat', lat);
-            url.searchParams.set('lon', lon);
-            window.parent.history.replaceState(null, '', url.toString());
-        } catch(err) {}
+        // FIX: Quando metti marker deve compilarmi maschera con lat long comune e via - richiesta Ezio
+        try{
+            fetch('https://nominatim.openstreetmap.org/reverse?format=json&lat='+lat+'&lon='+lon)
+                .then(r=>r.json()).then(d=>{
+                    var com = d.address.city||d.address.town||d.address.village||"";
+                    var via = d.address.road||"";
+                    document.getElementById('coords').innerHTML = "📍 Nuovo Lat: "+lat+" Lon: "+lon+"<br>Comune: "+com+" Via: "+via+" - Maschera compilata";
+                    try{
+                        var url = new URL(window.parent.location.href);
+                        url.searchParams.set('lat', lat);
+                        url.searchParams.set('lon', lon);
+                        url.searchParams.set('comune', com);
+                        url.searchParams.set('via', via);
+                        window.parent.history.replaceState(null, '', url.toString());
+                    }catch(err){}
+                });
+        }catch(e){
+            try {
+                var url = new URL(window.parent.location.href);
+                url.searchParams.set('lat', lat);
+                url.searchParams.set('lon', lon);
+                window.parent.history.replaceState(null, '', url.toString());
+            } catch(err) {}
+        }
     });
     </script>
     """
@@ -4832,9 +4910,12 @@ elif cur == "Mappe Postazioni":
                 st.caption(f"Tipo: {m.get('Tipo','')} - {m.get('IconaNome','')}")
                 st.caption(f"Emergenza: {m.get('NomeEmergenza','--')}")
             with c3:
-                st.write(f"**{m.get('Comune','')}**")
-                st.write(f"{m.get('Via','')}")
-                st.caption(f"Lat: {m['Lat']} Lon: {m['Lon']}")
+                # FIX: Comune e Via associati al marker - sempre visibili - richiesta Ezio
+                comune_txt = m.get('Comune','') or '--'
+                via_txt = m.get('Via','') or '--'
+                st.write(f"**🏙️ {comune_txt}**")
+                st.write(f"📍 {via_txt}")
+                st.caption(f"Lat: {m.get('Lat','')} Lon: {m.get('Lon','')} - Comune/Via da marker")
             with c4:
                 if st.button("📍 Vedi su mappa", key=f"focus_{idx}", use_container_width=True, type="primary" if is_focus else "secondary", help="Ingrandisce postazione su anteprima e mappa grande"):
                     st.session_state.map_focus = m
