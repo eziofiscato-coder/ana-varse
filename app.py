@@ -4184,31 +4184,13 @@ elif cur == "Mappe Postazioni":
     if not st.session_state.selected_icon_label and icone_options:
         st.session_state.selected_icon_label = icone_options[0]
 
-    # Scegli icona dalla Libreria tolto
-    cols_ico = st.columns(4)
-    for idx, ico in enumerate(icone_disponibili[:12]):
-        with cols_ico[idx % 4]:
-            is_sel = st.session_state.selected_icon_label and ico.get('Nome','') in st.session_state.selected_icon_label
-            has_file = ico.get("HasFile", False)
-            file_bytes = ico.get("FileBytes")
-            if has_file and file_bytes:
-                try:
-                    st.image(file_bytes, width=60, caption=f"{ico.get('Emoji','')} {ico.get('Nome','')}")
-                except:
-                    st.markdown(f"<div style='font-size:32px;text-align:center;'>{ico.get('Emoji','📍')}</div>", unsafe_allow_html=True)
-            else:
-                st.markdown(f"<div style='font-size:32px;text-align:center;background:white;border:2px solid #1A5D1A;border-radius:8px;padding:4px;'>{ico.get('Emoji','📍')}</div>", unsafe_allow_html=True)
-            if st.button(f"Seleziona", key=f"sel_ico_{idx}", use_container_width=True, type="primary" if is_sel else "secondary"):
-                for opt in icone_options:
-                    if ico.get('Nome','') in opt:
-                        st.session_state.selected_icon_label = opt
-                        break
-                st.rerun()
-
+    # Griglia Scegli icona dalla Libreria tolta definitivamente - richiesta Ezio
+    # Solo combo Icona Libreria in maschera, caricata dal form Libreria Icone
     try:
         default_idx = icone_options.index(st.session_state.selected_icon_label) if st.session_state.selected_icon_label in icone_options else 0
     except:
         default_idx = 0
+    # Se libreria vuota, default_idx 0 ma icone_options vuoto - gestito sotto
 
     st.markdown("#### 📍 Maschera Postazione")
     c1, c2, c3 = st.columns(3)
@@ -4222,11 +4204,30 @@ elif cur == "Mappe Postazioni":
         nome_emergenza = st.selectbox("Nome Emergenza (combo)", nomi_emergenze, index=0, key="nome_emergenza_combo")
         nome_evento = st.selectbox("Nome Evento (combo)", nomi_eventi, index=0, key="nome_evento_combo")
     with c3:
-        marker_icona_label = st.selectbox("Icona Libreria", icone_options, index=default_idx, key="adv_marker_icona_select")
-        st.session_state.selected_icon_label = marker_icona_label
-        selected_ico_obj = icone_map.get(marker_icona_label, {"Emoji":"👷","Nome":"Postazione","Colore":"green","Tipo":"Postazione"})
-        # Anteprima loghi tolta - non interessa
-        st.caption(f"Icona selezionata: {selected_ico_obj.get('Emoji','👷')} {selected_ico_obj.get('Nome','Postazione')}")
+        # Carica icone dal form Libreria Icone - combo - richiesta Ezio
+        if icone_options:
+            marker_icona_label = st.selectbox("Icona Libreria (caricate da te)", icone_options, index=default_idx, key="adv_marker_icona_select")
+            st.session_state.selected_icon_label = marker_icona_label
+            selected_ico_obj = icone_map.get(marker_icona_label, {"Emoji":"👷","Nome":"Postazione","Colore":"green","Tipo":"Postazione"})
+        else:
+            st.warning("Libreria vuota - carica icone in Libreria Icone")
+            marker_icona_label = ""
+            selected_ico_obj = {"Emoji":"👷","Nome":"Postazione","Colore":"green","Tipo":"Postazione","HasFile":False}
+            st.session_state.selected_icon_label = ""
+        # Anteprima icona scelta - rimessa - mostra file caricato da Libreria Icone
+        has_file_sel = selected_ico_obj.get("HasFile", False)
+        file_bytes_sel = selected_ico_obj.get("FileBytes")
+        if has_file_sel and file_bytes_sel:
+            try:
+                st.image(file_bytes_sel, width=90, caption=f"{selected_ico_obj.get('Nome','')} - FILE")
+                st.markdown(f"<div style='text-align:center;background:#e8f5e9;padding:4px;border-radius:4px;border:1px solid #1A5D1A;font-size:11px;'><b>{selected_ico_obj.get('Nome','')} - {selected_ico_obj.get('FileName','')[:20]}</b></div>", unsafe_allow_html=True)
+            except:
+                st.markdown(f"<div style='font-size:32px;text-align:center;background:#e8f5e9;padding:10px;border-radius:10px;border:2px solid #1A5D1A;'>{selected_ico_obj.get('Emoji','👷')}<br><small>{selected_ico_obj.get('Nome','')}</small></div>", unsafe_allow_html=True)
+        else:
+            if icone_options:
+                st.markdown(f"<div style='font-size:32px;text-align:center;background:#e8f5e9;padding:10px;border-radius:10px;border:2px solid #1A5D1A;'>{selected_ico_obj.get('Emoji','👷')}<br><small>{selected_ico_obj.get('Nome','Postazione')}</small><br><small style='font-size:11px;'>{selected_ico_obj.get('Colore','green')}</small></div>", unsafe_allow_html=True)
+            else:
+                st.info("Nessuna icona caricata - vai in Libreria Icone")
         marker_tipo = st.selectbox("Tipo", ["Postazione", "Emergenza", "Evento", "Mezzo", "Volontario"], key="adv_marker_tipo")
         marker_desc = st.text_input("Descrizione", key="adv_marker_desc")
 
@@ -4336,7 +4337,39 @@ elif cur == "Mappe Postazioni":
     var pMap = L.map('preview_map_top', {zoomControl: false}).setView([45.8167, 8.8333], 12);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(pMap);
     L.control.zoom({position: 'bottomleft'}).addTo(pMap);
-    var FsTop = L.Control.extend({onAdd: function(m){var cEl=L.DomUtil.create('div','leaflet-bar leaflet-control');cEl.style.background='white';cEl.style.width='34px';cEl.style.height='34px';cEl.style.lineHeight='34px';cEl.style.textAlign='center';cEl.style.cursor='pointer';cEl.style.fontSize='22px';cEl.style.fontWeight='bold';cEl.innerHTML='⛶';cEl.title='Fullscreen 100%';cEl.onclick=function(){var contEl=document.getElementById('preview_map_top').parentElement;if(!document.fullscreenElement){if(contEl.requestFullscreen)contEl.requestFullscreen();}else{if(document.exitFullscreen)document.exitFullscreen();}setTimeout(function(){m.invalidateSize();},600);};return cEl;}}); new FsTop({position: 'bottomleft'}).addTo(pMap);
+    var FsTop = L.Control.extend({onAdd: function(m){
+        var cEl=L.DomUtil.create('div','leaflet-bar leaflet-control');
+        cEl.style.background='white';cEl.style.width='34px';cEl.style.height='34px';cEl.style.lineHeight='34px';cEl.style.textAlign='center';cEl.style.cursor='pointer';cEl.style.fontSize='22px';cEl.style.fontWeight='bold';cEl.style.border='2px solid rgba(0,0,0,0.2)';cEl.style.borderRadius='4px';
+        cEl.innerHTML='⛶';cEl.title='Fullscreen 100% tutto schermo - come prima';
+        cEl.onclick=function(){
+            var mapCont = document.getElementById('preview_map_top');
+            var parentCont = document.getElementById('preview_map_top').parentElement;
+            try{
+                if(!document.fullscreenElement){
+                    if(parentCont.requestFullscreen) parentCont.requestFullscreen();
+                    else if(document.documentElement.requestFullscreen) document.documentElement.requestFullscreen();
+                    try{var pd=window.parent.document; if(pd.documentElement.requestFullscreen) pd.documentElement.requestFullscreen();}catch(e){}
+                    setTimeout(function(){
+                        parentCont.style.width='100vw';parentCont.style.height='100vh';parentCont.style.position='fixed';parentCont.style.top='0';parentCont.style.left='0';parentCont.style.zIndex='9999';parentCont.style.background='white';
+                        mapCont.style.height='100vh';mapCont.style.width='100vw';
+                        m.invalidateSize();
+                    },100);
+                } else {
+                    if(document.exitFullscreen) document.exitFullscreen();
+                    try{var pd=window.parent.document; if(pd.exitFullscreen) pd.exitFullscreen();}catch(e){}
+                    setTimeout(function(){
+                        parentCont.style.width='100%';parentCont.style.height='';parentCont.style.position='';parentCont.style.top='';parentCont.style.left='';parentCont.style.zIndex='';parentCont.style.background='';
+                        mapCont.style.height='400px';mapCont.style.width='100%';
+                        m.invalidateSize();
+                    },100);
+                }
+            }catch(err){}
+            setTimeout(function(){m.invalidateSize();},600);
+        };return cEl;
+    }}); new FsTop({position: 'bottomleft'}).addTo(pMap);
+    document.addEventListener('fullscreenchange', function(){
+        setTimeout(function(){ pMap.invalidateSize(); }, 600);
+    });
     function getColorCodePrev(c){var m={'red':'#d32f2f','blue':'#1976d2','green':'#388e3c','orange':'#f57c00','purple':'#7b1fa2'};return m[c]||'#388e3c';}
     var allPrev=[];
     markersPreview.forEach(function(md){
@@ -4458,21 +4491,131 @@ elif cur == "Mappe Postazioni":
             container.style.cursor = 'pointer';
             container.style.fontSize = '22px';
             container.style.fontWeight = 'bold';
+            container.style.border = '2px solid rgba(0,0,0,0.2)';
+            container.style.borderRadius = '4px';
             container.innerHTML = '⛶';
-            container.title = 'Fullscreen 100%';
+            container.title = 'Fullscreen 100% tutto schermo - come prima faceva';
             container.onclick = function(){
+                var mapContainer = document.getElementById('map');
                 var parentContainer = document.getElementById('map-container');
-                if (!document.fullscreenElement) {
-                    if (parentContainer.requestFullscreen) parentContainer.requestFullscreen();
-                } else {
-                    if (document.exitFullscreen) document.exitFullscreen();
-                }
+                try{
+                    if (!document.fullscreenElement) {
+                        // Prova tutto schermo vero 100% - come prima faceva
+                        if (parentContainer.requestFullscreen) {
+                            parentContainer.requestFullscreen();
+                        } else if (document.documentElement.requestFullscreen) {
+                            document.documentElement.requestFullscreen();
+                        } else if (mapContainer.requestFullscreen) {
+                            mapContainer.requestFullscreen();
+                        }
+                        // Fallback parent window Streamlit
+                        try{
+                            var parentDoc = window.parent.document;
+                            var iframe = parentDoc.querySelector('iframe[title*="st.components"]');
+                            if(iframe && iframe.requestFullscreen) iframe.requestFullscreen();
+                            else if(parentDoc.documentElement.requestFullscreen) parentDoc.documentElement.requestFullscreen();
+                        }catch(e){}
+                        setTimeout(function(){
+                            parentContainer.style.width = '100vw';
+                            parentContainer.style.height = '100vh';
+                            parentContainer.style.position = 'fixed';
+                            parentContainer.style.top = '0';
+                            parentContainer.style.left = '0';
+                            parentContainer.style.zIndex = '9999';
+                            parentContainer.style.background = 'white';
+                            mapContainer.style.height = '100vh';
+                            mapContainer.style.width = '100vw';
+                            mapContainer.style.borderRadius = '0';
+                            mapContainer.style.border = 'none';
+                            map.invalidateSize();
+                        }, 100);
+                    } else {
+                        if (document.exitFullscreen) document.exitFullscreen();
+                        else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
+                        try{
+                            var parentDoc = window.parent.document;
+                            if(parentDoc.exitFullscreen) parentDoc.exitFullscreen();
+                            else if(parentDoc.webkitExitFullscreen) parentDoc.webkitExitFullscreen();
+                        }catch(e){}
+                        setTimeout(function(){
+                            parentContainer.style.width = '100%';
+                            parentContainer.style.height = '';
+                            parentContainer.style.position = 'relative';
+                            parentContainer.style.top = '';
+                            parentContainer.style.left = '';
+                            parentContainer.style.zIndex = '';
+                            parentContainer.style.background = '';
+                            mapContainer.style.height = '650px';
+                            mapContainer.style.width = '100%';
+                            mapContainer.style.borderRadius = '12px';
+                            mapContainer.style.border = '3px solid #1A5D1A';
+                            map.invalidateSize();
+                        }, 100);
+                    }
+                }catch(err){ console.log('Fullscreen error', err); }
                 setTimeout(function(){ map.invalidateSize(); }, 600);
             };
             return container;
         }
     });
     new FullscreenControl({position: 'bottomleft'}).addTo(map);
+    // Listener fullscreen 100% tutto schermo
+    document.addEventListener('fullscreenchange', function(){
+        var mapContainer = document.getElementById('map');
+        var parentContainer = document.getElementById('map-container');
+        if (document.fullscreenElement) {
+            parentContainer.style.width = '100vw';
+            parentContainer.style.height = '100vh';
+            parentContainer.style.position = 'fixed';
+            parentContainer.style.top = '0';
+            parentContainer.style.left = '0';
+            parentContainer.style.zIndex = '9999';
+            parentContainer.style.background = 'white';
+            mapContainer.style.height = '100vh';
+            mapContainer.style.width = '100vw';
+            mapContainer.style.borderRadius = '0';
+            mapContainer.style.border = 'none';
+        } else {
+            parentContainer.style.width = '100%';
+            parentContainer.style.height = '';
+            parentContainer.style.position = 'relative';
+            parentContainer.style.top = '';
+            parentContainer.style.left = '';
+            parentContainer.style.zIndex = '';
+            parentContainer.style.background = '';
+            mapContainer.style.height = '650px';
+            mapContainer.style.width = '100%';
+            mapContainer.style.borderRadius = '12px';
+            mapContainer.style.border = '3px solid #1A5D1A';
+        }
+        setTimeout(function(){ map.invalidateSize(); }, 600);
+    });
+    // CSS fullscreen 100% vero tutto schermo
+    var styleFs = document.createElement('style');
+    styleFs.innerHTML = `
+        #map-container:fullscreen {
+            width: 100vw !important;
+            height: 100vh !important;
+            background: white !important;
+            padding: 0 !important;
+            margin: 0 !important;
+            position: fixed !important;
+            top: 0 !important;
+            left: 0 !important;
+            z-index: 9999 !important;
+        }
+        #map-container:fullscreen #map {
+            height: 100vh !important;
+            width: 100vw !important;
+            border-radius: 0 !important;
+            border: none !important;
+        }
+        #map:fullscreen {
+            width: 100vw !important;
+            height: 100vh !important;
+        }
+    `;
+    document.head.appendChild(styleFs);
     function getColorCode(c){ var m={'red':'#d32f2f','blue':'#1976d2','green':'#388e3c','orange':'#f57c00','purple':'#7b1fa2'}; return m[c]||'#388e3c'; }
     var allMarkers = [];
     markersData.forEach(function(md){
