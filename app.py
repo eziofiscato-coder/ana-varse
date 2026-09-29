@@ -2862,42 +2862,59 @@ elif cur == "Consegna Radio":
 
 
 elif cur == "Alias Radio":
-    hdr_form("ALIAS RADIO - Alias + Volontario agganciato")
+    hdr_form("ALIAS RADIO - Alias + Volontario Cognome Nome + Canale Radio")
 
-    # Maschera verde come altri form - spostata in alto
+    # Maschera verde come altri form - spostata in alto - RIGA 2867
     st.markdown('<div style="background:#C8E6C9;padding:12px;border-radius:10px;border:2px solid #1A5D1A;margin-bottom:12px;margin-top:0px;">', unsafe_allow_html=True)
+
+    # Canali radio di lavoro - lista combo
+    canali_radio_list = ["Canale 1 - Emergenza", "Canale 2 - Coordinamento", "Canale 3 - Logistica", "Canale 4 - Squadra A", "Canale 5 - Squadra B", "Canale 6 - Squadra C", "Canale 7 - Protezione Civile", "Canale 8 - Volontari", "Canale 9 - Mezzi", "Canale 10 - Base", "Canale 11 - Ponte Radio", "Canale 12 - Riserva"]
 
     c1, c2 = st.columns(2)
     with c1:
         alias_n = st.text_input("Alias *", key="alias_n", placeholder="Es: Centrale, Squadra A...")
         id_r = st.text_input("ID Radio *", key="alias_id", placeholder="Es: 101, 202...")
-        # Campo Volontario mancante - aggiunto - agganciato a Volontari Nome Cognome - richiesta Ezio
+        # RIGA 2874 - Volontario agganciato a form Volontari campo Cognome e Nome in combo - richiesta Ezio
         vol_list_alias = [f"{v.get('Cognome','').strip()} {v.get('Nome','').strip()}" for v in st.session_state.volontari if v.get('Cognome') or v.get('Nome')]
         vol_list_alias = sorted(list(set([x for x in vol_list_alias if x.strip()])))
         if vol_list_alias:
-            sel_vol_alias = st.selectbox("Volontario * (da Volontari)", vol_list_alias, key="alias_vol")
+            sel_vol_alias = st.selectbox("Volontario * (Cognome Nome da Volontari)", vol_list_alias, key="alias_vol", help="Lista da form Volontari - campo Cognome e Nome in combo")
         else:
             sel_vol_alias = st.text_input("Volontario * (manuale - aggiungi volontari in Volontari)", key="alias_vol_man", placeholder="Cognome Nome")
 
     with c2:
         gruppo = st.selectbox("Gruppo", ["Squadra A", "Squadra B", "Squadra C", "Coordinamento", "Logistica"], key="alias_gruppo")
+        # RIGA 2883 - Canale Radio di lavoro combo - richiesta Ezio
+        canale_radio = st.selectbox("Canale Radio Lavoro * (combo)", canali_radio_list, key="alias_canale", help="Assegna canale radio di lavoro - combo canali")
         desc = st.text_input("Descrizione", key="alias_desc", placeholder="Descrizione alias")
         note_alias = st.text_area("Note", key="alias_note", placeholder="Note alias radio...", height=80)
 
     st.markdown("</div>", unsafe_allow_html=True)
 
-    if st.button("Salva Alias", type="primary", use_container_width=True, key="btn_alias_save"):
+    def clear_alias():
+        for k in ["alias_n", "alias_id", "alias_vol", "alias_vol_man", "alias_gruppo", "alias_canale", "alias_desc", "alias_note"]:
+            if k in st.session_state:
+                del st.session_state[k]
+
+    c_save_alias1, c_save_alias2 = st.columns([3,1])
+    with c_save_alias1:
+        save_alias_btn = st.button("💾 Salva Alias", type="primary", use_container_width=True, key="btn_alias_save")
+    with c_save_alias2:
+        st.button("🔄 Pulisci maschera", use_container_width=True, key="btn_pulisci_alias", on_click=clear_alias)
+
+    if save_alias_btn:
         if alias_n and id_r and sel_vol_alias:
             st.session_state.alias_radio.append({
                 "Alias": alias_n,
                 "ID Radio": id_r,
                 "Volontario": sel_vol_alias,
                 "Gruppo": gruppo,
+                "Canale Radio": canale_radio,
                 "Descrizione": desc,
                 "Note": note_alias,
                 "Data": datetime.now().strftime("%d/%m/%Y")
             })
-            st.success(f"Alias salvato: {alias_n} - {sel_vol_alias}")
+            st.success(f"Alias salvato: {alias_n} - {sel_vol_alias} - {canale_radio}")
             st.rerun()
         else:
             st.error("Compila Alias *, ID Radio * e Volontario *")
@@ -4069,7 +4086,16 @@ elif cur == "Mezzi":
         note_mez = st.text_area("Note Mezzo", key="mez_note")
         foto_mez = st.file_uploader("Foto Mezzo", type=["jpg", "png"], key="mez_foto")
 
-    if st.button("Salva Mezzo", type="primary", use_container_width=True):
+    def clear_mezzi():
+        for k in ["mez_targa", "mez_modello", "mez_tipo", "mez_stato", "mez_km", "mez_scad", "mez_note", "mez_foto"]:
+            if k in st.session_state:
+                del st.session_state[k]
+    c_mez_save1, c_mez_save2 = st.columns([3,1])
+    with c_mez_save1:
+        save_mez = st.button("💾 Salva Mezzo", type="primary", use_container_width=True, key="btn_salva_mezzi")
+    with c_mez_save2:
+        st.button("🔄 Pulisci maschera", use_container_width=True, key="btn_pulisci_mezzi", on_click=clear_mezzi)
+    if save_mez:
         if targa:
             st.session_state.mezzi.append({
                 "Targa": targa,
@@ -4111,7 +4137,17 @@ elif cur == "Attrezzature":
         ubic_att = st.text_input("Ubicazione Magazzino", key="att_ubic")
         note_att = st.text_area("Note", key="att_note")
 
-    if st.button("Salva Attrezzatura", type="primary", use_container_width=True):
+    def clear_att():
+        for k in ["att_nome", "att_cat", "att_qta", "att_stato", "att_ubic", "att_note"]:
+            if k in st.session_state:
+                del st.session_state[k]
+
+    c_att1, c_att2 = st.columns([3,1])
+    with c_att1:
+        save_att = st.button("💾 Salva Attrezzatura", type="primary", use_container_width=True, key="btn_salva_att")
+    with c_att2:
+        st.button("🔄 Pulisci maschera", use_container_width=True, key="btn_pulisci_att", on_click=clear_att)
+    if save_att:
         if nome_att:
             st.session_state.attrezzature.append({
                 "Nome": nome_att,
@@ -4205,44 +4241,52 @@ elif cur == "Mappe Postazioni":
     # Se libreria vuota, default_idx 0 ma icone_options vuoto - gestito sotto
 
     st.markdown("#### 📍 Maschera Postazione")
-    # Alias da form Alias Radio - per assegnarlo alla postazione - richiesta Ezio
+    # Alias da form Alias Radio - per assegnarlo alla postazione - richiesta Ezio - RIGA 4207
     alias_form_list = [a.get('Alias','').strip() for a in st.session_state.get('alias_radio', []) if a.get('Alias','').strip()]
     alias_form_list = sorted(list(set(alias_form_list)))
-    # Anche alias già usati nelle postazioni
     alias_postazioni = [m.get('Alias','') for m in st.session_state.get('mappa_avanzata_markers', []) if m.get('Alias')]
-    # Unisci - priorità form Alias Radio
     alias_esistenti = sorted(list(set(alias_form_list + alias_postazioni)))
     if alias_form_list:
         st.info(f"📻 Alias da form Alias Radio ({len(alias_form_list)}): {', '.join(alias_form_list[:20])} - Assegnalo alla postazione")
     elif alias_esistenti:
         st.caption(f"📻 Alias già usati in postazioni: {', '.join(alias_esistenti[:15])}")
 
+    # FIX CAMPI SBALLATI: pre-fill lat/lon da mappa PRIMA dei widget - RIGA 4220
+    if st.session_state.get("last_clicked_lat") and not st.session_state.get("adv_marker_lat"):
+        st.session_state["adv_marker_lat"] = str(st.session_state["last_clicked_lat"])
+    if st.session_state.get("last_clicked_lon") and not st.session_state.get("adv_marker_lon"):
+        st.session_state["adv_marker_lon"] = str(st.session_state["last_clicked_lon"])
+    # Comune default solo se vuoto
+    if not st.session_state.get("adv_marker_comune"):
+        st.session_state["adv_marker_comune"] = "Varese"
+
     c1, c2, c3 = st.columns(3)
     with c1:
         marker_nome = st.text_input("Nome Postazione *", key="adv_marker_nome", placeholder="Es: Postazione 1")
-        # RIGA 4217-4225 - Alias combo da form Alias - assegnalo alla postazione - Ezio
+        # RIGA 4230 - Alias combo da form Alias Radio - assegnalo a postazione
         alias_options = ["-- Nessun Alias --"] + alias_form_list
         if alias_postazioni and not alias_form_list:
             alias_options = ["-- Nessun Alias --"] + alias_esistenti
         alias_options = alias_options + ["-- Nuovo Alias --"]
-        # Rimuovi duplicati mantenendo ordine
         alias_options_unique = []
         for o in alias_options:
             if o not in alias_options_unique:
                 alias_options_unique.append(o)
         alias_options = alias_options_unique
-        sel_alias_combo = st.selectbox("Alias (combo) da form Alias - assegnalo a postazione - non obbligatorio", alias_options, key="adv_alias_combo", help="Lista da form Alias Radio - seleziona alias da assegnare alla postazione - non obbligatorio")
+        sel_alias_combo = st.selectbox("Alias (combo) da form Alias Radio", alias_options, key="adv_alias_combo", help="Seleziona alias da form Alias Radio per assegnarlo alla postazione - non obbligatorio")
         if sel_alias_combo == "-- Nuovo Alias --":
-            marker_alias = st.text_input("Nuovo Alias", key="adv_marker_alias_new", placeholder="Es: Alfa 1, Base, 01 - verrà aggiunto", help="Scrivi nuovo alias - non obbligatorio")
+            marker_alias = st.text_input("Nuovo Alias", key="adv_marker_alias_new", placeholder="Es: Alfa 1, Base, 01", help="Scrivi nuovo alias")
         elif sel_alias_combo == "-- Nessun Alias --":
             marker_alias = ""
         else:
             marker_alias = sel_alias_combo
-        marker_lat = st.text_input("Latitudine *", value=st.session_state.last_clicked_lat, key="adv_marker_lat", placeholder="Clicca mappa")
-        marker_lon = st.text_input("Longitudine *", value=st.session_state.last_clicked_lon, key="adv_marker_lon", placeholder="Clicca mappa")
+        # RIGA 4240-4242 - FIX: Lat/Lon solo key, no value - evita comune in longitudine
+        marker_lat = st.text_input("Latitudine *", key="adv_marker_lat", placeholder="Clicca mappa - es: 45.8167")
+        marker_lon = st.text_input("Longitudine *", key="adv_marker_lon", placeholder="Clicca mappa - es: 8.8333")
     with c2:
-        marker_comune = st.text_input("Comune *", value="Varese", key="adv_marker_comune")
-        marker_via = st.text_input("Via *", value="", key="adv_marker_via", placeholder="Via + civico")
+        # RIGA 4244-4247 - FIX: Comune e Via con solo key, no value sballato
+        marker_comune = st.text_input("Comune *", key="adv_marker_comune", placeholder="Es: Varese")
+        marker_via = st.text_input("Via *", key="adv_marker_via", placeholder="Via + civico - Es: Via Rossi 10")
         nome_emergenza = st.selectbox("Nome Emergenza (combo)", nomi_emergenze, index=0, key="nome_emergenza_combo")
         nome_evento = st.selectbox("Nome Evento (combo)", nomi_eventi, index=0, key="nome_evento_combo")
     with c3:
@@ -4273,16 +4317,18 @@ elif cur == "Mappe Postazioni":
         marker_tipo = st.selectbox("Tipo", ["Postazione", "Emergenza", "Evento", "Mezzo", "Volontario"], key="adv_marker_tipo")
         marker_desc = st.text_input("Descrizione", key="adv_marker_desc")
 
-    # Callback pulisci - evita StreamlitWidgetAlreadyInstantiatedError - riga 4262
+    # Callback pulisci - FIX funziona davvero - RIGA 4276
     def clear_maschera_callback():
-        # Pulisci TUTTI i campi maschera postazioni - callback prima di rerun
+        # Pulisci TUTTI i campi maschera postazioni - callback prima di rerun - FIX Ezio
         for k in ["adv_marker_nome", "adv_alias_combo", "adv_marker_alias_new", "adv_marker_alias", "adv_alias_select", "adv_marker_lat", "adv_marker_lon", "adv_marker_comune", "adv_marker_via", "nome_emergenza_combo", "nome_evento_combo", "adv_marker_icona_select", "adv_marker_tipo", "adv_marker_desc"]:
             if k in st.session_state:
                 del st.session_state[k]
-        st.session_state.last_clicked_lat = ""
-        st.session_state.last_clicked_lon = ""
-        st.session_state.map_focus = None
-        st.session_state.selected_icon_label = ""
+        st.session_state["last_clicked_lat"] = ""
+        st.session_state["last_clicked_lon"] = ""
+        st.session_state["map_focus"] = None
+        st.session_state["selected_icon_label"] = ""
+        # Reset a vuoti espliciti per prossimo run
+        st.session_state["adv_marker_comune"] = ""
         try:
             st.query_params.clear()
         except:
@@ -4292,8 +4338,8 @@ elif cur == "Mappe Postazioni":
     with col_save1:
         save_clicked = st.button("💾 SALVA POSTAZIONE", type="primary", use_container_width=True, key="btn_salva_postazione")
     with col_save2:
-        # RIGA 4262-4285 - FIX DEFINITIVO Pulisci con callback - no AlreadyInstantiatedError - Ezio
-        st.button("🔄 Pulisci campi", use_container_width=True, key="btn_pulisci_campi", help="Pulisce TUTTI i campi maschera per nuovo inserimento", on_click=clear_maschera_callback)
+        # RIGA 4291-4296 - Pulisci maschera postazioni FIX - funziona - Ezio
+        st.button("🔄 Pulisci maschera", use_container_width=True, key="btn_pulisci_campi", help="Pulisce TUTTI i campi maschera postazioni per nuova postazione", on_click=clear_maschera_callback)
 
     try:
         qp_lat = st.query_params.get("lat", "")
