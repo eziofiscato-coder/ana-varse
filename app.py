@@ -4251,40 +4251,17 @@ elif cur == "Mappe Postazioni":
     elif alias_esistenti:
         st.caption(f"📻 Alias già usati in postazioni: {', '.join(alias_esistenti[:15])}")
 
-    # FIX: pre-fill lat/lon/comune/via da mappa PRIMA dei widget - solo se campo vuoto - richiesta Ezio
-    # Quando metti marker deve compilarmi la maschera postazioni con lat long comune e via
-    # Ma se pulisci maschera, non deve ricompilare
-    if st.session_state.get("last_clicked_lat") and not st.session_state.get("adv_marker_lat"):
-        st.session_state["adv_marker_lat"] = str(st.session_state["last_clicked_lat"])
-    if st.session_state.get("last_clicked_lon") and not st.session_state.get("adv_marker_lon"):
-        st.session_state["adv_marker_lon"] = str(st.session_state["last_clicked_lon"])
-    if st.session_state.get("last_clicked_comune") and not st.session_state.get("adv_marker_comune"):
-        st.session_state["adv_marker_comune"] = str(st.session_state["last_clicked_comune"])
-    if st.session_state.get("last_clicked_via") and not st.session_state.get("adv_marker_via"):
-        st.session_state["adv_marker_via"] = str(st.session_state["last_clicked_via"])
-
-    # FIX Pulisci maschera - metodo DEFINITIVO che pulisce davvero - prima dei widget
+    # FIX DEFINITIVO Pulisci maschera + no default prima posizione marker - versione con versionamento chiavi
+    # Inizializza versione maschera se non esiste
+    if "map_form_version" not in st.session_state:
+        st.session_state["map_form_version"] = 0
+    
+    # Se flag pulisci, incrementa versione e cancella tutto
     if st.session_state.get("do_clear_maschera"):
-        # Pulisci TUTTE le chiavi maschera PRIMA che widget vengano creati - metodo aggressivo
-        keys_maschera = ["adv_marker_nome", "adv_alias_combo", "adv_marker_alias_new", "adv_marker_lat", "adv_marker_lon", "adv_marker_comune", "adv_marker_via", "nome_emergenza_combo", "nome_evento_combo", "adv_marker_icona_select", "adv_marker_tipo", "adv_marker_desc", "last_clicked_lat", "last_clicked_lon", "last_clicked_comune", "last_clicked_via", "map_focus", "selected_icon_label", "adv_marker_nome", "adv_marker_desc", "adv_marker_via"]
-        for k in keys_maschera:
-            if k in st.session_state:
-                try:
-                    del st.session_state[k]
-                except:
-                    pass
-            # Forza a vuoto per sicurezza
-            try:
-                st.session_state[k] = ""
-            except:
-                pass
-        # Pulisci anche tutti gli adv_ generici
+        st.session_state["map_form_version"] += 1
+        # Cancella tutte le chiavi last_clicked e query params
         for k in list(st.session_state.keys()):
-            if k.startswith("adv_marker_") or k.startswith("last_clicked_"):
-                try:
-                    st.session_state[k] = ""
-                except:
-                    pass
+            if k.startswith("adv_marker_") or k.startswith("last_clicked_") or k.startswith("adv_alias_") or k.startswith("nome_emergenza") or k.startswith("nome_evento"):
                 try:
                     del st.session_state[k]
                 except:
@@ -4294,13 +4271,40 @@ elif cur == "Mappe Postazioni":
         except:
             pass
         st.session_state["do_clear_maschera"] = False
-        # Forza rerun per pulire davvero
         st.rerun()
+    
+    # Versione corrente per chiavi - così pulisci cambia tutte le chiavi e maschera si svuota davvero
+    ver = st.session_state.get("map_form_version", 0)
+    def k_map(base):
+        return f"{base}_v{ver}"
+    
+    # Pre-fill lat/lon/comune/via da mappa - SOLO se appena cliccato mappa, NON di default prima posizione
+    # Se non hai appena cliccato, non riempire con vecchia posizione
+    # Solo se last_clicked esiste e campo vuoto
+    if not st.session_state.get("do_clear_maschera"):
+        # Non riempire di default la prima posizione marker - solo se last_clicked è recente e campo vuoto
+        if st.session_state.get("last_clicked_lat"):
+            # Solo se adv_marker_lat con versione corrente non esiste
+            key_lat = k_map("adv_marker_lat")
+            if not st.session_state.get(key_lat):
+                st.session_state[key_lat] = str(st.session_state["last_clicked_lat"])
+        if st.session_state.get("last_clicked_lon"):
+            key_lon = k_map("adv_marker_lon")
+            if not st.session_state.get(key_lon):
+                st.session_state[key_lon] = str(st.session_state["last_clicked_lon"])
+        if st.session_state.get("last_clicked_comune"):
+            key_com = k_map("adv_marker_comune")
+            if not st.session_state.get(key_com):
+                st.session_state[key_com] = str(st.session_state["last_clicked_comune"])
+        if st.session_state.get("last_clicked_via"):
+            key_via = k_map("adv_marker_via")
+            if not st.session_state.get(key_via):
+                st.session_state[key_via] = str(st.session_state["last_clicked_via"])
 
     c1, c2, c3 = st.columns(3)
     with c1:
-        marker_nome = st.text_input("Nome Postazione *", key="adv_marker_nome", placeholder="Es: Postazione 1")
-        # RIGA 4230 - Alias combo da form Alias Radio - assegnalo a postazione
+        marker_nome = st.text_input("Nome Postazione *", key=k_map("adv_marker_nome"), placeholder="Es: Postazione 1")
+        # Alias combo da form Alias Radio
         alias_options = ["-- Nessun Alias --"] + alias_form_list
         if alias_postazioni and not alias_form_list:
             alias_options = ["-- Nessun Alias --"] + alias_esistenti
@@ -4310,26 +4314,26 @@ elif cur == "Mappe Postazioni":
             if o not in alias_options_unique:
                 alias_options_unique.append(o)
         alias_options = alias_options_unique
-        sel_alias_combo = st.selectbox("Alias (combo) da form Alias Radio", alias_options, key="adv_alias_combo", help="Seleziona alias da form Alias Radio per assegnarlo alla postazione - non obbligatorio")
+        sel_alias_combo = st.selectbox("Alias (combo) da form Alias Radio", alias_options, key=k_map("adv_alias_combo"), help="Seleziona alias da form Alias Radio")
         if sel_alias_combo == "-- Nuovo Alias --":
-            marker_alias = st.text_input("Nuovo Alias", key="adv_marker_alias_new", placeholder="Es: Alfa 1, Base, 01", help="Scrivi nuovo alias")
+            marker_alias = st.text_input("Nuovo Alias", key=k_map("adv_marker_alias_new"), placeholder="Es: Alfa 1, Base, 01")
         elif sel_alias_combo == "-- Nessun Alias --":
             marker_alias = ""
         else:
             marker_alias = sel_alias_combo
-        # RIGA 4240-4242 - FIX: Lat/Lon solo key, no value - evita comune in longitudine
-        marker_lat = st.text_input("Latitudine *", key="adv_marker_lat", placeholder="Clicca mappa - es: 45.8167")
-        marker_lon = st.text_input("Longitudine *", key="adv_marker_lon", placeholder="Clicca mappa - es: 8.8333")
+        # Lat/Lon - senza etichette via - richiesta Ezio - togli etichette via su form map
+        marker_lat = st.text_input("Latitudine *", key=k_map("adv_marker_lat"), placeholder="Clicca mappa - es: 45.8167")
+        marker_lon = st.text_input("Longitudine *", key=k_map("adv_marker_lon"), placeholder="Clicca mappa - es: 8.8333")
     with c2:
-        # RIGA 4244-4247 - FIX: Comune e Via con solo key, no value sballato
-        marker_comune = st.text_input("Comune *", key="adv_marker_comune", placeholder="Es: Varese")
-        marker_via = st.text_input("Via *", key="adv_marker_via", placeholder="Via + civico - Es: Via Rossi 10")
-        nome_emergenza = st.selectbox("Nome Emergenza (combo)", nomi_emergenze, index=0, key="nome_emergenza_combo")
-        nome_evento = st.selectbox("Nome Evento (combo)", nomi_eventi, index=0, key="nome_evento_combo")
+        # Comune e Via - senza etichette extra via su form map - richiesta Ezio
+        marker_comune = st.text_input("Comune *", key=k_map("adv_marker_comune"), placeholder="Es: Varese")
+        marker_via = st.text_input("Via *", key=k_map("adv_marker_via"), placeholder="Via + civico - Es: Via Rossi 10")
+        nome_emergenza = st.selectbox("Nome Emergenza (combo)", nomi_emergenze, index=0, key=k_map("nome_emergenza_combo"))
+        nome_evento = st.selectbox("Nome Evento (combo)", nomi_eventi, index=0, key=k_map("nome_evento_combo"))
     with c3:
-        # Carica icone dal form Libreria Icone - combo - richiesta Ezio
+        # Carica icone dal form Libreria Icone
         if icone_options:
-            marker_icona_label = st.selectbox("Icona Libreria (caricate da te)", icone_options, index=default_idx, key="adv_marker_icona_select")
+            marker_icona_label = st.selectbox("Icona Libreria (caricate da te)", icone_options, index=default_idx, key=k_map("adv_marker_icona_select"))
             st.session_state.selected_icon_label = marker_icona_label
             selected_ico_obj = icone_map.get(marker_icona_label, {"Emoji":"👷","Nome":"Postazione","Colore":"green","Tipo":"Postazione"})
         else:
@@ -4337,46 +4341,32 @@ elif cur == "Mappe Postazioni":
             marker_icona_label = ""
             selected_ico_obj = {"Emoji":"👷","Nome":"Postazione","Colore":"green","Tipo":"Postazione","HasFile":False}
             st.session_state.selected_icon_label = ""
-        # Anteprima icona scelta - rimessa - mostra file caricato da Libreria Icone
         has_file_sel = selected_ico_obj.get("HasFile", False)
         file_bytes_sel = selected_ico_obj.get("FileBytes")
         if has_file_sel and file_bytes_sel:
             try:
                 st.image(file_bytes_sel, width=90, caption=f"{selected_ico_obj.get('Nome','')} - FILE")
-                st.markdown(f"<div style='text-align:center;background:#e8f5e9;padding:4px;border-radius:4px;border:1px solid #1A5D1A;font-size:11px;'><b>{selected_ico_obj.get('Nome','')} - {selected_ico_obj.get('FileName','')[:20]}</b></div>", unsafe_allow_html=True)
             except:
                 st.markdown(f"<div style='font-size:32px;text-align:center;background:#e8f5e9;padding:10px;border-radius:10px;border:2px solid #1A5D1A;'>{selected_ico_obj.get('Emoji','👷')}<br><small>{selected_ico_obj.get('Nome','')}</small></div>", unsafe_allow_html=True)
         else:
             if icone_options:
-                st.markdown(f"<div style='font-size:32px;text-align:center;background:#e8f5e9;padding:10px;border-radius:10px;border:2px solid #1A5D1A;'>{selected_ico_obj.get('Emoji','👷')}<br><small>{selected_ico_obj.get('Nome','Postazione')}</small><br><small style='font-size:11px;'>{selected_ico_obj.get('Colore','green')}</small></div>", unsafe_allow_html=True)
+                st.markdown(f"<div style='font-size:32px;text-align:center;background:#e8f5e9;padding:10px;border-radius:10px;border:2px solid #1A5D1A;'>{selected_ico_obj.get('Emoji','👷')}<br><small>{selected_ico_obj.get('Nome','Postazione')}</small></div>", unsafe_allow_html=True)
             else:
                 st.info("Nessuna icona caricata - vai in Libreria Icone")
-        marker_tipo = st.selectbox("Tipo", ["Postazione", "Emergenza", "Evento", "Mezzo", "Volontario"], key="adv_marker_tipo")
-        marker_desc = st.text_input("Descrizione", key="adv_marker_desc")
+        marker_tipo = st.selectbox("Tipo", ["Postazione", "Emergenza", "Evento", "Mezzo", "Volontario"], key=k_map("adv_marker_tipo"))
+        marker_desc = st.text_input("Descrizione", key=k_map("adv_marker_desc"))
 
-    # Callback pulisci maschera - DEVE pulire tutti i dati che vedo - FIX definitivo - richiesta Ezio
     col_save1, col_save2 = st.columns([3,1])
     with col_save1:
-        save_clicked = st.button("💾 SALVA POSTAZIONE", type="primary", use_container_width=True, key="btn_salva_postazione")
+        save_clicked = st.button("💾 SALVA POSTAZIONE", type="primary", use_container_width=True, key=f"btn_salva_postazione_v{ver}")
     with col_save2:
-        # RIGA Pulisci maschera - FIX definitivo che pulisce davvero - richiesta Ezio tante volte
-        if st.button("🧹 Pulisci maschera", type="primary", use_container_width=True, key="btn_pulisci_maschera_postazioni_v5", help="Pulisce TUTTA la maschera dai vecchi dati - nome, alias, lat, lon, comune, via - FIX definitivo"):
-            # Pulisci subito tutte le chiavi qui prima del rerun
-            for k in ["adv_marker_nome", "adv_alias_combo", "adv_marker_alias_new", "adv_marker_lat", "adv_marker_lon", "adv_marker_comune", "adv_marker_via", "nome_emergenza_combo", "nome_evento_combo", "adv_marker_icona_select", "adv_marker_tipo", "adv_marker_desc", "last_clicked_lat", "last_clicked_lon", "last_clicked_comune", "last_clicked_via"]:
-                if k in st.session_state:
-                    try:
-                        st.session_state[k] = ""
-                    except:
-                        pass
-                    try:
-                        del st.session_state[k]
-                    except:
-                        pass
+        # Pulisci maschera - FIX definitivo con versionamento chiavi - pulisce davvero
+        if st.button("🧹 Pulisci maschera", type="primary", use_container_width=True, key=f"btn_pulisci_maschera_v{ver}", help="Pulisce maschera postazione - cancella tutti i campi - FIX definitivo"):
+            st.session_state["do_clear_maschera"] = True
             try:
                 st.query_params.clear()
             except:
                 pass
-            st.session_state["do_clear_maschera"] = True
             st.rerun()
 
 
@@ -4447,11 +4437,20 @@ elif cur == "Mappe Postazioni":
                 }
                 st.session_state.mappa_avanzata_markers.append(nuovo)
                 st.session_state.map_focus = nuovo
+                # Pulisci last_clicked dopo salvataggio per non tenere default prima posizione marker
+                for k in ["last_clicked_lat", "last_clicked_lon", "last_clicked_comune", "last_clicked_via"]:
+                    if k in st.session_state:
+                        try:
+                            del st.session_state[k]
+                        except:
+                            pass
                 st.success(f"✅ SALVATA {marker_nome} - Totale {len(st.session_state.mappa_avanzata_markers)}")
                 try:
                     st.query_params.clear()
                 except:
                     pass
+                # Incrementa versione per pulire maschera dopo salvataggio
+                st.session_state["map_form_version"] = st.session_state.get("map_form_version", 0) + 1
                 st.rerun()
             except Exception as e:
                 st.error(f"❌ Errore: {e}")
