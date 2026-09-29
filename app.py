@@ -3047,7 +3047,19 @@ elif cur == "Eventi":
         stato_ev = st.selectbox("Stato", ["Programmato", "In Corso", "Completato", "Annullato"], key="ev_stato")
         note_ev = st.text_area("Note Evento", key="ev_note")
 
-    if st.button("Salva Evento", type="primary", use_container_width=True):
+    col_save_ev1, col_save_ev2 = st.columns([3,1])
+    with col_save_ev1:
+        save_ev = st.button("💾 Salva Evento", type="primary", use_container_width=True, key="btn_salva_ev")
+    with col_save_ev2:
+        if st.button("🔄 Pulisci campi", use_container_width=True, key="btn_pulisci_ev", help="Pulisce campi maschera"):
+            for k in ["ev_nome", "ev_tipo", "ev_data", "ev_comune", "ev_via", "ev_ora", "ev_resp", "ev_stato", "ev_note"]:
+                if k in st.session_state:
+                    try:
+                        del st.session_state[k]
+                    except:
+                        pass
+            st.rerun()
+    if save_ev:
         if nome_ev:
             st.session_state.eventi.append({
                 "Nome": nome_ev,
@@ -3094,21 +3106,21 @@ elif cur == "Emergenze":
     with c3:
         stato_em = st.selectbox("Stato", ["Operativo", "In Corso", "Completato", "Chiuso"], key="em_stato")
         bg_c, txt_c, lab_c = get_stato_color(stato_em)
-        st.markdown(
-            f"""
-            <div style="background:{bg_c};color:{txt_c};padding:10px;
-            border-radius:8px;text-align:center;font-weight:bold;
-            border:2px solid black;margin-top:8px;">
-            STATO: {lab_c}
-            </div>
-            """,
-            unsafe_allow_html=True
-        )
-        coord_em = st.text_input("Coordinate", placeholder="45.81, 8.82", key="em_coord")
-
     note_em = st.text_area("Descrizione Emergenza", key="em_note")
 
-    if st.button("Salva Emergenza", type="primary", use_container_width=True):
+    col_em_save1, col_em_save2 = st.columns([3,1])
+    with col_em_save1:
+        save_em = st.button("💾 Salva Emergenza", type="primary", use_container_width=True, key="btn_salva_em")
+    with col_em_save2:
+        if st.button("🔄 Pulisci campi", use_container_width=True, key="btn_pulisci_em", help="Pulisce campi maschera"):
+            for k in ["em_nome", "em_tipo", "em_data", "em_comune", "em_via", "em_prior", "em_stato", "em_coord", "em_note"]:
+                if k in st.session_state:
+                    try:
+                        del st.session_state[k]
+                    except:
+                        pass
+            st.rerun()
+    if save_em:
         if nome_em:
             st.session_state.emergenze.append({
                 "Nome": nome_em,
@@ -4235,10 +4247,23 @@ elif cur == "Mappe Postazioni":
     with col_save1:
         save_clicked = st.button("💾 SALVA POSTAZIONE", type="primary", use_container_width=True, key="btn_salva_postazione")
     with col_save2:
-        if st.button("🔄 Pulisci campi", use_container_width=True, key="btn_pulisci_campi"):
+        # Tasto pulisci campi attivato - pulisce tutti i campi maschera - richiesta Ezio
+        if st.button("🔄 Pulisci campi", use_container_width=True, key="btn_pulisci_campi", help="Pulisce tutti i campi della maschera"):
+            # Pulisci tutti i campi maschera postazione
+            for k in ["adv_marker_nome", "adv_marker_lat", "adv_marker_lon", "adv_marker_comune", "adv_marker_via", "nome_emergenza_combo", "nome_evento_combo", "adv_marker_icona_select", "adv_marker_tipo", "adv_marker_desc"]:
+                if k in st.session_state:
+                    try:
+                        del st.session_state[k]
+                    except:
+                        pass
             st.session_state.last_clicked_lat = ""
             st.session_state.last_clicked_lon = ""
             st.session_state.map_focus = None
+            try:
+                st.query_params.clear()
+            except:
+                pass
+            st.success("Campi puliti")
             st.rerun()
 
     try:
