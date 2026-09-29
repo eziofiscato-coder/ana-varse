@@ -4256,9 +4256,10 @@ elif cur == "Mappe Postazioni":
         st.session_state["adv_marker_lat"] = str(st.session_state["last_clicked_lat"])
     if st.session_state.get("last_clicked_lon") and not st.session_state.get("adv_marker_lon"):
         st.session_state["adv_marker_lon"] = str(st.session_state["last_clicked_lon"])
-    # Comune default solo se vuoto
+    # Comune default solo se vuoto - FIX: non sovrascrivere lon/comune
     if not st.session_state.get("adv_marker_comune"):
-        st.session_state["adv_marker_comune"] = "Varese"
+        st.session_state["adv_marker_comune"] = ""
+    # Non impostare Varese automatico se lon contiene già valore - evita confusione
 
     c1, c2, c3 = st.columns(3)
     with c1:
@@ -4505,38 +4506,35 @@ elif cur == "Mappe Postazioni":
         }
         L.marker([lat, lon], {icon: tmpIcon}).addTo(pMap).bindPopup("Nuova "+selEmojiPrev+"<br>"+lat+","+lon).openPopup();
         document.getElementById('preview_coords').innerHTML = "📍 Nuova da anteprima: "+selEmojiPrev+" Lat: "+lat+" Lon: "+lon+" - Inserita in maschera automatico";
-        // Inserisce lat/lon automatico in maschera - senza bottone - come prima faceva
+        // Inserisce lat/lon automatico in maschera - FIX: solo query_params, no scrittura diretta inputs - evita comune in longitudine
         try {
             var url = new URL(window.parent.location.href);
             url.searchParams.set('lat', lat);
             url.searchParams.set('lon', lon);
             window.parent.history.replaceState(null, '', url.toString());
-            // Setta direttamente input maschera
-            var pd = window.parent.document;
-            var inputs = pd.querySelectorAll('input[type="text"]');
-            if(inputs.length >= 3){
-                // inputs[1]=lat, inputs[2]=lon
-                try{inputs[1].value=lat; inputs[1].dispatchEvent(new Event('input',{bubbles:true})); inputs[1].dispatchEvent(new Event('change',{bubbles:true}));}catch(e){}
-                try{inputs[2].value=lon; inputs[2].dispatchEvent(new Event('input',{bubbles:true})); inputs[2].dispatchEvent(new Event('change',{bubbles:true}));}catch(e){}
-            }
         } catch(err){}
-        // Geocode per comune/via
+        // Geocode per comune/via - solo preview, non scrive in maschera (evita sballamento campi)
         try{
             fetch('https://nominatim.openstreetmap.org/reverse?format=json&lat='+lat+'&lon='+lon)
                 .then(r=>r.json()).then(d=>{
                     var com = d.address.city||d.address.town||d.address.village||"";
                     var via = d.address.road||"";
-                    document.getElementById('preview_coords').innerHTML += "<br>Comune: "+com+" Via: "+via;
-                    try{
-                        var pd = window.parent.document;
-                        var inputs = pd.querySelectorAll('input[type="text"]');
-                        if(inputs.length >= 5){
-                            if(com){inputs[3].value=com; inputs[3].dispatchEvent(new Event('input',{bubbles:true}));}
-                            if(via){inputs[4].value=via; inputs[4].dispatchEvent(new Event('input',{bubbles:true}));}
-                        }
-                    }catch(e){}
+                    document.getElementById('preview_coords').innerHTML += "<br>Comune: "+com+" Via: "+via+" - Inserisci manualmente in maschera";
                 });
         }catch(e){}
+        // Marker spostabile - drag per correggere posizione - richiesta Ezio
+        var draggableMarker = L.marker([lat, lon], {icon: tmpIcon, draggable: true}).addTo(pMap);
+        draggableMarker.on('dragend', function(ev){
+            var newLat = ev.target.getLatLng().lat.toFixed(6);
+            var newLon = ev.target.getLatLng().lng.toFixed(6);
+            document.getElementById('preview_coords').innerHTML = "📍 Marker spostato - Lat: "+newLat+" Lon: "+newLon;
+            try{
+                var url2 = new URL(window.parent.location.href);
+                url2.searchParams.set('lat', newLat);
+                url2.searchParams.set('lon', newLon);
+                window.parent.history.replaceState(null, '', url2.toString());
+            }catch(e){}
+        });
     });
     </script>
     """
