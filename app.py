@@ -4340,18 +4340,22 @@ elif cur == "Mappe Postazioni":
     function getColorCodePrev(c){var m={'red':'#d32f2f','blue':'#1976d2','green':'#388e3c','orange':'#f57c00','purple':'#7b1fa2'};return m[c]||'#388e3c';}
     var allPrev=[];
     markersPreview.forEach(function(md){
-        var ic;
-        if(md.hasFile && md.fileB64){ic=L.icon({iconUrl:'data:image/png;base64,'+md.fileB64,iconSize:[32,32],iconAnchor:[16,16]});}else{ic=L.divIcon({html:"<div style='background:white;border:2px solid "+getColorCodePrev(md.colore)+";width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;'>"+md.emoji+"</div>",iconSize:[24,24],iconAnchor:[12,12]});}
-        var mk=L.marker([md.lat,md.lon],{icon:ic}).addTo(pMap).bindPopup("<b>"+md.emoji+" "+md.nome+"</b><br>"+md.comune+" "+md.via);
-        allPrev.push(mk);
+        // Solo icone caricate da te - niente cerchio giallo, niente emoji - richiesta Ezio
+        if(md.hasFile && md.fileB64){
+            var ic = L.icon({iconUrl:'data:image/png;base64,'+md.fileB64,iconSize:[36,36],iconAnchor:[18,18]});
+            var mk=L.marker([md.lat,md.lon],{icon:ic}).addTo(pMap).bindPopup("<b>"+md.nome+"</b><br>"+md.comune+" "+md.via);
+            allPrev.push(mk);
+        }
+        // Se non ha file, non mostrare nulla - niente cerchio, niente emoji
     });
-    // Se c'è focus da vedi su mappa, ingrandisce
+    // Se c'è focus da vedi su mappa, ingrandisce su mappa grande (non qui) - solo centra
     if(focusPreview && focusPreview.Lat){
         pMap.setView([focusPreview.Lat, focusPreview.Lon], 17);
-        // Evidenzia focus
-        var focusIcon = L.divIcon({html:"<div style='background:#FFD700;border:3px solid #d32f2f;width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:18px;box-shadow:0 0 10px #FFD700;'>"+focusPreview.emoji+"</div>",iconSize:[36,36],iconAnchor:[18,18]});
-        L.marker([focusPreview.Lat, focusPreview.Lon], {icon: focusIcon}).addTo(pMap).bindPopup("<b>📍 SELEZIONATA: "+focusPreview.nome+"</b>").openPopup();
-        document.getElementById('preview_coords').innerHTML = "📍 Focus su: "+focusPreview.emoji+" "+focusPreview.nome+" - "+focusPreview.comune+" "+focusPreview.via+" - Ingrandita";
+        if(focusPreview.hasFile && focusPreview.fileB64){
+            var focusIcon = L.icon({iconUrl: 'data:image/png;base64,'+focusPreview.fileB64, iconSize: [44,44], iconAnchor: [22,22]});
+            L.marker([focusPreview.Lat, focusPreview.Lon], {icon: focusIcon}).addTo(pMap).bindPopup("<b>📍 "+focusPreview.nome+"</b>").openPopup();
+        }
+        document.getElementById('preview_coords').innerHTML = "📍 Focus: "+focusPreview.nome+" - "+focusPreview.comune+" "+focusPreview.via;
     } else if(allPrev.length>0){
         var g=L.featureGroup(allPrev);pMap.fitBounds(g.getBounds().pad(0.4));
     }
@@ -4472,21 +4476,22 @@ elif cur == "Mappe Postazioni":
     function getColorCode(c){ var m={'red':'#d32f2f','blue':'#1976d2','green':'#388e3c','orange':'#f57c00','purple':'#7b1fa2'}; return m[c]||'#388e3c'; }
     var allMarkers = [];
     markersData.forEach(function(md){
-        var icon;
+        // Solo icone caricate da te - niente cerchio giallo, niente emoji - richiesta Ezio
         if(md.hasFile && md.fileB64){
-            icon = L.icon({iconUrl: "data:image/png;base64," + md.fileB64, iconSize: [36, 36], iconAnchor: [18, 18]});
-        } else {
-            icon = L.divIcon({html: "<div style='background:white;border:2px solid " + getColorCode(md.colore) + ";width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;'>" + md.emoji + "</div>", iconSize: [26,26], iconAnchor: [13,13]});
+            var icon = L.icon({iconUrl: "data:image/png;base64," + md.fileB64, iconSize: [40, 40], iconAnchor: [20, 20]});
+            var mk = L.marker([md.lat, md.lon], {icon: icon}).addTo(map).bindPopup("<b>" + md.nome + "</b><br>" + md.comune + " " + md.via);
+            allMarkers.push(mk);
         }
-        var mk = L.marker([md.lat, md.lon], {icon: icon}).addTo(map).bindPopup("<b>" + md.emoji + " " + md.nome + "</b><br>" + md.comune + " " + md.via);
-        allMarkers.push(mk);
+        // Se non ha file, non mostrare - niente cerchio giallo, niente emoji
     });
     if (focusMarker && focusMarker.Lat){
-        map.setView([focusMarker.Lat, focusMarker.Lon], 17);
-        // Evidenzia postazione selezionata con icona grande gialla
-        var focusIconBig = L.divIcon({html:"<div style='background:#FFD700;border:3px solid #d32f2f;width:42px;height:42px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:20px;box-shadow:0 0 12px #FFD700;'>"+focusMarker.emoji+"</div>",iconSize:[42,42],iconAnchor:[21,21]});
-        L.marker([focusMarker.Lat, focusMarker.Lon], {icon: focusIconBig}).addTo(map).bindPopup("<b>📍 SELEZIONATA: "+focusMarker.nome+"</b><br>"+focusMarker.comune+" "+focusMarker.via).openPopup();
-        document.getElementById('coords').innerHTML = "📍 Focus ingrandito su: "+focusMarker.emoji+" "+focusMarker.nome+" - "+focusMarker.comune+" "+focusMarker.via;
+        map.setView([focusMarker.Lat, focusMarker.Lon], 18);
+        // Zoom su mappa grande - icona selezionata ingrandita, non cerchio giallo
+        if(focusMarker.hasFile && focusMarker.fileB64){
+            var focusIconBig = L.icon({iconUrl: "data:image/png;base64," + focusMarker.fileB64, iconSize: [52, 52], iconAnchor: [26, 26]});
+            L.marker([focusMarker.Lat, focusMarker.Lon], {icon: focusIconBig}).addTo(map).bindPopup("<b>📍 SELEZIONATA: "+focusMarker.nome+"</b><br>"+focusMarker.comune+" "+focusMarker.via).openPopup();
+        }
+        document.getElementById('coords').innerHTML = "📍 Zoom su: "+focusMarker.nome+" - "+focusMarker.comune+" "+focusMarker.via+" - Ingrandita su mappa grande";
     } else {
         if(allMarkers.length>0){
             var g = new L.featureGroup(allMarkers);
@@ -4496,13 +4501,16 @@ elif cur == "Mappe Postazioni":
     map.on('click', function(e){
         var lat = e.latlng.lat.toFixed(6);
         var lon = e.latlng.lng.toFixed(6);
-        var tmpIcon;
+        // Solo icona scelta caricata da te - niente cerchio giallo, niente emoji - richiesta Ezio
         if(selectedIconHasFile && selectedIconFileB64){
-            tmpIcon = L.icon({iconUrl: "data:image/png;base64," + selectedIconFileB64, iconSize: [38,38], iconAnchor: [19,19]});
+            var tmpIcon = L.icon({iconUrl: "data:image/png;base64," + selectedIconFileB64, iconSize: [40,40], iconAnchor: [20,20]});
+            L.marker([lat, lon], {icon: tmpIcon}).addTo(map).bindPopup("Nuova<br>" + lat + "," + lon).openPopup();
+            document.getElementById('coords').innerHTML = "📍 Nuovo marker - Lat: " + lat + " Lon: " + lon + " - Inserito in maschera";
         } else {
-            tmpIcon = L.divIcon({html: "<div style='background:white;border:2px solid " + getColorCode(selectedIconColor) + ";width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:18px;box-shadow:0 2px 4px rgba(0,0,0,0.3);'>" + selectedIconEmoji + "</div>", iconSize: [32,32], iconAnchor: [16,16]});
+            // Se non hai caricato icona, avvisa - non mettere cerchio giallo né emoji
+            document.getElementById('coords').innerHTML = "⚠️ Carica prima un'icona in Libreria Icone - poi selezionala - niente cerchio giallo";
+            return;
         }
-        L.marker([lat, lon], {icon: tmpIcon}).addTo(map).bindPopup("Nuova " + selectedIconEmoji + "<br>" + lat + "," + lon).openPopup();
         document.getElementById('coords').innerHTML = "📍 Nuovo " + selectedIconEmoji + " " + lat + "," + lon + " - Lat/Lon in maschera automatico";
         try {
             var url = new URL(window.parent.location.href);
