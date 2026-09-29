@@ -4208,6 +4208,8 @@ elif cur == "Mappe Postazioni":
     c1, c2, c3 = st.columns(3)
     with c1:
         marker_nome = st.text_input("Nome Postazione *", key="adv_marker_nome", placeholder="Es: Postazione 1")
+        # RIGA 4211 - Alias per radio - richiesta Ezio - associa alias per chiamare con radio
+        marker_alias = st.text_input("Alias Radio *", key="adv_marker_alias", placeholder="Es: Alfa 1, Base, 01, PM1", help="Alias per chiamata radio - es: Alfa 1, Base, Postazione 1")
         marker_lat = st.text_input("Latitudine *", value=st.session_state.last_clicked_lat, key="adv_marker_lat", placeholder="Clicca mappa")
         marker_lon = st.text_input("Longitudine *", value=st.session_state.last_clicked_lon, key="adv_marker_lon", placeholder="Clicca mappa")
     with c2:
@@ -4250,7 +4252,7 @@ elif cur == "Mappe Postazioni":
         # Tasto pulisci campi attivato - pulisce tutti i campi maschera - richiesta Ezio
         if st.button("🔄 Pulisci campi", use_container_width=True, key="btn_pulisci_campi", help="Pulisce tutti i campi della maschera"):
             # Pulisci tutti i campi maschera postazione
-            for k in ["adv_marker_nome", "adv_marker_lat", "adv_marker_lon", "adv_marker_comune", "adv_marker_via", "nome_emergenza_combo", "nome_evento_combo", "adv_marker_icona_select", "adv_marker_tipo", "adv_marker_desc"]:
+            for k in ["adv_marker_nome", "adv_marker_alias", "adv_marker_lat", "adv_marker_lon", "adv_marker_comune", "adv_marker_via", "nome_emergenza_combo", "nome_evento_combo", "adv_marker_icona_select", "adv_marker_tipo", "adv_marker_desc"]:
                 if k in st.session_state:
                     try:
                         del st.session_state[k]
@@ -4289,6 +4291,7 @@ elif cur == "Mappe Postazioni":
                 sel_obj = icone_map.get(st.session_state.selected_icon_label, selected_ico_obj)
                 nuovo = {
                     "Nome": marker_nome,
+                    "Alias": marker_alias,
                     "Lat": lat_f,
                     "Lon": lon_f,
                     "Comune": marker_comune,
@@ -4333,7 +4336,7 @@ elif cur == "Mappe Postazioni":
                     b64 = b64lib.b64encode(fb).decode()
             except:
                 b64 = ""
-        return {"lat": m.get("Lat"), "lon": m.get("Lon"), "nome": m.get("Nome",""), "emoji": m.get("Emoji","👷"), "colore": m.get("Colore","green"), "hasFile": m.get("HasFile", False), "fileB64": b64, "comune": m.get("Comune",""), "via": m.get("Via",""), "emergenza": m.get("NomeEmergenza",""), "evento": m.get("NomeEvento","")}
+        return {"lat": m.get("Lat"), "lon": m.get("Lon"), "nome": m.get("Nome",""), "alias": m.get("Alias",""), "emoji": m.get("Emoji","👷"), "colore": m.get("Colore","green"), "hasFile": m.get("HasFile", False), "fileB64": b64, "comune": m.get("Comune",""), "via": m.get("Via",""), "emergenza": m.get("NomeEmergenza",""), "evento": m.get("NomeEvento","")}
     markers_for_js = json_lib.dumps([clean_marker_for_json(m) for m in all_markers])
     if focus_marker:
         focus_clean = clean_marker_for_json(focus_marker)
@@ -4401,7 +4404,7 @@ elif cur == "Mappe Postazioni":
         // Solo icone caricate da te - niente cerchio giallo, niente emoji - richiesta Ezio
         if(md.hasFile && md.fileB64){
             var ic = L.icon({iconUrl:'data:image/png;base64,'+md.fileB64,iconSize:[36,36],iconAnchor:[18,18]});
-            var mk=L.marker([md.lat,md.lon],{icon:ic}).addTo(pMap).bindPopup("<b>"+md.nome+"</b><br>"+md.comune+" "+md.via);
+            var mk=L.marker([md.lat,md.lon],{icon:ic}).addTo(pMap).bindPopup("<b>"+md.nome+"</b><br>📻 Alias: "+(md.alias||"")+"<br>"+md.comune+" "+md.via);
             allPrev.push(mk);
         }
         // Se non ha file, non mostrare nulla - niente cerchio, niente emoji
@@ -4647,7 +4650,7 @@ elif cur == "Mappe Postazioni":
         // Solo icone caricate da te - niente cerchio giallo, niente emoji - richiesta Ezio
         if(md.hasFile && md.fileB64){
             var icon = L.icon({iconUrl: "data:image/png;base64," + md.fileB64, iconSize: [40, 40], iconAnchor: [20, 20]});
-            var mk = L.marker([md.lat, md.lon], {icon: icon}).addTo(map).bindPopup("<b>" + md.nome + "</b><br>" + md.comune + " " + md.via);
+            var mk = L.marker([md.lat, md.lon], {icon: icon}).addTo(map).bindPopup("<b>" + md.nome + "</b><br>📻 Alias: " + (md.alias||"") + "<br>" + md.comune + " " + md.via);
             allMarkers.push(mk);
         }
         // Se non ha file, non mostrare - niente cerchio giallo, niente emoji
@@ -4720,11 +4723,22 @@ elif cur == "Mappe Postazioni":
             c1, c2, c3, c4 = st.columns([1,2,2,2])
             with c1:
                 with st.container(border=True):
-                    st.markdown(f"<div style='text-align:center;background:{bg};border:2px solid {border};border-radius:8px;padding:4px;'><div style='font-size:26px;'>{m.get('Emoji','👷')}</div><small>{m.get('IconaNome','')}</small></div>", unsafe_allow_html=True)
+                    # RIGA 4722-4730 - Mostra icona salvata, non quadrato bianco - fix Ezio
+                    if m.get("HasFile") and m.get("FileBytes"):
+                        try:
+                            st.image(m.get("FileBytes"), width=80, caption=m.get("IconaNome",""))
+                        except:
+                            st.markdown(f"<div style='text-align:center;background:{bg};border:2px solid {border};border-radius:8px;padding:4px;'><div style='font-size:26px;'>{m.get('Emoji','👷')}</div><small>{m.get('IconaNome','')}</small></div>", unsafe_allow_html=True)
+                    else:
+                        st.markdown(f"<div style='text-align:center;background:{bg};border:2px solid {border};border-radius:8px;padding:4px;'><div style='font-size:26px;'>{m.get('Emoji','👷')}</div><small>{m.get('IconaNome','')}</small></div>", unsafe_allow_html=True)
+                    st.caption(f"{m.get('IconaNome','')} - {m.get('FileName','')[:15] if m.get('HasFile') else ''}")
                     if is_focus:
                         st.caption("👆 SELEZIONATA - Ingrandita su mappa")
             with c2:
                 st.write(f"**{m['Nome']}**")
+                # Alias radio - richiesta Ezio
+                if m.get('Alias'):
+                    st.markdown(f"<span style='background:#1A5D1A;color:white;padding:2px 8px;border-radius:12px;font-weight:bold;font-size:12px;'>📻 {m.get('Alias')}</span>", unsafe_allow_html=True)
                 st.caption(f"Tipo: {m.get('Tipo','')} - {m.get('IconaNome','')}")
                 st.caption(f"Emergenza: {m.get('NomeEmergenza','--')}")
             with c3:
