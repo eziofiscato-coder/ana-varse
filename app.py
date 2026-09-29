@@ -3208,61 +3208,56 @@ elif cur == "Tabella Emergenze":
             with col:
                 st.markdown(f'<div class="excel-header">{header}</div>', unsafe_allow_html=True)
         
-        # RIGHE con celle evidenziate come Excel
+        # RIGHE con celle Excel - FIX icona centrata, click apre Interventi Emergenza, no pennetta
         for idx_orig, row in df_filtrato_em.iterrows():
             r_cols = st.columns([0.9, 1, 1, 1.1, 1.2, 1.2, 1, 2.2])
             emoji = row.get("IconaEmoji", "📍")
             nome_ico = row.get("IconaNome", "")
             has_file = row.get("HasFile", False)
             file_bytes = row.get("FileBytes", None)
+            tipo_val = row.get("Tipo","")
+            squadra_val = row.get("Squadra","")
+            data_val = row.get("Data","")[:10] if row.get("Data") else ""
+            ora_val = row.get("Ora","")[:5] if row.get("Ora") else ""
+            comune_val = row.get("Comune","")
+            via_val = row.get("Via","")[:25] if row.get("Via") else ""
+            stato_val = row.get("Stato","")
+            desc_val = str(row.get("Descrizione",""))[:90] if row.get("Descrizione") else ""
 
-            # COLONNA ICONA - VERO TASTO, non link <a> che va a prima pagina
+            # COLONNA ICONA - FIX: icona centrata, tasto vero senza pennetta, apre Interventi Emergenza per bonifica
             with r_cols[0]:
-                # Cella Excel evidenziata
-                st.markdown('<div class="excel-cell excel-cell-icon" style="justify-content:center;">', unsafe_allow_html=True)
-                if has_file and file_bytes:
-                    try:
-                        # Mostra immagine piccola
-                        st.image(file_bytes, width=45)
-                        # Bottone vero che apre Interventi Emergenza - icona diventa tasto
-                        if st.button(f"✏️ {nome_ico[:8]}", key=f"excel_icon_img_{idx_orig}", help=f"Clicca icona {nome_ico} per aprire Interventi Emergenza e modificare", use_container_width=True):
-                            for k in [k for k in list(st.session_state.keys()) if k.startswith("int_") and k != "int_edit_index"]:
-                                try:
-                                    del st.session_state[k]
-                                except:
-                                    pass
-                            st.session_state.int_edit_index = int(idx_orig)
-                            st.session_state.menu = "Interventi Emergenza"
-                            if "menu_radio" in st.session_state:
-                                try:
-                                    del st.session_state["menu_radio"]
-                                except:
-                                    pass
-                            st.rerun()
-                    except:
-                        if st.button(f"{emoji}", key=f"excel_icon_fallback_{idx_orig}", use_container_width=True):
-                            for k in [k for k in list(st.session_state.keys()) if k.startswith("int_") and k != "int_edit_index"]:
-                                try:
-                                    del st.session_state[k]
-                                except:
-                                    pass
-                            st.session_state.int_edit_index = int(idx_orig)
-                            st.session_state.menu = "Interventi Emergenza"
-                            if "menu_radio" in st.session_state:
-                                try:
-                                    del st.session_state["menu_radio"]
-                                except:
-                                    pass
-                            st.rerun()
-                else:
-                    # Emoji come tasto grande
-                    if st.button(f"{emoji}\n{nome_ico[:8]}", key=f"excel_emoji_{idx_orig}", help=f"Clicca per modificare {nome_ico}", use_container_width=True):
+                # Contenitore cella Excel con bordo
+                with st.container(border=True):
+                    if has_file and file_bytes:
+                        try:
+                            st.image(file_bytes, width=50)
+                        except:
+                            st.markdown(f"<div style='font-size:28px;text-align:center;'>{emoji}</div>", unsafe_allow_html=True)
+                    else:
+                        # Emoji grande centrata
+                        st.markdown(f"<div style='font-size:32px;text-align:center;background:white;border-radius:8px;padding:4px;'>{emoji}</div>", unsafe_allow_html=True)
+                    # Tasto sotto icona senza pennetta - icona stessa è tasto
+                    # Usa nome icona come label, no pennetta
+                    btn_label = f"{nome_ico[:12]}" if nome_ico else f"{tipo_val[:10]}"
+                    if st.button(btn_label, key=f"btn_icon_open_{idx_orig}_{tipo_val}", help=f"Clicca per aprire Interventi Emergenza - {tipo_val} - {comune_val} - modifica bonifica", use_container_width=True, type="primary"):
+                        # Pulisci campi int_
                         for k in [k for k in list(st.session_state.keys()) if k.startswith("int_") and k != "int_edit_index"]:
                             try:
                                 del st.session_state[k]
                             except:
                                 pass
+                        # Imposta indice per aprire proprio quell'emergenza vista in tabella
                         st.session_state.int_edit_index = int(idx_orig)
+                        # Pre-popola per sicurezza bonifica
+                        try:
+                            st.session_state["int_tipo"] = tipo_val
+                            st.session_state["int_squadra"] = squadra_val
+                            st.session_state["int_comune"] = comune_val
+                            st.session_state["int_via"] = via_val
+                            st.session_state["int_desc"] = row.get("Descrizione","")
+                            st.session_state["stato_int"] = stato_val
+                        except:
+                            pass
                         st.session_state.menu = "Interventi Emergenza"
                         if "menu_radio" in st.session_state:
                             try:
@@ -3270,25 +3265,31 @@ elif cur == "Tabella Emergenze":
                             except:
                                 pass
                         st.rerun()
-                st.markdown('</div>', unsafe_allow_html=True)
 
-            # COLONNE DATI con celle Excel evidenziate
+            # COLONNE DATI con celle Excel evidenziate - contenitore border per effetto Excel
             with r_cols[1]:
-                st.markdown(f'<div class="excel-cell">{row.get("Tipo","")}</div>', unsafe_allow_html=True)
+                with st.container(border=True):
+                    st.write(tipo_val)
             with r_cols[2]:
-                st.markdown(f'<div class="excel-cell">{row.get("Squadra","")}</div>', unsafe_allow_html=True)
+                with st.container(border=True):
+                    st.write(squadra_val)
             with r_cols[3]:
-                st.markdown(f'<div class="excel-cell">{row.get("Data","")[:10]} {row.get("Ora","")[:5]}</div>', unsafe_allow_html=True)
+                with st.container(border=True):
+                    st.write(f"{data_val} {ora_val}")
             with r_cols[4]:
-                st.markdown(f'<div class="excel-cell"><b>{row.get("Comune","")}</b></div>', unsafe_allow_html=True)
+                with st.container(border=True):
+                    st.markdown(f"**{comune_val}**")
             with r_cols[5]:
-                st.markdown(f'<div class="excel-cell">{row.get("Via","")[:25]}</div>', unsafe_allow_html=True)
+                with st.container(border=True):
+                    st.write(via_val)
             with r_cols[6]:
-                bg = row.get("StatoColoreBg", "#e8f5e9")
-                txt_c = row.get("StatoColoreTxt", "black")
-                st.markdown(f'<div class="excel-cell" style="background:{bg} !important;color:{txt_c};font-weight:bold;text-align:center;border:2px solid black !important;">{row.get("Stato","")}</div>', unsafe_allow_html=True)
+                with st.container(border=True):
+                    bg = row.get("StatoColoreBg", "#e8f5e9")
+                    txt_c = row.get("StatoColoreTxt", "black")
+                    st.markdown(f"<span style='background:{bg};color:{txt_c};padding:2px 8px;border-radius:12px;font-size:11px;font-weight:bold;border:1px solid black;'>{stato_val}</span>", unsafe_allow_html=True)
             with r_cols[7]:
-                st.markdown(f'<div class="excel-cell">{str(row.get("Descrizione",""))[:90]}</div>', unsafe_allow_html=True)
+                with st.container(border=True):
+                    st.write(desc_val)
 
         # Export
         st.divider()
