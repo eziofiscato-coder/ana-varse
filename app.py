@@ -1551,7 +1551,7 @@ def pulisci_maschera_form(form_ver_key, keys_prefixes):
 
 
 # POPOUT INIZIALE SOLO ICONA MANIFESTO - Richiesta Ezio - TEMPO CONFIGURABILE
-SPLASH_SECONDS = 5  # Fix Ezio - 5 secondi splash manifesto
+SPLASH_SECONDS = 3  # Fix Ezio - 3 secondi splash manifesto
 
 def inject_popout_splash():
     try:
