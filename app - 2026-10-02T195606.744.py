@@ -1,1 +1,0 @@
-test content not png but extension png
