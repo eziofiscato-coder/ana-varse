@@ -1,4 +1,4 @@
-﻿import streamlit as st
+import streamlit as st
 
 # FIX QUADRATINI - Usa icone testuali sicure invece di emoji problematici
 # Niente CSS forzato - lascia browser usare emoji nativi
