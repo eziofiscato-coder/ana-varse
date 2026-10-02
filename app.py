@@ -52,63 +52,11 @@ def inject_global_css():
     #MainMenu {visibility: hidden;}
     footer {visibility: hidden;}
     header[data-testid="stHeader"] {background: transparent;}
-    .stApp {
-        padding-top: 12px;
-        background: #f6fbf7 !important;
-    }
-    /* PRIMA PAGINA E LOGIN - fondo verde tenue con tonalità in più - richiesta Ezio */
-    section[data-testid="stSidebar"] ~ div .block-container,
-    .main .block-container {
-        background: #f6fbf7 !important;
-    }
-    /* Prima pagina entra - tonalità in più */
-    div[data-testid="stVerticalBlock"]:has(> div > div > h2) {
-        background: rgba(232,245,233,0.5) !important;
-        border-radius: 12px !important;
-    }
-    /* Login form verde più intenso */
-    [data-testid="stForm"]#login_form, div:has(> form) {
-        background: #e8f5e9 !important;
-        border: 2px solid #a5d6a7 !important;
-    }
-    .stButton>button {border-radius: 8px; font-weight: 600;}
-    /* Sfondo generale app tenue */
-    [data-testid="stAppViewContainer"] {
-        background: linear-gradient(180deg, #f6fbf7 0%, #e8f5e9 100%) !important;
-    }
+    .stApp {padding-top: 12px;}
     /* Bottoni più visibili */
+    .stButton>button {border-radius: 8px; font-weight: 600;}
     </style>
     """, unsafe_allow_html=True)
-
-def inject_first_page_green():
-    """Verde tenue con tonalità in più per prima pagina e login - richiesta Ezio"""
-    st.markdown("""
-    <style>
-    /* Prima pagina entra e login - fondo verde tenue tonalità in più */
-    .entra-container, .login-container {
-        background: #e8f5e9 !important;
-        border: 2px solid #a5d6a7 !important;
-        border-radius: 16px !important;
-        padding: 20px !important;
-        box-shadow: 0 4px 12px rgba(26,93,26,0.1) !important;
-    }
-    /* Form login con verde leggermente più scuro */
-    form[data-testid="stForm"] {
-        background: #e8f5e9 !important;
-        border: 2px solid #81c784 !important;
-        border-radius: 12px !important;
-        padding: 18px !important;
-    }
-    /* Prima pagina con verde tenue + 1 tonalità in più */
-    div[data-testid="column"]:nth-child(2) > div {
-        background: rgba(232,245,233,0.6) !important;
-        border-radius: 12px !important;
-        padding: 12px !important;
-    }
-    </style>
-    """, unsafe_allow_html=True)
-
-
 
 def inject_fullscreen_kiosk():
     # Versione SICURA senza parent.document - funziona su Streamlit Cloud
@@ -146,10 +94,6 @@ def inject_fullscreen_kiosk():
 
 
 inject_global_css()
-try:
-    inject_first_page_green()
-except:
-    pass
 inject_fullscreen_kiosk()
 
 def to_excel_bytes(dfs_dict: dict, engine="openpyxl") -> bytes:
@@ -1224,60 +1168,20 @@ def hdr():
 
 def hdr_form(t):
     """
-    h2 con sfondo VERDE TENUE - richiesta Ezio - tonalità tenue
+    h2 Times New Roman bold black - spostato in alto per recuperare spazio ex loghi
     """
     st.markdown(
         f"""
         <h2 style="font-family:Times New Roman;
-        font-weight:bold;color:#1A5D1A;
-        border-bottom:2px solid #a5d6a7;
-        padding:10px 14px;margin-top:0px;margin-bottom:12px;font-size:21px;
-        background: #f6fbf7;
-        border-radius:8px;
-        border-left:4px solid #81c784;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-        ">
+        font-weight:bold;color:black;
+        border-bottom:3px solid #1A5D1A;
+        padding-bottom:4px;margin-top:0px;margin-bottom:12px;font-size:22px;">
         {t}
         </h2>
         """,
         unsafe_allow_html=True
     )
-    st.markdown("""
-    <style>
-    [data-testid="stForm"], .stForm {
-        background: #f6fbf7 !important;
-        border: 1px solid #c8e6c9 !important;
-        border-radius: 10px !important;
-        padding: 14px !important;
-    }
-    div[data-testid="column"] {
-        background: rgba(246,251,247,0.6) !important;
-        border-radius: 8px !important;
-        padding: 6px !important;
-    }
-    div[data-testid="stHorizontalBlock"] {
-        background: rgba(241,248,233,0.25) !important;
-        border-radius: 8px !important;
-        padding: 4px !important;
-        margin-bottom: 6px !important;
-    }
-    .stTextInput > div > div > input,
-    .stTextArea > div > div > textarea,
-    .stSelectbox > div > div {
-        border: 1px solid #c8e6c9 !important;
-        background: white !important;
-        border-radius: 6px !important;
-    }
-    div[data-testid="stExpander"] {
-        background: #f9fbe7 !important;
-        border: 1px solid #dcedc8 !important;
-        border-radius: 8px !important;
-    }
-    .block-container { padding-top: 1rem !important; }
-    [data-testid="stVerticalBlock"] { gap: 0.7rem !important; }
-    </style>
-    """, unsafe_allow_html=True)
-
+    # CSS leggero per maschere in alto - NON toglie verde
 
 def get_form_key(base, form_ver_key):
     """Restituisce chiave versionata per pulisci maschera che funziona - Ezio"""
@@ -1501,18 +1405,6 @@ init_session()
 
 # PAGINA ENTRA - con footer fisso in basso Developed by Ezio F. 2026 Vers 1.0 - Logo cartoon
 if st.session_state.page == "entra":
-    # SFONDO VERDE TENUE + TONALITA IN PIU per prima pagina - richiesta Ezio
-    st.markdown("""
-    <style>
-    .entra-wrapper {
-        background: #e8f5e9 !important;
-        border: 2px solid #a5d6a7 !important;
-        border-radius: 16px !important;
-        padding: 18px !important;
-        box-shadow: 0 4px 12px rgba(26,93,26,0.12) !important;
-    }
-    </style>
-    """, unsafe_allow_html=True)
     hdr()
     try:
         inject_popout_splash()
@@ -1521,7 +1413,6 @@ if st.session_state.page == "entra":
     st.write("")
     c1, c2, c3 = st.columns([1, 2, 1])
     with c2:
-        st.markdown('<div class="entra-wrapper">', unsafe_allow_html=True)
         try:
             if os.path.exists("copertina.png"):
                 st.image("copertina.png", width=350)
@@ -1560,7 +1451,6 @@ if st.session_state.page == "entra":
         ):
             st.session_state.page = "login"
             st.rerun()
-        st.markdown("</div>", unsafe_allow_html=True)
     
     # FOOTER FISSO IN BASSO - fuori da c2, centrato in tutta pagina - Fix posizione Ezio
     # CSS fixed bottom
@@ -1744,24 +1634,13 @@ if st.session_state.page == "entra":
 
     st.stop()
 
-# PAGINA LOGIN - CON INTESTAZIONE + SFONDO VERDE TENUE TONALITA IN PIU - richiesta Ezio
+# PAGINA LOGIN - CON INTESTAZIONE - richiesta Ezio: metti intestazione prima pagina anche in login
 if st.session_state.page == "login":
-    st.markdown("""
-    <style>
-    .login-wrapper {
-        background: #dcedc8 !important;
-        border: 2px solid #81c784 !important;
-        border-radius: 16px !important;
-        padding: 20px !important;
-        box-shadow: 0 6px 16px rgba(26,93,26,0.15) !important;
-    }
-    </style>
-    """, unsafe_allow_html=True)
-    hdr()
+    hdr()  # Intestazione con 2 loghi + Squadra Volontari... - richiesta Ezio - messa anche in login
+    # Etichetta LOGIN - Gestione Utenti Multi Livello rimossa - richiesta Ezio
     st.write("")
     c1, c2, c3 = st.columns([1, 2, 1])
     with c2:
-        st.markdown('<div class="login-wrapper">', unsafe_allow_html=True)
         # Solo login pulito senza etichetta multiuso
         utenti_list = load_utenti()
         # st.info rimosso - non mostrare utenti configurati demo
@@ -1797,7 +1676,6 @@ if st.session_state.page == "login":
         if st.button("Torna a Entra", use_container_width=True):
             st.session_state.page = "entra"
             st.rerun()
-        st.markdown("</div>", unsafe_allow_html=True)
 
     st.stop()
 
@@ -1994,6 +1872,8 @@ if cur == "Dashboard":
         ("Chat", "💬 Chat"),
         ("Verbali", "📝 Verbali"),
         ("Archivio Documenti", "📁 Archivio Documenti"),
+        ("Diplomi Attestati", "🏅 Diplomi"),
+        ("Report Filtro", "📊 Report Filtro"),
         ("Geolocalizzazione Hytera + Anytone", "📡 Geoloc"),
         ("Backup", "💾 Backup")
     ]
@@ -5846,12 +5726,12 @@ elif cur == "Archivio Documenti":
 
 
 elif cur == "Diplomi Attestati":
-    hdr_form("DIPLOMI ATTESTATI - Anteprima A4 + 2 loghi: Volontario Varese + Gruppo CPB")
+    hdr_form("DIPLOMI ATTESTATI - Formato A4 - Volontario Varese + Gruppo CPB")
 
     st.markdown("""
     <div style="background:#f6fbf7;color:#1A5D1A;padding:10px;border-radius:8px;text-align:center;margin-bottom:12px;border:1px solid #c8e6c9;">
-    <b>🏅 DIPLOMI FORMATO A4 - Anteprima e PDF identici - Solo 2 loghi ai lati</b><br>
-    <small style="color:#558b2f;">Anteprima in formato A4 reale (210x297mm) - PDF impaginazione uguale</small>
+    <b>🏅 DIPLOMI FORMATO A4 VERO - Anteprima e PDF identici - 2 loghi ai lati</b><br>
+    <small style="color:#558b2f;">Anteprima A4 reale 210x297mm - Stampa professionale</small>
     </div>
     """, unsafe_allow_html=True)
 
@@ -5861,7 +5741,7 @@ elif cur == "Diplomi Attestati":
     def k_dip(base):
         return f"{base}_v{ver_dip}"
 
-    c1, c2 = st.columns([1, 1.2])
+    c1, c2 = st.columns([1, 1.4])
     with c1:
         st.markdown("#### ✏️ Dati Diploma")
         nome_dip = st.text_input("Nome Volontario *", value="ALBERTO VIGANO'", key=k_dip("dip_nome"))
@@ -5872,14 +5752,23 @@ elif cur == "Diplomi Attestati":
         capogruppo_dip = st.text_input("Capogruppo", value="Fiscato Stefano", key=k_dip("dip_capogruppo"))
         coordinatore_dip = st.text_input("Coordinatore P.C.", value="", key=k_dip("dip_coordinatore"))
         num_attestato = st.text_input("N° Attestato", value=f"{datetime.now().year}/{len(st.session_state.get('diplomi', []))+1:03d}", key=k_dip("dip_num"))
-        st.markdown("#### 📋 Lista Nomi")
+        st.markdown("#### 📋 Lista Nomi (uno per riga)")
         lista_nomi = st.text_area("Incolla lista nomi", height=90, key=k_dip("dip_lista"), placeholder="ALBERTO VIGANO'\nMARIO ROSSI")
         if st.button("🧹 Pulisci maschera", use_container_width=True, key=f"btn_pulisci_dip_v{ver_dip}"):
             st.session_state["diplomi_form_version"] += 1
             st.rerun()
 
+        st.markdown("#### 👥 Seleziona da DB Volontari")
+        if st.session_state.get("volontari"):
+            vol_names = [f"{v.get('Cognome','')} {v.get('Nome','')}".strip() for v in st.session_state.volontari if v.get('Cognome') or v.get('Nome')]
+            vol_names = sorted(list(set([n for n in vol_names if n])))
+            sel_vols = st.multiselect("Scegli volontari", vol_names, key=k_dip("dip_vol_sel"))
+            if sel_vols and st.button("📋 Usa selezionati", key=f"btn_use_sel_v{ver_dip}"):
+                st.session_state[k_dip("dip_lista")] = "\n".join([s.upper() for s in sel_vols])
+                st.rerun()
+
     with c2:
-        st.markdown("#### 🖼️ Anteprima A4 - Solo Volontario Varese + Gruppo CPB - Come sarà il PDF")
+        st.markdown("#### 🖼️ Anteprima A4 REALE - 210x297mm - Solo Volontario Varese + Gruppo CPB")
         logo_vol_b64 = ""
         logo_cpb_b64 = ""
         try:
@@ -5897,88 +5786,85 @@ elif cur == "Diplomi Attestati":
             pass
 
         if not logo_vol_b64:
-            logo_vol_html = '<div style="width:75px;height:75px;background:#e8f5e9;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#1A5D1A;font-weight:bold;border:2px solid #a5d6a7;font-size:6px;text-align:center;">VOLONTARIO<br>VARESE</div>'
+            logo_vol_html = '<div style="width:70px;height:70px;background:#e8f5e9;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#1A5D1A;font-weight:bold;border:2px solid #a5d6a7;font-size:6px;text-align:center;line-height:1.1;">VOLONTARIO<br>VARESE</div>'
         else:
-            logo_vol_html = f'<img src="data:image/png;base64,{logo_vol_b64}" style="width:75px;height:75px;object-fit:contain;border-radius:50%;border:2px solid #c8e6c9;background:white;padding:2px;">'
+            logo_vol_html = f'<img src="data:image/png;base64,{logo_vol_b64}" style="width:70px;height:70px;object-fit:contain;border-radius:50%;border:2px solid #c8e6c9;background:white;padding:2px;">'
 
         if not logo_cpb_b64:
-            logo_cpb_html = '<div style="width:75px;height:75px;background:#e3f2fd;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#0D47A1;font-weight:bold;border:2px solid #90caf9;font-size:5px;text-align:center;">GRUPPO<br>CPB</div>'
+            logo_cpb_html = '<div style="width:70px;height:70px;background:#e3f2fd;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#0D47A1;font-weight:bold;border:2px solid #90caf9;font-size:5px;text-align:center;line-height:1.1;">GRUPPO<br>CPB</div>'
         else:
-            logo_cpb_html = f'<img src="data:image/png;base64,{logo_cpb_b64}" style="width:75px;height:75px;object-fit:contain;border-radius:50%;border:2px solid #c8e6c9;background:white;padding:2px;">'
+            logo_cpb_html = f'<img src="data:image/png;base64,{logo_cpb_b64}" style="width:70px;height:70px;object-fit:contain;border-radius:50%;border:2px solid #c8e6c9;background:white;padding:2px;">'
 
-        # ANTEPRIMA FORMATO A4 REALE - 210mm x 297mm - scala per schermo
+        # === ANTEPRIMA A4 VERA - 210mm x 297mm con scala corretta ===
         preview_html = f"""
-        <div style="display:flex;justify-content:center;background:#e0e0e0;padding:10px;border-radius:8px;">
-            <div style="width:210mm;min-height:297mm;background:white;box-shadow:0 4px 20px rgba(0,0,0,0.3);padding:0;position:relative;transform-origin:top center;">
-                <div style="border:4px solid #1a3c6e;margin:8mm;height:281mm;padding:4mm;position:relative;box-sizing:border-box;">
-                    <div style="border:1.5px solid #d4af37;height:100%;padding:8mm;box-sizing:border-box;position:relative;">
-                        <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:120px;opacity:0.02;font-weight:bold;color:#1A5D1A;pointer-events:none;">ANA</div>
-                        <!-- Header con 2 loghi ai lati -->
-                        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8mm;position:relative;z-index:1;">
-                            <div style="text-align:center;flex-shrink:0;">{logo_vol_html}<div style="font-size:5px;font-weight:bold;margin-top:2mm;color:#1A5D1A;">VOLONTARIO VARESE</div></div>
+        <div style="background:#9e9e9e;padding:12px;border-radius:8px;display:flex;justify-content:center;overflow:auto;">
+            <div style="width:210mm;height:297mm;background:white;box-shadow:0 0 20px rgba(0,0,0,0.5);position:relative;flex-shrink:0;">
+                <div style="width:190mm;height:277mm;margin:10mm;border:3px solid #1a3c6e;box-sizing:border-box;position:relative;">
+                    <div style="width:100%;height:100%;border:1px solid #d4af37;box-sizing:border-box;padding:8mm;position:relative;display:flex;flex-direction:column;">
+                        <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:100px;opacity:0.02;font-weight:bold;color:#1A5D1A;pointer-events:none;">ANA</div>
+                        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6mm;position:relative;z-index:1;">
+                            <div style="text-align:center;">{logo_vol_html}<div style="font-size:5pt;font-weight:bold;margin-top:1mm;color:#1A5D1A;">VOLONTARIO VARESE</div></div>
                             <div style="text-align:center;flex:1;padding:0 4mm;">
-                                <div style="font-weight:bold;font-size:12pt;color:#1A5D1A;line-height:1.2;">{evento_dip}</div>
-                                <div style="font-weight:bold;font-size:11pt;color:#333;margin-top:1mm;">{luogo_dip}</div>
-                                <div style="font-size:9pt;color:#666;margin-top:1mm;">{data_dip}</div>
+                                <div style="font-weight:bold;font-size:11pt;color:#1A5D1A;line-height:1.2;">{evento_dip}</div>
+                                <div style="font-weight:bold;font-size:10pt;color:#333;margin-top:1mm;">{luogo_dip}</div>
+                                <div style="font-size:8pt;color:#666;margin-top:1mm;">{data_dip}</div>
                             </div>
-                            <div style="text-align:center;flex-shrink:0;">{logo_cpb_html}<div style="font-size:5px;font-weight:bold;margin-top:2mm;color:#0D47A1;">GRUPPO CPB</div></div>
+                            <div style="text-align:center;">{logo_cpb_html}<div style="font-size:5pt;font-weight:bold;margin-top:1mm;color:#0D47A1;">GRUPPO CPB</div></div>
                         </div>
-                        <!-- ATTESTATO -->
-                        <div style="text-align:center;margin:10mm 0 6mm 0;position:relative;z-index:1;">
-                            <div style="font-family:Times New Roman,serif;font-size:28pt;font-weight:bold;color:#1A5D1A;letter-spacing:3pt;">ATTESTATO</div>
-                            <div style="height:1mm;background:#d4af37;margin:3mm 20%;"></div>
+                        <div style="text-align:center;margin:8mm 0 5mm 0;position:relative;z-index:1;">
+                            <div style="font-family:Times New Roman,serif;font-size:26pt;font-weight:bold;color:#1A5D1A;letter-spacing:2pt;">ATTESTATO</div>
+                            <div style="height:0.8mm;background:#d4af37;margin:2mm 20%;"></div>
                         </div>
-                        <!-- NOME -->
-                        <div style="text-align:center;margin:10mm 0;position:relative;z-index:1;">
-                            <div style="font-family:Brush Script MT,cursive;font-size:32pt;color:#1a3c6e;font-style:italic;font-weight:bold;">{nome_dip}</div>
-                            <div style="height:0.5mm;background:#d4af37;margin:4mm 15%;"></div>
+                        <div style="text-align:center;margin:8mm 0;position:relative;z-index:1;flex-grow:0;">
+                            <div style="font-family:Brush Script MT,cursive;font-size:28pt;color:#1a3c6e;font-style:italic;font-weight:bold;line-height:1.1;">{nome_dip}</div>
+                            <div style="height:0.4mm;background:#d4af37;margin:3mm 15%;"></div>
                         </div>
-                        <!-- Motto -->
-                        <div style="text-align:center;margin:6mm 0;position:relative;z-index:1;">
-                            <div style="font-style:italic;font-size:9pt;color:#444;font-weight:bold;">"Insieme con Noi … Addestramento alla Protezione Civile"</div>
+                        <div style="text-align:center;margin:4mm 0;position:relative;z-index:1;">
+                            <div style="font-style:italic;font-size:8pt;color:#444;font-weight:bold;">"Insieme con Noi … Addestramento alla Protezione Civile"</div>
                         </div>
-                        <!-- Ruolo -->
-                        <div style="text-align:center;margin:8mm 0;padding:0 5mm;position:relative;z-index:1;">
-                            <div style="font-size:10pt;color:#222;">E' stato operativo per le attività di<br><b style="color:#1A5D1A;font-size:11pt;">{ruolo_dip}</b></div>
+                        <div style="text-align:center;margin:6mm 0;padding:0 5mm;position:relative;z-index:1;">
+                            <div style="font-size:9pt;color:#222;line-height:1.4;">E' stato operativo per le attività di<br><b style="color:#1A5D1A;font-size:10pt;">{ruolo_dip}</b></div>
                         </div>
-                        <!-- Firme -->
-                        <div style="display:flex;justify-content:space-between;margin-top:25mm;padding:0 5mm;position:relative;z-index:1;">
+                        <div style="display:flex;justify-content:space-between;margin-top:auto;padding-top:15mm;position:relative;z-index:1;">
                             <div style="text-align:center;">
-                                <div style="font-family:cursive;font-size:11pt;color:#1A5D1A;margin-bottom:2mm;">{capogruppo_dip}</div>
-                                <div style="border-top:0.5mm solid #222;width:40mm;margin:0 auto;"></div>
-                                <div style="font-size:7pt;font-weight:bold;margin-top:2mm;">Il Capogruppo<br>{capogruppo_dip}<br><small style="color:#666;">Gruppo CPB</small></div>
+                                <div style="font-family:cursive;font-size:10pt;color:#1A5D1A;margin-bottom:1mm;">{capogruppo_dip}</div>
+                                <div style="border-top:0.4mm solid #222;width:38mm;margin:0 auto;"></div>
+                                <div style="font-size:6pt;font-weight:bold;margin-top:1mm;line-height:1.2;">Il Capogruppo<br>{capogruppo_dip}<br><small style="color:#666;">Gruppo CPB</small></div>
                             </div>
                             <div style="text-align:center;">
-                                <div style="font-family:cursive;font-size:11pt;color:#1A5D1A;margin-bottom:2mm;">{coordinatore_dip or "Firma"}</div>
-                                <div style="border-top:0.5mm solid #222;width:40mm;margin:0 auto;"></div>
-                                <div style="font-size:7pt;font-weight:bold;margin-top:2mm;">Coordinatore P.C.<br><small style="color:#666;">Sezione di Varese</small></div>
+                                <div style="font-family:cursive;font-size:10pt;color:#1A5D1A;margin-bottom:1mm;">{coordinatore_dip or "Firma"}</div>
+                                <div style="border-top:0.4mm solid #222;width:38mm;margin:0 auto;"></div>
+                                <div style="font-size:6pt;font-weight:bold;margin-top:1mm;">Coordinatore P.C.<br><small style="color:#666;">Sezione di Varese</small></div>
                             </div>
                         </div>
-                        <!-- Footer -->
-                        <div style="position:absolute;bottom:6mm;left:8mm;right:8mm;display:flex;justify-content:space-between;font-size:6pt;color:#999;border-top:0.3mm solid #eee;padding-top:2mm;">
-                            <div>N° {num_attestato} - ANA Varese CPB - {datetime.now().year}</div><div>PC ANA Varese</div>
+                        <div style="display:flex;justify-content:space-between;margin-top:6mm;font-size:5pt;color:#999;border-top:0.2mm solid #eee;padding-top:1mm;">
+                            <div>N° {num_attestato} - ANA Varese CPB - {datetime.now().year}</div><div>PC ANA Varese 2026</div>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
-        <div style="text-align:center;margin-top:6px;font-size:10px;color:#666;">Formato A4 reale 210x297mm - Scala anteprima 100% - PDF identico</div>
+        <div style="text-align:center;margin-top:8px;font-size:11px;color:#1A5D1A;background:#f6fbf7;padding:6px;border-radius:6px;border:1px solid #c8e6c9;">
+            📄 Formato A4 reale: 210mm x 297mm - Scala 1:1 - PDF identico all'anteprima - Loghi: Volontario Varese + Gruppo CPB
+        </div>
         """
         st.markdown(preview_html, unsafe_allow_html=True)
 
     st.divider()
     if not REPORTLAB_OK:
-        st.warning("⚠️ reportlab non installato - Aggiungi reportlab a requirements.txt e Reboot")
-        try:
-            import subprocess
-            if st.button("🔧 Prova installazione automatica reportlab"):
-                subprocess.check_call([sys.executable, "-m", "pip", "install", "reportlab>=4.2.0"])
-                st.success("Installato! Fai Reboot")
+        st.error("⚠️ reportlab non installato - Aggiungi 'reportlab>=4.2.0' a requirements.txt e Reboot App su Streamlit Cloud")
+        if st.button("🔧 Prova installazione automatica reportlab"):
+            try:
+                import subprocess
+                subprocess.check_call([sys.executable, "-m", "pip", "install", "reportlab>=4.2.0", "Pillow>=10.0.0"])
+                st.success("Installato! Ricarica la pagina o fai Reboot su Cloud")
                 st.rerun()
-        except:
-            pass
+            except Exception as e:
+                st.error(f"Errore installazione: {e}")
+    else:
+        st.success("✅ reportlab OK - PDF A4 generabile - Impaginazione identica anteprima")
 
-    if st.button("📄 Genera PDF A4 - 2 loghi - Impaginazione come anteprima", type="primary", use_container_width=True, key=f"btn_gen_pdf_dip_v{ver_dip}", disabled=not REPORTLAB_OK):
+    if st.button("📄 Genera PDF Diploma A4 - 2 loghi - Come anteprima A4", type="primary", use_container_width=True, key=f"btn_gen_pdf_dip_v{ver_dip}", disabled=not REPORTLAB_OK):
         try:
             from reportlab.lib.pagesizes import A4
             from reportlab.lib.units import mm
@@ -5990,21 +5876,21 @@ elif cur == "Diplomi Attestati":
                 buf = io.BytesIO()
                 c = canvas.Canvas(buf, pagesize=A4)
                 w, h = A4
-                # Bordi come anteprima A4
+                # Bordi identici anteprima A4
                 c.setStrokeColor(colors.HexColor("#1a3c6e"))
                 c.setLineWidth(3)
-                c.rect(8*mm, 8*mm, w-16*mm, h-16*mm, stroke=1, fill=0)
+                c.rect(10*mm, 10*mm, w-20*mm, h-20*mm, stroke=1, fill=0)
                 c.setStrokeColor(colors.HexColor("#d4af37"))
                 c.setLineWidth(1)
-                c.rect(12*mm, 12*mm, w-24*mm, h-24*mm, stroke=1, fill=0)
+                c.rect(14*mm, 14*mm, w-28*mm, h-28*mm, stroke=1, fill=0)
                 # Filigrana
                 c.saveState()
                 c.setFillColor(colors.HexColor("#1A5D1A"))
                 c.setFillAlpha(0.02)
-                c.setFont("Helvetica-Bold", 120)
+                c.setFont("Helvetica-Bold", 100)
                 c.drawCentredString(w/2, h/2, "ANA")
                 c.restoreState()
-                # Loghi ai lati - come anteprima A4
+                # Loghi
                 logo_paths = {"vol": None, "cpb": None}
                 for p in ["logo_volontario_varese.png", "volontario_varese.png", "logo.png"]:
                     if os.path.exists(p):
@@ -6014,86 +5900,79 @@ elif cur == "Diplomi Attestati":
                     if os.path.exists(p):
                         logo_paths["cpb"] = p
                         break
-                y_logo = h - 28*mm
+                y_logo = h - 32*mm
                 try:
                     if logo_paths["vol"]:
-                        c.drawImage(ImageReader(logo_paths["vol"]), 16*mm, y_logo, width=18*mm, height=18*mm, preserveAspectRatio=True, mask='auto')
+                        c.drawImage(ImageReader(logo_paths["vol"]), 18*mm, y_logo, width=18*mm, height=18*mm, preserveAspectRatio=True, mask='auto')
                         c.setFont("Helvetica-Bold", 5)
                         c.setFillColor(colors.HexColor("#1A5D1A"))
-                        c.drawCentredString(25*mm, y_logo - 2*mm, "VOLONTARIO VARESE")
+                        c.drawCentredString(27*mm, y_logo - 3*mm, "VOLONTARIO VARESE")
                 except:
                     pass
                 try:
                     if logo_paths["cpb"]:
-                        c.drawImage(ImageReader(logo_paths["cpb"]), w - 34*mm, y_logo, width=18*mm, height=18*mm, preserveAspectRatio=True, mask='auto')
+                        c.drawImage(ImageReader(logo_paths["cpb"]), w - 36*mm, y_logo, width=18*mm, height=18*mm, preserveAspectRatio=True, mask='auto')
                         c.setFont("Helvetica-Bold", 5)
                         c.setFillColor(colors.HexColor("#0D47A1"))
-                        c.drawCentredString(w - 25*mm, y_logo - 2*mm, "GRUPPO CPB")
+                        c.drawCentredString(w - 27*mm, y_logo - 3*mm, "GRUPPO CPB")
                 except:
                     pass
-                # Intestazione centrata
-                y = h - 32*mm
+                y = h - 34*mm
                 c.setFillColor(colors.HexColor("#1A5D1A"))
-                c.setFont("Helvetica-Bold", 13)
+                c.setFont("Helvetica-Bold", 12)
                 c.drawCentredString(w/2, y, evento)
                 y -= 6*mm
                 c.setFillColor(colors.HexColor("#333333"))
-                c.setFont("Helvetica-Bold", 11)
+                c.setFont("Helvetica-Bold", 10)
                 c.drawCentredString(w/2, y, luogo)
                 y -= 5*mm
                 c.setFillColor(colors.HexColor("#666666"))
-                c.setFont("Helvetica", 9)
+                c.setFont("Helvetica", 8)
                 c.drawCentredString(w/2, y, data_txt)
-                # ATTESTATO
                 y -= 14*mm
                 c.setFillColor(colors.HexColor("#1A5D1A"))
-                c.setFont("Times-Bold", 28)
+                c.setFont("Times-Bold", 26)
                 c.drawCentredString(w/2, y, "ATTESTATO")
-                y -= 4*mm
+                y -= 5*mm
                 c.setStrokeColor(colors.HexColor("#d4af37"))
                 c.setLineWidth(1)
                 c.line(w/2 - 30*mm, y, w/2 + 30*mm, y)
-                # NOME
-                y -= 16*mm
+                y -= 14*mm
                 c.setFillColor(colors.HexColor("#1a3c6e"))
-                c.setFont("Helvetica-BoldOblique", 26)
+                c.setFont("Helvetica-BoldOblique", 24)
                 c.drawCentredString(w/2, y, nome)
-                y -= 5*mm
+                y -= 6*mm
                 c.setStrokeColor(colors.HexColor("#d4af37"))
                 c.line(w*0.15, y, w*0.85, y)
-                # Motto
                 y -= 8*mm
                 c.setFillColor(colors.HexColor("#444444"))
-                c.setFont("Helvetica-Oblique", 9)
+                c.setFont("Helvetica-Oblique", 8)
                 c.drawCentredString(w/2, y, '"Insieme con Noi … Addestramento alla Protezione Civile"')
-                # Ruolo
                 y -= 10*mm
                 c.setFillColor(colors.black)
-                c.setFont("Times-Roman", 10)
+                c.setFont("Times-Roman", 9)
                 c.drawCentredString(w/2, y, "E' stato operativo per le attività di")
-                y -= 7*mm
+                y -= 6*mm
                 c.setFillColor(colors.HexColor("#1A5D1A"))
-                c.setFont("Times-Bold", 11)
+                c.setFont("Times-Bold", 10)
                 c.drawCentredString(w/2, y, ruolo)
-                # Firme
-                y_f = 35*mm
+                y_f = 40*mm
                 c.setFillColor(colors.HexColor("#1A5D1A"))
-                c.setFont("Helvetica-Oblique", 10)
+                c.setFont("Helvetica-Oblique", 9)
                 c.drawCentredString(45*mm, y_f+8*mm, capogruppo)
                 c.setStrokeColor(colors.black)
                 c.line(30*mm, y_f+6*mm, 60*mm, y_f+6*mm)
                 c.setFillColor(colors.black)
-                c.setFont("Helvetica-Bold", 6)
+                c.setFont("Helvetica-Bold", 5.5)
                 c.drawCentredString(45*mm, y_f+2*mm, "Il Capogruppo")
-                c.setFont("Helvetica-Oblique", 10)
                 c.setFillColor(colors.HexColor("#1A5D1A"))
+                c.setFont("Helvetica-Oblique", 9)
                 c.drawCentredString(w-45*mm, y_f+8*mm, coordinatore or "Firma")
                 c.setStrokeColor(colors.black)
                 c.line(w-60*mm, y_f+6*mm, w-30*mm, y_f+6*mm)
                 c.setFillColor(colors.black)
-                c.setFont("Helvetica-Bold", 6)
+                c.setFont("Helvetica-Bold", 5.5)
                 c.drawCentredString(w-45*mm, y_f+2*mm, "Coordinatore P.C.")
-                # Footer
                 c.setFont("Helvetica", 5)
                 c.setFillColor(colors.gray)
                 c.drawString(16*mm, 14*mm, f"N° {num_att} - ANA Varese CPB {datetime.now().year}")
@@ -6111,18 +5990,197 @@ elif cur == "Diplomi Attestati":
                 with zipfile.ZipFile(zip_buf, 'w') as zf:
                     for n in nomi_list:
                         pdf_bytes = crea_diploma_pdf_loghi_reali(n, evento_dip, luogo_dip, data_dip, ruolo_dip, capogruppo_dip, coordinatore_dip, num_attestato)
-                        zf.writestr(f"Attestato_{n.replace(' ', '_')}.pdf", pdf_bytes)
+                        zf.writestr(f"Attestato_{n.replace(' ', '_')}_A4.pdf", pdf_bytes)
                 zip_buf.seek(0)
-                st.download_button(f"⬇️ ZIP {len(nomi_list)} Diplomi A4 - 2 loghi", data=zip_buf.getvalue(), file_name="diplomi_A4.zip", mime="application/zip", use_container_width=True, type="primary", key=f"dl_zip_dip_v{ver_dip}")
+                st.download_button(f"⬇️ ZIP {len(nomi_list)} Diplomi A4 - 2 loghi", data=zip_buf.getvalue(), file_name="diplomi_A4_2loghi.zip", mime="application/zip", use_container_width=True, type="primary", key=f"dl_zip_dip_v{ver_dip}")
             else:
                 pdf_single = crea_diploma_pdf_loghi_reali(nome_dip, evento_dip, luogo_dip, data_dip, ruolo_dip, capogruppo_dip, coordinatore_dip, num_attestato)
-                st.download_button(f"⬇️ Diploma A4 {nome_dip}", data=pdf_single, file_name=f"Attestato_{nome_dip}_A4.pdf", mime="application/pdf", use_container_width=True, type="primary", key=f"dl_pdf_dip_v{ver_dip}")
+                st.download_button(f"⬇️ Diploma A4 {nome_dip} - 2 loghi", data=pdf_single, file_name=f"Attestato_{nome_dip}_A4.pdf", mime="application/pdf", use_container_width=True, type="primary", key=f"dl_pdf_dip_v{ver_dip}")
         except Exception as e:
             st.error(f"Errore PDF: {e}")
             import traceback
             st.code(traceback.format_exc())
 
+    st.divider()
+    if st.session_state.get("diplomi"):
+        st.markdown(f"#### 📜 Diplomi Generati ({len(st.session_state.diplomi)})")
+        df_dip = pd.DataFrame([{k:v for k,v in d.items() if "Bytes" not in k} for d in st.session_state.diplomi])
+        st.dataframe(df_dip, use_container_width=True)
+        if st.button("🗑️ Pulisci Tutti i Diplomi", key="btn_clear_diplomi"):
+            st.session_state.diplomi = []
+            st.rerun()
+
     excel_import_inline("diplomi", "Diplomi Attestati")
+
+
+
+
+
+
+elif cur == "Report Filtro":
+    hdr_form("REPORT FILTRO - Seleziona Form e Campi per Report Personalizzati")
+
+    st.markdown("""
+    <div style="background:#f6fbf7;color:#1A5D1A;padding:10px;border-radius:8px;text-align:center;margin-bottom:12px;border:1px solid #c8e6c9;">
+    <b>📊 GENERATORE REPORT FILTRATI - Scegli Form e Campi</b><br>
+    <small>Filtra e esporta solo i campi che ti servono</small>
+    </div>
+    """, unsafe_allow_html=True)
+
+    FORM_KEYS_REPORT = {
+        "Volontari (con foto)": "volontari",
+        "DB Radio": "radio_db",
+        "Consegna Radio": "consegna_radio",
+        "Alias Radio": "alias_radio",
+        "Brogliaccio": "brogliaccio",
+        "Eventi": "eventi",
+        "Emergenze": "emergenze",
+        "Check-in": "checkin",
+        "Interventi Emergenza": "interventi",
+        "Tabella Interventi Emergenza": "tabella_interventi",
+        "Mezzi": "mezzi",
+        "Attrezzature": "attrezzature",
+        "Mappe Postazioni": "mappa_avanzata_markers",
+        "Turni": "turni",
+        "Diplomi Attestati": "diplomi"
+    }
+
+    c1, c2 = st.columns([1, 1.5])
+    with c1:
+        st.markdown("#### 🎯 Seleziona Form")
+        sel_form_label = st.selectbox("Form per report", list(FORM_KEYS_REPORT.keys()), key="report_form_sel")
+        sel_form_key = FORM_KEYS_REPORT[sel_form_label]
+        data_list = st.session_state.get(sel_form_key, [])
+        
+        if not data_list:
+            st.warning(f"Nessun dato in {sel_form_label}")
+            st.info("Inserisci dati nel form corrispondente prima di generare report")
+        else:
+            st.success(f"{len(data_list)} record disponibili in {sel_form_label}")
+            # Estrai tutti i campi disponibili
+            all_fields = set()
+            for item in data_list[:20]:
+                if isinstance(item, dict):
+                    all_fields.update(item.keys())
+            all_fields = sorted([f for f in all_fields if "Bytes" not in f and "bytes" not in f.lower() and "PDF" not in f])
+            
+            st.markdown("#### 📋 Seleziona Campi per Report")
+            selected_fields = st.multiselect("Campi da includere", all_fields, default=all_fields[:10] if len(all_fields) > 10 else all_fields, key="report_fields_sel")
+            
+            st.markdown("#### 🔍 Filtri")
+            filtro_testo = st.text_input("Filtra per testo (cerca in tutti i campi)", key="report_filtro_testo", placeholder="Es: Mario, 2026, Varese...")
+            
+            # Filtro per campo specifico se selezionato
+            if selected_fields:
+                campo_filtro = st.selectbox("Filtra per campo specifico", ["-- Nessuno --"] + selected_fields, key="report_campo_filtro")
+                valore_filtro = ""
+                if campo_filtro != "-- Nessuno --":
+                    valore_filtro = st.text_input(f"Valore per {campo_filtro}", key="report_valore_filtro")
+
+    with c2:
+        if not data_list:
+            st.info("Seleziona un form con dati per vedere anteprima report")
+        else:
+            # Applica filtri
+            filtered = data_list
+            if 'filtro_testo' in locals() and filtro_testo:
+                filtered = [r for r in filtered if any(filtro_testo.lower() in str(v).lower() for v in r.values() if isinstance(r, dict))]
+            if 'campo_filtro' in locals() and campo_filtro != "-- Nessuno --" and valore_filtro:
+                filtered = [r for r in filtered if valore_filtro.lower() in str(r.get(campo_filtro, "")).lower()]
+
+            # Applica selezione campi
+            if selected_fields:
+                filtered_display = []
+                for r in filtered:
+                    if isinstance(r, dict):
+                        filtered_display.append({k: v for k, v in r.items() if k in selected_fields})
+                    else:
+                        filtered_display.append(r)
+            else:
+                filtered_display = filtered
+
+            st.markdown(f"#### 📄 Anteprima Report - {len(filtered_display)} record filtrati")
+            if filtered_display:
+                df_report = pd.DataFrame(filtered_display)
+                st.dataframe(df_report, use_container_width=True, height=400)
+                
+                st.divider()
+                col1, col2, col3 = st.columns(3)
+                with col1:
+                    # Excel
+                    try:
+                        excel_bytes = to_excel_bytes({sel_form_label[:25]: df_report})
+                        st.download_button(
+                            f"⬇️ Excel Report {sel_form_label}",
+                            data=excel_bytes,
+                            file_name=f"report_{sel_form_key}_{datetime.now().strftime('%Y%m%d_%H%M')}.xlsx",
+                            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                            use_container_width=True,
+                            key="dl_excel_report"
+                        )
+                    except Exception as e:
+                        st.error(f"Errore Excel: {e}")
+                
+                with col2:
+                    # CSV
+                    try:
+                        csv_data = df_report.to_csv(index=False).encode('utf-8')
+                        st.download_button(
+                            f"⬇️ CSV Report",
+                            data=csv_data,
+                            file_name=f"report_{sel_form_key}_{datetime.now().strftime('%Y%m%d')}.csv",
+                            mime="text/csv",
+                            use_container_width=True,
+                            key="dl_csv_report"
+                        )
+                    except Exception as e:
+                        st.error(f"Errore CSV: {e}")
+                
+                with col3:
+                    # PDF se reportlab disponibile
+                    if REPORTLAB_OK:
+                        try:
+                            from reportlab.lib.pagesizes import landscape, A4
+                            from reportlab.platypus import SimpleDocTemplate, Table, TableStyle
+                            from reportlab.lib import colors
+                            import io
+                            buf = io.BytesIO()
+                            doc = SimpleDocTemplate(buf, pagesize=landscape(A4), leftMargin=1*cm, rightMargin=1*cm)
+                            # Prepara dati per PDF
+                            if not df_report.empty:
+                                # Tronca testi lunghi per PDF
+                                df_pdf = df_report.copy()
+                                for col in df_pdf.columns:
+                                    df_pdf[col] = df_pdf[col].astype(str).apply(lambda x: x[:40])
+                                data = [list(df_pdf.columns)] + df_pdf.values.tolist()[:50]  # max 50 righe per PDF
+                                t = Table(data, repeatRows=1)
+                                t.setStyle(TableStyle([
+                                    ('BACKGROUND', (0,0), (-1,0), colors.HexColor("#1A5D1A")),
+                                    ('TEXTCOLOR', (0,0), (-1,0), colors.whitesmoke),
+                                    ('FONTSIZE', (0,0), (-1,-1), 7),
+                                    ('GRID', (0,0), (-1,-1), 0.5, colors.grey),
+                                ]))
+                                from reportlab.platypus import Paragraph, Spacer
+                                from reportlab.lib.styles import getSampleStyleSheet
+                                styles = getSampleStyleSheet()
+                                story = [Paragraph(f"Report {sel_form_label} - {len(filtered_display)} record - {datetime.now().strftime('%d/%m/%Y')}", styles['Title']), Spacer(1,12), t]
+                                doc.build(story)
+                                buf.seek(0)
+                                st.download_button(
+                                    f"⬇️ PDF Report",
+                                    data=buf.getvalue(),
+                                    file_name=f"report_{sel_form_key}_{datetime.now().strftime('%Y%m%d')}.pdf",
+                                    mime="application/pdf",
+                                    use_container_width=True,
+                                    key="dl_pdf_report"
+                                )
+                        except Exception as e:
+                            st.error(f"Errore PDF: {e}")
+                    else:
+                        st.info("PDF non disponibile - installa reportlab")
+
+            else:
+                st.warning("Nessun record dopo filtri")
 
 
 
