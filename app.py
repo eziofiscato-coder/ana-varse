@@ -52,11 +52,43 @@ def inject_global_css():
     #MainMenu {visibility: hidden;}
     footer {visibility: hidden;}
     header[data-testid="stHeader"] {background: transparent;}
-    .stApp {padding-top: 12px;}
-    /* Bottoni più visibili */
+    .stApp {
+        padding-top: 12px;
+        background: #f6fbf7 !important;
+    }
+    [data-testid="stAppViewContainer"] {
+        background: linear-gradient(180deg, #f6fbf7 0%, #e8f5e9 100%) !important;
+    }
     .stButton>button {border-radius: 8px; font-weight: 600;}
+    /* Maschere form verde tenue */
+    [data-testid="stForm"], .stForm {
+        background: #f6fbf7 !important;
+        border: 1px solid #c8e6c9 !important;
+        border-radius: 10px !important;
+    }
+    /* Prima pagina e login - tonalità in più */
+    .entra-wrapper {
+        background: #e8f5e9 !important;
+        border: 2px solid #a5d6a7 !important;
+        border-radius: 16px !important;
+        padding: 18px !important;
+    }
+    .login-wrapper {
+        background: #dcedc8 !important;
+        border: 2px solid #81c784 !important;
+        border-radius: 16px !important;
+        padding: 20px !important;
+    }
     </style>
     """, unsafe_allow_html=True)
+
+def inject_first_page_green():
+    st.markdown("""
+    <style>
+    div[data-testid="column"] {background: rgba(246,251,247,0.6) !important; border-radius: 8px !important;}
+    </style>
+    """, unsafe_allow_html=True)
+
 
 def inject_fullscreen_kiosk():
     # Versione SICURA senza parent.document - funziona su Streamlit Cloud
@@ -94,6 +126,10 @@ def inject_fullscreen_kiosk():
 
 
 inject_global_css()
+try:
+    inject_first_page_green()
+except:
+    pass
 inject_fullscreen_kiosk()
 
 def to_excel_bytes(dfs_dict: dict, engine="openpyxl") -> bytes:
@@ -1168,20 +1204,34 @@ def hdr():
 
 def hdr_form(t):
     """
-    h2 Times New Roman bold black - spostato in alto per recuperare spazio ex loghi
+    h2 con sfondo VERDE TENUE - richiesta Ezio
     """
     st.markdown(
         f"""
         <h2 style="font-family:Times New Roman;
-        font-weight:bold;color:black;
-        border-bottom:3px solid #1A5D1A;
-        padding-bottom:4px;margin-top:0px;margin-bottom:12px;font-size:22px;">
+        font-weight:bold;color:#1A5D1A;
+        border-bottom:2px solid #a5d6a7;
+        padding:10px 14px;margin-top:0px;margin-bottom:12px;font-size:21px;
+        background: #f6fbf7;
+        border-radius:8px;
+        border-left:4px solid #81c784;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        ">
         {t}
         </h2>
         """,
         unsafe_allow_html=True
     )
-    # CSS leggero per maschere in alto - NON toglie verde
+    st.markdown("""
+    <style>
+    [data-testid="stForm"], .stForm {background: #f6fbf7 !important; border: 1px solid #c8e6c9 !important; border-radius: 10px !important; padding: 14px !important;}
+    div[data-testid="column"] {background: rgba(246,251,247,0.6) !important; border-radius: 8px !important; padding: 6px !important;}
+    div[data-testid="stHorizontalBlock"] {background: rgba(241,248,233,0.25) !important; border-radius: 8px !important; padding: 4px !important; margin-bottom: 6px !important;}
+    .block-container { padding-top: 1rem !important; }
+    [data-testid="stVerticalBlock"] { gap: 0.7rem !important; }
+    </style>
+    """, unsafe_allow_html=True)
+
 
 def get_form_key(base, form_ver_key):
     """Restituisce chiave versionata per pulisci maschera che funziona - Ezio"""
@@ -1405,6 +1455,11 @@ init_session()
 
 # PAGINA ENTRA - con footer fisso in basso Developed by Ezio F. 2026 Vers 1.0 - Logo cartoon
 if st.session_state.page == "entra":
+    st.markdown("""
+    <style>
+    .entra-wrapper {background: #e8f5e9 !important; border: 2px solid #a5d6a7 !important; border-radius: 16px !important; padding: 18px !important; box-shadow: 0 4px 12px rgba(26,93,26,0.12) !important;}
+    </style>
+    """, unsafe_allow_html=True)
     hdr()
     try:
         inject_popout_splash()
@@ -1413,6 +1468,7 @@ if st.session_state.page == "entra":
     st.write("")
     c1, c2, c3 = st.columns([1, 2, 1])
     with c2:
+        st.markdown('<div class="entra-wrapper">', unsafe_allow_html=True)
         try:
             if os.path.exists("copertina.png"):
                 st.image("copertina.png", width=350)
@@ -1451,6 +1507,7 @@ if st.session_state.page == "entra":
         ):
             st.session_state.page = "login"
             st.rerun()
+        st.markdown("</div>", unsafe_allow_html=True)
     
     # FOOTER FISSO IN BASSO - fuori da c2, centrato in tutta pagina - Fix posizione Ezio
     # CSS fixed bottom
@@ -1634,13 +1691,18 @@ if st.session_state.page == "entra":
 
     st.stop()
 
-# PAGINA LOGIN - CON INTESTAZIONE - richiesta Ezio: metti intestazione prima pagina anche in login
+# PAGINA LOGIN - CON SFONDO VERDE TENUE TONALITA IN PIU - richiesta Ezio
 if st.session_state.page == "login":
-    hdr()  # Intestazione con 2 loghi + Squadra Volontari... - richiesta Ezio - messa anche in login
-    # Etichetta LOGIN - Gestione Utenti Multi Livello rimossa - richiesta Ezio
+    st.markdown("""
+    <style>
+    .login-wrapper {background: #dcedc8 !important; border: 2px solid #81c784 !important; border-radius: 16px !important; padding: 20px !important; box-shadow: 0 6px 16px rgba(26,93,26,0.15) !important;}
+    </style>
+    """, unsafe_allow_html=True)
+    hdr()
     st.write("")
     c1, c2, c3 = st.columns([1, 2, 1])
     with c2:
+        st.markdown('<div class="login-wrapper">', unsafe_allow_html=True)
         # Solo login pulito senza etichetta multiuso
         utenti_list = load_utenti()
         # st.info rimosso - non mostrare utenti configurati demo
@@ -1676,6 +1738,7 @@ if st.session_state.page == "login":
         if st.button("Torna a Entra", use_container_width=True):
             st.session_state.page = "entra"
             st.rerun()
+        st.markdown("</div>", unsafe_allow_html=True)
 
     st.stop()
 
@@ -5725,13 +5788,14 @@ elif cur == "Archivio Documenti":
 
 
 
+
 elif cur == "Diplomi Attestati":
-    hdr_form("DIPLOMI ATTESTATI - Formato A4 - Volontario Varese + Gruppo CPB")
+    hdr_form("DIPLOMI ATTESTATI - Formato A4 - Volontario Varese + Gruppo CPB ai lati")
 
     st.markdown("""
     <div style="background:#f6fbf7;color:#1A5D1A;padding:10px;border-radius:8px;text-align:center;margin-bottom:12px;border:1px solid #c8e6c9;">
-    <b>🏅 DIPLOMI FORMATO A4 VERO - Anteprima e PDF identici - 2 loghi ai lati</b><br>
-    <small style="color:#558b2f;">Anteprima A4 reale 210x297mm - Stampa professionale</small>
+    <b>🏅 DIPLOMI FORMATO A4 VERO - Anteprima e PDF identici - 2 loghi ai lati intestazione</b><br>
+    <small>Anteprima A4 reale 210x297mm - Loghi: Volontario Varese + Gruppo CPB</small>
     </div>
     """, unsafe_allow_html=True)
 
@@ -5752,12 +5816,11 @@ elif cur == "Diplomi Attestati":
         capogruppo_dip = st.text_input("Capogruppo", value="Fiscato Stefano", key=k_dip("dip_capogruppo"))
         coordinatore_dip = st.text_input("Coordinatore P.C.", value="", key=k_dip("dip_coordinatore"))
         num_attestato = st.text_input("N° Attestato", value=f"{datetime.now().year}/{len(st.session_state.get('diplomi', []))+1:03d}", key=k_dip("dip_num"))
-        st.markdown("#### 📋 Lista Nomi (uno per riga)")
+        st.markdown("#### 📋 Lista Nomi")
         lista_nomi = st.text_area("Incolla lista nomi", height=90, key=k_dip("dip_lista"), placeholder="ALBERTO VIGANO'\nMARIO ROSSI")
         if st.button("🧹 Pulisci maschera", use_container_width=True, key=f"btn_pulisci_dip_v{ver_dip}"):
             st.session_state["diplomi_form_version"] += 1
             st.rerun()
-
         st.markdown("#### 👥 Seleziona da DB Volontari")
         if st.session_state.get("volontari"):
             vol_names = [f"{v.get('Cognome','')} {v.get('Nome','')}".strip() for v in st.session_state.volontari if v.get('Cognome') or v.get('Nome')]
@@ -5768,7 +5831,7 @@ elif cur == "Diplomi Attestati":
                 st.rerun()
 
     with c2:
-        st.markdown("#### 🖼️ Anteprima A4 REALE - 210x297mm - Solo Volontario Varese + Gruppo CPB")
+        st.markdown("#### 🖼️ Anteprima A4 REALE (210x297mm) - Volontario Varese + Gruppo CPB")
         logo_vol_b64 = ""
         logo_cpb_b64 = ""
         try:
@@ -5786,16 +5849,14 @@ elif cur == "Diplomi Attestati":
             pass
 
         if not logo_vol_b64:
-            logo_vol_html = '<div style="width:70px;height:70px;background:#e8f5e9;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#1A5D1A;font-weight:bold;border:2px solid #a5d6a7;font-size:6px;text-align:center;line-height:1.1;">VOLONTARIO<br>VARESE</div>'
+            logo_vol_html = '<div style="width:70px;height:70px;background:#e8f5e9;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#1A5D1A;font-weight:bold;border:2px solid #a5d6a7;font-size:6px;text-align:center;">VOLONTARIO<br>VARESE</div>'
         else:
             logo_vol_html = f'<img src="data:image/png;base64,{logo_vol_b64}" style="width:70px;height:70px;object-fit:contain;border-radius:50%;border:2px solid #c8e6c9;background:white;padding:2px;">'
-
         if not logo_cpb_b64:
-            logo_cpb_html = '<div style="width:70px;height:70px;background:#e3f2fd;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#0D47A1;font-weight:bold;border:2px solid #90caf9;font-size:5px;text-align:center;line-height:1.1;">GRUPPO<br>CPB</div>'
+            logo_cpb_html = '<div style="width:70px;height:70px;background:#e3f2fd;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#0D47A1;font-weight:bold;border:2px solid #90caf9;font-size:5px;text-align:center;">GRUPPO<br>CPB</div>'
         else:
             logo_cpb_html = f'<img src="data:image/png;base64,{logo_cpb_b64}" style="width:70px;height:70px;object-fit:contain;border-radius:50%;border:2px solid #c8e6c9;background:white;padding:2px;">'
 
-        # === ANTEPRIMA A4 VERA - 210mm x 297mm con scala corretta ===
         preview_html = f"""
         <div style="background:#9e9e9e;padding:12px;border-radius:8px;display:flex;justify-content:center;overflow:auto;">
             <div style="width:210mm;height:297mm;background:white;box-shadow:0 0 20px rgba(0,0,0,0.5);position:relative;flex-shrink:0;">
@@ -5815,7 +5876,7 @@ elif cur == "Diplomi Attestati":
                             <div style="font-family:Times New Roman,serif;font-size:26pt;font-weight:bold;color:#1A5D1A;letter-spacing:2pt;">ATTESTATO</div>
                             <div style="height:0.8mm;background:#d4af37;margin:2mm 20%;"></div>
                         </div>
-                        <div style="text-align:center;margin:8mm 0;position:relative;z-index:1;flex-grow:0;">
+                        <div style="text-align:center;margin:8mm 0;position:relative;z-index:1;">
                             <div style="font-family:Brush Script MT,cursive;font-size:28pt;color:#1a3c6e;font-style:italic;font-weight:bold;line-height:1.1;">{nome_dip}</div>
                             <div style="height:0.4mm;background:#d4af37;margin:3mm 15%;"></div>
                         </div>
@@ -5829,40 +5890,32 @@ elif cur == "Diplomi Attestati":
                             <div style="text-align:center;">
                                 <div style="font-family:cursive;font-size:10pt;color:#1A5D1A;margin-bottom:1mm;">{capogruppo_dip}</div>
                                 <div style="border-top:0.4mm solid #222;width:38mm;margin:0 auto;"></div>
-                                <div style="font-size:6pt;font-weight:bold;margin-top:1mm;line-height:1.2;">Il Capogruppo<br>{capogruppo_dip}<br><small style="color:#666;">Gruppo CPB</small></div>
+                                <div style="font-size:6pt;font-weight:bold;margin-top:1mm;">Il Capogruppo<br>{capogruppo_dip}</div>
                             </div>
                             <div style="text-align:center;">
                                 <div style="font-family:cursive;font-size:10pt;color:#1A5D1A;margin-bottom:1mm;">{coordinatore_dip or "Firma"}</div>
                                 <div style="border-top:0.4mm solid #222;width:38mm;margin:0 auto;"></div>
-                                <div style="font-size:6pt;font-weight:bold;margin-top:1mm;">Coordinatore P.C.<br><small style="color:#666;">Sezione di Varese</small></div>
+                                <div style="font-size:6pt;font-weight:bold;margin-top:1mm;">Coordinatore P.C.</div>
                             </div>
                         </div>
                         <div style="display:flex;justify-content:space-between;margin-top:6mm;font-size:5pt;color:#999;border-top:0.2mm solid #eee;padding-top:1mm;">
-                            <div>N° {num_attestato} - ANA Varese CPB - {datetime.now().year}</div><div>PC ANA Varese 2026</div>
+                            <div>N° {num_attestato} - ANA Varese CPB</div><div>PC ANA 2026</div>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
         <div style="text-align:center;margin-top:8px;font-size:11px;color:#1A5D1A;background:#f6fbf7;padding:6px;border-radius:6px;border:1px solid #c8e6c9;">
-            📄 Formato A4 reale: 210mm x 297mm - Scala 1:1 - PDF identico all'anteprima - Loghi: Volontario Varese + Gruppo CPB
+            📄 A4 reale 210x297mm - PDF identico - Loghi: Volontario Varese + Gruppo CPB ai lati
         </div>
         """
         st.markdown(preview_html, unsafe_allow_html=True)
 
     st.divider()
     if not REPORTLAB_OK:
-        st.error("⚠️ reportlab non installato - Aggiungi 'reportlab>=4.2.0' a requirements.txt e Reboot App su Streamlit Cloud")
-        if st.button("🔧 Prova installazione automatica reportlab"):
-            try:
-                import subprocess
-                subprocess.check_call([sys.executable, "-m", "pip", "install", "reportlab>=4.2.0", "Pillow>=10.0.0"])
-                st.success("Installato! Ricarica la pagina o fai Reboot su Cloud")
-                st.rerun()
-            except Exception as e:
-                st.error(f"Errore installazione: {e}")
+        st.error("⚠️ reportlab non installato - Aggiungi 'reportlab>=4.2.0' a requirements.txt e Reboot App")
     else:
-        st.success("✅ reportlab OK - PDF A4 generabile - Impaginazione identica anteprima")
+        st.success("✅ reportlab OK - PDF A4 generabile")
 
     if st.button("📄 Genera PDF Diploma A4 - 2 loghi - Come anteprima A4", type="primary", use_container_width=True, key=f"btn_gen_pdf_dip_v{ver_dip}", disabled=not REPORTLAB_OK):
         try:
@@ -5872,25 +5925,22 @@ elif cur == "Diplomi Attestati":
             from reportlab.pdfgen import canvas
             from reportlab.lib.utils import ImageReader
             import io
-            def crea_diploma_pdf_loghi_reali(nome, evento, luogo, data_txt, ruolo, capogruppo, coordinatore, num_att):
+            def crea_diploma_pdf(nome, evento, luogo, data_txt, ruolo, capogruppo, coordinatore, num_att):
                 buf = io.BytesIO()
                 c = canvas.Canvas(buf, pagesize=A4)
                 w, h = A4
-                # Bordi identici anteprima A4
                 c.setStrokeColor(colors.HexColor("#1a3c6e"))
                 c.setLineWidth(3)
                 c.rect(10*mm, 10*mm, w-20*mm, h-20*mm, stroke=1, fill=0)
                 c.setStrokeColor(colors.HexColor("#d4af37"))
                 c.setLineWidth(1)
                 c.rect(14*mm, 14*mm, w-28*mm, h-28*mm, stroke=1, fill=0)
-                # Filigrana
                 c.saveState()
                 c.setFillColor(colors.HexColor("#1A5D1A"))
                 c.setFillAlpha(0.02)
                 c.setFont("Helvetica-Bold", 100)
                 c.drawCentredString(w/2, h/2, "ANA")
                 c.restoreState()
-                # Loghi
                 logo_paths = {"vol": None, "cpb": None}
                 for p in ["logo_volontario_varese.png", "volontario_varese.png", "logo.png"]:
                     if os.path.exists(p):
@@ -5935,15 +5985,11 @@ elif cur == "Diplomi Attestati":
                 c.drawCentredString(w/2, y, "ATTESTATO")
                 y -= 5*mm
                 c.setStrokeColor(colors.HexColor("#d4af37"))
-                c.setLineWidth(1)
                 c.line(w/2 - 30*mm, y, w/2 + 30*mm, y)
                 y -= 14*mm
                 c.setFillColor(colors.HexColor("#1a3c6e"))
                 c.setFont("Helvetica-BoldOblique", 24)
                 c.drawCentredString(w/2, y, nome)
-                y -= 6*mm
-                c.setStrokeColor(colors.HexColor("#d4af37"))
-                c.line(w*0.15, y, w*0.85, y)
                 y -= 8*mm
                 c.setFillColor(colors.HexColor("#444444"))
                 c.setFont("Helvetica-Oblique", 8)
@@ -5989,13 +6035,13 @@ elif cur == "Diplomi Attestati":
                 zip_buf = io.BytesIO()
                 with zipfile.ZipFile(zip_buf, 'w') as zf:
                     for n in nomi_list:
-                        pdf_bytes = crea_diploma_pdf_loghi_reali(n, evento_dip, luogo_dip, data_dip, ruolo_dip, capogruppo_dip, coordinatore_dip, num_attestato)
+                        pdf_bytes = crea_diploma_pdf(n, evento_dip, luogo_dip, data_dip, ruolo_dip, capogruppo_dip, coordinatore_dip, num_attestato)
                         zf.writestr(f"Attestato_{n.replace(' ', '_')}_A4.pdf", pdf_bytes)
                 zip_buf.seek(0)
                 st.download_button(f"⬇️ ZIP {len(nomi_list)} Diplomi A4 - 2 loghi", data=zip_buf.getvalue(), file_name="diplomi_A4_2loghi.zip", mime="application/zip", use_container_width=True, type="primary", key=f"dl_zip_dip_v{ver_dip}")
             else:
-                pdf_single = crea_diploma_pdf_loghi_reali(nome_dip, evento_dip, luogo_dip, data_dip, ruolo_dip, capogruppo_dip, coordinatore_dip, num_attestato)
-                st.download_button(f"⬇️ Diploma A4 {nome_dip} - 2 loghi", data=pdf_single, file_name=f"Attestato_{nome_dip}_A4.pdf", mime="application/pdf", use_container_width=True, type="primary", key=f"dl_pdf_dip_v{ver_dip}")
+                pdf_single = crea_diploma_pdf(nome_dip, evento_dip, luogo_dip, data_dip, ruolo_dip, capogruppo_dip, coordinatore_dip, num_attestato)
+                st.download_button(f"⬇️ Diploma A4 {nome_dip}", data=pdf_single, file_name=f"Attestato_{nome_dip}_A4.pdf", mime="application/pdf", use_container_width=True, type="primary", key=f"dl_pdf_dip_v{ver_dip}")
         except Exception as e:
             st.error(f"Errore PDF: {e}")
             import traceback
@@ -6013,17 +6059,13 @@ elif cur == "Diplomi Attestati":
     excel_import_inline("diplomi", "Diplomi Attestati")
 
 
-
-
-
-
 elif cur == "Report Filtro":
     hdr_form("REPORT FILTRO - Seleziona Form e Campi per Report Personalizzati")
 
     st.markdown("""
-    <div style="background:#f6fbf7;color:#1A5D1A;padding:10px;border-radius:8px;text-align:center;margin-bottom:12px;border:1px solid #c8e6c9;">
-    <b>📊 GENERATORE REPORT FILTRATI - Scegli Form e Campi</b><br>
-    <small>Filtra e esporta solo i campi che ti servono</small>
+    <div style="background:#f6fbf7;color:#1A5D1A;padding:12px;border-radius:8px;text-align:center;margin-bottom:14px;border:1px solid #c8e6c9;">
+    <b>📊 GENERATORE REPORT FILTRATI - Scegli Form e Campi Collegati</b><br>
+    <small style="color:#558b2f;">Seleziona il form, poi i campi che vuoi nel report, applica filtri e esporta</small>
     </div>
     """, unsafe_allow_html=True)
 
@@ -6042,146 +6084,163 @@ elif cur == "Report Filtro":
         "Attrezzature": "attrezzature",
         "Mappe Postazioni": "mappa_avanzata_markers",
         "Turni": "turni",
+        "Verbali": "verbali",
         "Diplomi Attestati": "diplomi"
     }
 
-    c1, c2 = st.columns([1, 1.5])
+    c1, c2 = st.columns([1, 1.6])
     with c1:
-        st.markdown("#### 🎯 Seleziona Form")
-        sel_form_label = st.selectbox("Form per report", list(FORM_KEYS_REPORT.keys()), key="report_form_sel")
+        st.markdown("#### 1️⃣ Seleziona Form")
+        sel_form_label = st.selectbox("Form per report", list(FORM_KEYS_REPORT.keys()), key="report_form_sel_v2")
         sel_form_key = FORM_KEYS_REPORT[sel_form_label]
         data_list = st.session_state.get(sel_form_key, [])
         
         if not data_list:
             st.warning(f"Nessun dato in {sel_form_label}")
-            st.info("Inserisci dati nel form corrispondente prima di generare report")
+            st.info("Inserisci dati nel form corrispondente")
+            all_fields = []
         else:
-            st.success(f"{len(data_list)} record disponibili in {sel_form_label}")
-            # Estrai tutti i campi disponibili
+            st.success(f"{len(data_list)} record in {sel_form_label}")
+            # Campi disponibili
             all_fields = set()
-            for item in data_list[:20]:
+            for item in data_list[:30]:
                 if isinstance(item, dict):
-                    all_fields.update(item.keys())
-            all_fields = sorted([f for f in all_fields if "Bytes" not in f and "bytes" not in f.lower() and "PDF" not in f])
+                    all_fields.update([k for k in item.keys() if "Bytes" not in k and "bytes" not in k.lower() and "PDF" not in k and "Foto" not in k])
+            all_fields = sorted(list(all_fields))
+            if not all_fields and data_list:
+                # se lista di non-dict
+                all_fields = ["Valore"]
+
+            st.markdown("#### 2️⃣ Seleziona Campi per Report")
+            st.caption("Scegli solo i campi che vuoi vedere nel report")
+            selected_fields = st.multiselect("Campi da includere nel report", all_fields, default=all_fields[:8] if len(all_fields) > 8 else all_fields, key="report_fields_sel_v2")
             
-            st.markdown("#### 📋 Seleziona Campi per Report")
-            selected_fields = st.multiselect("Campi da includere", all_fields, default=all_fields[:10] if len(all_fields) > 10 else all_fields, key="report_fields_sel")
+            st.markdown("#### 3️⃣ Filtri")
+            filtro_testo = st.text_input("🔍 Filtro testo libero (cerca ovunque)", key="report_filtro_testo_v2", placeholder="Es: Mario, Varese, 2026...")
             
-            st.markdown("#### 🔍 Filtri")
-            filtro_testo = st.text_input("Filtra per testo (cerca in tutti i campi)", key="report_filtro_testo", placeholder="Es: Mario, 2026, Varese...")
-            
-            # Filtro per campo specifico se selezionato
+            campo_filtro = "-- Nessuno --"
+            valore_filtro = ""
             if selected_fields:
-                campo_filtro = st.selectbox("Filtra per campo specifico", ["-- Nessuno --"] + selected_fields, key="report_campo_filtro")
-                valore_filtro = ""
+                campo_filtro = st.selectbox("Filtra per campo specifico", ["-- Nessuno --"] + selected_fields, key="report_campo_filtro_v2")
                 if campo_filtro != "-- Nessuno --":
-                    valore_filtro = st.text_input(f"Valore per {campo_filtro}", key="report_valore_filtro")
+                    valore_filtro = st.text_input(f"Valore per '{campo_filtro}'", key="report_valore_filtro_v2", placeholder="Es: contenuto da cercare")
 
     with c2:
         if not data_list:
-            st.info("Seleziona un form con dati per vedere anteprima report")
+            st.info("👈 Seleziona un form con dati per generare il report")
+            st.markdown("""
+            <div style="background:#f6fbf7;border:1px dashed #a5d6a7;border-radius:10px;padding:30px;text-align:center;color:#558b2f;">
+            <div style="font-size:40px;">📊</div>
+            <b>Nessun dato selezionato</b><br>
+            Scegli un form dalla colonna a sinistra per iniziare
+            </div>
+            """, unsafe_allow_html=True)
         else:
             # Applica filtri
             filtered = data_list
-            if 'filtro_testo' in locals() and filtro_testo:
-                filtered = [r for r in filtered if any(filtro_testo.lower() in str(v).lower() for v in r.values() if isinstance(r, dict))]
-            if 'campo_filtro' in locals() and campo_filtro != "-- Nessuno --" and valore_filtro:
-                filtered = [r for r in filtered if valore_filtro.lower() in str(r.get(campo_filtro, "")).lower()]
+            if filtro_testo:
+                filtered = [r for r in filtered if isinstance(r, dict) and any(filtro_testo.lower() in str(v).lower() for v in r.values())]
+            if campo_filtro != "-- Nessuno --" and valore_filtro:
+                filtered = [r for r in filtered if isinstance(r, dict) and valore_filtro.lower() in str(r.get(campo_filtro, "")).lower()]
 
             # Applica selezione campi
             if selected_fields:
                 filtered_display = []
                 for r in filtered:
                     if isinstance(r, dict):
-                        filtered_display.append({k: v for k, v in r.items() if k in selected_fields})
+                        filtered_display.append({k: r.get(k, "") for k in selected_fields})
                     else:
-                        filtered_display.append(r)
+                        filtered_display.append({"Valore": r})
             else:
-                filtered_display = filtered
+                filtered_display = [{k: v for k, v in r.items() if "Bytes" not in k} if isinstance(r, dict) else {"Valore": r} for r in filtered]
 
-            st.markdown(f"#### 📄 Anteprima Report - {len(filtered_display)} record filtrati")
+            st.markdown(f"#### 📄 Anteprima Report - {sel_form_label} - {len(filtered_display)} record")
+            if selected_fields:
+                st.caption(f"Campi selezionati: {', '.join(selected_fields)}")
+            
             if filtered_display:
                 df_report = pd.DataFrame(filtered_display)
-                st.dataframe(df_report, use_container_width=True, height=400)
+                st.dataframe(df_report, use_container_width=True, height=420)
                 
                 st.divider()
+                st.markdown("#### ⬇️ Esporta Report")
                 col1, col2, col3 = st.columns(3)
                 with col1:
-                    # Excel
                     try:
                         excel_bytes = to_excel_bytes({sel_form_label[:25]: df_report})
                         st.download_button(
-                            f"⬇️ Excel Report {sel_form_label}",
+                            f"⬇️ Excel ({len(df_report)} righe)",
                             data=excel_bytes,
                             file_name=f"report_{sel_form_key}_{datetime.now().strftime('%Y%m%d_%H%M')}.xlsx",
                             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                             use_container_width=True,
-                            key="dl_excel_report"
+                            key="dl_excel_report_v2"
                         )
                     except Exception as e:
-                        st.error(f"Errore Excel: {e}")
-                
+                        st.error(f"Excel: {e}")
                 with col2:
-                    # CSV
                     try:
                         csv_data = df_report.to_csv(index=False).encode('utf-8')
                         st.download_button(
-                            f"⬇️ CSV Report",
+                            f"⬇️ CSV",
                             data=csv_data,
                             file_name=f"report_{sel_form_key}_{datetime.now().strftime('%Y%m%d')}.csv",
                             mime="text/csv",
                             use_container_width=True,
-                            key="dl_csv_report"
+                            key="dl_csv_report_v2"
                         )
                     except Exception as e:
-                        st.error(f"Errore CSV: {e}")
-                
+                        st.error(f"CSV: {e}")
                 with col3:
-                    # PDF se reportlab disponibile
                     if REPORTLAB_OK:
                         try:
                             from reportlab.lib.pagesizes import landscape, A4
-                            from reportlab.platypus import SimpleDocTemplate, Table, TableStyle
+                            from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
                             from reportlab.lib import colors
+                            from reportlab.lib.styles import getSampleStyleSheet
                             import io
                             buf = io.BytesIO()
-                            doc = SimpleDocTemplate(buf, pagesize=landscape(A4), leftMargin=1*cm, rightMargin=1*cm)
-                            # Prepara dati per PDF
-                            if not df_report.empty:
-                                # Tronca testi lunghi per PDF
-                                df_pdf = df_report.copy()
-                                for col in df_pdf.columns:
-                                    df_pdf[col] = df_pdf[col].astype(str).apply(lambda x: x[:40])
-                                data = [list(df_pdf.columns)] + df_pdf.values.tolist()[:50]  # max 50 righe per PDF
-                                t = Table(data, repeatRows=1)
-                                t.setStyle(TableStyle([
-                                    ('BACKGROUND', (0,0), (-1,0), colors.HexColor("#1A5D1A")),
-                                    ('TEXTCOLOR', (0,0), (-1,0), colors.whitesmoke),
-                                    ('FONTSIZE', (0,0), (-1,-1), 7),
-                                    ('GRID', (0,0), (-1,-1), 0.5, colors.grey),
-                                ]))
-                                from reportlab.platypus import Paragraph, Spacer
-                                from reportlab.lib.styles import getSampleStyleSheet
-                                styles = getSampleStyleSheet()
-                                story = [Paragraph(f"Report {sel_form_label} - {len(filtered_display)} record - {datetime.now().strftime('%d/%m/%Y')}", styles['Title']), Spacer(1,12), t]
-                                doc.build(story)
-                                buf.seek(0)
-                                st.download_button(
-                                    f"⬇️ PDF Report",
-                                    data=buf.getvalue(),
-                                    file_name=f"report_{sel_form_key}_{datetime.now().strftime('%Y%m%d')}.pdf",
-                                    mime="application/pdf",
-                                    use_container_width=True,
-                                    key="dl_pdf_report"
-                                )
+                            doc = SimpleDocTemplate(buf, pagesize=landscape(A4), leftMargin=1*cm, rightMargin=1*cm, topMargin=1*cm, bottomMargin=1*cm)
+                            df_pdf = df_report.copy()
+                            for col in df_pdf.columns:
+                                df_pdf[col] = df_pdf[col].astype(str).apply(lambda x: x[:35])
+                            cols = list(df_pdf.columns)[:12]
+                            data = [cols] + df_pdf[cols].values.tolist()[:60]
+                            t = Table(data, repeatRows=1)
+                            t.setStyle(TableStyle([
+                                ('BACKGROUND', (0,0), (-1,0), colors.HexColor("#1A5D1A")),
+                                ('TEXTCOLOR', (0,0), (-1,0), colors.whitesmoke),
+                                ('FONTNAME', (0,0), (-1,0), 'Helvetica-Bold'),
+                                ('FONTSIZE', (0,0), (-1,-1), 6),
+                                ('GRID', (0,0), (-1,-1), 0.4, colors.grey),
+                                ('ROWBACKGROUNDS', (0,1), (-1,-1), [colors.white, colors.HexColor("#f1f8e9")]),
+                            ]))
+                            styles = getSampleStyleSheet()
+                            story = [Paragraph(f"Report {sel_form_label} - {len(filtered_display)} record - {datetime.now().strftime('%d/%m/%Y %H:%M')} - Campi: {', '.join(selected_fields[:10])}", styles['Normal']), Spacer(1,12), t]
+                            doc.build(story)
+                            buf.seek(0)
+                            st.download_button(
+                                f"⬇️ PDF ({len(df_report)} righe)",
+                                data=buf.getvalue(),
+                                file_name=f"report_{sel_form_key}_{datetime.now().strftime('%Y%m%d')}.pdf",
+                                mime="application/pdf",
+                                use_container_width=True,
+                                key="dl_pdf_report_v2"
+                            )
                         except Exception as e:
-                            st.error(f"Errore PDF: {e}")
+                            st.error(f"PDF: {e}")
                     else:
-                        st.info("PDF non disponibile - installa reportlab")
+                        st.warning("PDF richiede reportlab")
 
+                # Statistiche rapide
+                st.divider()
+                st.markdown("#### 📈 Statistiche Rapide")
+                st.write(f"- Record totali nel form: {len(data_list)}")
+                st.write(f"- Record dopo filtri: {len(filtered_display)}")
+                st.write(f"- Campi selezionati: {len(selected_fields) if selected_fields else 0} / {len(all_fields)}")
             else:
-                st.warning("Nessun record dopo filtri")
-
+                st.warning("Nessun record corrisponde ai filtri applicati")
+                st.info("Prova a modificare filtro testo o campo specifico")
 
 
 
