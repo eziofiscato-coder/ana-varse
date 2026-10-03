@@ -59,8 +59,6 @@ st.set_page_config(
 
 # --- CSS globale VERDE ANA + font nero Times bold + FIX - versione definitiva ieri ---
 def inject_global_css():
-    if st.session_state.get("css_injected_final"):
-        return
     st.markdown("""
     <style>
     #MainMenu {visibility: hidden;}
@@ -112,7 +110,7 @@ def inject_global_css():
     }
     </style>
     """, unsafe_allow_html=True)
-    st.session_state["css_injected_final"] = True
+
 
 def inject_first_page_green():
     pass
@@ -1273,14 +1271,7 @@ def pulisci_maschera_form(form_ver_key, keys_prefixes):
 SPLASH_SECONDS = 5  # Fix Ezio - 5 secondi splash manifesto
 
 def inject_popout_splash():
-    # DISABILITATO - causava ritorno su splash dopo click ENTRA - Ezio
-    return
-
-def inject_popout_splash_ORIG_DISABLED():
     try:
-        # Se skip_splash è True, non mostrare più splash (fix ritorno su splash)
-        if st.session_state.get("skip_splash", False):
-            return
         import base64, os
         b64 = None
         for p in ["/mnt/data/manifesto_protezione_civile_ANA.jpg", "manifesto_protezione_civile_ANA.jpg", "/mnt/data/copertina.png", "copertina.png"]:
@@ -1506,11 +1497,9 @@ if st.session_state.page == "entra":
         if st.button(
             "ENTRA NEL GESTIONALE",
             type="primary",
-            use_container_width=True,
-            key="btn_entra_gestionale"
+            use_container_width=True
         ):
             st.session_state.page = "login"
-            st.session_state["skip_splash"] = True
             st.rerun()
     
     # FOOTER FISSO IN BASSO - fuori da c2, centrato in tutta pagina - Fix posizione Ezio
@@ -1718,7 +1707,6 @@ if st.session_state.page == "login":
                         st.session_state.logged = True
                         st.session_state.page = "dashboard"
                         st.session_state.menu = "Dashboard"
-                        st.session_state["skip_splash"] = True
                         st.session_state.username = u.get("username")
                         st.session_state.nome_utente = u.get("nome")
                         st.session_state.ruolo_utente = u.get("ruolo")
@@ -1735,9 +1723,8 @@ if st.session_state.page == "login":
                 if not found:
                     st.error("Credenziali errate o utente disattivato - Verifica username/password e che utente sia attivo")
 
-        if st.button("Torna a Entra", use_container_width=True, key="btn_torna_entra"):
+        if st.button("Torna a Entra", use_container_width=True):
             st.session_state.page = "entra"
-            st.session_state["skip_splash"] = False
             st.rerun()
 
     st.stop()
@@ -5892,215 +5879,158 @@ elif cur == "Archivio Documenti":
 
 
 elif cur == "Diplomi Attestati":
-    hdr_form("DIPLOMI ATTESTATI - Bordi Tricolore Italiano - Combo Volontari Check-in")
+    hdr_form("DIPLOMI ATTESTATI - Formato A4 - Anteprima = PDF - Verde ANA - Font Nero Times Bold")
 
-    volontari_all = st.session_state.get("volontari", [])
-    checkin_all = st.session_state.get("checkin", [])
-    nomi_checkin = set()
-    for c in checkin_all:
-        if isinstance(c, dict):
-            for k in ["volontario","nome","nominativo"]:
-                if k in c and c[k]:
-                    nomi_checkin.add(str(c[k]).strip())
-                    break
-        elif isinstance(c, str):
-            nomi_checkin.add(c.strip())
-    if not nomi_checkin and checkin_all:
-        for c in checkin_all:
-            if isinstance(c, dict):
-                for v in c.values():
-                    if isinstance(v, str) and len(v)>3:
-                        nomi_checkin.add(v.strip())
-                        break
-    volontari_filtrati = []
-    if nomi_checkin:
-        for v in volontari_all:
-            full = (str(v.get("nome",""))+" "+str(v.get("cognome",""))).strip().lower()
-            for n in nomi_checkin:
-                if full in n.lower() or n.lower() in full:
-                    volontari_filtrati.append(v)
-                    break
-        if not volontari_filtrati:
-            volontari_filtrati = volontari_all
-    else:
-        volontari_filtrati = volontari_all
-
-    st.info(f"Combo volontari: {len(volontari_filtrati)} filtrati da check-in ({len(checkin_all)} check-in)")
+    st.markdown("""
+    <div style="background:linear-gradient(135deg,#1A5D1A 0%,#2e7d32 100%);color:white;padding:12px;border-radius:10px;text-align:center;margin-bottom:14px;border:3px solid #FFD700;">
+    <b>🏅 DIPLOMI A4 - ANTEPRIMA IDENTICA AL PDF - 2 Loghi - Dimensione ieri</b><br>
+    <small style="color:#c8e6c9;">Anteprima come PDF riferimento - 794x1123px - Font nero Times bold - Verde ANA</small>
+    </div>
+    """, unsafe_allow_html=True)
 
     if "diplomi_form_version" not in st.session_state:
         st.session_state["diplomi_form_version"] = 0
     ver_dip = st.session_state.get("diplomi_form_version", 0)
-    def k_dip(b): return f"{b}_v{ver_dip}"
+    def k_dip(base): return f"{base}_v{ver_dip}"
 
-    c1, c2 = st.columns([1, 1.2])
+    c1, c2 = st.columns([1, 1.5])
     with c1:
-        st.markdown("#### Combo Volontari (solo check-in)")
-        if volontari_filtrati:
-            opzioni = [f"{v.get('nome','')} {v.get('cognome','')} - {v.get('gruppo','')}".strip() for v in volontari_filtrati]
-            sel_idx = st.selectbox("Volontario COMBO", range(len(volontari_filtrati)), format_func=lambda i: opzioni[i], key=k_dip("combo"))
-            nome_default = f"{volontari_filtrati[sel_idx].get('nome','')} {volontari_filtrati[sel_idx].get('cognome','')}".strip()
-        else:
-            nome_default = "ALBERTO VIGANO'"
-        nome_dip = st.text_input("Nome *", value=nome_default, key=k_dip("nome"))
-        evento_dip = st.text_input("Titolo", value="CAMPO SCUOLA 2026\nCARONNO PERTUSELLA", key=k_dip("evento"))
-        data_dip = st.text_input("Data", value="6 e 7 giugno 2026", key=k_dip("data"))
-        ruolo_dip = st.text_input("Ruolo", value="VOLONTARIO DI P.C. ANA VARESE (Campo Scuola)", key=k_dip("ruolo"))
-        m1 = st.text_input("Motto 1", value="Insieme con Noi ...", key=k_dip("m1"))
-        m2 = st.text_input("Motto 2", value="Addestramento alla Protezione Civile", key=k_dip("m2"))
-        capo = st.text_input("Capogruppo", value="Fiscato Stefano", key=k_dip("capo"))
-        coord = st.text_input("Coordinatore", value="", key=k_dip("coord"))
-        if st.button("Pulisci", key=f"pul_{ver_dip}"):
+        st.markdown("#### ✏️ Dati Diploma - Font Nero Times Bold")
+        nome_dip = st.text_input("Nome Volontario *", value="ALBERTO VIGANO'", key=k_dip("dip_nome"))
+        evento_dip = st.text_input("Evento", value="CAMPO SCUOLA 2026", key=k_dip("dip_evento"))
+        luogo_dip = st.text_input("Luogo", value="CARONNO PERTUSELLA", key=k_dip("dip_luogo"))
+        data_dip = st.text_input("Data", value="6 e 7 giugno 2026", key=k_dip("dip_data"))
+        ruolo_dip = st.text_input("Ruolo / Attività", value="VOLONTARIO DI P.C. ANA VARESE (Campo Scuola)", key=k_dip("dip_ruolo"))
+        capogruppo_dip = st.text_input("Capogruppo", value="Fiscato Stefano", key=k_dip("dip_capogruppo"))
+        coordinatore_dip = st.text_input("Coordinatore P.C.", value="Firma", key=k_dip("dip_coordinatore"))
+        num_attestato = st.text_input("N° Attestato", value=f"{datetime.now().year}/{len(st.session_state.get('diplomi', []))+1:03d}", key=k_dip("dip_num"))
+        lista_nomi = st.text_area("Lista Nomi (uno per riga)", height=100, key=k_dip("dip_lista"), placeholder="ALBERTO VIGANO'\nMARIO ROSSI")
+        if st.button("🧹 Pulisci maschera", use_container_width=True, key=f"btn_pulisci_dip_v{ver_dip}"):
             st.session_state["diplomi_form_version"] += 1
             st.rerun()
 
-    def get_b64(paths):
-        for p in paths:
-            if os.path.exists(p):
-                try:
-                    import base64
-                    with open(p, "rb") as fh:
-                        return base64.b64encode(fh.read()).decode()
-                except:
-                    continue
-        return ""
-    logo_a = get_b64(["logo.png","gruppo_caronno.png"])
-    logo_b = get_b64(["logo2.png","logo_pc.png"])
-    logo_a_html = f'<img src="data:image/png;base64,{logo_a}" style="width:92px;height:92px;object-fit:contain;">' if logo_a else '<div style="width:88px;height:88px;border:2px solid #1A5D1A;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:7px;font-weight:bold;background:white;">ANA</div>'
-    logo_b_html = f'<img src="data:image/png;base64,{logo_b}" style="width:92px;height:92px;object-fit:contain;">' if logo_b else '<div style="width:88px;height:88px;border:2px solid #1A5D1A;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:7px;font-weight:bold;background:white;">P.C.</div>'
-    ev_html = "<br>".join([l.strip() for l in evento_dip.split("\n")])
-
     with c2:
-        st.markdown("#### Anteprima Tricolore Italiano")
-        html = f"""
-        <div style="background:#9aa3b0;padding:18px;border-radius:6px;">
-            <div style="background:white;width:700px;height:980px;margin:0 auto;box-shadow:0 0 12px rgba(0,0,0,0.4);position:relative;overflow:hidden;">
-                <div style="position:absolute;top:0;left:0;right:0;bottom:0;border:8px solid #009246;z-index:10;"></div>
-                <div style="position:absolute;top:8px;left:8px;right:8px;bottom:8px;border:6px solid white;z-index:11;"></div>
-                <div style="position:absolute;top:14px;left:14px;right:14px;bottom:14px;border:8px solid #CE2B37;z-index:12;"></div>
-                <div style="padding:32px 36px 24px 36px;height:100%;box-sizing:border-box;display:flex;flex-direction:column;position:relative;z-index:5;">
-                    <div style="display:flex;justify-content:space-between;align-items:flex-start;">
-                        <div style="width:92px;text-align:center;">{logo_a_html}</div>
-                        <div style="flex:1;text-align:center;padding-top:6px;">
-                            <div style="font-family:Arial,sans-serif;font-size:14px;font-weight:800;color:#000;line-height:1.35;">{ev_html}</div>
-                            <div style="font-family:Arial,sans-serif;font-size:13px;font-weight:700;color:#000;margin-top:10px;">{data_dip}</div>
+        st.markdown("#### 🖼️ Anteprima A4 - IDENTICA al PDF - Dimensione ieri - Si vede bene")
+        # Cache loghi
+        def get_logo_b64(paths):
+            for p in paths:
+                if os.path.exists(p):
+                    try:
+                        with open(p, "rb") as fh:
+                            return base64.b64encode(fh.read()).decode()
+                    except:
+                        continue
+            return ""
+        logo_vol_b64 = get_logo_b64(["logo_volontario_varese.png", "volontario_varese.png", "logo_varese.png", "logo.png"])
+        logo_cpb_b64 = get_logo_b64(["gruppo_CPB.jpeg", "gruppoCPB.png", "gruppo_caronno.png", "Gruppo_Caronno.png"])
+
+        if not logo_vol_b64:
+            logo_vol_html = '<div style="width:75px;height:75px;background:white;border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#1A5D1A;font-weight:bold;border:2px solid #1A5D1A;font-size:6px;text-align:center;">VOLONTARIO<br>VARESE</div>'
+        else:
+            logo_vol_html = f'<img src="data:image/png;base64,{logo_vol_b64}" style="width:75px;height:75px;object-fit:contain;border-radius:50%;border:2px solid #1A5D1A;background:white;padding:2px;">'
+        if not logo_cpb_b64:
+            logo_cpb_html = '<div style="width:75px;height:75px;background:white;border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#0D47A1;font-weight:bold;border:2px solid #0D47A1;font-size:5px;text-align:center;">GRUPPO<br>CPB</div>'
+        else:
+            logo_cpb_html = f'<img src="data:image/png;base64,{logo_cpb_b64}" style="width:75px;height:75px;object-fit:contain;border-radius:50%;border:2px solid #0D47A1;background:white;padding:2px;">'
+
+        preview_html = f"""
+        <div style="background:#2c3e50;padding:10px;border-radius:8px;">
+            <div style="background:white;width:794px;height:1123px;margin:0 auto;box-shadow:0 0 30px rgba(0,0,0,0.5);position:relative;overflow:hidden;transform:scale(0.85);transform-origin:top center;margin-bottom:-170px;">
+                <div style="position:absolute;top:15px;left:15px;right:15px;bottom:15px;border:3px solid #1e3a5f;">
+                    <div style="position:absolute;top:6px;left:6px;right:6px;bottom:6px;border:1.5px solid #c9a86a;padding:25px 30px;display:flex;flex-direction:column;">
+                        <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:180px;opacity:0.03;font-weight:bold;color:#1A5D1A;">ANA</div>
+                        <div style="display:flex;justify-content:space-between;align-items:flex-start;z-index:1;">
+                            <div style="text-align:center;width:90px;">{logo_vol_html}</div>
+                            <div style="text-align:center;flex:1;padding:0 15px;margin-top:5px;">
+                                <div style="font-weight:bold;font-size:13px;color:#1A5D1A;font-family:'Times New Roman',serif;">{evento_dip}</div>
+                                <div style="font-weight:bold;font-size:13px;color:black;margin-top:3px;font-family:'Times New Roman',serif;">{luogo_dip}</div>
+                                <div style="font-size:11px;color:black;margin-top:2px;font-family:'Times New Roman',serif;font-weight:bold;">{data_dip}</div>
+                            </div>
+                            <div style="text-align:center;width:90px;">{logo_cpb_html}</div>
                         </div>
-                        <div style="width:92px;text-align:center;">{logo_b_html}</div>
-                    </div>
-                    <div style="text-align:center;margin-top:48px;margin-bottom:48px;">
-                        <div style="font-family:Arial Black,Arial,sans-serif;font-size:38px;font-weight:900;color:#000;">ATTESTATO</div>
-                    </div>
-                    <div style="text-align:center;margin:38px 0 52px 0;">
-                        <div style="font-family:'Comic Sans MS','Segoe Script',cursive;font-size:30px;color:#000;font-style:italic;transform:rotate(-0.6deg);">{nome_dip}</div>
-                    </div>
-                    <div style="text-align:center;margin:18px 0 42px 0;">
-                        <div style="font-family:Arial,sans-serif;font-size:17px;font-weight:700;color:#000;font-style:italic;">“{m1} ...<br><span>{m2}”</span></div>
-                    </div>
-                    <div style="text-align:center;margin:28px 0 20px 0;flex-grow:1;">
-                        <div style="font-family:Arial,sans-serif;font-size:14.5px;color:#000;">E' stato operativo per le attività di<br><span>{ruolo_dip}</span></div>
-                    </div>
-                    <div style="display:flex;justify-content:space-between;align-items:flex-end;margin-top:auto;padding:0 8px 12px 8px;">
-                        <div style="text-align:left;">
-                            <div style="font-size:9.5px;">Il Capogruppo</div>
-                            <div style="font-size:10.5px;font-weight:700;font-style:italic;">{capo}</div>
-                            <div style="font-family:'Segoe Script',cursive;font-size:19px;color:#001a8a;transform:rotate(-3deg);">{capo.split()[0] if capo else 'Firma'}</div>
+                        <div style="text-align:center;margin:25px 0 10px 0;z-index:1;">
+                            <div style="font-family:'Times New Roman',serif;font-size:32px;font-weight:bold;color:#1A5D1A;">ATTESTATO</div>
+                            <div style="height:2px;background:linear-gradient(90deg, #c9a86a, #e8d5a3, #c9a86a);margin:8px 120px 0 120px;"></div>
                         </div>
-                        <div style="text-align:right;">
-                            <div style="font-size:9.5px;">Firma Coordinatore P.C.</div>
-                            <div style="font-family:'Segoe Script',cursive;font-size:17px;color:#444;margin-top:18px;">{coord}</div>
+                        <div style="text-align:center;margin:40px 0 15px 0;z-index:1;">
+                            <div style="font-family:'Times New Roman',serif;font-size:28px;color:#1e3a5f;font-style:italic;font-weight:bold;">{nome_dip}</div>
+                            <div style="height:1px;background:linear-gradient(90deg, transparent, #c9a86a, transparent);margin:12px 80px 0 80px;"></div>
+                        </div>
+                        <div style="text-align:center;margin:10px 0;z-index:1;"><div style="font-style:italic;font-size:11px;color:black;font-family:'Times New Roman',serif;font-weight:bold;">"Insieme con Noi ... Addestramento alla Protezione Civile"</div></div>
+                        <div style="text-align:center;margin:20px 0;z-index:1;"><div style="font-size:12px;color:black;font-family:'Times New Roman',serif;font-weight:bold;">E' stato operativo per le attività di<br><b style="color:#1A5D1A;font-size:13px;">{ruolo_dip}</b></div></div>
+                        <div style="flex-grow:1;"></div>
+                        <div style="display:flex;justify-content:space-between;margin-top:60px;padding:0 40px;z-index:1;">
+                            <div style="text-align:center;"><div style="font-family:cursive;font-size:13px;color:#1A5D1A;margin-bottom:5px;font-style:italic;">{capogruppo_dip}</div><div style="border-top:1.5px solid #000;width:150px;margin:0 auto;"></div><div style="font-size:9px;font-weight:bold;margin-top:5px;color:black;font-family:'Times New Roman',serif;">Il Capogruppo</div></div>
+                            <div style="text-align:center;"><div style="font-family:cursive;font-size:13px;color:#1A5D1A;margin-bottom:5px;font-style:italic;">{coordinatore_dip}</div><div style="border-top:1.5px solid #000;width:150px;margin:0 auto;"></div><div style="font-size:9px;font-weight:bold;margin-top:5px;color:black;font-family:'Times New Roman',serif;">Coordinatore P.C.</div></div>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
         """
-        st.components.v1.html(html, height=1080, scrolling=True)
+        st.markdown(preview_html, unsafe_allow_html=True)
 
     st.divider()
-    if REPORTLAB_OK:
-        c1p, c2p = st.columns(2)
-        with c1p:
-            if st.button("PDF Tricolore Singolo", type="primary", use_container_width=True, key=f"pdf_tri_{ver_dip}"):
+    if not REPORTLAB_OK:
+        st.error("⚠️ reportlab non installato")
+    else:
+        if st.button("📄 Genera PDF A4 - IDENTICO Anteprima - Dimensione ieri", type="primary", use_container_width=True, key=f"btn_gen_pdf_dip_v{ver_dip}"):
+            try:
                 from reportlab.lib.pagesizes import A4
                 from reportlab.lib.units import mm
                 from reportlab.lib import colors
                 from reportlab.pdfgen import canvas
+                from reportlab.lib.utils import ImageReader
                 import io
-                buf = io.BytesIO()
-                c = canvas.Canvas(buf, pagesize=A4)
-                w, h = A4
-                c.setStrokeColor(colors.HexColor("#009246"))
-                c.setLineWidth(6)
-                c.rect(9*mm, 9*mm, w-18*mm, h-18*mm, stroke=1, fill=0)
-                c.setStrokeColor(colors.white)
-                c.setLineWidth(3.5)
-                c.rect(11.5*mm, 11.5*mm, w-23*mm, h-23*mm, stroke=1, fill=0)
-                c.setStrokeColor(colors.HexColor("#CE2B37"))
-                c.setLineWidth(6)
-                c.rect(13*mm, 13*mm, w-26*mm, h-26*mm, stroke=1, fill=0)
-                c.setFillColor(colors.black)
-                c.setFont("Helvetica-Bold", 11)
-                y = h - 18*mm
-                for line in evento_dip.split("\n"):
-                    c.drawCentredString(w/2, y, line.strip())
-                    y -= 5*mm
-                y -= 2*mm
-                c.setFont("Helvetica-Bold", 10)
-                c.drawCentredString(w/2, y, data_dip)
-                c.setFont("Helvetica-Bold", 30)
-                c.drawCentredString(w/2, h/2 + 68*mm, "ATTESTATO")
-                c.setFont("Helvetica-Oblique", 20)
-                c.drawCentredString(w/2, h/2 + 32*mm, nome_dip)
-                c.setFont("Helvetica-BoldOblique", 12.5)
-                c.drawCentredString(w/2, h/2 + 4*mm, f'"{m1} ...')
-                c.drawCentredString(w/2, h/2 - 4*mm, f'{m2}"')
-                c.setFont("Helvetica", 11)
-                c.drawCentredString(w/2, h/2 - 22*mm, "E' stato operativo per le attività di")
-                c.drawCentredString(w/2, h/2 - 29*mm, ruolo_dip)
-                c.showPage()
-                c.save()
-                buf.seek(0)
-                st.download_button("Scarica PDF Tricolore", data=buf, file_name=f"Attestato_{nome_dip.replace(' ', '_')}_Tricolore.pdf", mime="application/pdf", use_container_width=True, key=f"dl_tri_{ver_dip}")
-        with c2p:
-            if st.button(f"PDF Tutti Check-in Tricolore ({len(volontari_filtrati)})", use_container_width=True, key=f"multi_tri_{ver_dip}"):
-                from reportlab.lib.pagesizes import A4
-                from reportlab.lib.units import mm
-                from reportlab.lib import colors
-                from reportlab.pdfgen import canvas
-                import io
-                buf = io.BytesIO()
-                c = canvas.Canvas(buf, pagesize=A4)
-                w, h = A4
-                for vol in volontari_filtrati:
-                    nome_vol = f"{vol.get('nome','')} {vol.get('cognome','')}".strip()
-                    c.setStrokeColor(colors.HexColor("#009246"))
-                    c.setLineWidth(6)
-                    c.rect(9*mm, 9*mm, w-18*mm, h-18*mm, stroke=1, fill=0)
-                    c.setStrokeColor(colors.white)
-                    c.setLineWidth(3.5)
-                    c.rect(11.5*mm, 11.5*mm, w-23*mm, h-23*mm, stroke=1, fill=0)
-                    c.setStrokeColor(colors.HexColor("#CE2B37"))
-                    c.setLineWidth(6)
-                    c.rect(13*mm, 13*mm, w-26*mm, h-26*mm, stroke=1, fill=0)
-                    c.setFillColor(colors.black)
-                    c.setFont("Helvetica-Bold", 11)
-                    y = h - 18*mm
-                    for line in evento_dip.split("\n"):
-                        c.drawCentredString(w/2, y, line.strip())
-                        y -= 5*mm
-                    y -= 2*mm
-                    c.setFont("Helvetica-Bold", 10)
-                    c.drawCentredString(w/2, y, data_dip)
-                    c.setFont("Helvetica-Bold", 30)
-                    c.drawCentredString(w/2, h/2 + 68*mm, "ATTESTATO")
-                    c.setFont("Helvetica-Oblique", 20)
-                    c.drawCentredString(w/2, h/2 + 32*mm, nome_vol)
-                    c.showPage()
-                c.save()
-                buf.seek(0)
-                st.download_button("Scarica Tutti Tricolore", data=buf, file_name="Attestati_Checkin_Tricolore.pdf", mime="application/pdf", use_container_width=True, key=f"dl_all_{ver_dip}")
+                def crea_pdf(nome, evento, luogo, data_txt, ruolo, capogruppo, coordinatore, num_att):
+                    buf = io.BytesIO()
+                    c = canvas.Canvas(buf, pagesize=A4)
+                    w, h = A4
+                    c.setStrokeColor(colors.HexColor("#1e3a5f")); c.setLineWidth(2.5); c.rect(15*mm, 15*mm, w-30*mm, h-30*mm, stroke=1, fill=0)
+                    c.setStrokeColor(colors.HexColor("#c9a86a")); c.setLineWidth(1); c.rect(21*mm, 21*mm, w-42*mm, h-42*mm, stroke=1, fill=0)
+                    c.saveState(); c.setFillColor(colors.HexColor("#1A5D1A")); c.setFillAlpha(0.03); c.setFont("Times-Bold", 180); c.drawCentredString(w/2, h/2, "ANA"); c.restoreState()
+                    y_logo = h - 35*mm
+                    for p in ["logo_volontario_varese.png", "volontario_varese.png", "logo.png"]:
+                        if os.path.exists(p):
+                            try: c.drawImage(ImageReader(p), 28*mm, y_logo, width=20*mm, height=20*mm, preserveAspectRatio=True, mask='auto'); break
+                            except: pass
+                    for p in ["gruppo_CPB.jpeg", "gruppoCPB.png"]:
+                        if os.path.exists(p):
+                            try: c.drawImage(ImageReader(p), w - 48*mm, y_logo, width=20*mm, height=20*mm, preserveAspectRatio=True, mask='auto'); break
+                            except: pass
+                    y = h - 40*mm; c.setFillColor(colors.HexColor("#1A5D1A")); c.setFont("Helvetica-Bold", 12); c.drawCentredString(w/2, y, evento); y -= 6*mm
+                    c.setFillColor(colors.black); c.setFont("Helvetica-Bold", 12); c.drawCentredString(w/2, y, luogo); y -= 5*mm
+                    c.setFillColor(colors.HexColor("#555555")); c.setFont("Helvetica", 10); c.drawCentredString(w/2, y, data_txt); y -= 18*mm
+                    c.setFillColor(colors.HexColor("#1A5D1A")); c.setFont("Times-Bold", 28); c.drawCentredString(w/2, y, "ATTESTATO"); y -= 6*mm
+                    c.setStrokeColor(colors.HexColor("#c9a86a")); c.setLineWidth(1.5); c.line(w/2 - 55*mm, y, w/2 + 55*mm, y); y -= 20*mm
+                    c.setFillColor(colors.HexColor("#1e3a5f")); c.setFont("Times-BoldItalic", 24); c.drawCentredString(w/2, y, nome); y -= 8*mm
+                    c.setStrokeColor(colors.HexColor("#c9a86a")); c.setLineWidth(0.5); c.line(w*0.15, y, w*0.85, y); y -= 10*mm
+                    c.setFillColor(colors.black); c.setFont("Helvetica-Oblique", 10); c.drawCentredString(w/2, y, '"Insieme con Noi ... Addestramento alla Protezione Civile"'); y -= 14*mm
+                    c.setFont("Helvetica", 11); c.drawCentredString(w/2, y, "E' stato operativo per le attività di"); y -= 7*mm
+                    c.setFillColor(colors.HexColor("#1A5D1A")); c.setFont("Times-Bold", 12); c.drawCentredString(w/2, y, ruolo)
+                    y_firma = 65*mm
+                    c.setFillColor(colors.HexColor("#1A5D1A")); c.setFont("Helvetica-Oblique", 11); c.drawCentredString(55*mm, y_firma + 10*mm, capogruppo)
+                    c.setStrokeColor(colors.black); c.line(30*mm, y_firma + 7*mm, 80*mm, y_firma + 7*mm)
+                    c.setFillColor(colors.black); c.setFont("Helvetica-Bold", 8); c.drawCentredString(55*mm, y_firma + 2*mm, "Il Capogruppo")
+                    c.setFillColor(colors.HexColor("#1A5D1A")); c.setFont("Helvetica-Oblique", 11); c.drawCentredString(w - 55*mm, y_firma + 10*mm, coordinatore)
+                    c.setStrokeColor(colors.black); c.line(w - 80*mm, y_firma + 7*mm, w - 30*mm, y_firma + 7*mm)
+                    c.setFillColor(colors.black); c.setFont("Helvetica-Bold", 8); c.drawCentredString(w - 55*mm, y_firma + 2*mm, "Coordinatore P.C.")
+                    c.showPage(); c.save(); buf.seek(0); return buf.getvalue()
+                if lista_nomi.strip():
+                    import zipfile; nomi_list = [n.strip() for n in lista_nomi.split('\\n') if n.strip()]; zip_buf = io.BytesIO()
+                    with zipfile.ZipFile(zip_buf, 'w') as zf:
+                        for n in nomi_list:
+                            pdf_bytes = crea_pdf(n, evento_dip, luogo_dip, data_dip, ruolo_dip, capogruppo_dip, coordinatore_dip, num_attestato)
+                            zf.writestr(f"Attestato_{n.replace(' ', '_')}_A4.pdf", pdf_bytes)
+                    zip_buf.seek(0); st.download_button(f"⬇️ ZIP {len(nomi_list)} Diplomi A4", data=zip_buf.getvalue(), file_name="diplomi_A4.zip", mime="application/zip", use_container_width=True, type="primary", key=f"dl_zip_dip_v{ver_dip}")
+                else:
+                    pdf_single = crea_pdf(nome_dip, evento_dip, luogo_dip, data_dip, ruolo_dip, capogruppo_dip, coordinatore_dip, num_attestato)
+                    st.download_button(f"⬇️ Diploma A4 {nome_dip}", data=pdf_single, file_name=f"Attestato_{nome_dip}_A4.pdf", mime="application/pdf", use_container_width=True, type="primary", key=f"dl_pdf_dip_v{ver_dip}")
+            except Exception as e:
+                st.error(f"Errore PDF: {e}"); import traceback; st.code(traceback.format_exc())
+    excel_import_inline("diplomi", "Diplomi Attestati")
 
 elif cur == "Report Filtro":
-
     hdr_form("REPORT FILTRO - Verde ANA - Font Nero Times Bold - Tasto Filtro OK")
     st.markdown("""
     <div style="background:linear-gradient(135deg,#1A5D1A 0%,#2e7d32 100%);color:white;padding:12px;border-radius:10px;text-align:center;margin-bottom:14px;border:3px solid #FFD700;">
