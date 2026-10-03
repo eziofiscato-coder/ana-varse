@@ -51,8 +51,6 @@ st.set_page_config(
 )
 # --- CSS globale VERDE ANA + font nero Times bold + FIX - versione definitiva ieri ---
 def inject_global_css():
-    if st.session_state.get("css_injected_final"):
-        return
     st.markdown("""
     <style>
     #MainMenu {visibility: hidden;}
@@ -68,15 +66,17 @@ def inject_global_css():
         padding: 16px !important;
         box-shadow: 0 4px 12px rgba(0,0,0,0.3) !important;
     }
-    /* FONT TIMES ROMAN GRASSETTO DEFINITIVO IERI - NERO */
-    /* FONT NERO GRASSETTO TIMES ROMAN PER TUTTE LE CELLE FORM - RICHIESTA EZIO DEFINITIVA */
+    /* FONT TIMES ROMAN GRASSETTO DEFINITIVO - NERO - EZIO */
+    /* TUTTE LE CELLE FORM - TIMES NEW ROMAN NERO GRASSETTO - FORZATO */
+    .stTextInput input, .stTextArea textarea, .stNumberInput input, .stDateInput input, .stTimeInput input,
+    div[data-baseweb="input"] input, div[data-baseweb="textarea"] textarea,
+    div[data-baseweb="select"] div, input[type="text"], input[type="number"], textarea, select,
     .stTextInput > div > div > input,
     .stTextArea > div > div > textarea,
     .stSelectbox > div > div > div,
     .stNumberInput > div > div > input,
     .stDateInput > div > div > input,
-    .stTimeInput > div > div > input,
-    input[type="text"], input[type="number"], textarea, select {
+    .stTimeInput > div > div > input {
         color: black !important;
         font-family: 'Times New Roman', Times, serif !important;
         font-weight: bold !important;
