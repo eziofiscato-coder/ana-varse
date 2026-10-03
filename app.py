@@ -1789,6 +1789,7 @@ with st.sidebar:
             "Verbali",
             "Archivio Documenti",
             "Diplomi Attestati",
+            "Report Filtro",
             "Geolocalizzazione Hytera + Anytone",
             "Gestione Utenti",
             "Backup"
@@ -1817,6 +1818,7 @@ with st.sidebar:
             "Verbali",
             "Archivio Documenti",
             "Diplomi Attestati",
+            "Report Filtro",
             "Geolocalizzazione Hytera + Anytone",
             "Backup"
         ]
