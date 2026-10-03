@@ -65,11 +65,11 @@ def inject_global_css():
     [data-testid="stAppViewContainer"] {background: linear-gradient(180deg, #c8e6c9 0%, #a5d6a7 100%) !important;}
     .stButton>button {border-radius: 8px; font-weight: 600; background: #1A5D1A !important; color: white !important; border: 2px solid #1A5D1A !important;}
     [data-testid="stForm"], .stForm {
-        background: #e8f5e9 !important;
-        border: 2px solid #1A5D1A !important;
+        background: #1A5D1A !important;
+        border: 3px solid #FFD700 !important;
         border-radius: 12px !important;
         padding: 16px !important;
-        box-shadow: 0 4px 12px rgba(26,93,26,0.15) !important;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.3) !important;
     }
     /* FONT NERO TIMES ROMAN GRASSETTO PER TUTTE LE CELLE FORM - RICHIESTA EZIO */
     .stTextInput > div > div > input,
@@ -93,8 +93,8 @@ def inject_global_css():
         font-size: 14px !important;
     }
     div[data-testid="column"] {
-        background: rgba(200,230,201,0.4) !important;
-        border: 1px solid #81c784 !important;
+        background: rgba(46,125,50,0.85) !important;
+        border: 1px solid #FFD700 !important;
         border-radius: 8px !important;
         padding: 8px !important;
     }
@@ -1892,6 +1892,7 @@ if cur == "Dashboard":
     def vai_a_form_callback(form_name):
         st.session_state.menu = form_name
         st.session_state["menu_radio"] = form_name
+        st.session_state["cur"] = form_name
         # Forza aggiornamento per Archivio Documenti
 
     # CSS bottoni verde ANA - SFONDO PIENO VERDE - FIX DEFINITIVO
