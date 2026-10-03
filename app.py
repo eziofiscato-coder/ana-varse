@@ -66,17 +66,15 @@ def inject_global_css():
         padding: 16px !important;
         box-shadow: 0 4px 12px rgba(0,0,0,0.3) !important;
     }
-    /* FONT TIMES ROMAN GRASSETTO DEFINITIVO - NERO - EZIO */
-    /* TUTTE LE CELLE FORM - TIMES NEW ROMAN NERO GRASSETTO - FORZATO */
-    .stTextInput input, .stTextArea textarea, .stNumberInput input, .stDateInput input, .stTimeInput input,
-    div[data-baseweb="input"] input, div[data-baseweb="textarea"] textarea,
-    div[data-baseweb="select"] div, input[type="text"], input[type="number"], textarea, select,
+    /* FONT TIMES ROMAN GRASSETTO DEFINITIVO IERI - NERO */
+    /* FONT NERO GRASSETTO TIMES ROMAN PER TUTTE LE CELLE FORM - RICHIESTA EZIO DEFINITIVA */
     .stTextInput > div > div > input,
     .stTextArea > div > div > textarea,
     .stSelectbox > div > div > div,
     .stNumberInput > div > div > input,
     .stDateInput > div > div > input,
-    .stTimeInput > div > div > input {
+    .stTimeInput > div > div > input,
+    input[type="text"], input[type="number"], textarea, select {
         color: black !important;
         font-family: 'Times New Roman', Times, serif !important;
         font-weight: bold !important;
@@ -104,7 +102,7 @@ def inject_global_css():
     }
     </style>
     """, unsafe_allow_html=True)
-    st.session_state["css_injected_final"] = True
+    # CSS sempre attivo - fix sfondo sparito
 def inject_first_page_green():
     pass
 def inject_fullscreen_kiosk():
@@ -1652,6 +1650,7 @@ with st.sidebar:
             "Verbali",
             "Archivio Documenti",
             "Diplomi Attestati",
+            "Report Filtro",
             "Geolocalizzazione Hytera + Anytone",
             "Gestione Utenti",
             "Backup"
@@ -1680,6 +1679,7 @@ with st.sidebar:
             "Verbali",
             "Archivio Documenti",
             "Diplomi Attestati",
+            "Report Filtro",
             "Geolocalizzazione Hytera + Anytone",
             "Backup"
         ]
@@ -1816,7 +1816,8 @@ if cur == "Dashboard":
         st.session_state.menu = form_name
         st.session_state["menu_radio"] = form_name
         st.session_state["cur"] = form_name
-        st.session_state["cur"] = form_name
+        st.session_state.page = "dashboard"
+        st.session_state.logged = True
     # CSS bottoni verde ANA - SFONDO PIENO VERDE - FIX DEFINITIVO
     st.markdown(
         """
@@ -5412,11 +5413,11 @@ elif cur == "Archivio Documenti":
     # Import/Export inline
     excel_import_inline("archivio_documenti", "Archivio Documenti")
 elif cur == "Diplomi Attestati":
-    hdr_form("DIPLOMI ATTESTATI - Formato A4 - Anteprima = PDF - Verde ANA - Font Nero Times Bold")
+    hdr_form("DIPLOMI ATTESTATI - Anteprima = PDF - Prima Immaginazione Bella - ANA")
     st.markdown("""
     <div style="background:linear-gradient(135deg,#1A5D1A 0%,#2e7d32 100%);color:white;padding:12px;border-radius:10px;text-align:center;margin-bottom:14px;border:3px solid #FFD700;">
-    <b>🏅 DIPLOMI A4 - ANTEPRIMA IDENTICA AL PDF - 2 Loghi - Dimensione ieri</b><br>
-    <small style="color:#c8e6c9;">Anteprima come PDF riferimento - 794x1123px - Font nero Times bold - Verde ANA</small>
+    <b>🏅 DIPLOMI A4 - ANTEPRIMA PARI PARI AL PDF - Prima Immaginazione Bella</b><br>
+    <small style="color:#c8e6c9;">Anteprima HTML identica al PDF A4 - 3 loghi - Brush Script nome - Doppio bordo - Timbro</small>
     </div>
     """, unsafe_allow_html=True)
     if "diplomi_form_version" not in st.session_state:
@@ -5432,15 +5433,14 @@ elif cur == "Diplomi Attestati":
         data_dip = st.text_input("Data", value="6 e 7 giugno 2026", key=k_dip("dip_data"))
         ruolo_dip = st.text_input("Ruolo / Attività", value="VOLONTARIO DI P.C. ANA VARESE (Campo Scuola)", key=k_dip("dip_ruolo"))
         capogruppo_dip = st.text_input("Capogruppo", value="Fiscato Stefano", key=k_dip("dip_capogruppo"))
-        coordinatore_dip = st.text_input("Coordinatore P.C.", value="Firma", key=k_dip("dip_coordinatore"))
+        coordinatore_dip = st.text_input("Coordinatore P.C.", value="", key=k_dip("dip_coordinatore"), placeholder="Nome Coordinatore")
         num_attestato = st.text_input("N° Attestato", value=f"{datetime.now().year}/{len(st.session_state.get('diplomi', []))+1:03d}", key=k_dip("dip_num"))
         lista_nomi = st.text_area("Lista Nomi (uno per riga)", height=100, key=k_dip("dip_lista"), placeholder="ALBERTO VIGANO'\nMARIO ROSSI")
         if st.button("🧹 Pulisci maschera", use_container_width=True, key=f"btn_pulisci_dip_v{ver_dip}"):
             st.session_state["diplomi_form_version"] += 1
             st.rerun()
     with c2:
-        st.markdown("#### 🖼️ Anteprima A4 - IDENTICA al PDF - Dimensione ieri - Si vede bene")
-        # Cache loghi
+        st.markdown("#### 🖼️ Anteprima A4 - PARI PARI AL PDF - Prima Immaginazione Bella")
         def get_logo_b64(paths):
             for p in paths:
                 if os.path.exists(p):
@@ -5450,45 +5450,72 @@ elif cur == "Diplomi Attestati":
                     except:
                         continue
             return ""
-        logo_vol_b64 = get_logo_b64(["logo_volontario_varese.png", "volontario_varese.png", "logo_varese.png", "logo.png"])
-        logo_cpb_b64 = get_logo_b64(["gruppo_CPB.jpeg", "gruppoCPB.png", "gruppo_caronno.png", "Gruppo_Caronno.png"])
-        if not logo_vol_b64:
-            logo_vol_html = '<div style="width:75px;height:75px;background:white;border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#1A5D1A;font-weight:bold;border:2px solid #1A5D1A;font-size:6px;text-align:center;">VOLONTARIO<br>VARESE</div>'
+        logo_ana_b64 = get_logo_b64(["logo.png", "logo_volontario_varese.png", "volontario_varese.png"])
+        logo_caronno_b64 = get_logo_b64(["gruppo_caronno.png", "gruppo_CPB.jpeg", "gruppoCPB.png", "Gruppo_Caronno.png"])
+        logo_pc_b64 = get_logo_b64(["logo2.png", "logo_pc.png", "pc_ana.png"])
+        if not logo_ana_b64:
+            logo_ana_html = '<div style="width:85px;height:85px;background:#1A5D1A;border-radius:50%;display:flex;align-items:center;justify-content:center;color:white;font-weight:bold;border:3px solid #FFD700;font-size:9px;text-align:center;">ANA<br>VARESE</div>'
         else:
-            logo_vol_html = f'<img src="data:image/png;base64,{logo_vol_b64}" style="width:75px;height:75px;object-fit:contain;border-radius:50%;border:2px solid #1A5D1A;background:white;padding:2px;">'
-        if not logo_cpb_b64:
-            logo_cpb_html = '<div style="width:75px;height:75px;background:white;border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#0D47A1;font-weight:bold;border:2px solid #0D47A1;font-size:5px;text-align:center;">GRUPPO<br>CPB</div>'
+            logo_ana_html = f'<img src="data:image/png;base64,{logo_ana_b64}" style="width:85px;height:85px;object-fit:contain;border-radius:50%;border:3px solid #FFD700;background:white;padding:3px;">'
+        if not logo_caronno_b64:
+            logo_caronno_html = '<div style="width:85px;height:85px;background:#0D47A1;border-radius:50%;display:flex;align-items:center;justify-content:center;color:white;font-weight:bold;border:3px solid #FFD700;font-size:7px;text-align:center;">CARONNO<br>PERTUSELLA<br>BARIOLA</div>'
         else:
-            logo_cpb_html = f'<img src="data:image/png;base64,{logo_cpb_b64}" style="width:75px;height:75px;object-fit:contain;border-radius:50%;border:2px solid #0D47A1;background:white;padding:2px;">'
+            logo_caronno_html = f'<img src="data:image/png;base64,{logo_caronno_b64}" style="width:85px;height:85px;object-fit:contain;border-radius:50%;border:3px solid #FFD700;background:white;padding:3px;">'
+        if not logo_pc_b64:
+            logo_pc_html = '<div style="width:85px;height:85px;background:#1a3c6e;border-radius:50%;display:flex;align-items:center;justify-content:center;color:white;font-weight:bold;border:3px solid #FFD700;font-size:7px;text-align:center;">PROTEZIONE<br>CIVILE</div>'
+        else:
+            logo_pc_html = f'<img src="data:image/png;base64,{logo_pc_b64}" style="width:85px;height:85px;object-fit:contain;border-radius:50%;border:3px solid #FFD700;background:white;padding:3px;">'
+        # ANTEPRIMA PARI PARI AL PDF - A4 794x1123px - Prima immaginazione bella
         preview_html = f"""
-        <div style="background:#2c3e50;padding:10px;border-radius:8px;">
+        <div style="background:#2c3e50;padding:12px;border-radius:12px;">
             <div style="background:white;width:794px;height:1123px;margin:0 auto;box-shadow:0 0 30px rgba(0,0,0,0.5);position:relative;overflow:hidden;transform:scale(0.85);transform-origin:top center;margin-bottom:-170px;">
-                <div style="position:absolute;top:15px;left:15px;right:15px;bottom:15px;border:3px solid #1e3a5f;">
-                    <div style="position:absolute;top:6px;left:6px;right:6px;bottom:6px;border:1.5px solid #c9a86a;padding:25px 30px;display:flex;flex-direction:column;">
-                        <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:180px;opacity:0.03;font-weight:bold;color:#1A5D1A;">ANA</div>
-                        <div style="display:flex;justify-content:space-between;align-items:flex-start;z-index:1;">
-                            <div style="text-align:center;width:90px;">{logo_vol_html}</div>
-                            <div style="text-align:center;flex:1;padding:0 15px;margin-top:5px;">
-                                <div style="font-weight:bold;font-size:13px;color:#1A5D1A;font-family:'Times New Roman',serif;">{evento_dip}</div>
-                                <div style="font-weight:bold;font-size:13px;color:black;margin-top:3px;font-family:'Times New Roman',serif;">{luogo_dip}</div>
-                                <div style="font-size:11px;color:black;margin-top:2px;font-family:'Times New Roman',serif;font-weight:bold;">{data_dip}</div>
+                <div style="position:absolute;top:20px;left:20px;right:20px;bottom:20px;border:4px solid #1a3c6e;border-radius:12px;">
+                    <div style="position:absolute;top:6px;left:6px;right:6px;bottom:6px;border:2px solid #d4af37;border-radius:8px;padding:22px 28px;display:flex;flex-direction:column;background:linear-gradient(180deg,white 0%,#f9f9f9 100%);">
+                        <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:140px;opacity:0.03;font-weight:bold;color:#1A5D1A;pointer-events:none;letter-spacing:10px;">ANA</div>
+                        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;position:relative;z-index:1;">
+                            <div style="text-align:center;">{logo_ana_html}<div style="font-size:7px;font-weight:bold;margin-top:4px;color:#1A5D1A;">SEZIONE DI VARESE</div></div>
+                            <div style="text-align:center;flex:1;padding:0 12px;">
+                                <div style="font-weight:bold;font-size:15px;color:#1A5D1A;letter-spacing:0.8px;font-family:'Times New Roman',serif;">{evento_dip}</div>
+                                <div style="font-weight:bold;font-size:13px;color:#333;font-family:'Times New Roman',serif;">{luogo_dip}</div>
+                                <div style="font-size:11px;color:#555;font-family:'Times New Roman',serif;font-weight:bold;">{data_dip}</div>
                             </div>
-                            <div style="text-align:center;width:90px;">{logo_cpb_html}</div>
+                            <div style="text-align:center;">{logo_caronno_html}<div style="font-size:6px;font-weight:bold;margin-top:3px;color:#0D47A1;">GRUPPO CARONNO PERTUSELLA BARIOLA</div></div>
+                            <div style="text-align:center;margin-left:10px;">{logo_pc_html}<div style="font-size:6px;font-weight:bold;margin-top:3px;color:#1a3c6e;">VOLONTARIATO</div></div>
                         </div>
-                        <div style="text-align:center;margin:25px 0 10px 0;z-index:1;">
-                            <div style="font-family:'Times New Roman',serif;font-size:32px;font-weight:bold;color:#1A5D1A;">ATTESTATO</div>
-                            <div style="height:2px;background:linear-gradient(90deg, #c9a86a, #e8d5a3, #c9a86a);margin:8px 120px 0 120px;"></div>
+                        <div style="text-align:center;margin:20px 0 10px 0;position:relative;z-index:1;">
+                            <div style="font-family:'Times New Roman',serif;font-size:38px;font-weight:bold;color:#1A5D1A;letter-spacing:4px;text-shadow:1px 1px 2px rgba(0,0,0,0.1);">ATTESTATO</div>
+                            <div style="height:3px;background:linear-gradient(90deg,transparent,#d4af37 20%,#d4af37 80%,transparent);margin:10px 0;"></div>
+                            <div style="height:1px;background:#d4af37;margin:0 25%;"></div>
                         </div>
-                        <div style="text-align:center;margin:40px 0 15px 0;z-index:1;">
-                            <div style="font-family:'Times New Roman',serif;font-size:28px;color:#1e3a5f;font-style:italic;font-weight:bold;">{nome_dip}</div>
-                            <div style="height:1px;background:linear-gradient(90deg, transparent, #c9a86a, transparent);margin:12px 80px 0 80px;"></div>
+                        <div style="text-align:center;margin:26px 0 14px 0;position:relative;z-index:1;">
+                            <div style="font-family:'Brush Script MT',cursive;font-size:46px;color:#1a3c6e;font-style:italic;font-weight:bold;text-shadow:1px 1px 1px rgba(0,0,0,0.1);">{nome_dip}</div>
+                            <div style="height:2px;background:linear-gradient(90deg,transparent,#d4af37,transparent);margin:14px 15%;"></div>
                         </div>
-                        <div style="text-align:center;margin:10px 0;z-index:1;"><div style="font-style:italic;font-size:11px;color:black;font-family:'Times New Roman',serif;font-weight:bold;">"Insieme con Noi ... Addestramento alla Protezione Civile"</div></div>
-                        <div style="text-align:center;margin:20px 0;z-index:1;"><div style="font-size:12px;color:black;font-family:'Times New Roman',serif;font-weight:bold;">E' stato operativo per le attività di<br><b style="color:#1A5D1A;font-size:13px;">{ruolo_dip}</b></div></div>
+                        <div style="text-align:center;margin:16px 0;position:relative;z-index:1;">
+                            <div style="font-style:italic;font-size:13px;color:#444;font-weight:bold;letter-spacing:0.5px;font-family:'Times New Roman',serif;">“Insieme con Noi … Addestramento alla Protezione Civile”</div>
+                        </div>
+                        <div style="text-align:center;margin:20px 0;padding:0 15px;position:relative;z-index:1;">
+                            <div style="font-family:'Times New Roman',serif;font-size:13px;line-height:1.7;color:#222;font-weight:bold;">E' stato operativo per le attività di<br><b style="color:#1A5D1A;font-size:14px;">{ruolo_dip}</b></div>
+                        </div>
                         <div style="flex-grow:1;"></div>
-                        <div style="display:flex;justify-content:space-between;margin-top:60px;padding:0 40px;z-index:1;">
-                            <div style="text-align:center;"><div style="font-family:cursive;font-size:13px;color:#1A5D1A;margin-bottom:5px;font-style:italic;">{capogruppo_dip}</div><div style="border-top:1.5px solid #000;width:150px;margin:0 auto;"></div><div style="font-size:9px;font-weight:bold;margin-top:5px;color:black;font-family:'Times New Roman',serif;">Il Capogruppo</div></div>
-                            <div style="text-align:center;"><div style="font-family:cursive;font-size:13px;color:#1A5D1A;margin-bottom:5px;font-style:italic;">{coordinatore_dip}</div><div style="border-top:1.5px solid #000;width:150px;margin:0 auto;"></div><div style="font-size:9px;font-weight:bold;margin-top:5px;color:black;font-family:'Times New Roman',serif;">Coordinatore P.C.</div></div>
+                        <div style="display:flex;justify-content:space-between;margin-top:40px;padding:0 10px;position:relative;z-index:1;">
+                            <div style="text-align:center;">
+                                <div style="font-family:cursive;font-size:15px;color:#1A5D1A;margin-bottom:4px;font-style:italic;">{capogruppo_dip}</div>
+                                <div style="border-top:1.5px solid #222;width:155px;margin:0 auto;"></div>
+                                <div style="font-size:9px;font-weight:bold;margin-top:4px;line-height:1.2;font-family:'Times New Roman',serif;">Il Capogruppo<br>{capogruppo_dip}<br><small style="color:#666;">Gruppo Caronno Pertusella Bariola</small></div>
+                            </div>
+                            <div style="width:75px;height:75px;border:2px dashed #1A5D1A;border-radius:50%;display:flex;align-items:center;justify-content:center;opacity:0.25;transform:rotate(-12deg);background:rgba(26,93,26,0.05);">
+                                <div style="font-size:7px;text-align:center;font-weight:bold;color:#1A5D1A;line-height:1.1;">A.N.A.<br>VARESE<br>PROTEZIONE<br>CIVILE</div>
+                            </div>
+                            <div style="text-align:center;">
+                                <div style="font-family:cursive;font-size:15px;color:#1A5D1A;margin-bottom:4px;font-style:italic;">{coordinatore_dip or "Firma"}</div>
+                                <div style="border-top:1.5px solid #222;width:155px;margin:0 auto;"></div>
+                                <div style="font-size:9px;font-weight:bold;margin-top:4px;font-family:'Times New Roman',serif;">Firma del Coordinatore di P.C.<br><small style="color:#666;">Sezione di Varese</small></div>
+                            </div>
+                        </div>
+                        <div style="display:flex;justify-content:space-between;margin-top:18px;font-size:8px;color:#777;position:relative;z-index:1;border-top:1px solid #eee;padding-top:8px;font-family:'Times New Roman',serif;">
+                            <div>N° {num_attestato} - ANA Varese - Caronno Pertusella Bariola</div>
+                            <div style="display:flex;align-items:center;gap:5px;"><span>PC ANA Varese</span><span style="background:#1A5D1A;color:white;padding:1px 5px;border-radius:3px;font-size:7px;">2026</span></div>
                         </div>
                     </div>
                 </div>
@@ -5498,63 +5525,140 @@ elif cur == "Diplomi Attestati":
         st.markdown(preview_html, unsafe_allow_html=True)
     st.divider()
     if not REPORTLAB_OK:
-        st.error("⚠️ reportlab non installato")
+        st.error("⚠️ reportlab non installato - Controlla requirements.txt")
     else:
-        if st.button("📄 Genera PDF A4 - IDENTICO Anteprima - Dimensione ieri", type="primary", use_container_width=True, key=f"btn_gen_pdf_dip_v{ver_dip}"):
+        if st.button("📄 Genera PDF A4 - PARI PARI ANTEPRIMA - Prima Immaginazione Bella", type="primary", use_container_width=True, key=f"btn_gen_pdf_dip_v{ver_dip}"):
             try:
                 from reportlab.lib.pagesizes import A4
-                from reportlab.lib.units import mm
+                from reportlab.lib.units import cm, mm
                 from reportlab.lib import colors
                 from reportlab.pdfgen import canvas
                 from reportlab.lib.utils import ImageReader
                 import io
-                def crea_pdf(nome, evento, luogo, data_txt, ruolo, capogruppo, coordinatore, num_att):
+                def crea_diploma_pdf_pari_anteprima(nome, evento, luogo, data_txt, ruolo, capogruppo, coordinatore, num_att):
                     buf = io.BytesIO()
                     c = canvas.Canvas(buf, pagesize=A4)
                     w, h = A4
-                    c.setStrokeColor(colors.HexColor("#1e3a5f")); c.setLineWidth(2.5); c.rect(15*mm, 15*mm, w-30*mm, h-30*mm, stroke=1, fill=0)
-                    c.setStrokeColor(colors.HexColor("#c9a86a")); c.setLineWidth(1); c.rect(21*mm, 21*mm, w-42*mm, h-42*mm, stroke=1, fill=0)
-                    c.saveState(); c.setFillColor(colors.HexColor("#1A5D1A")); c.setFillAlpha(0.03); c.setFont("Times-Bold", 180); c.drawCentredString(w/2, h/2, "ANA"); c.restoreState()
-                    y_logo = h - 35*mm
-                    for p in ["logo_volontario_varese.png", "volontario_varese.png", "logo.png"]:
+                    # Bordi identici anteprima - 4px blu + 2px oro
+                    c.setStrokeColor(colors.HexColor("#1a3c6e"))
+                    c.setLineWidth(4)
+                    c.roundRect(1*cm, 1*cm, w-2*cm, h-2*cm, 12, stroke=1, fill=0)
+                    c.setStrokeColor(colors.HexColor("#d4af37"))
+                    c.setLineWidth(2)
+                    c.roundRect(1.2*cm, 1.2*cm, w-2.4*cm, h-2.4*cm, 8, stroke=1, fill=0)
+                    # Watermark ANA
+                    c.saveState()
+                    c.setFillColor(colors.HexColor("#1A5D1A"))
+                    c.setFillAlpha(0.03)
+                    c.setFont("Helvetica-Bold", 140)
+                    c.drawCentredString(w/2, h/2, "ANA")
+                    c.restoreState()
+                    # Loghi
+                    logo_paths = {"ana": None, "caronno": None, "pc": None}
+                    for p in ["logo.png", "logo_volontario_varese.png"]:
                         if os.path.exists(p):
-                            try: c.drawImage(ImageReader(p), 28*mm, y_logo, width=20*mm, height=20*mm, preserveAspectRatio=True, mask='auto'); break
-                            except: pass
-                    for p in ["gruppo_CPB.jpeg", "gruppoCPB.png"]:
+                            logo_paths["ana"] = p
+                            break
+                    for p in ["gruppo_caronno.png", "gruppo_CPB.jpeg", "gruppoCPB.png"]:
                         if os.path.exists(p):
-                            try: c.drawImage(ImageReader(p), w - 48*mm, y_logo, width=20*mm, height=20*mm, preserveAspectRatio=True, mask='auto'); break
-                            except: pass
-                    y = h - 40*mm; c.setFillColor(colors.HexColor("#1A5D1A")); c.setFont("Helvetica-Bold", 12); c.drawCentredString(w/2, y, evento); y -= 6*mm
-                    c.setFillColor(colors.black); c.setFont("Helvetica-Bold", 12); c.drawCentredString(w/2, y, luogo); y -= 5*mm
-                    c.setFillColor(colors.HexColor("#555555")); c.setFont("Helvetica", 10); c.drawCentredString(w/2, y, data_txt); y -= 18*mm
-                    c.setFillColor(colors.HexColor("#1A5D1A")); c.setFont("Times-Bold", 28); c.drawCentredString(w/2, y, "ATTESTATO"); y -= 6*mm
-                    c.setStrokeColor(colors.HexColor("#c9a86a")); c.setLineWidth(1.5); c.line(w/2 - 55*mm, y, w/2 + 55*mm, y); y -= 20*mm
-                    c.setFillColor(colors.HexColor("#1e3a5f")); c.setFont("Times-BoldItalic", 24); c.drawCentredString(w/2, y, nome); y -= 8*mm
-                    c.setStrokeColor(colors.HexColor("#c9a86a")); c.setLineWidth(0.5); c.line(w*0.15, y, w*0.85, y); y -= 10*mm
-                    c.setFillColor(colors.black); c.setFont("Helvetica-Oblique", 10); c.drawCentredString(w/2, y, '"Insieme con Noi ... Addestramento alla Protezione Civile"'); y -= 14*mm
-                    c.setFont("Helvetica", 11); c.drawCentredString(w/2, y, "E' stato operativo per le attività di"); y -= 7*mm
-                    c.setFillColor(colors.HexColor("#1A5D1A")); c.setFont("Times-Bold", 12); c.drawCentredString(w/2, y, ruolo)
-                    y_firma = 65*mm
-                    c.setFillColor(colors.HexColor("#1A5D1A")); c.setFont("Helvetica-Oblique", 11); c.drawCentredString(55*mm, y_firma + 10*mm, capogruppo)
-                    c.setStrokeColor(colors.black); c.line(30*mm, y_firma + 7*mm, 80*mm, y_firma + 7*mm)
-                    c.setFillColor(colors.black); c.setFont("Helvetica-Bold", 8); c.drawCentredString(55*mm, y_firma + 2*mm, "Il Capogruppo")
-                    c.setFillColor(colors.HexColor("#1A5D1A")); c.setFont("Helvetica-Oblique", 11); c.drawCentredString(w - 55*mm, y_firma + 10*mm, coordinatore)
-                    c.setStrokeColor(colors.black); c.line(w - 80*mm, y_firma + 7*mm, w - 30*mm, y_firma + 7*mm)
-                    c.setFillColor(colors.black); c.setFont("Helvetica-Bold", 8); c.drawCentredString(w - 55*mm, y_firma + 2*mm, "Coordinatore P.C.")
-                    c.showPage(); c.save(); buf.seek(0); return buf.getvalue()
-                if lista_nomi.strip():
-                    import zipfile; nomi_list = [n.strip() for n in lista_nomi.split('\\n') if n.strip()]; zip_buf = io.BytesIO()
-                    with zipfile.ZipFile(zip_buf, 'w') as zf:
-                        for n in nomi_list:
-                            pdf_bytes = crea_pdf(n, evento_dip, luogo_dip, data_dip, ruolo_dip, capogruppo_dip, coordinatore_dip, num_attestato)
-                            zf.writestr(f"Attestato_{n.replace(' ', '_')}_A4.pdf", pdf_bytes)
-                    zip_buf.seek(0); st.download_button(f"⬇️ ZIP {len(nomi_list)} Diplomi A4", data=zip_buf.getvalue(), file_name="diplomi_A4.zip", mime="application/zip", use_container_width=True, type="primary", key=f"dl_zip_dip_v{ver_dip}")
-                else:
-                    pdf_single = crea_pdf(nome_dip, evento_dip, luogo_dip, data_dip, ruolo_dip, capogruppo_dip, coordinatore_dip, num_attestato)
-                    st.download_button(f"⬇️ Diploma A4 {nome_dip}", data=pdf_single, file_name=f"Attestato_{nome_dip}_A4.pdf", mime="application/pdf", use_container_width=True, type="primary", key=f"dl_pdf_dip_v{ver_dip}")
+                            logo_paths["caronno"] = p
+                            break
+                    for p in ["logo2.png", "logo_pc.png"]:
+                        if os.path.exists(p):
+                            logo_paths["pc"] = p
+                            break
+                    y_logo = h - 3.2*cm
+                    try:
+                        if logo_paths["ana"]:
+                            c.drawImage(ImageReader(logo_paths["ana"]), 1.8*cm, y_logo, width=2*cm, height=2*cm, preserveAspectRatio=True, mask='auto')
+                    except:
+                        pass
+                    try:
+                        if logo_paths["caronno"]:
+                            c.drawImage(ImageReader(logo_paths["caronno"]), 5*cm, y_logo, width=2*cm, height=2*cm, preserveAspectRatio=True, mask='auto')
+                    except:
+                        pass
+                    try:
+                        if logo_paths["pc"]:
+                            c.drawImage(ImageReader(logo_paths["pc"]), w-4*cm, y_logo, width=2*cm, height=2*cm, preserveAspectRatio=True, mask='auto')
+                    except:
+                        pass
+                    # Testi identici anteprima
+                    y = h - 4.5*cm
+                    c.setFillColor(colors.HexColor("#1A5D1A"))
+                    c.setFont("Helvetica-Bold", 11)
+                    c.drawCentredString(w/2, y, evento)
+                    y -= 5*mm
+                    c.setFillColor(colors.black)
+                    c.setFont("Helvetica-Bold", 10)
+                    c.drawCentredString(w/2, y, luogo)
+                    y -= 4*mm
+                    c.setFillColor(colors.HexColor("#555555"))
+                    c.setFont("Helvetica", 9)
+                    c.drawCentredString(w/2, y, data_txt)
+                    y -= 12*mm
+                    c.setFillColor(colors.HexColor("#1A5D1A"))
+                    c.setFont("Times-Bold", 28)
+                    c.drawCentredString(w/2, y, "ATTESTATO")
+                    y -= 8*mm
+                    c.setStrokeColor(colors.HexColor("#d4af37"))
+                    c.setLineWidth(1.5)
+                    c.line(w/2 - 50*mm, y, w/2 + 50*mm, y)
+                    y -= 12*mm
+                    c.setFillColor(colors.HexColor("#1a3c6e"))
+                    c.setFont("Helvetica-BoldOblique", 22)
+                    c.drawCentredString(w/2, y, nome)
+                    y -= 10*mm
+                    c.setStrokeColor(colors.HexColor("#d4af37"))
+                    c.setLineWidth(0.5)
+                    c.line(w*0.2, y, w*0.8, y)
+                    y -= 10*mm
+                    c.setFillColor(colors.black)
+                    c.setFont("Helvetica-Oblique", 10)
+                    c.drawCentredString(w/2, y, '"Insieme con Noi ... Addestramento alla Protezione Civile"')
+                    y -= 10*mm
+                    c.setFont("Helvetica", 10)
+                    c.drawCentredString(w/2, y, "E' stato operativo per le attività di")
+                    y -= 6*mm
+                    c.setFillColor(colors.HexColor("#1A5D1A"))
+                    c.setFont("Helvetica-Bold", 11)
+                    c.drawCentredString(w/2, y, ruolo)
+                    # Firme
+                    y_firma = 4*cm
+                    c.setFillColor(colors.HexColor("#1A5D1A"))
+                    c.setFont("Helvetica-Oblique", 11)
+                    c.drawCentredString(3.5*cm, y_firma + 10*mm, capogruppo)
+                    c.setStrokeColor(colors.black)
+                    c.line(2*cm, y_firma + 7*mm, 5*cm, y_firma + 7*mm)
+                    c.setFillColor(colors.black)
+                    c.setFont("Helvetica-Bold", 7)
+                    c.drawCentredString(3.5*cm, y_firma + 3*mm, "Il Capogruppo")
+                    c.setFillColor(colors.HexColor("#1A5D1A"))
+                    c.setFont("Helvetica-Oblique", 11)
+                    c.drawCentredString(w-3.5*cm, y_firma + 10*mm, coordinatore or "Firma")
+                    c.setStrokeColor(colors.black)
+                    c.line(w-5*cm, y_firma + 7*mm, w-2*cm, y_firma + 7*mm)
+                    c.setFillColor(colors.black)
+                    c.setFont("Helvetica-Bold", 7)
+                    c.drawCentredString(w-3.5*cm, y_firma + 3*mm, "Coordinatore P.C.")
+                    # Footer
+                    c.setFont("Helvetica", 6)
+                    c.setFillColor(colors.HexColor("#777777"))
+                    c.drawString(1.5*cm, 1.3*cm, f"N° {num_att} - ANA Varese - Caronno Pertusella Bariola")
+                    c.drawRightString(w-1.5*cm, 1.3*cm, "PC ANA Varese 2026")
+                    c.showPage()
+                    c.save()
+                    buf.seek(0)
+                    return buf
+                pdf_buf = crea_diploma_pdf_pari_anteprima(nome_dip, evento_dip, luogo_dip, data_dip, ruolo_dip, capogruppo_dip, coordinatore_dip, num_attestato)
+                st.download_button("⬇️ Scarica PDF A4 - Pari Pari Anteprima", data=pdf_buf, file_name=f"Attestato_{nome_dip.replace(' ', '_')}_A4.pdf", mime="application/pdf", use_container_width=True, key=f"dl_pdf_dip_v{ver_dip}")
+                st.success("PDF generato - identico all'anteprima!")
             except Exception as e:
-                st.error(f"Errore PDF: {e}"); import traceback; st.code(traceback.format_exc())
-    excel_import_inline("diplomi", "Diplomi Attestati")
+                st.error(f"Errore generazione PDF: {e}")
+                import traceback
+                st.code(traceback.format_exc())
+
+
 elif cur == "Report Filtro":
     hdr_form("REPORT FILTRO - Verde ANA - Font Nero Times Bold - Tasto Filtro OK")
     st.markdown("""
@@ -5652,6 +5756,7 @@ elif cur == "Backup":
     hdr_form("BACKUP")
     FORM_KEYS = {
         "Volontari (con foto)": "volontari",
+        "Ospiti": "ospiti",
         "DB Radio": "radio_db",
         "Consegna Radio": "consegna_radio",
         "Alias Radio": "alias_radio",
@@ -5667,9 +5772,12 @@ elif cur == "Backup":
         "Libreria Icone": "icone",
         "Turni": "turni",
         "Chat": "chat",
+        "Verbali": "verbali",
+        "Archivio Documenti": "archivio_documenti",
+        "Diplomi Attestati": "diplomi",
+        "Report Filtro": "report_filtro",
         "Posizioni PD785": "posizioni_pd785",
-        "Posizioni Anytone": "posizioni_anytone",
-        "Archivio Documenti": "archivio_documenti"
+        "Posizioni Anytone": "posizioni_anytone"
     }
     st.markdown("""
     <div style="background:#e8f5e9;padding:10px;border-radius:8px;border-left:4px solid #1A5D1A;margin-bottom:12px;">
