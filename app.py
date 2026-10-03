@@ -8,6 +8,7 @@ from io import BytesIO
 from datetime import datetime, date, time
 import requests
 import sys
+
 # --- Dipendenze opzionali - gestite senza pip a runtime ---
 try:
     from reportlab.lib.pagesizes import landscape, A4
@@ -18,39 +19,48 @@ try:
     REPORTLAB_OK = True
 except ImportError:
     REPORTLAB_OK = False
+
 try:
     import openpyxl
     OPENPYXL_OK = True
 except ImportError:
     OPENPYXL_OK = False
+
 try:
     import xlsxwriter
     XLSXWRITER_OK = True
 except ImportError:
     XLSXWRITER_OK = False
+
 try:
     import xlrd
     XLRD_OK = True
 except ImportError:
     XLRD_OK = False
+
 if "ospiti" not in st.session_state:
     st.session_state.ospiti = []
 if "osp_edit_index" not in st.session_state:
     st.session_state.osp_edit_index = None
+
 if "page" not in st.session_state:
     st.session_state.page = "entra"
 if "logged" not in st.session_state:
     st.session_state.logged = False
 if "menu" not in st.session_state:
     st.session_state.menu = "Dashboard"
+
 st.set_page_config(
     page_title="ANA Varese - Dashboard",
     page_icon="🛡️",
     layout="wide",
     initial_sidebar_state="expanded"
 )
+
 # --- CSS globale VERDE ANA + font nero Times bold + FIX - versione definitiva ieri ---
 def inject_global_css():
+    if st.session_state.get("css_injected_final"):
+        return
     st.markdown("""
     <style>
     #MainMenu {visibility: hidden;}
@@ -102,9 +112,11 @@ def inject_global_css():
     }
     </style>
     """, unsafe_allow_html=True)
-    # CSS sempre attivo
+    st.session_state["css_injected_final"] = True
+
 def inject_first_page_green():
     pass
+
 def inject_fullscreen_kiosk():
     # Versione SICURA senza parent.document - funziona su Streamlit Cloud
     st.markdown("""
@@ -138,8 +150,11 @@ def inject_fullscreen_kiosk():
     });
     </script>
     """, height=0)
+
+
 inject_global_css()
 inject_fullscreen_kiosk()
+
 def to_excel_bytes(dfs_dict: dict, engine="openpyxl") -> bytes:
     """Esporta dizionario di DataFrame in un unico Excel multi-foglio - engine unico"""
     output = BytesIO()
@@ -158,6 +173,7 @@ def to_excel_bytes(dfs_dict: dict, engine="openpyxl") -> bytes:
                 df = pd.DataFrame(df)
             df.to_excel(writer, sheet_name=safe_name, index=False)
     return output.getvalue()
+
 def safe_read_excel(file):
     """Legge Excel provando tutti gli engine disponibili"""
     last_err = ""
@@ -172,7 +188,10 @@ def safe_read_excel(file):
             last_err = str(e)
             continue
     return None, last_err
+
+
 def inject_fullscreen_all_maps():
+
     st.components.v1.html('''
     <script>
     function addFullscreenToAllLeafletMaps() {
@@ -211,6 +230,8 @@ def inject_fullscreen_all_maps():
     setInterval(addFullscreenToAllLeafletMaps, 1500);
     </script>
     ''', height=0)
+
+
 COMUNI_ITALIA = [
     "Varese", "Busto Arsizio", "Gallarate", "Saronno", "Cassano Magnago",
     "Tradate", "Malnate", "Somma Lombardo", "Gavirate", "Laveno-Mombello",
@@ -232,6 +253,7 @@ COMUNI_ITALIA = [
     "Sangiano", "Travedona Monate", "Vedano Olona", "Venegono Inferiore",
     "Venegono Superiore", "Vergiate", "Viggiu"
 ]
+
 VIE_STANDARD = [
     "Via Roma", "Via Garibaldi", "Via Matteotti", "Via Verdi",
     "Via Manzoni", "Via Milano", "Via Varese", "Via Dante",
@@ -240,6 +262,8 @@ VIE_STANDARD = [
     "Via Risorgimento", "Via Volta", "Via Marconi", "Via De Gasperi",
     "Viale Europa"
 ]
+
+
 # ===== BASE 2032 + PATCH CSV COMUNE VIA - INIZIO =====
 BASE_2032_PATHS = [
     "/mnt/data/base_2032.csv",
@@ -252,6 +276,7 @@ PATCH_PATHS = [
     "/mnt/data/patch_comuni_vie.csv",
     "patch_comune_via.csv"
 ]
+
 def load_base_2032_df():
     for p in BASE_2032_PATHS:
         if os.path.exists(p):
@@ -263,6 +288,7 @@ def load_base_2032_df():
             except Exception as e:
                 print(f"Errore lettura base {p}: {e}")
     return None
+
 def load_patch_df():
     if "patch_df" in st.session_state and st.session_state.patch_df is not None:
         return st.session_state.patch_df
@@ -276,6 +302,7 @@ def load_patch_df():
             except:
                 pass
     return None
+
 def ui_patch_loader_sidebar():
     with st.sidebar.expander("🛠️ BASE 2032 + PATCH CSV", expanded=False):
         st.caption("CSV con colonne `comune,via` - sovrascrive base")
@@ -315,6 +342,10 @@ def ui_patch_loader_sidebar():
                 st.cache_data.clear()
                 st.rerun()
 # ===== BASE 2032 + PATCH - FINE =====
+
+
+
+
 def get_stato_color(stato):
     """
     Modifica 4: Colora fondo campo stato intervento emergenze
@@ -323,6 +354,7 @@ def get_stato_color(stato):
     bg_color = "#ffffff"
     txt_color = "#000000"
     label = stato
+
     if stato == "Operativo":
         bg_color = "#ff0000"
         txt_color = "white"
@@ -359,7 +391,10 @@ def get_stato_color(stato):
         bg_color = "#ffffff"
         txt_color = "#000000"
         label = stato
+
     return bg_color, txt_color, label
+
+
 def get_comuni():
     """
     BASE 2032 + PATCH CSV comune via
@@ -388,6 +423,7 @@ def get_comuni():
             pass
         if not comuni_set:
             comuni_set.update(COMUNI_ITALIA)
+
     # 2. PATCH aggiunge comuni
     patch_df = load_patch_df()
     if patch_df is not None and 'comune' in patch_df.columns:
@@ -396,7 +432,10 @@ def get_comuni():
             if c:
                 # normalizza titolo
                 comuni_set.add(c)
+
     return sorted(list(comuni_set))
+
+
 def get_vie(comune):
     """
     BASE 2032 + PATCH CSV comune via
@@ -406,6 +445,7 @@ def get_vie(comune):
     if not comune:
         return VIE_STANDARD
     comune_norm = comune.strip().lower()
+
     # 1. PATCH
     patch_df = load_patch_df()
     if patch_df is not None and 'comune' in patch_df.columns and 'via' in patch_df.columns:
@@ -414,6 +454,7 @@ def get_vie(comune):
         vie_patch = [v for v in vie_patch if v]
         if vie_patch:
             vie.extend(vie_patch)
+
     # 2. BASE 2032
     base_df = load_base_2032_df()
     if base_df is not None and 'comune' in base_df.columns and 'via' in base_df.columns:
@@ -424,8 +465,10 @@ def get_vie(comune):
                 vie.append(v)
         if vie:
             return sorted(list(set(vie)))[:150]
+
     if vie:
         return sorted(list(set(vie)))[:150]
+
     # 3. Overpass API
     try:
         query = """
@@ -451,9 +494,13 @@ def get_vie(comune):
                 return sorted(vie[:80])
     except:
         pass
+
     pref = "Via " + comune
     custom = [pref + " Centro", pref + " Nord", pref + " Sud"]
     return VIE_STANDARD + custom
+
+
+
 def emoji_sicura(emoji_char, fallback_text="📍"):
     """Ritorna emoji se valida, altrimenti fallback testo - evita quadratini"""
     if not emoji_char or emoji_char in ["□", "☐", "�", ""]:
@@ -463,20 +510,25 @@ def emoji_sicura(emoji_char, fallback_text="📍"):
     if emoji_char in sicure or len(emoji_char) <= 2:
         return emoji_char
     return fallback_text
+
+
 def combo_comune(label, key, default=""):
     """
     Selectbox COMUNI ITALIA con default
     """
     comuni_list = get_comuni()
     comuni_list = sorted(list(set(comuni_list)))
+
     if default and default not in comuni_list:
         comuni_list = [default] + comuni_list
+
     idx_default = 0
     if default:
         try:
             idx_default = comuni_list.index(default)
         except:
             idx_default = 0
+
     selected = st.selectbox(
         label,
         comuni_list,
@@ -484,6 +536,8 @@ def combo_comune(label, key, default=""):
         key=key
     )
     return selected
+
+
 def combo_vie(label, comune, key, default=""):
     """
     Se comune, get_vie e selectbox VIE DI COMUNE + checkbox via manuale
@@ -493,15 +547,19 @@ def combo_vie(label, comune, key, default=""):
         vie_list = get_vie(comune)
     else:
         vie_list = VIE_STANDARD
+
     vie_list = sorted(list(set(vie_list)))
+
     if default and default not in vie_list:
         vie_list = [default] + vie_list
+
     idx_default = 0
     if default:
         try:
             idx_default = vie_list.index(default)
         except:
             idx_default = 0
+
     col1, col2 = st.columns([3, 1])
     with col1:
         selected_via = st.selectbox(
@@ -515,6 +573,7 @@ def combo_vie(label, comune, key, default=""):
             "Via manuale",
             key=key + "_manuale_chk"
         )
+
     if manuale:
         via_manuale = st.text_input(
             "Inserisci via manuale",
@@ -527,6 +586,8 @@ def combo_vie(label, comune, key, default=""):
             return selected_via
     else:
         return selected_via
+
+
 def to_excel(df):
     """
     Esporta DataFrame in Excel - FIX Office 2016 100% compatibile - Ezio
@@ -534,6 +595,7 @@ def to_excel(df):
     """
     buf = io.BytesIO()
     df_copy = df.copy()
+
     cols_to_exclude = [
         "FotoBytes",
         "FileBytes",
@@ -541,12 +603,15 @@ def to_excel(df):
         "Foto",
         "FotoBytesObj"
     ]
+
     for col in cols_to_exclude:
         if col in df_copy.columns:
             df_copy = df_copy.drop(columns=[col])
+
     # Assicura che df non sia None
     if df_copy is None or not isinstance(df_copy, pd.DataFrame):
         df_copy = pd.DataFrame()
+
     # Prova openpyxl prima (100% Office 2016 compatibile) - FIX CLOUD: prova sempre, ignora flag
     last_error = ""
     for engine_try in ["openpyxl", "xlsxwriter"]:
@@ -565,6 +630,7 @@ def to_excel(df):
         except Exception as e:
             last_error = str(e)
             continue
+
     # Ultimo tentativo: forza openpyxl diretto - FIX CLOUD
     try:
         import openpyxl
@@ -578,6 +644,7 @@ def to_excel(df):
         last_error = f"openpyxl diretto len {len(data)} non PK"
     except Exception as e:
         last_error = str(e)
+
     # Se proprio fallisce, crea file Excel minimo con openpyxl diretto - MAI CSV!
     try:
         import openpyxl
@@ -655,6 +722,7 @@ def to_excel(df):
                     return data
             except Exception as e3:
                 last_error = str(e3)
+            
             # Ultima spiaggia - crea XLSX valido vuoto ma MAI CSV
             try:
                 import openpyxl
@@ -694,6 +762,8 @@ def to_excel(df):
                     wb.save(buf)
                     buf.seek(0)
                     return buf.getvalue()
+
+
 def to_excel_multi(datasets):
     """
     datasets = dict nome_sheet -> df - FIX Win7 - NON CRASHA CLOUD
@@ -738,6 +808,8 @@ def to_excel_multi(datasets):
                 return buf.getvalue()
             except:
                 return b''
+
+
 def excel_import_inline(form_key, form_label):
     """
     Import/Export inline per ogni form - Ezio richiesta - ORA CON PDF
@@ -746,7 +818,9 @@ def excel_import_inline(form_key, form_label):
     """
     st.divider()
     st.markdown(f"Import/Export")
+
     c1, c2, c3, c4 = st.columns(4)
+
     # Export Excel corrente - SOLO XLSX - MAI CSV - Richiesta Ezio - Fix per tutti i form
     with c1:
         data = st.session_state.get(form_key, [])
@@ -801,6 +875,7 @@ def excel_import_inline(form_key, form_label):
                 st.info("Nessun dato")
         else:
             st.info(f"{form_label} vuoto")
+
     # Export PDF corrente - NUOVO RICHIESTA EZIO
     with c2:
         data_pdf = st.session_state.get(form_key, [])
@@ -829,6 +904,7 @@ def excel_import_inline(form_key, form_label):
                 st.info("Nessun dato PDF")
         else:
             st.info("Nessun dato per PDF")
+
     # Template vuoto per ODV
     with c3:
         data_existing = st.session_state.get(form_key, [])
@@ -856,6 +932,7 @@ def excel_import_inline(form_key, form_label):
                 cols = ["Data","Tipo","Luogo","Descrizione","Note"]
             else:
                 cols = ["Campo1","Campo2","Campo3","Note"]
+
         df_template = pd.DataFrame(columns=cols)
         try:
             tpl_data = to_excel(df_template)
@@ -876,10 +953,12 @@ def excel_import_inline(form_key, form_label):
             st.error(f"Template errore: {str(e)[:100]}")
             st.info("Fix: requirements.txt deve contenere openpyxl")
         st.caption("Template vuoto per ODV")
+
     # Import
     with c4:
         up_mode = st.radio("Modalità import", ["Aggiungi","Sostituisci"], key=f"mode_inline_{form_key}", horizontal=True)
         up_file = st.file_uploader(f"Carica Excel per {form_label}", type=["xlsx","xls"], key=f"up_inline_{form_key}")
+
         if up_file:
             try:
                 df_imp = None
@@ -897,6 +976,7 @@ def excel_import_inline(form_key, form_label):
                     except Exception as e:
                         last_err = str(e)
                         continue
+
                 # FIX: accetta anche file con solo header + dati, e mostra anche se vuoto
                 if df_imp is not None:
                     # Pulisci
@@ -907,6 +987,7 @@ def excel_import_inline(form_key, form_label):
                             df_imp = df_imp.loc[:, ~df_imp.columns.astype(str).str.contains('^Unnamed', na=False)]
                     except:
                         pass
+
                     if df_imp.empty:
                         # File ha solo intestazioni o vuoto - mostra colonne
                         if len(df_imp.columns) > 0:
@@ -924,6 +1005,7 @@ def excel_import_inline(form_key, form_label):
                             st.session_state[f"show_preview_{form_key}"] = not st.session_state.get(f"show_preview_{form_key}", False)
                         if st.session_state.get(f"show_preview_{form_key}", False):
                             st.dataframe(df_imp.head(20), use_container_width=True)
+
                         if st.button(f"✅ Importa {len(df_imp)} righe in {form_label}", type="primary", use_container_width=True, key=f"btn_imp_inline_{form_key}"):
                             imported = df_imp.to_dict(orient="records")
                             # Pulisci NaN
@@ -940,10 +1022,12 @@ def excel_import_inline(form_key, form_label):
                                 # Salta righe vuote
                                 if any(nr.values()):
                                     cleaned.append(nr)
+
                             if up_mode.startswith("Sostituisci"):
                                 st.session_state[form_key] = cleaned
                             else:
                                 st.session_state[form_key] = st.session_state.get(form_key, []) + cleaned
+
                             st.success(f"Importati {len(cleaned)} in {form_label}!")
                             st.balloons()
                             st.rerun()
@@ -955,6 +1039,9 @@ def excel_import_inline(form_key, form_label):
                         st.error("Office 2016 FIX: Salva file come .xlsx (non .xls) in Office 2016 -> File -> Salva con nome -> Cartella di lavoro Excel (*.xlsx)")
             except Exception as e:
                 st.error(f"Errore import: {e}")
+
+
+
 def to_pdf(df, tit):
     """
     PDF con logo - FIX definitivo UnboundLocalError + PDF valido apribile
@@ -965,11 +1052,13 @@ def to_pdf(df, tit):
         buf = io.BytesIO()
         if not REPORTLAB_OK:
             raise ImportError("reportlab non disponibile")
+
         from reportlab.lib.pagesizes import landscape, A4
         from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, Image
         from reportlab.lib.styles import getSampleStyleSheet
         from reportlab.lib import colors
         from reportlab.lib.units import cm
+
         doc = SimpleDocTemplate(buf, pagesize=landscape(A4), leftMargin=1*cm, rightMargin=1*cm, topMargin=1.5*cm, bottomMargin=1*cm)
         styles = getSampleStyleSheet()
         story = []
@@ -980,12 +1069,14 @@ def to_pdf(df, tit):
                 story.append(Spacer(1, 12))
         except:
             pass
+
         title_para = Paragraph(f"<b>{tit} - ANA Varese Protezione Civile</b>", styles["Title"])
         story.append(title_para)
         story.append(Spacer(1, 12))
         date_para = Paragraph(f"Generato il {datetime.now().strftime('%d/%m/%Y %H:%M')}", styles["Normal"])
         story.append(date_para)
         story.append(Spacer(1, 12))
+
         if df is not None and not df.empty:
             df_clean = df.copy()
             for col in df_clean.columns:
@@ -1021,6 +1112,7 @@ def to_pdf(df, tit):
             story.append(t)
         else:
             story.append(Paragraph("Nessun dato disponibile", styles["Normal"]))
+
         doc.build(story)
         buf.seek(0)
         return buf.getvalue()
@@ -1039,7 +1131,10 @@ def to_pdf(df, tit):
         except:
             # Fallback PDF minimo valido
             return b"%PDF-1.4 fallback PDF"
+
+
 def hdr():
+
     """
     Header con 2 loghi affiancati + intestazione centrata - FIX etichetta verde scuro centrata nel verde chiaro
     """
@@ -1078,6 +1173,7 @@ def hdr():
                 )
         except:
             st.markdown("**ANA**")
+    
     with c2:
         try:
             # Secondo logo - Gruppo Caronno Pertusella - allegato Ezio - a fianco pcana
@@ -1102,6 +1198,7 @@ def hdr():
                 )
         except:
             st.markdown("**GRUPPO**")
+
     with c3:
         st.markdown(
             """
@@ -1126,6 +1223,8 @@ def hdr():
             """,
             unsafe_allow_html=True
         )
+
+
 def hdr_form(t):
     st.markdown(
         f"""
@@ -1135,10 +1234,12 @@ def hdr_form(t):
         """,
         unsafe_allow_html=True
     )
+
 def get_form_key(base, form_ver_key):
     """Restituisce chiave versionata per pulisci maschera che funziona - Ezio"""
     ver = st.session_state.get(form_ver_key, 0)
     return f"{base}_v{ver}"
+
 def pulisci_maschera_form(form_ver_key, keys_prefixes):
     """Pulisci maschera con versionamento - funziona davvero - Ezio"""
     # Incrementa versione
@@ -1156,14 +1257,21 @@ def pulisci_maschera_form(form_ver_key, keys_prefixes):
     except:
         pass
     st.rerun()
+
+
     st.markdown("""
     <style>
     .block-container { padding-top: 1rem !important; }
     [data-testid="stVerticalBlock"] { gap: 0.8rem !important; }
     </style>
     """, unsafe_allow_html=True)
+
+
+
+
 # POPOUT INIZIALE SOLO ICONA MANIFESTO - Richiesta Ezio - TEMPO CONFIGURABILE
 SPLASH_SECONDS = 5  # Fix Ezio - 5 secondi splash manifesto
+
 def inject_popout_splash():
     try:
         import base64, os
@@ -1206,7 +1314,11 @@ def inject_popout_splash():
         st.components.v1.html(html, height=0)
     except:
         pass
+
+
 def init_session():
+
+
     defaults = {
         "page": "entra",
         "logged": False,
@@ -1244,16 +1356,21 @@ def init_session():
         "int_edit_index": None,
         "mappe": []
     }
+
     for k, v in defaults.items():
         if k not in st.session_state:
             st.session_state[k] = v
+
 # --- GESTIONE UTENTI + PRESENZA CHAT - Ezio richiesta - FIX accesso negato ---
 import json
 import hashlib
+
 UTENTI_FILE = "utenti.json"
 PRESENZA_FILE = "presenza.json"
+
 def hash_pwd(pwd):
     return hashlib.sha256(pwd.encode()).hexdigest()
+
 def load_utenti():
     default_utenti = [
         {"username": "admin", "password": hash_pwd("ana2024"), "nome": "Amministratore ANA", "ruolo": "amministratore", "attivo": True, "permessi": [], "creato_da": "sistema", "data_creazione": "01/01/2026"},
@@ -1274,6 +1391,7 @@ def load_utenti():
     except:
         pass
     return default_utenti
+
 def save_utenti(utenti_list):
     try:
         with open(UTENTI_FILE, 'w', encoding='utf-8') as f:
@@ -1282,6 +1400,7 @@ def save_utenti(utenti_list):
     except Exception as e:
         print(f"Errore save utenti: {e}")
         return False
+
 def load_presenza():
     try:
         if os.path.exists(PRESENZA_FILE):
@@ -1290,6 +1409,7 @@ def load_presenza():
     except:
         pass
     return []
+
 def save_presenza(presenza_list):
     try:
         now = datetime.now()
@@ -1305,6 +1425,7 @@ def save_presenza(presenza_list):
             json.dump(fresh, f, indent=2, ensure_ascii=False)
     except:
         pass
+
 def aggiorna_presenza(username, nome, ruolo):
     try:
         presenza = load_presenza()
@@ -1319,6 +1440,7 @@ def aggiorna_presenza(username, nome, ruolo):
         save_presenza(presenza)
     except:
         pass
+
 def rimuovi_presenza(username):
     try:
         presenza = load_presenza()
@@ -1326,9 +1448,13 @@ def rimuovi_presenza(username):
         save_presenza(presenza)
     except:
         pass
+
+
 init_session()
+
 # FIX GLOBALE DISABILITATO - ora icona è vero tasto bottone, non link
 # Gestione query param disabilitata - icona ora è vero bottone st.button, non link <a>
+
 # PAGINA ENTRA - con footer fisso in basso Developed by Ezio F. 2026 Vers 1.0 - Logo cartoon
 if st.session_state.page == "entra":
     hdr()
@@ -1356,6 +1482,7 @@ if st.session_state.page == "entra":
                 )
         except:
             st.markdown("### ANA Varese")
+
         st.markdown(
             """
             <h2 style="text-align:center;font-family:Times New Roman;
@@ -1368,6 +1495,7 @@ if st.session_state.page == "entra":
             """,
             unsafe_allow_html=True
         )
+
         if st.button(
             "ENTRA NEL GESTIONALE",
             type="primary",
@@ -1375,6 +1503,7 @@ if st.session_state.page == "entra":
         ):
             st.session_state.page = "login"
             st.rerun()
+    
     # FOOTER FISSO IN BASSO - fuori da c2, centrato in tutta pagina - Fix posizione Ezio
     # CSS fixed bottom
     try:
@@ -1384,6 +1513,7 @@ if st.session_state.page == "entra":
             logo_path = "logo_dev_ezio.png"
         elif os.path.exists("/mnt/data/logo_dev_ezio.png"):
             logo_path = "/mnt/data/logo_dev_ezio.png"
+        
         if logo_path:
             with open(logo_path, "rb") as f:
                 b64_logo = base64.b64encode(f.read()).decode()
@@ -1397,6 +1527,7 @@ if st.session_state.page == "entra":
             if cop_path:
                 with open(cop_path, "rb") as cf:
                     copertina_b64 = base64.b64encode(cf.read()).decode()
+            
             # Footer fisso con copertina.png piccola a sx + scritta - richiesta Ezio
             if copertina_b64:
                 # Usa copertina.png piccola 20px a sx
@@ -1552,7 +1683,9 @@ if st.session_state.page == "entra":
         </div>
         <div style="height:50px;"></div>
         """, unsafe_allow_html=True)
+
     st.stop()
+
 # PAGINA LOGIN - CON INTESTAZIONE - richiesta Ezio: metti intestazione prima pagina anche in login
 if st.session_state.page == "login":
     hdr()  # Intestazione con 2 loghi + Squadra Volontari... - richiesta Ezio - messa anche in login
@@ -1563,10 +1696,12 @@ if st.session_state.page == "login":
         # Solo login pulito senza etichetta multiuso
         utenti_list = load_utenti()
         # st.info rimosso - non mostrare utenti configurati demo
+        
         with st.form("login_form"):
             utente = st.text_input("Utente", key="login_utente_form")
             pwd = st.text_input("Password", type="password", key="login_pwd_form")
             submitted = st.form_submit_button("Accedi", type="primary", use_container_width=True)
+            
             if submitted:
                 found = False
                 for u in utenti_list:
@@ -1589,14 +1724,18 @@ if st.session_state.page == "login":
                         break
                 if not found:
                     st.error("Credenziali errate o utente disattivato - Verifica username/password e che utente sia attivo")
+
         if st.button("Torna a Entra", use_container_width=True):
             st.session_state.page = "entra"
             st.rerun()
+
     st.stop()
+
 # CONTROLLO LOGIN
 if not st.session_state.logged:
     st.session_state.page = "login"
     st.rerun()
+
 # SIDEBAR - MENU
 with st.sidebar:
     try:
@@ -1615,6 +1754,7 @@ with st.sidebar:
             )
     except:
         st.write("ANA")
+
     st.markdown(
         """
         <p style="font-weight:bold;font-family:Times New Roman;
@@ -1624,6 +1764,7 @@ with st.sidebar:
         """,
         unsafe_allow_html=True
     )
+
     # Menu base - Gestione Utenti solo per amministratore
     ruolo_corrente = st.session_state.get("ruolo_utente", "amministratore")
     if ruolo_corrente == "amministratore":
@@ -1650,7 +1791,6 @@ with st.sidebar:
             "Verbali",
             "Archivio Documenti",
             "Diplomi Attestati",
-            "Report Filtro",
             "Geolocalizzazione Hytera + Anytone",
             "Gestione Utenti",
             "Backup"
@@ -1679,10 +1819,10 @@ with st.sidebar:
             "Verbali",
             "Archivio Documenti",
             "Diplomi Attestati",
-            "Report Filtro",
             "Geolocalizzazione Hytera + Anytone",
             "Backup"
         ]
+
     # FIX: Se force_menu presente (click icona tabella emergenze), forza apertura Interventi Emergenza per modifiche
     if "force_menu" in st.session_state:
         try:
@@ -1692,10 +1832,12 @@ with st.sidebar:
             del st.session_state["force_menu"]
         except:
             pass
+
     # FIX: Assicura logged e page dashboard quando si clicca icona - evita pagina iniziale
     if st.session_state.get("int_edit_index") is not None and st.session_state.menu == "Interventi Emergenza":
         st.session_state.logged = True
         st.session_state.page = "dashboard"
+
     cur = st.radio(
         "Seleziona form",
         menu_base,
@@ -1703,24 +1845,30 @@ with st.sidebar:
         key="menu_radio"
     )
     st.session_state.menu = cur
+
     st.divider()
+    
     # Utente loggato + ruolo
     username = st.session_state.get("username", "admin")
     nome_utente = st.session_state.get("nome_utente", "Amministratore")
     ruolo_utente = st.session_state.get("ruolo_utente", "amministratore")
+    
     # Colore ruolo
     colore_ruolo = {"amministratore": "#d32f2f", "operatore": "#1A5D1A", "lettore": "#1976d2"}.get(ruolo_utente, "#1A5D1A")
+    
     st.markdown(f"""
     <div style="background:{colore_ruolo};color:white;padding:8px;border-radius:8px;text-align:center;">
     <b>{nome_utente}</b><br>
     <small>{username} - {ruolo_utente.upper()}</small>
     </div>
     """, unsafe_allow_html=True)
+    
     # Aggiorna presenza ogni volta che naviga
     try:
         aggiorna_presenza(username, nome_utente, ruolo_utente)
     except:
         pass
+
     # MODIFICA 6 - LOGOUT RIPRISTINATO con rimozione presenza
     if st.button("Logout", type="primary", use_container_width=True, key="logout_btn"):
         try:
@@ -1734,6 +1882,7 @@ with st.sidebar:
         st.session_state.nome_utente = ""
         st.session_state.ruolo_utente = ""
         st.rerun()
+
     st.divider()
     st.markdown(
         """
@@ -1749,12 +1898,15 @@ with st.sidebar:
         """,
         unsafe_allow_html=True
     )
+
 # DASHBOARD - SENZA INTESTAZIONE - richiesta Ezio: togli intestazione dalla dashboard, metti in login
 if cur == "Dashboard":
     # hdr() rimosso da dashboard - messo in login - richiesta Ezio
     hdr_form("MENU'")
+
     # Etichetta "Seleziona un form" rimossa dalla dashboard - richiesta Ezio
     # st.markdown Seleziona un form rimosso
+
     form_buttons = [
         ("Volontari (con foto)", "👤 Volontari"),
         ("Ospiti", "🧑‍🤝‍🧑 Ospiti"),
@@ -1780,6 +1932,7 @@ if cur == "Dashboard":
         ("Geolocalizzazione Hytera + Anytone", "📡 Geoloc"),
         ("Backup", "💾 Backup")
     ]
+
     # TASTO ROSSO FULLSCREEN
     c_fs1, c_fs2 = st.columns([1,3])
     with c_fs1:
@@ -1787,6 +1940,7 @@ if cur == "Dashboard":
             st.session_state["fs_active"] = True
     with c_fs2:
         st.markdown('<span style="background:red;color:white;padding:6px 12px;border-radius:6px;font-weight:bold;">🔴 FULLSCREEN - ESC per uscire</span>', unsafe_allow_html=True)
+
     if st.session_state.get("fs_active"):
         st.components.v1.html(
             """
@@ -1811,13 +1965,15 @@ if cur == "Dashboard":
             st.components.v1.html("<script>try{document.exitFullscreen(); parent.document.exitFullscreen();}catch(e){}</script>", height=0)
             st.session_state["fs_active"] = False
             st.rerun()
+
     st.write("")
+
     def vai_a_form_callback(form_name):
         st.session_state.menu = form_name
         st.session_state["menu_radio"] = form_name
         st.session_state["cur"] = form_name
-        st.session_state.page = "dashboard"
-        st.session_state.logged = True
+        st.session_state["cur"] = form_name
+
     # CSS bottoni verde ANA - SFONDO PIENO VERDE - FIX DEFINITIVO
     st.markdown(
         """
@@ -1877,6 +2033,7 @@ if cur == "Dashboard":
         """,
         unsafe_allow_html=True
     )
+
     cols = st.columns(3)
     for i, (menu_name, btn_label) in enumerate(form_buttons):
         col = cols[i % 3]
@@ -1889,7 +2046,9 @@ if cur == "Dashboard":
                 on_click=vai_a_form_callback,
                 args=(menu_name,)
             )
+
     st.divider()
+
     st.markdown(
         """
         <div style="background:linear-gradient(135deg,#e8f5e9,#c8e6c9);
@@ -1906,6 +2065,7 @@ if cur == "Dashboard":
         """,
         unsafe_allow_html=True
     )
+
     # Statistiche semplici
     st.write("")
     c1, c2, c3, c4 = st.columns(4)
@@ -1917,9 +2077,11 @@ if cur == "Dashboard":
         st.metric("Emergenze", len(st.session_state.emergenze))
     with c4:
         st.metric("Mappe Postazioni", len(st.session_state.mappe))
+
 # VOLONTARI FORM CON SOTTOMASCHERE A LINGUETTE + CAMPO ODV - NUOVA VERSIONE FINALE
 elif cur == "Volontari (con foto)":
     hdr_form("DB VOLONTARI")
+
     edit_mode = False
     edit_data = {}
     if st.session_state.vol_edit_index is not None:
@@ -1929,6 +2091,7 @@ elif cur == "Volontari (con foto)":
         except:
             edit_data = {}
             edit_mode = False
+
     if edit_mode:
         st.warning(f"✏️ Modifica: {edit_data.get('Nome','')} {edit_data.get('Cognome','')} - Capo ODV: {edit_data.get('CapoODV','')} - I dati sono caricati nelle maschere sotto")
         # Forza caricamento dati nelle chiavi se non già presenti (per modifica da selectbox)
@@ -1943,8 +2106,10 @@ elif cur == "Volontari (con foto)":
                 st.session_state["vol_cell_tab"] = edit_data.get("Cellulare","")
         except:
             pass
+
     # SOTTOMASCHERE A LINGUETTE - 6 TAB
     tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs(["📋 Anagrafica", "📞 Contatti", "🛡️ Ruolo", "📻 Dotazione", "📄 Documenti", "📸 Foto"])
+
     # Valori default da edit
     nome_def = edit_data.get("Nome", "")
     cognome_def = edit_data.get("Cognome", "")
@@ -1960,6 +2125,7 @@ elif cur == "Volontari (con foto)":
     radio_id_def = edit_data.get("RadioID", "")
     doc_def = edit_data.get("Documento", "")
     scad_def = edit_data.get("ScadDoc", "")
+
     with tab1:
         st.markdown("#### 📋 Anagrafica + Capo ODV")
         c1, c2 = st.columns(2)
@@ -1981,6 +2147,7 @@ elif cur == "Volontari (con foto)":
             # Se valore esistente non in lista, aggiungilo
             if odv_app_def and odv_app_def not in odv_lista:
                 odv_lista = [odv_app_def] + odv_lista
+            
             odv_app = st.selectbox("ODV Associazione di Appartenenza *", odv_lista, index=odv_lista.index(odv_app_def) if odv_app_def in odv_lista else 0, key="vol_odv_app")
             if odv_app == "Altro":
                 odv_app_custom = st.text_input("Specifica ODV - Inserisci nome", value="" if odv_app_def in odv_lista else odv_app_def, key="vol_odv_custom", placeholder="Es: Protezione Civile Busto Arsizio")
@@ -1988,6 +2155,7 @@ elif cur == "Volontari (con foto)":
                     odv_app = odv_app_custom
             data_nascita = st.date_input("Data Nascita", value=date(1970,1,1), min_value=date(1950,1,1), max_value=date.today(), format="DD/MM/YYYY", key="vol_data_nasc")
             codice_fisc = st.text_input("Codice Fiscale", value=edit_data.get("CodFisc",""), key="vol_cf")
+            
             # FOTO NELLA PRIMA MASCHERA + DOWNLOAD
             st.markdown("**📸 Foto Volontario - Prima Maschera**")
             foto_file_prima = st.file_uploader("Carica foto (prima maschera)", type=["jpg", "jpeg", "png"], key="vol_foto_prima")
@@ -2003,6 +2171,7 @@ elif cur == "Volontari (con foto)":
                     st.download_button("⬇️ Download Foto Esistente", data=edit_data.get("FotoBytes"), file_name=f"foto_{edit_data.get('Cognome','')}_{edit_data.get('Nome','')}.jpg", mime="image/jpeg", use_container_width=True, key="download_foto_esistente_prima")
                 except:
                     pass
+
     with tab2:
         st.markdown("#### 📞 Contatti")
         c1, c2 = st.columns(2)
@@ -2012,6 +2181,7 @@ elif cur == "Volontari (con foto)":
         with c2:
             tel_emerg = st.text_input("Telefono Emergenza", value=tel_em_def, key="vol_tel_em")
             note_cont = st.text_area("Note Contatti", value=edit_data.get("NoteContatti",""), key="vol_note_cont")
+
     with tab3:
         st.markdown("#### 🛡️ Ruolo e Squadra")
         c1, c2 = st.columns(2)
@@ -2021,17 +2191,20 @@ elif cur == "Volontari (con foto)":
         with c2:
             data_iscriz = st.date_input("Data Iscrizione ODV", value=date.today(), format="DD/MM/YYYY", key="vol_data_iscr")
             stato_vol = st.selectbox("Stato", ["Attivo", "Inattivo", "In Formazione", "Sospeso"], key="vol_stato")
+
     with tab4:
         st.markdown("#### 📻 Dotazione Radio")
         radio_id = st.text_input("ID Radio / Matricola", value=radio_id_def, key="vol_radio_id")
         modello_radio = st.selectbox("Modello Radio", ["Hytera PD785", "Anytone 878", "Motorola", "Altro"], key="vol_radio_mod")
         note_dot = st.text_area("Note Dotazione", value=edit_data.get("NoteDotazione",""), key="vol_note_dot")
+
     with tab5:
         st.markdown("#### 📄 Documenti")
         doc_tipo = st.text_input("Tipo Documento", value=doc_def, key="vol_doc_tipo")
         doc_num = st.text_input("Numero Documento", value=edit_data.get("DocNum",""), key="vol_doc_num")
         doc_scad = st.date_input("Scadenza Documento", value=date.today(), format="DD/MM/YYYY", key="vol_doc_scad")
         st.caption("Formato data gg/mm/aaaa - es: 23/09/2026")
+
     with tab6:
         st.markdown("#### 📸 Foto Volontario")
         foto_file = st.file_uploader("Carica foto", type=["jpg", "jpeg", "png"], key="vol_foto_tab")
@@ -2051,7 +2224,9 @@ elif cur == "Volontari (con foto)":
         elif foto_preview:
             st.image(foto_preview, width=150, caption="Foto da prima maschera")
             st.download_button("⬇️ Download Foto da Prima Maschera", data=foto_preview, file_name=f"foto_{nome}_{cognome}.jpg", mime="image/jpeg", use_container_width=True, key="download_foto_da_prima")
+
     st.divider()
+
     col_btn1, col_btn2, col_btn3 = st.columns([1,1,2])
     with col_btn3:
         # Pulisci maschera Volontari - FIX che funziona - Ezio
@@ -2154,18 +2329,22 @@ elif cur == "Volontari (con foto)":
                     st.rerun()
                 else:
                     st.error("Compila campi obbligatori * (Nome, Cognome, Cellulare, Capo ODV)")
+
     # Elenco volontari - COMBO invece di lista lunga 200 - richiesta Ezio + tasto mostra tabella
     st.divider()
     if st.session_state.volontari:
         st.markdown(f"#### Elenco Volontari ({len(st.session_state.volontari)}) - Usa combo per modifica")
+        
         # COMBO per selezionare volontario - non mostra tutti i 200 sotto
         vol_options = []
         for i, v in enumerate(st.session_state.volontari):
             label = f"{i+1:03d}: {v.get('Cognome','')} {v.get('Nome','')} - {v.get('ODVAppartenenza','')} - Capo {v.get('CapoODV','')} - {v.get('Comune','')}"
             vol_options.append((i, label))
+        
         # Selectbox combo
         combo_labels = ["-- Seleziona volontario per modifica --"] + [lbl for _, lbl in vol_options]
         sel_combo = st.selectbox("🔍 Cerca e seleziona volontario (combo) - per 200 volontari", combo_labels, key="vol_combo_modifica")
+        
         if sel_combo != "-- Seleziona volontario per modifica --":
             try:
                 # Trova indice
@@ -2218,16 +2397,19 @@ elif cur == "Volontari (con foto)":
                                 st.error(f"Errore eliminazione: {e}")
             except Exception as e:
                 st.error(f"Errore combo: {e}")
+        
         st.divider()
         # Tasto per vedere tabella volontari - richiesta Ezio: non mostrare automaticamente sotto
         if st.button(f"📋 Mostra/Nascondi Tabella Volontari ({len(st.session_state.volontari)} record)", key="btn_toggle_tabella_vol"):
             st.session_state["show_vol_table"] = not st.session_state.get("show_vol_table", False)
+        
         if st.session_state.get("show_vol_table", False):
             df_vol = pd.DataFrame([{k:v for k,v in vol.items() if "Bytes" not in k} for vol in st.session_state.volontari])
             cols_show = ["Cognome", "Nome", "CapoODV", "ODVAppartenenza", "Comune", "Cellulare", "Ruolo", "Squadra"]
             cols_show = [c for c in cols_show if c in df_vol.columns]
             st.dataframe(df_vol[cols_show] if cols_show else df_vol, use_container_width=True)
             st.caption("Tabella nascosta dietro bottone per non occupare spazio con 200 volontari")
+
         # Export Excel volontari - FIX sempre visibile - DEBUG OPENPYXL
         try:
             df_export = pd.DataFrame([{k:v for k,v in vol.items() if "Bytes" not in k} for vol in st.session_state.volontari])
@@ -2239,6 +2421,7 @@ elif cur == "Volontari (con foto)":
                     st.caption(f"openpyxl import OK v{openpyxl.__version__}")
                 except Exception as e:
                     st.error(f"openpyxl import FAIL: {e} - Verifica requirements.txt su GitHub!")
+                
                 excel_bytes = to_excel(df_export)
                 if excel_bytes and len(excel_bytes) > 100 and excel_bytes[:2] == b'PK':
                     st.download_button(
@@ -2286,6 +2469,7 @@ elif cur == "Volontari (con foto)":
             st.error(f"Errore export volontari: {e}")
             import traceback
             st.code(traceback.format_exc())
+
         # Selectbox fallback per modifica
         cognomi = [f"{i}: {v.get('Cognome','')} {v.get('Nome','')} - ODV {v.get('ODVAppartenenza','')} - Capo {v.get('CapoODV','')}" for i, v in enumerate(st.session_state.volontari)]
         sel = st.selectbox("Oppure seleziona volontario per modifica (metodo vecchio)", ["--"] + cognomi, key="sel_vol_mod")
@@ -2315,10 +2499,15 @@ elif cur == "Volontari (con foto)":
         pass  # istruzione rimossa
         pass
         # Istruzione rimossa - form pulito
+
     st.divider()
+
 # DB RADIO
     # IMPORT/EXPORT
     excel_import_inline("volontari", "Volontari (con foto)")
+
+
+
 elif cur == "Ospiti":
     hdr_form("DB OSPITI - Visitatori e Ospiti Esterni - Font Nero Times Bold - Verde ANA")
     edit_mode_osp = False
@@ -2414,8 +2603,12 @@ elif cur == "Ospiti":
         df_osp = pd.DataFrame([{k:v for k,v in o.items() if "Bytes" not in k} for o in st.session_state.ospiti])
         st.dataframe(df_osp, use_container_width=True)
     excel_import_inline("ospiti", "Ospiti")
+
+
+
 elif cur == "DB Radio":
     hdr_form("DB RADIO - Gestione Apparati")
+
     c1, c2, c3 = st.columns(3)
     with c1:
         modello = st.selectbox("Modello Radio", ["Hytera PD785", "Anytone 878", "Motorola", "Altro"], key="radio_modello_db_2026")
@@ -2424,15 +2617,18 @@ elif cur == "DB Radio":
         banda = st.selectbox("Banda *", ["VHF", "UHF", "VHF/UHF", "HF"], key="radio_banda_db_2026")
         # CAMPO TIPO - Ripristinato - Richiesta Ezio - DMR,PMR446 ecc
         tipo_radio = st.selectbox("Tipo *", ["DMR", "TETRA", "PMR446", "NAUTICHE", "VARIE"], key="radio_tipo_db_2026")
+
     with c2:
         alias_r = st.text_input("Alias Radio", key="radio_alias_db_2026")
         stato_r = st.selectbox("Stato Radio", ["Operativa", "In Manutenzione", "Fuori Servizio", "Assegnata"], key="radio_stato_db_2026")
         note_r = st.text_area("Note", key="radio_note_db_2026")
+
     with c3:
         st.write("Foto Radio")
         foto_r = st.file_uploader("Foto", type=["jpg", "png"], key="radio_foto_db_2026")
         if foto_r:
             st.image(foto_r.getvalue(), width=100)
+
     if st.button("Salva Radio in DB", type="primary", use_container_width=True, key="btn_salva_radio_db_2026"):
         if matricola:
             st.session_state.radio_db.append({
@@ -2447,20 +2643,27 @@ elif cur == "DB Radio":
             })
             st.success("Radio salvata")
             st.rerun()
+
     if st.session_state.radio_db:
         df_r = pd.DataFrame(st.session_state.radio_db)
         st.dataframe(df_r, use_container_width=True)
         st.download_button("Excel Radio", to_excel(df_r), "radio_db.xlsx", use_container_width=True, key="dl_excel_radio_db_2026")
         if REPORTLAB_OK:
             st.download_button("PDF Logo Estesa", to_pdf(df_r, "DB RADIO"), "radio_db.pdf", use_container_width=True, key="dl_pdf_radio_db_2026")
+
     # IMPORT/EXPORT INLINE - Ezio - TUTTI I FORM - Excel + PDF + Template ODV
     excel_import_inline("radio_db", "DB Radio")
+
 # CONSEGNA RADIO
+
+
 elif cur == "Consegna Radio":
     # hdr() rimosso - richiesta Ezio: su form non mettere in alto intestazione con i loghi
     hdr_form("CONSEGNA RADIO - Consegna e Riconsegna con note problemi")
+
     # Maschera verde come altri form
     st.markdown('<div style="background:#C8E6C9;padding:15px;border-radius:10px;border:2px solid #1A5D1A;margin-bottom:15px;">', unsafe_allow_html=True)
+
     c1, c2 = st.columns(2)
     with c1:
         st.markdown("#### 📻 Consegna")
@@ -2470,14 +2673,17 @@ elif cur == "Consegna Radio":
             sel_vol = st.selectbox("Volontario *", vol_list, key="cons_vol")
         else:
             sel_vol = st.text_input("Volontario * (manuale)", key="cons_vol_man", placeholder="Cognome Nome")
+
         radio_list = [f"{r.get('Matricola','')} - {r.get('Modello','')} - {r.get('Alias','')}" for r in st.session_state.radio_db]
         if radio_list:
             sel_radio = st.selectbox("Radio *", radio_list, key="cons_radio")
         else:
             sel_radio = st.text_input("Radio * manuale", key="cons_radio_man", placeholder="Matricola - Modello")
+
         data_cons = st.date_input("Data Consegna *", value=date.today(), format="DD/MM/YYYY", key="cons_data")
         ora_cons = st.time_input("Ora Consegna", value=datetime.now().time(), key="cons_ora")
         motivo = st.text_input("Motivo / Evento", key="cons_motivo", placeholder="Esercitazione, Emergenza...")
+
     with c2:
         st.markdown("#### 🔄 Riconsegna")
         data_ricons = st.date_input("Data Riconsegna", value=date.today(), format="DD/MM/YYYY", key="ricons_data")
@@ -2485,7 +2691,9 @@ elif cur == "Consegna Radio":
         stato_ricons = st.selectbox("Stato alla Riconsegna", ["Da riconsegnare", "Riconsegnata - OK", "Riconsegnata - Guasta", "Riconsegnata - Batteria scarica", "Riconsegnata - Antenna rotta", "Riconsegnata - Problemi audio", "Persa", "In Manutenzione"], key="ricons_stato")
         # Campo note problemi radio - richiesta Ezio
         note_problemi = st.text_area("Note - Problemi Radio *", key="cons_note_problemi", placeholder="Descrivi se radio ha avuto problemi: es. batteria scarica dopo 2h, audio gracchiante, tasto PTT bloccato, antenna piegata, display spento...", height=120)
+
     st.markdown("</div>", unsafe_allow_html=True)
+
     if st.button("Registra Consegna + Riconsegna", type="primary", use_container_width=True, key="btn_cons_reg"):
         if sel_vol and sel_radio:
             st.session_state.consegna_radio.append({
@@ -2506,6 +2714,7 @@ elif cur == "Consegna Radio":
             st.rerun()
         else:
             st.error("Seleziona Volontario e Radio *")
+
     if st.session_state.consegna_radio:
         st.divider()
         st.markdown(f"#### 📋 Elenco Consegne ({len(st.session_state.consegna_radio)})")
@@ -2516,21 +2725,30 @@ elif cur == "Consegna Radio":
             st.dataframe(df_cr[cols_show], use_container_width=True)
         else:
             st.dataframe(df_cr, use_container_width=True)
+        
         c_exp1, c_exp2 = st.columns(2)
         with c_exp1:
             st.download_button("Excel Consegne", to_excel(df_cr), "consegne.xlsx", use_container_width=True, key="dl_excel_cons")
         with c_exp2:
             if REPORTLAB_OK:
                 st.download_button("PDF Consegne", to_pdf(df_cr, "CONSEGNA RADIO - RICONSEGNA + NOTE PROBLEMI"), "consegne.pdf", use_container_width=True, key="dl_pdf_cons")
+
 # ALIAS RADIO
+
+
     # IMPORT/EXPORT INLINE - Ezio - TUTTI I FORM - Excel + PDF + Template ODV
     excel_import_inline("consegna_radio", "Consegna Radio")
+
+
 elif cur == "Alias Radio":
     hdr_form("ALIAS RADIO - Alias + Volontario Cognome Nome + Canale Radio")
+
     # Maschera verde come altri form - spostata in alto - RIGA 2867
     st.markdown('<div style="background:#C8E6C9;padding:12px;border-radius:10px;border:2px solid #1A5D1A;margin-bottom:12px;margin-top:0px;">', unsafe_allow_html=True)
+
     # Canali radio di lavoro - lista combo
     canali_radio_list = ["Canale 1 - Emergenza", "Canale 2 - Coordinamento", "Canale 3 - Logistica", "Canale 4 - Squadra A", "Canale 5 - Squadra B", "Canale 6 - Squadra C", "Canale 7 - Protezione Civile", "Canale 8 - Volontari", "Canale 9 - Mezzi", "Canale 10 - Base", "Canale 11 - Ponte Radio", "Canale 12 - Riserva"]
+
     c1, c2 = st.columns(2)
     with c1:
         alias_n = st.text_input("Alias *", key="alias_n", placeholder="Es: Centrale, Squadra A...")
@@ -2542,22 +2760,27 @@ elif cur == "Alias Radio":
             sel_vol_alias = st.selectbox("Volontario * (Cognome Nome da Volontari)", vol_list_alias, key="alias_vol", help="Lista da form Volontari - campo Cognome e Nome in combo")
         else:
             sel_vol_alias = st.text_input("Volontario * (manuale - aggiungi volontari in Volontari)", key="alias_vol_man", placeholder="Cognome Nome")
+
     with c2:
         gruppo = st.selectbox("Gruppo", ["Squadra A", "Squadra B", "Squadra C", "Coordinamento", "Logistica"], key="alias_gruppo")
         # RIGA 2883 - Canale Radio di lavoro combo - richiesta Ezio
         canale_radio = st.selectbox("Canale Radio Lavoro * (combo)", canali_radio_list, key="alias_canale", help="Assegna canale radio di lavoro - combo canali")
         desc = st.text_input("Descrizione", key="alias_desc", placeholder="Descrizione alias")
         note_alias = st.text_area("Note", key="alias_note", placeholder="Note alias radio...", height=80)
+
     st.markdown("</div>", unsafe_allow_html=True)
+
     def clear_alias():
         for k in ["alias_n", "alias_id", "alias_vol", "alias_vol_man", "alias_gruppo", "alias_canale", "alias_desc", "alias_note"]:
             if k in st.session_state:
                 del st.session_state[k]
+
     c_save_alias1, c_save_alias2 = st.columns([3,1])
     with c_save_alias1:
         save_alias_btn = st.button("💾 Salva Alias", type="primary", use_container_width=True, key="btn_alias_save")
     with c_save_alias2:
         st.button("🔄 Pulisci maschera", use_container_width=True, key="btn_pulisci_alias", on_click=clear_alias)
+
     if save_alias_btn:
         if alias_n and id_r and sel_vol_alias:
             st.session_state.alias_radio.append({
@@ -2574,6 +2797,7 @@ elif cur == "Alias Radio":
             st.rerun()
         else:
             st.error("Compila Alias *, ID Radio * e Volontario *")
+
     if st.session_state.alias_radio:
         st.divider()
         st.markdown(f"#### 📋 Elenco Alias Radio ({len(st.session_state.alias_radio)})")
@@ -2589,16 +2813,23 @@ elif cur == "Alias Radio":
         with c_a2:
             if REPORTLAB_OK:
                 st.download_button("PDF Alias", to_pdf(df_al, "ALIAS RADIO - CON VOLONTARIO"), "alias.pdf", use_container_width=True, key="dl_alias_pdf")
+
 # BROGLIACCIO
+
+
     # IMPORT/EXPORT INLINE - Ezio - TUTTI I FORM - Excel + PDF + Template ODV
     excel_import_inline("alias_radio", "Alias Radio")
+
+
 elif cur == "Brogliaccio":
     hdr_form("BROGLIACCIO RADIO")
+
     st.markdown("""
     <div style="background:#e8f5e9;padding:8px;border-radius:8px;border-left:4px solid #1A5D1A;margin-bottom:10px;">
     Brogliaccio - Chiamate e Ricevente da Alias Radio | Operatore da Volontari
     </div>
     """, unsafe_allow_html=True)
+
     # Prepara liste combo da Alias Radio e Volontari
     # Alias Radio -> lista Alias
     alias_list = []
@@ -2612,6 +2843,7 @@ elif cur == "Brogliaccio":
         pass
     if not alias_list:
         alias_list = ["Centrale Operativa", "Squadra A", "Squadra B", "Squadra C", "Coordinamento"]
+
     # Volontari -> lista Nome Cognome
     volontari_list = []
     try:
@@ -2627,6 +2859,7 @@ elif cur == "Brogliaccio":
         pass
     if not volontari_list:
         volontari_list = ["Ezio Fiscato", "Operatore 1", "Operatore 2"]
+
     c1, c2 = st.columns(2)
     with c1:
         data_b = st.date_input("Data", value=date.today(), format="DD/MM/YYYY", key="brog_data")
@@ -2637,11 +2870,13 @@ elif cur == "Brogliaccio":
         operatore_custom = st.text_input("Oppure inserisci Operatore manuale", key="brog_op_custom", placeholder="Se non in lista volontari")
         if operatore_custom.strip():
             operatore = operatore_custom.strip()
+
         # CHIAMATE COMBO DA ALIAS RADIO - Richiesta Ezio
         chiamate = st.selectbox("Chiamate (da Alias Radio - Alias)", alias_list, key="brog_chiamate", help="Lista agganciata a form Alias Radio - campo Alias")
         chiamate_custom = st.text_input("Oppure Chiamate manuale", key="brog_chiamate_custom", placeholder="Alias non in lista")
         if chiamate_custom.strip():
             chiamate = chiamate_custom.strip()
+
     with c2:
         evento_b = st.text_input("Evento Riferimento", key="brog_evento")
         emerg_b = st.text_input("Emergenza Riferimento", key="brog_emerg")
@@ -2651,7 +2886,9 @@ elif cur == "Brogliaccio":
         if ricevente_custom.strip():
             ricevente = ricevente_custom.strip()
         blindato = st.checkbox("Blinda Evento/Emergenza", key="brog_blind")
+
     testo_b = st.text_area("Testo Brogliaccio *", height=150, key="brog_testo")
+
     if st.button("Salva Brogliaccio", type="primary", use_container_width=True):
         if testo_b:
             st.session_state.brogliaccio.append({
@@ -2669,6 +2906,7 @@ elif cur == "Brogliaccio":
             st.rerun()
         else:
             st.error("Compila Testo Brogliaccio *")
+
     if st.session_state.brogliaccio:
         df_br = pd.DataFrame(st.session_state.brogliaccio)
         st.markdown(f"#### Elenco Brogliaccio ({len(st.session_state.brogliaccio)})")
@@ -2678,24 +2916,33 @@ elif cur == "Brogliaccio":
         cols_show = [c for c in cols_show if c in df_br.columns]
         if cols_show:
             st.dataframe(df_br[cols_show], use_container_width=True)
+
 # EVENTI
+
+
     # IMPORT/EXPORT INLINE - Ezio - TUTTI I FORM - Excel + PDF + Template ODV
     excel_import_inline("brogliaccio", "Brogliaccio")
+
+
 elif cur == "Eventi":
     hdr_form("EVENTI - Gestione Eventi Programmati")
+
     c1, c2, c3 = st.columns(3)
     with c1:
         nome_ev = st.text_input("Nome Evento *", key="ev_nome")
         tipo_ev = st.selectbox("Tipo Evento", ["Esercitazione", "Manifestazione", "Formazione", "Riunione", "Altro"], key="ev_tipo")
         data_ev = st.date_input("Data Evento", value=date.today(), format="DD/MM/YYYY", key="ev_data")
+
     with c2:
         comune_ev = combo_comune("Comune Evento", "ev_comune", "Varese")
         via_ev = combo_vie("Via Evento", comune_ev, "ev_via", "")
         ora_ev = st.time_input("Ora Inizio", value=time(9, 0), key="ev_ora")
+
     with c3:
         resp_ev = st.text_input("Responsabile", key="ev_resp")
         stato_ev = st.selectbox("Stato", ["Programmato", "In Corso", "Completato", "Annullato"], key="ev_stato")
         note_ev = st.text_area("Note Evento", key="ev_note")
+
     col_save_ev1, col_save_ev2 = st.columns([3,1])
     with col_save_ev1:
         save_ev = st.button("💾 Salva Evento", type="primary", use_container_width=True, key="btn_salva_ev")
@@ -2723,30 +2970,40 @@ elif cur == "Eventi":
             })
             st.success("Evento salvato")
             st.rerun()
+
     if st.session_state.eventi:
         df_ev = pd.DataFrame(st.session_state.eventi)
         st.dataframe(df_ev, use_container_width=True)
         st.download_button("Excel Eventi", to_excel(df_ev), "eventi.xlsx", use_container_width=True)
         if REPORTLAB_OK:
             st.download_button("PDF Logo Estesa", to_pdf(df_ev, "EVENTI"), "eventi.pdf", use_container_width=True)
+
 # EMERGENZE
+
+
     # IMPORT/EXPORT INLINE - Ezio - TUTTI I FORM - Excel + PDF + Template ODV
     excel_import_inline("eventi", "Eventi")
+
+
 elif cur == "Emergenze":
     hdr_form("EMERGENZE - Gestione Emergenze Attive")
+
     c1, c2, c3 = st.columns(3)
     with c1:
         nome_em = st.text_input("Nome Emergenza *", key="em_nome")
         tipo_em = st.selectbox("Tipo Emergenza", ["Alluvione", "Incendio", "Frana", "Neve", "Ricerca Persona", "Altro"], key="em_tipo")
         data_em = st.date_input("Data Emergenza", value=date.today(), format="DD/MM/YYYY", key="em_data")
+
     with c2:
         comune_em = combo_comune("Comune Emergenza", "em_comune", "Varese")
         via_em = combo_vie("Via Emergenza", comune_em, "em_via", "")
         prior_em = st.selectbox("Priorità", ["Bassa", "Media", "Alta", "Critica"], key="em_prior")
+
     with c3:
         stato_em = st.selectbox("Stato", ["Operativo", "In Corso", "Completato", "Chiuso"], key="em_stato")
         bg_c, txt_c, lab_c = get_stato_color(stato_em)
     note_em = st.text_area("Descrizione Emergenza", key="em_note")
+
     col_em_save1, col_em_save2 = st.columns([3,1])
     with col_em_save1:
         save_em = st.button("💾 Salva Emergenza", type="primary", use_container_width=True, key="btn_salva_em")
@@ -2776,35 +3033,46 @@ elif cur == "Emergenze":
             })
             st.success("Emergenza salvata")
             st.rerun()
+
     if st.session_state.emergenze:
         df_em = pd.DataFrame(st.session_state.emergenze)
         st.dataframe(df_em, use_container_width=True)
         st.download_button("Excel Emergenze", to_excel(df_em), "emergenze.xlsx", use_container_width=True)
         if REPORTLAB_OK:
             st.download_button("PDF Logo Estesa", to_pdf(df_em, "EMERGENZE"), "emergenze.pdf", use_container_width=True)
+
 # MAPPE (Emergenze+Eventi) FUSIONE - SI OTTIMA IDEA
+
+
     # IMPORT/EXPORT INLINE - Ezio - TUTTI I FORM - Excel + PDF + Template ODV
     excel_import_inline("emergenze", "Emergenze")
+
+
 # TABELLA EMERGENZE - FORM TABELLA - Richiesta Ezio - Formato tabella per vedere emergenze - FIX non vedo niente
 elif cur == "Tabella Emergenze":
     hdr_form("TABELLA EMERGENZE - GRIGLIA EXCEL")
+
     st.markdown("""
     <div style="background:#e3f2fd;padding:10px;border-radius:8px;border-left:4px solid #1976d2;margin-bottom:12px;">
     <b>📋 Tabella Emergenze - Griglia Excel con celle evidenziate</b><br>
     Icona è un vero tasto - Clicca immagine per aprire Interventi Emergenza e aggiornare - Celle come Excel
     </div>
     """, unsafe_allow_html=True)
+
     st.info(f"Debug: {len(st.session_state.interventi)} interventi di emergenza - Icona cliccabile come tasto")
+
     if not st.session_state.interventi:
         st.warning("⚠️ Nessun intervento - Vai in Interventi Emergenza e crea con icona")
         st.dataframe(pd.DataFrame(columns=["Icona","Tipo","Squadra","Data","Comune","Via","Stato","Descrizione"]).head(), use_container_width=True)
     else:
         df_tab_em = pd.DataFrame(st.session_state.interventi)
+        
         # Filtri
         squadre_list_em = sorted(list(set([str(x) for x in df_tab_em["Squadra"].tolist() if x]))) if "Squadra" in df_tab_em.columns else []
         comuni_list_em = sorted(list(set([str(x) for x in df_tab_em["Comune"].tolist() if x]))) if "Comune" in df_tab_em.columns else []
         stati_list_em = sorted(list(set([str(x) for x in df_tab_em["Stato"].tolist() if x]))) if "Stato" in df_tab_em.columns else []
         tipi_list_em = sorted(list(set([str(x) for x in df_tab_em["Tipo"].tolist() if x]))) if "Tipo" in df_tab_em.columns else []
+
         c1, c2, c3, c4 = st.columns(4)
         with c1:
             filtro_sq_em = st.selectbox("Filtra Squadra", ["Tutte"] + squadre_list_em, key="tab_em_sq_excel")
@@ -2814,6 +3082,7 @@ elif cur == "Tabella Emergenze":
             filtro_stato_em = st.selectbox("Filtra Stato", ["Tutti"] + stati_list_em, key="tab_em_stato_excel")
         with c4:
             filtro_tipo_em = st.selectbox("Filtra Tipo", ["Tutti"] + tipi_list_em, key="tab_em_tipo_excel")
+
         df_filtrato_em = df_tab_em.copy()
         if filtro_sq_em != "Tutte" and "Squadra" in df_filtrato_em.columns:
             df_filtrato_em = df_filtrato_em[df_filtrato_em["Squadra"] == filtro_sq_em]
@@ -2823,7 +3092,9 @@ elif cur == "Tabella Emergenze":
             df_filtrato_em = df_filtrato_em[df_filtrato_em["Stato"] == filtro_stato_em]
         if filtro_tipo_em != "Tutti" and "Tipo" in df_filtrato_em.columns:
             df_filtrato_em = df_filtrato_em[df_filtrato_em["Tipo"] == filtro_tipo_em]
+
         st.write(f"**Risultati: {len(df_filtrato_em)} su {len(df_tab_em)} - Celle come Excel**")
+
         # STILE EXCEL per celle
         st.markdown("""
         <style>
@@ -2852,12 +3123,14 @@ elif cur == "Tabella Emergenze":
         }
         </style>
         """, unsafe_allow_html=True)
+
         # HEADER Excel-like
         h_cols = st.columns([0.9, 1, 1, 1.1, 1.2, 1.2, 1, 2.2])
         headers = ["ICONA (Tasto)", "Tipo", "Squadra", "Data/Ora", "Comune", "Via", "Stato", "Descrizione"]
         for col, header in zip(h_cols, headers):
             with col:
                 st.markdown(f'<div class="excel-header">{header}</div>', unsafe_allow_html=True)
+        
         # RIGHE con celle Excel - FIX icona centrata, click apre Interventi Emergenza, no pennetta
         for idx_orig, row in df_filtrato_em.iterrows():
             r_cols = st.columns([0.9, 1, 1, 1.1, 1.2, 1.2, 1, 2.2])
@@ -2873,6 +3146,7 @@ elif cur == "Tabella Emergenze":
             via_val = row.get("Via","")[:25] if row.get("Via") else ""
             stato_val = row.get("Stato","")
             desc_val = str(row.get("Descrizione",""))[:90] if row.get("Descrizione") else ""
+
             # COLONNA ICONA - FIX: icona centrata, tasto vero senza pennetta, apre Interventi Emergenza per bonifica
             with r_cols[0]:
                 # Contenitore cella Excel con bordo
@@ -2925,6 +3199,7 @@ elif cur == "Tabella Emergenze":
                         except:
                             pass
                         st.rerun()
+
             # COLONNE DATI con celle Excel evidenziate - contenitore border per effetto Excel
             with r_cols[1]:
                 with st.container(border=True):
@@ -2949,6 +3224,7 @@ elif cur == "Tabella Emergenze":
             with r_cols[7]:
                 with st.container(border=True):
                     st.write(desc_val)
+
         # Export
         st.divider()
         cols_to_remove_em = ["StatoColoreBg", "StatoColoreTxt", "IconaLabel", "IconaNome", "IconaColore", "IconaTipo", "IconaEmoji", "FileBytes", "FileName", "HasFile"]
@@ -2962,9 +3238,16 @@ elif cur == "Tabella Emergenze":
         with c_exp2:
             if REPORTLAB_OK:
                 st.download_button("PDF Griglia Excel", data=to_pdf(df_export_em, "TABELLA EMERGENZE - EXCEL"), file_name="tabella_emergenze_excel.pdf", use_container_width=True, key="pdf_tab_em_excel")
+
     excel_import_inline("interventi", "Tabella Emergenze - Excel")
+
+
+
+
+
 elif cur == "# RIMOSSO":
     hdr_form("MAPPE - Fusione Emergenze + Eventi - Proposta Ezio - SI OTTIMA IDEA")
+
     st.markdown(
         """
         <div style="background:linear-gradient(135deg,#e3f2fd,#bbdefb);
@@ -2979,15 +3262,18 @@ elif cur == "# RIMOSSO":
         """,
         unsafe_allow_html=True
     )
+
     c1, c2, c3 = st.columns(3)
     with c1:
         tipo_mappa = st.selectbox("Tipo Mappa *", ["Emergenza", "Evento"], key="mappa_tipo")
         nome_mappa = st.text_input("Nome / Titolo *", key="mappa_nome")
         data_mappa = st.date_input("Data", value=date.today(), format="DD/MM/YYYY", key="mappa_data")
+
     with c2:
         comune_mappa = combo_comune("Comune", "mappa_comune", "Varese")
         via_mappa = combo_vie("Via", comune_mappa, "mappa_via", "")
         prior_mappa = st.selectbox("Priorità", ["Bassa", "Media", "Alta", "Critica"], key="mappa_prior")
+
     with c3:
         stato_mappa = st.selectbox(
             "STATO *",
@@ -3015,14 +3301,17 @@ elif cur == "# RIMOSSO":
             """,
             unsafe_allow_html=True
         )
+
     c4, c5 = st.columns(2)
     with c4:
         lat_mappa = st.text_input("Latitudine", value="45.8167", key="mappa_lat")
         lon_mappa = st.text_input("Longitudine", value="8.8333", key="mappa_lon")
         icona_mappa = st.selectbox("Icona", ["🚨", "📅", "🚒", "👷", "📍", "⚠️"], key="mappa_icona")
+
     with c5:
         desc_mappa = st.text_area("Descrizione", key="mappa_desc")
         note_mappa = st.text_area("Note Coordinate", key="mappa_note")
+
     if st.button("Salva in Mappe Postazioni", type="primary", use_container_width=True):
         if nome_mappa:
             st.session_state.mappe.append({
@@ -3043,6 +3332,7 @@ elif cur == "# RIMOSSO":
             })
             st.success("Mappa salvata - Fusione OK")
             st.rerun()
+
     if st.session_state.mappe:
         st.divider()
         st.markdown("**Riepilogo Mappe Postazioni con Filtri Tipo**")
@@ -3050,7 +3340,9 @@ elif cur == "# RIMOSSO":
         df_map = pd.DataFrame(st.session_state.mappe)
         if filtro_tipo != "Tutti":
             df_map = df_map[df_map["Tipo"] == filtro_tipo]
+
         st.dataframe(df_map, use_container_width=True)
+
         # Mappa semplice con st.map se coordinate valide
         try:
             map_df = pd.DataFrame([
@@ -3062,9 +3354,11 @@ elif cur == "# RIMOSSO":
                 st.map(map_df)
         except:
             st.info("Mappa coordinate non disponibili per visualizzazione")
+
         st.download_button("Excel Mappe Postazioni", to_excel(df_map), "mappe_fusione.xlsx", use_container_width=True)
         if REPORTLAB_OK:
             st.download_button("PDF Logo Estesa Tutto Foglio", to_pdf(df_map, "MAPPE FUSIONE EMERGENZE+EVENTI"), "mappe_fusione.pdf", use_container_width=True)
+
 # CHECK-IN
 elif cur == "Mappe":
     hdr_form("MAPPE PER POSTAZIONI/CANTIERI/EMERGENZE IN CORSO")
@@ -3084,8 +3378,10 @@ elif cur == "Mappe":
             st.rerun()
     if st.session_state.mappe:
         st.dataframe(pd.DataFrame(st.session_state.mappe), use_container_width=True)
+
 elif cur == "Check-in":
     hdr_form("CHECK-IN - Presenze Operative")
+
     c1, c2 = st.columns(2)
     with c1:
         vol_check_list = [f"{v.get('Cognome','')} {v.get('Nome','')}" for v in st.session_state.volontari]
@@ -3093,6 +3389,7 @@ elif cur == "Check-in":
             sel_check_vol = st.selectbox("Volontario", vol_check_list, key="check_vol")
         else:
             sel_check_vol = st.text_input("Volontario", key="check_vol_man")
+
         ev_check_list = [e.get("Nome", "") for e in st.session_state.eventi]
         em_check_list = [em.get("Nome", "") for em in st.session_state.emergenze]
         all_ref = ev_check_list + em_check_list
@@ -3100,10 +3397,12 @@ elif cur == "Check-in":
             sel_check_ref = st.selectbox("Evento/Emergenza", all_ref, key="check_ref")
         else:
             sel_check_ref = st.text_input("Evento/Emergenza", key="check_ref_man")
+
     with c2:
         data_check = st.date_input("Data Check-in", value=date.today(), format="DD/MM/YYYY", key="check_data")
         ora_check = st.time_input("Ora Check-in", value=datetime.now().time(), key="check_ora")
         stato_check = st.selectbox("Stato", ["Presente", "Assente", "Ritardo"], key="check_stato")
+
     if st.button("Registra Check-in", type="primary", use_container_width=True):
         st.session_state.checkin.append({
             "Volontario": sel_check_vol,
@@ -3114,15 +3413,20 @@ elif cur == "Check-in":
         })
         st.success("Check-in registrato")
         st.rerun()
+
     if st.session_state.checkin:
         df_ch = pd.DataFrame(st.session_state.checkin)
         st.dataframe(df_ch, use_container_width=True)
         st.download_button("Excel Check-in", to_excel(df_ch), "checkin.xlsx", use_container_width=True)
+
 # INTERVENTI EMERGENZA - MODIFICA 4 STATO COLORE FONDO CAMPO
     # IMPORT/EXPORT INLINE - Ezio - TUTTI I FORM - Excel + PDF + Template ODV
     excel_import_inline("checkin", "Check-in")
+
+
 elif cur == "Interventi Emergenza":
     hdr_form("INTERVENTI EMERGENZA")
+
     st.markdown(
         """
         <div style="background:#e8f5e9;padding:10px;border-radius:8px;border-left:4px solid #1A5D1A;margin-bottom:10px;">
@@ -3131,6 +3435,7 @@ elif cur == "Interventi Emergenza":
         """,
         unsafe_allow_html=True
     )
+    
     # Edit mode - come volontari - richiesta Ezio: clicca icona in tabella per vedere scheda in maschera
     edit_mode_int = False
     edit_data_int = {}
@@ -3141,6 +3446,7 @@ elif cur == "Interventi Emergenza":
         except:
             edit_data_int = {}
             edit_mode_int = False
+    
     if edit_mode_int:
         st.warning(f"✏️ Modifica Intervento: {edit_data_int.get('Tipo','')} - {edit_data_int.get('Comune','')} - {edit_data_int.get('Data','')} - Icona {edit_data_int.get('IconaEmoji','')} {edit_data_int.get('IconaNome','')}")
         c_w1, c_w2 = st.columns(2)
@@ -3163,6 +3469,7 @@ elif cur == "Interventi Emergenza":
                     st.rerun()
                 except Exception as e:
                     st.error(f"Errore eliminazione: {e}")
+
     # Prepara lista icone da Libreria Icone - Richiesta Ezio
     icone_lib = st.session_state.get("icone", [])
     if not icone_lib:
@@ -3172,6 +3479,7 @@ elif cur == "Interventi Emergenza":
             {"Nome": "Mezzo", "Emoji": "🚐", "Tipo": "Mezzo", "Colore": "green"},
             {"Nome": "Logistica", "Emoji": "📦", "Tipo": "Logistica", "Colore": "blue"},
         ]
+    
     # Crea opzioni per selectbox: Emoji + Nome
     icone_options = ["-- Nessuna Icona --"]
     icone_map = {"-- Nessuna Icona --": None}
@@ -3179,6 +3487,7 @@ elif cur == "Interventi Emergenza":
         label = f"{ico.get('Emoji','📍')} {ico.get('Nome','')} - {ico.get('Tipo','')} ({ico.get('Colore','')})"
         icone_options.append(label)
         icone_map[label] = ico
+
     # Valori default da edit se in modifica
     tipo_def = edit_data_int.get("Tipo", "Soccorso") if edit_mode_int else "Soccorso"
     squadra_def = edit_data_int.get("Squadra", "Squadra A") if edit_mode_int else "Squadra A"
@@ -3188,6 +3497,7 @@ elif cur == "Interventi Emergenza":
     desc_def_int = edit_data_int.get("Descrizione", "") if edit_mode_int else ""
     mezzi_def_int = edit_data_int.get("Mezzi", "") if edit_mode_int else ""
     vol_def_int = edit_data_int.get("Volontari", "") if edit_mode_int else ""
+    
     c1, c2, c3 = st.columns(3)
     with c1:
         tipo_int = st.selectbox("Tipo Intervento", ["Soccorso", "Logistica", "Monitoraggio", "Bonifica", "Altro"], index=["Soccorso", "Logistica", "Monitoraggio", "Bonifica", "Altro"].index(tipo_def) if tipo_def in ["Soccorso", "Logistica", "Monitoraggio", "Bonifica", "Altro"] else 0, key="int_tipo")
@@ -3214,6 +3524,7 @@ elif cur == "Interventi Emergenza":
                 default_icon_idx = 0
         icona_sel_label = st.selectbox("Icona da Libreria Icone", icone_options, index=default_icon_idx, key="int_icona", help="Scegli icona creata in Libreria Icone")
         sel_ico_obj = icone_map.get(icona_sel_label)
+
     with c2:
         # FIX: usa comune_def_int e via_def_int da edit per mantenere valore salvato - altrimenti aggiorna con Varese
         comune_int = combo_comune("Comune Intervento", "int_comune", comune_def_int)
@@ -3254,6 +3565,7 @@ elif cur == "Interventi Emergenza":
             <small>Seleziona icona sopra per vedere anteprima</small>
             </div>
             """, unsafe_allow_html=True)
+
     with c3:
         # MODIFICA 4 - STATO CON COLORE FONDO CAMPO
         stato_int = st.selectbox(
@@ -3262,6 +3574,7 @@ elif cur == "Interventi Emergenza":
             key="stato_int"
         )
         bg_color, txt_color, label = get_stato_color(stato_int)
+
         st.markdown(
             f"""
             <div style="background-color:{bg_color};color:{txt_color};
@@ -3274,10 +3587,12 @@ elif cur == "Interventi Emergenza":
             """,
             unsafe_allow_html=True
         )
+
     # Campi descrizione con default edit - come volontari
     desc_int = st.text_area("Descrizione Intervento *", value=desc_def_int, key="int_desc")
     mezzi_int = st.text_input("Mezzi Utilizzati", value=mezzi_def_int, key="int_mezzi")
     volontari_int = st.text_input("Volontari Coinvolti", value=vol_def_int, key="int_vol")
+
     if st.button("💾 Aggiorna Intervento" if edit_mode_int else "💾 Salva Intervento Emergenza con Icona", type="primary", use_container_width=True):
         if desc_int:
             new_intervento = {
@@ -3347,9 +3662,11 @@ elif cur == "Interventi Emergenza":
                 st.rerun()
         else:
             st.error("Compila Descrizione Intervento *")
+
     if st.session_state.interventi:
         st.divider()
         st.markdown("**Interventi Salvati - con Icona all'inizio**")
+
         # Tabella interventi con icona all'inizio - senza colonne interne - richiesta Ezio
         df_int_full = pd.DataFrame(st.session_state.interventi)
         # Rimuovi colonne interne per visualizzazione
@@ -3358,6 +3675,7 @@ elif cur == "Interventi Emergenza":
         for c in cols_remove_int:
             if c in df_int_display.columns:
                 df_int_display = df_int_display.drop(columns=[c])
+        
         # Mostra con icona all'inizio
         st.markdown("**Interventi con Icona**")
         h1, h2, h3, h4, h5 = st.columns([0.8, 1, 1, 1.5, 2.5])
@@ -3388,13 +3706,17 @@ elif cur == "Interventi Emergenza":
             with c3: st.write(r.get("Squadra",""))
             with c4: st.write(r.get("Comune",""))
             with c5: st.write(str(r.get("Descrizione",""))[:80])
+        
         st.dataframe(df_int_display, use_container_width=True)
         st.download_button("Excel Interventi (pulito)", to_excel(df_int_display), "interventi.xlsx", use_container_width=True)
         if REPORTLAB_OK:
             st.download_button("PDF Logo Estesa", to_pdf(df_int_display, "INTERVENTI EMERGENZA"), "interventi.pdf", use_container_width=True)
+
 # TABELLA INTERVENTI EMERGENZA
     # IMPORT/EXPORT INLINE - Ezio - TUTTI I FORM - Excel + PDF + Template ODV
     excel_import_inline("interventi", "Interventi Emergenza")
+
+
 elif cur == "Tabella Interventi Emergenza":
     # Gestione click immagine come tasto via ?edit_idx2=
     try:
@@ -3419,14 +3741,17 @@ elif cur == "Tabella Interventi Emergenza":
     except:
         pass
     hdr_form("TABELLA INTERVENTI EMERGENZA - ICONA COME TASTO - GRIGLIA")
+
     st.markdown("""
     <div style="background:#e3f2fd;padding:10px;border-radius:8px;border-left:4px solid #1976d2;margin-bottom:12px;">
     <b>📋 Tabella Interventi Emergenza - Dati dal form Interventi Emergenza</b><br>
     Questa tabella legge direttamente da <b>Interventi Emergenza</b> (st.session_state.interventi) - Clicca icona per aprire scheda in maschera
     </div>
     """, unsafe_allow_html=True)
+
     # Debug - quanti interventi da Interventi Emergenza
     st.info(f"Debug: {len(st.session_state.interventi)} interventi da form Interventi Emergenza in memoria - Se 0, vai in Interventi Emergenza e crea intervento con icona")
+
     if not st.session_state.interventi:
         st.warning("⚠️ Nessun intervento in memoria - Vai in Interventi Emergenza, compila con icona e salva - Apparirà qui")
         st.markdown("""
@@ -3444,11 +3769,13 @@ elif cur == "Tabella Interventi Emergenza":
         # Tabella creata dal form Interventi Emergenza - OK richiesta Ezio
         st.success(f"✅ Tabella creata dal form Interventi Emergenza - {len(st.session_state.interventi)} interventi")
         df_tab = pd.DataFrame(st.session_state.interventi)
+
         # Filtri con variabili intermedie corrette parentesi chiuse
         squadre_list = sorted(list(set([str(x) for x in df_tab["Squadra"].tolist() if x])))
         comuni_list = sorted(list(set([str(x) for x in df_tab["Comune"].tolist() if x])))
         stati_list = sorted(list(set([str(x) for x in df_tab["Stato"].tolist() if x])))
         tipi_list = sorted(list(set([str(x) for x in df_tab["Tipo"].tolist() if x])))
+
         c1, c2, c3, c4 = st.columns(4)
         with c1:
             filtro_squadra = st.selectbox(
@@ -3474,20 +3801,29 @@ elif cur == "Tabella Interventi Emergenza":
                 ["Tutti"] + tipi_list,
                 key="tab_f_tipo"
             )
+
         df_filtrato = df_tab.copy()
+
         if filtro_squadra != "Tutte":
             df_filtrato = df_filtrato[df_filtrato["Squadra"] == filtro_squadra]
+
         if filtro_comune != "Tutti":
             df_filtrato = df_filtrato[df_filtrato["Comune"] == filtro_comune]
+
         if filtro_stato != "Tutti":
             df_filtrato = df_filtrato[df_filtrato["Stato"] == filtro_stato]
+
         if filtro_tipo != "Tutti":
             df_filtrato = df_filtrato[df_filtrato["Tipo"] == filtro_tipo]
+
         st.write(f"Risultati filtrati: {len(df_filtrato)} su {len(df_tab)}")
+        
         # RICHIESTA EZIO: togliere colonne interne e aggiungere colonna icona all'inizio con immagine
         # Colonne da togliere: stato colore, stato colore txt, icona nome, icona label, Icona nome, icona colore, icona tipo
         cols_to_remove = ["StatoColoreBg", "StatoColoreTxt", "IconaLabel", "IconaNome", "IconaColore", "IconaTipo", "IconaEmoji", "FileBytes", "FileName", "HasFile", "StatoColore", "Icona nome", "Icona label", "Icona colore", "Icona tipo"]
+        
         st.markdown("#### 📋 Tabella Interventi con Icona assegnata all'inizio")
+        
         # Header tabella
         h1, h2, h3, h4, h5, h6, h7 = st.columns([0.9, 1, 1, 1.2, 1.5, 1, 2])
         with h1: st.markdown("**ICONA**")
@@ -3498,6 +3834,7 @@ elif cur == "Tabella Interventi Emergenza":
         with h6: st.markdown("**Stato**")
         with h7: st.markdown("**Descrizione**")
         st.divider()
+        
         # Righe tabella con icona CLICCABILE - richiesta Ezio: cliccare su icona (non penna) per aprire form Interventi Emergenza
         for idx_f, (idx_orig, row) in enumerate(df_filtrato.iterrows()):
             c1, c2, c3, c4, c5, c6, c7 = st.columns([0.9, 1, 1, 1.2, 1.5, 1, 2])
@@ -3585,11 +3922,13 @@ elif cur == "Tabella Interventi Emergenza":
                     st.session_state["scroll_top"] = True
                     st.rerun()
             st.divider()
+        
         # Prepara df per export senza colonne interne
         df_export = df_filtrato.copy()
         for col in cols_to_remove:
             if col in df_export.columns:
                 df_export = df_export.drop(columns=[col])
+        
         st.download_button(
             "Excel Filtrato (senza colonne interne)",
             to_excel(df_export),
@@ -3603,23 +3942,30 @@ elif cur == "Tabella Interventi Emergenza":
                 "tabella_interventi.pdf",
                 use_container_width=True
             )
+
 # MEZZI
     # IMPORT/EXPORT INLINE - Ezio - TUTTI I FORM - Excel + PDF + Template ODV
     excel_import_inline("tabella_interventi", "Tabella Interventi Emergenza")
+
+
 elif cur == "Mezzi":
     hdr_form("MEZZI - Parco Automezzi")
+
     c1, c2, c3 = st.columns(3)
     with c1:
         targa = st.text_input("Targa", key="mez_targa")
         modello_m = st.text_input("Modello Mezzo", key="mez_modello")
         tipo_m = st.selectbox("Tipo", ["Fuoristrada", "Furgone", "Autocarro", "Auto", "Moto"], key="mez_tipo")
+
     with c2:
         stato_m = st.selectbox("Stato Mezzo", ["Operativo", "In Manutenzione", "Fuori Servizio"], key="mez_stato")
         km = st.text_input("Km", key="mez_km")
         scadenza = st.date_input("Scadenza Revisione", value=date.today(), format="DD/MM/YYYY", key="mez_scad")
+
     with c3:
         note_mez = st.text_area("Note Mezzo", key="mez_note")
         foto_mez = st.file_uploader("Foto Mezzo", type=["jpg", "png"], key="mez_foto")
+
     def clear_mezzi():
         for k in ["mez_targa", "mez_modello", "mez_tipo", "mez_stato", "mez_km", "mez_scad", "mez_note", "mez_foto"]:
             if k in st.session_state:
@@ -3642,30 +3988,40 @@ elif cur == "Mezzi":
             })
             st.success("Mezzo salvato")
             st.rerun()
+
     if st.session_state.mezzi:
         df_mez = pd.DataFrame(st.session_state.mezzi)
         st.dataframe(df_mez, use_container_width=True)
         st.download_button("Excel Mezzi", to_excel(df_mez), "mezzi.xlsx", use_container_width=True)
         if REPORTLAB_OK:
             st.download_button("PDF Logo Estesa", to_pdf(df_mez, "MEZZI"), "mezzi.pdf", use_container_width=True)
+
 # ATTREZZATURE
+
+
     # IMPORT/EXPORT INLINE - Ezio - TUTTI I FORM - Excel + PDF + Template ODV
     excel_import_inline("mezzi", "Mezzi")
+
+
 elif cur == "Attrezzature":
     hdr_form("ATTREZZATURE - Magazzino")
+
     c1, c2 = st.columns(2)
     with c1:
         nome_att = st.text_input("Nome Attrezzatura", key="att_nome")
         cat_att = st.selectbox("Categoria", ["DPI", "Utensili", "Elettrico", "Idraulico", "Altro"], key="att_cat")
         qta_att = st.number_input("Quantità", min_value=1, value=1, key="att_qta")
+
     with c2:
         stato_att = st.selectbox("Stato", ["Disponibile", "In Uso", "Guasto", "Esaurito"], key="att_stato")
         ubic_att = st.text_input("Ubicazione Magazzino", key="att_ubic")
         note_att = st.text_area("Note", key="att_note")
+
     def clear_att():
         for k in ["att_nome", "att_cat", "att_qta", "att_stato", "att_ubic", "att_note"]:
             if k in st.session_state:
                 del st.session_state[k]
+
     c_att1, c_att2 = st.columns([3,1])
     with c_att1:
         save_att = st.button("💾 Salva Attrezzatura", type="primary", use_container_width=True, key="btn_salva_att")
@@ -3683,17 +4039,24 @@ elif cur == "Attrezzature":
             })
             st.success("Attrezzatura salvata")
             st.rerun()
+
     if st.session_state.attrezzature:
         df_att = pd.DataFrame(st.session_state.attrezzature)
         st.dataframe(df_att, use_container_width=True)
         st.download_button("Excel Attrezzature", to_excel(df_att), "attrezzature.xlsx", use_container_width=True)
         if REPORTLAB_OK:
             st.download_button("PDF Logo Estesa", to_pdf(df_att, "ATTREZZATURE"), "attrezzature.pdf", use_container_width=True)
+
 # MAPPE POSTAZIONI - STABILE - MARKER RIMANGONO - TABELLA SOTTO - ANTEPRIMA SOTTO TABELLA - NOME EMERGENZA/EVENTO COMBO
+
+
     # IMPORT/EXPORT INLINE - Ezio - TUTTI I FORM - Excel + PDF + Template ODV
     excel_import_inline("attrezzature", "Attrezzature")
+
+
 elif cur == "Mappe Postazioni":
     hdr_form("MAPPE POSTAZIONI")
+
     if "mappa_avanzata_markers" not in st.session_state:
         st.session_state.mappa_avanzata_markers = []
     if "last_clicked_lat" not in st.session_state:
@@ -3704,10 +4067,12 @@ elif cur == "Mappe Postazioni":
         st.session_state.map_focus = None
     if "selected_icon_label" not in st.session_state:
         st.session_state.selected_icon_label = ""
+
     emergenze_list = st.session_state.get("emergenze", [])
     eventi_list = st.session_state.get("eventi", [])
     nomi_emergenze = ["-- Nessuna --"] + [f"{e.get('Nome','')} - {e.get('Data','')}" for e in emergenze_list[-20:]] if emergenze_list else ["-- Nessuna --"]
     nomi_eventi = ["-- Nessuno --"] + [f"{ev.get('Nome','')} - {ev.get('Data','')}" for ev in eventi_list[-20:]] if eventi_list else ["-- Nessuno --"]
+
     c1, c2, c3, c4 = st.columns([1,1,1,2])
     with c1:
         if st.button("⛶ Fullscreen", key="btn_fs_mappa", use_container_width=True, type="primary"):
@@ -3724,6 +4089,7 @@ elif cur == "Mappe Postazioni":
             st.rerun()
     with c4:
         st.markdown(f'<span style="background:#1A5D1A;color:white;padding:6px 12px;border-radius:6px;font-weight:bold;">🗺️ {len(st.session_state.mappa_avanzata_markers)} postazioni</span>', unsafe_allow_html=True)
+
     icone_disponibili = st.session_state.get("icone", [])
     # Icone di default tolte - le carichi tu in Libreria Icone - richiesta Ezio - etichette rimosse
     if not icone_disponibili:
@@ -3744,6 +4110,7 @@ elif cur == "Mappe Postazioni":
         icone_map[label] = ico
     if not st.session_state.selected_icon_label and icone_options:
         st.session_state.selected_icon_label = icone_options[0]
+
     # Griglia Scegli icona dalla Libreria tolta definitivamente - richiesta Ezio
     # Solo combo Icona Libreria in maschera, caricata dal form Libreria Icone
     try:
@@ -3751,6 +4118,7 @@ elif cur == "Mappe Postazioni":
     except:
         default_idx = 0
     # Se libreria vuota, default_idx 0 ma icone_options vuoto - gestito sotto
+
     st.markdown("#### 📍 Maschera Postazione")
     # Alias da form Alias Radio - per assegnarlo alla postazione - richiesta Ezio - RIGA 4207
     alias_form_list = [a.get('Alias','').strip() for a in st.session_state.get('alias_radio', []) if a.get('Alias','').strip()]
@@ -3761,10 +4129,12 @@ elif cur == "Mappe Postazioni":
         st.info(f"📻 Alias da form Alias Radio ({len(alias_form_list)}): {', '.join(alias_form_list[:20])} - Assegnalo alla postazione")
     elif alias_esistenti:
         st.caption(f"📻 Alias già usati in postazioni: {', '.join(alias_esistenti[:15])}")
+
     # FIX DEFINITIVO Pulisci maschera + no default prima posizione marker - versione con versionamento chiavi
     # Inizializza versione maschera se non esiste
     if "map_form_version" not in st.session_state:
         st.session_state["map_form_version"] = 0
+    
     # Se flag pulisci, incrementa versione e cancella tutto
     if st.session_state.get("do_clear_maschera"):
         st.session_state["map_form_version"] += 1
@@ -3781,10 +4151,12 @@ elif cur == "Mappe Postazioni":
             pass
         st.session_state["do_clear_maschera"] = False
         st.rerun()
+    
     # Versione corrente per chiavi - così pulisci cambia tutte le chiavi e maschera si svuota davvero
     ver = st.session_state.get("map_form_version", 0)
     def k_map(base):
         return f"{base}_v{ver}"
+    
     # Pre-fill lat/lon/comune/via da mappa - SOLO se appena cliccato mappa, NON di default prima posizione
     # Se non hai appena cliccato, non riempire con vecchia posizione
     # Solo se last_clicked esiste e campo vuoto
@@ -3807,6 +4179,7 @@ elif cur == "Mappe Postazioni":
             key_via = k_map("adv_marker_via")
             if not st.session_state.get(key_via):
                 st.session_state[key_via] = str(st.session_state["last_clicked_via"])
+
     c1, c2, c3 = st.columns(3)
     with c1:
         marker_nome = st.text_input("Nome Postazione *", key=k_map("adv_marker_nome"), placeholder="Es: Postazione 1")
@@ -3862,6 +4235,7 @@ elif cur == "Mappe Postazioni":
                 pass
         marker_tipo = st.selectbox("Tipo", ["Postazione", "Emergenza", "Evento", "Mezzo", "Volontario"], key=k_map("adv_marker_tipo"))
         marker_desc = st.text_input("Descrizione", key=k_map("adv_marker_desc"))
+
     col_save1, col_save2 = st.columns([3,1])
     with col_save1:
         save_clicked = st.button("💾 SALVA POSTAZIONE", type="primary", use_container_width=True, key=f"btn_salva_postazione_v{ver}")
@@ -3874,6 +4248,8 @@ elif cur == "Mappe Postazioni":
             except:
                 pass
             st.rerun()
+
+
     try:
         qp_lat = st.query_params.get("lat", "")
         qp_lon = st.query_params.get("lon", "")
@@ -3905,6 +4281,7 @@ elif cur == "Mappe Postazioni":
                     pass
     except:
         pass
+
     if save_clicked:
         eff_lat = marker_lat or st.session_state.get("last_clicked_lat") or ""
         eff_lon = marker_lon or st.session_state.get("last_clicked_lon") or ""
@@ -3957,6 +4334,7 @@ elif cur == "Mappe Postazioni":
                 st.rerun()
             except Exception as e:
                 st.error(f"❌ Errore: {e}")
+
     st.divider()
     st.markdown("#### 🗺️ Anteprima - Tutti i marker visibili - +/- sotto")
     all_markers = st.session_state.get("mappa_avanzata_markers", [])
@@ -3981,6 +4359,7 @@ elif cur == "Mappe Postazioni":
         focus_for_js = json_lib.dumps(focus_clean)
     else:
         focus_for_js = "null"
+
     # ANTEPRIMA - marker fissati qui e visionabili in mappa grande - lat/lon automatico in maschera senza bottone
     preview_html = """
     <div style="border:3px solid #1A5D1A;border-radius:8px;overflow:hidden;">
@@ -4146,8 +4525,10 @@ elif cur == "Mappe Postazioni":
     preview_html = preview_html.replace("SELECTED_HASFILE_PREVIEW", json_lib_prev.dumps(sel_hasfile_prev))
     preview_html = preview_html.replace("SELECTED_FILEB64_PREVIEW", json_lib_prev.dumps(sel_fileb64_prev))
     st.components.v1.html(preview_html, height=450)
+
     st.divider()
     st.markdown("#### 🌍 Mappa Grande - Tutti i marker rimangono")
+
     html_code = """
     <div id="map-container" style="position:relative; background:white; border-radius:12px;">
         <div id="map" style="height:650px; width:100%; border-radius:12px; border:3px solid #1A5D1A;"></div>
@@ -4391,6 +4772,7 @@ elif cur == "Mappe Postazioni":
     html_code = html_code.replace("SELECTED_HASFILE_PLACEHOLDER", json_lib2.dumps(sel_hasfile_main))
     html_code = html_code.replace("SELECTED_FILEB64_PLACEHOLDER", json_lib2.dumps(sel_fileb64_main))
     st.components.v1.html(html_code, height=700)
+
     st.divider()
     # Filtro per vedere solo alias da form Alias - richiesta Ezio
     if all_markers and (alias_esistenti or alias_form_list):
@@ -4410,6 +4792,7 @@ elif cur == "Mappe Postazioni":
     else:
         all_markers_display = all_markers
         filtro_alias = "-- Tutti --"
+
     st.markdown(f"### 📋 Tabella Postazioni Salvate - {len(all_markers_display)} / {len(all_markers)} - Alias: {filtro_alias} - Clicca Vedi su mappa")
     if all_markers_display:
         for idx, m in enumerate(all_markers_display):
@@ -4464,7 +4847,10 @@ elif cur == "Mappe Postazioni":
                         st.session_state.mappa_avanzata_markers.append(nm)
                         st.rerun()
             st.divider()
+
     excel_import_inline("mappa_postazioni", "Mappe Postazioni")
+
+
 elif cur == "Turni":
     hdr_form("TURNI - Gestione Turni Volontari")
     if "turni" not in st.session_state:
@@ -4526,20 +4912,27 @@ elif cur == "Turni":
             pass  # istruzione rimossa
             pass
             # Istruzione rimossa - form pulito
+
+
     # IMPORT/EXPORT INLINE - Ezio - TUTTI I FORM - Excel + PDF + Template ODV
     excel_import_inline("turni", "Turni")
+
+
 elif cur == "Libreria Icone":
     hdr_form("LIBRERIA ICONE")
+
     st.markdown("""
     <div style="background:#e8f5e9;padding:8px;border-radius:8px;border-left:4px solid #1A5D1A;margin-bottom:12px;">
     <b>Qui crei le icone che poi usi su Mappe Postazioni - Decidi tu che marker usare - Ogni icona ha Emoji + Colore + Nome</b>
     </div>
     """, unsafe_allow_html=True)
+
     # Icone di default tolte - le carichi tu - richiesta Ezio
     # Nessuna icona predefinita - libreria vuota all'inizio
     if "icone" not in st.session_state:
         st.session_state.icone = []
     # Se vuoi ripristinare, carica da Excel o crea manualmente
+
     c1, c2, c3, c4 = st.columns(4)
     with c1:
         nome_icona = st.text_input("Nome Icona *", key="ico_nome", placeholder="Es: Postazione 1")
@@ -4580,6 +4973,7 @@ elif cur == "Libreria Icone":
             else:
                 st.markdown(f"<div style='font-size:40px;text-align:center;background:white;padding:10px;border-radius:8px;border:2px solid #1A5D1A;'>{preview_emoji}</div>", unsafe_allow_html=True)
                 st.caption(f"Emoji: {preview_emoji} - Colore: {st.session_state.get('ico_colore','red')}")
+
     if st.button("💾 Salva Icona in Libreria", type="primary", use_container_width=True):
         if nome_icona and emoji_icona:
             # Controlla se esiste già
@@ -4619,8 +5013,10 @@ elif cur == "Libreria Icone":
                 st.warning("Nome già esistente - cambia nome")
         else:
             st.error("Nome e Emoji obbligatori")
+
     st.divider()
     st.markdown(f"### Libreria Icone - {len(st.session_state.icone)} icone disponibili - Le usi su Mappe Postazioni")
+
     if st.session_state.icone:
         st.markdown("**Anteprima libreria - clicca per vedere dettaglio**")
         cols = st.columns(4)
@@ -4660,11 +5056,15 @@ elif cur == "Libreria Icone":
         pass  # istruzione rimossa
         pass
         # Istruzione rimossa - form pulito
+
 # CHAT
     # IMPORT/EXPORT INLINE - Ezio - TUTTI I FORM - Excel + PDF + Template ODV
     excel_import_inline("icone", "Libreria Icone")
+
+
 elif cur == "Chat":
     hdr_form("CHAT - Comunicazioni Squadra - Chi è collegato")
+
     # Mostra chi è collegato ora - Richiesta Ezio
     st.markdown("#### 🟢 Chi è collegato ora")
     try:
@@ -4690,7 +5090,9 @@ elif cur == "Chat":
             st.info("Nessun utente collegato oltre te - File presenza.json vuoto")
     except Exception as e:
         st.warning(f"Presenza non disponibile: {e}")
+
     st.divider()
+    
     # Info multi-utente
     st.markdown("""
     <div style="background:#e3f2fd;padding:10px;border-radius:8px;border-left:4px solid #1976d2;margin-bottom:10px;">
@@ -4701,12 +5103,16 @@ elif cur == "Chat":
     - Chat salvata in sessione locale (per condivisione reale serve DB)
     </div>
     """, unsafe_allow_html=True)
+
     st.markdown("#### 💬 Chat operativa volontari")
+    
     # Mostra utente corrente
     curr_user = st.session_state.get("nome_utente", "Admin")
     curr_username = st.session_state.get("username", "admin")
     st.caption(f"Stai chattando come: {curr_user} ({curr_username})")
+
     msg = st.text_input("Messaggio", key="chat_msg", placeholder="Scrivi messaggio e premi Invio o Invia")
+
     c1, c2, c3 = st.columns([1, 1, 3])
     with c1:
         if st.button("📤 Invia Messaggio", type="primary", use_container_width=True):
@@ -4733,7 +5139,9 @@ elif cur == "Chat":
             except:
                 pass
             st.rerun()
+
     st.divider()
+
     if st.session_state.chat:
         st.markdown(f"#### Ultimi {len(st.session_state.chat[-30:])} messaggi")
         for chat_msg in reversed(st.session_state.chat[-30:]):
@@ -4751,6 +5159,7 @@ elif cur == "Chat":
             )
     else:
         st.info("Nessun messaggio - Inizia conversazione - I messaggi sono visibili solo nella tua sessione (per chat condivisa serve DB)")
+
     # Mostra anche chat da file se esiste
     try:
         if os.path.exists("chat.json"):
@@ -4766,9 +5175,11 @@ elif cur == "Chat":
                         pass
     except:
         pass
+
 # GEOLOCALIZZAZIONE HYTERA + ANYTONE
 elif cur == "Geolocalizzazione Hytera + Anytone":
     hdr_form("GEOLOCALIZZAZIONE HYTERA + ANYTONE - PD785 + 878")
+
     st.markdown(
         """
         <div style="background:#e8f5e9;padding:8px;border-radius:8px;
@@ -4778,12 +5189,14 @@ elif cur == "Geolocalizzazione Hytera + Anytone":
         """,
         unsafe_allow_html=True
     )
+
     c1, c2 = st.columns(2)
     with c1:
         st.markdown("**Posizioni Hytera PD785**")
         id_pd = st.text_input("ID Radio PD785", key="pd_id")
         lat_pd = st.text_input("Latitudine PD785", value="45.8167", key="pd_lat")
         lon_pd = st.text_input("Longitudine PD785", value="8.8333", key="pd_lon")
+
         if st.button("Aggiorna Posizione PD785", use_container_width=True):
             if id_pd:
                 st.session_state.posizioni_pd785.append({
@@ -4794,11 +5207,13 @@ elif cur == "Geolocalizzazione Hytera + Anytone":
                     "Modello": "PD785"
                 })
                 st.success("Posizione PD785 aggiornata")
+
     with c2:
         st.markdown("**Posizioni Anytone 878**")
         id_any = st.text_input("ID Radio Anytone", key="any_id")
         lat_any = st.text_input("Latitudine Anytone", value="45.82", key="any_lat")
         lon_any = st.text_input("Longitudine Anytone", value="8.84", key="any_lon")
+
         if st.button("Aggiorna Posizione Anytone", use_container_width=True):
             if id_any:
                 st.session_state.posizioni_anytone.append({
@@ -4809,11 +5224,14 @@ elif cur == "Geolocalizzazione Hytera + Anytone":
                     "Modello": "Anytone 878"
                 })
                 st.success("Posizione Anytone aggiornata")
+
     st.divider()
+
     all_pos = st.session_state.posizioni_pd785 + st.session_state.posizioni_anytone
     if all_pos:
         df_pos = pd.DataFrame(all_pos)
         st.dataframe(df_pos, use_container_width=True)
+
         try:
             map_pos = pd.DataFrame([
                 {"lat": float(p.get("Lat", 0)), "lon": float(p.get("Lon", 0))}
@@ -4824,24 +5242,29 @@ elif cur == "Geolocalizzazione Hytera + Anytone":
                 st.map(map_pos)
         except:
             pass
+
         st.download_button("Excel Posizioni", to_excel(df_pos), "posizioni_hytera_anytone.xlsx", use_container_width=True)
     else:
         pass  # istruzione rimossa
         pass
         # Istruzione rimossa - form pulito
+
         demo_pos = pd.DataFrame([
             {"lat": 45.8167, "lon": 8.8333},
             {"lat": 45.82, "lon": 8.84}
         ])
         st.map(demo_pos)
+
 # GESTIONE UTENTI - Amministratore e utenti view/insert - Ezio richiesta
 elif cur == "Gestione Utenti":
     hdr_form("GESTIONE UTENTI - Solo Amministratore - Maschera Configurazione VISIBILE")
+    
     # Solo amministratore può accedere - RICHIESTA EZIO - maschera solo per admin
     if st.session_state.get("ruolo_utente") != "amministratore":
         st.error("⛔ Accesso negato - Solo amministratore può gestire utenti e vedere maschera configurazione")
         st.info(f"Il tuo ruolo: {st.session_state.get('ruolo_utente')} - Contatta amministratore (admin / ana2024)")
         st.stop()
+    
     st.markdown("""
     <div style="background:#ffebee;padding:12px;border-radius:8px;border-left:4px solid #d32f2f;margin-bottom:12px;">
     <b>🔐 MASCHERA CONFIGURAZIONE UTENTI - Solo Amministratore - SEMPRE VISIBILE</b><br>
@@ -4849,7 +5272,9 @@ elif cur == "Gestione Utenti":
     <b>Livelli:</b> 🔴 Amministratore=tutto | 🟠 Coordinatore=gestione | 🟢 Operatore=vede+inserisce | 🔵 Volontario=base | ⚪ Lettore=solo vista
     </div>
     """, unsafe_allow_html=True)
+    
     utenti = load_utenti()
+    
     # === MASCHERA CONFIGURAZIONE SEMPRE VISIBILE IN ALTO - Richiesta Ezio ===
     st.markdown("### ➕ MASCHERA CONFIGURAZIONE - Crea Nuovo Utente con Livello Accesso")
     st.markdown("""
@@ -4863,6 +5288,7 @@ elif cur == "Gestione Utenti":
     6. Clicca CREA UTENTE - Salva in utenti.json
     </div>
     """, unsafe_allow_html=True)
+    
     # Campi maschera SEMPRE VISIBILI - 3 colonne
     col_u1, col_u2, col_u3 = st.columns(3)
     with col_u1:
@@ -4879,6 +5305,7 @@ elif cur == "Gestione Utenti":
             "lettore": "⚪ Solo vista"
         }
         st.caption(desc_ruoli.get(mu_ruolo, ""))
+    
     with col_u2:
         mu_pwd = st.text_input("Password *", type="password", key="cfg_pwd")
         mu_pwd2 = st.text_input("Conferma Password *", type="password", key="cfg_pwd2")
@@ -4886,12 +5313,14 @@ elif cur == "Gestione Utenti":
         st.caption("Se non attivo, non può fare login")
         st.markdown("---")
         st.caption(f"Stai creando come: {st.session_state.get('username','admin')} - {datetime.now().strftime('%d/%m/%Y %H:%M')}")
+    
     with col_u3:
         st.markdown("**Permessi per singolo utente - Spunta TUTTI i form che può usare:**")
         st.caption("Decidi per singolo utente cosa può fare - TUTTI visibili qui")
         is_admin = mu_ruolo == "amministratore"
         is_coord = mu_ruolo in ["amministratore","coordinatore"]
         is_oper = mu_ruolo in ["amministratore","coordinatore","operatore"]
+        
         mu_perm_dashboard = st.checkbox("🏠 Dashboard", value=True, key="cfg_perm_dashboard")
         mu_perm_volontari = st.checkbox("👤 Volontari (con foto)", value=is_oper, key="cfg_perm_volontari")
         mu_perm_db_radio = st.checkbox("📻 DB Radio", value=is_oper, key="cfg_perm_db_radio")
@@ -4912,6 +5341,7 @@ elif cur == "Gestione Utenti":
         mu_perm_geo = st.checkbox("📍 Geolocalizzazione", value=is_coord, key="cfg_perm_geo")
         mu_perm_backup = st.checkbox("💾 Backup", value=is_admin, key="cfg_perm_backup")
         mu_perm_gest = st.checkbox("👥 Gestione Utenti (solo admin)", value=is_admin, key="cfg_perm_gest")
+    
     # Bottone CREA con TUTTI i permessi
     if st.button("✅ CREA UTENTE - SALVA CON PERMESSI SCELTI PER SINGOLO UTENTE", type="primary", use_container_width=True, key="btn_crea_utente_mask_visibile"):
         if not mu_username or not mu_nome or not mu_pwd:
@@ -4946,6 +5376,7 @@ elif cur == "Gestione Utenti":
             if mu_perm_geo: perm_list.append("geolocalizzazione")
             if mu_perm_backup: perm_list.append("backup")
             if mu_perm_gest: perm_list.append("gestione_utenti")
+            
             nuovo = {
                 "username": mu_username.strip().lower(),
                 "password": hash_pwd(mu_pwd.strip()),
@@ -4963,9 +5394,12 @@ elif cur == "Gestione Utenti":
                 st.rerun()
             else:
                 st.error("Errore salvataggio utenti.json")
+    
     st.divider()
+    
     # Sotto maschera: elenco e modifica
     tab_list, tab_edit, tab_online = st.tabs(["👥 Elenco Utenti", "✏️ Modifica/Elimina", "📊 Online"])
+    
     with tab_list:
         st.markdown(f"#### Utenti configurati: {len(utenti)}")
         if utenti:
@@ -4980,6 +5414,7 @@ elif cur == "Gestione Utenti":
                     "Permessi": ", ".join(u.get("permessi", [])[:3]) if u.get("permessi") else "Base"
                 })
             st.dataframe(pd.DataFrame(df_show), use_container_width=True)
+    
     with tab_edit:
         st.markdown("#### Modifica / Elimina Utente")
         sel = st.selectbox("Seleziona utente", ["--"] + [u.get("username") for u in utenti], key="sel_edit_cfg")
@@ -5029,6 +5464,7 @@ elif cur == "Gestione Utenti":
                             else:
                                 st.session_state["conf_del"]=sel
                                 st.warning("Clicca di nuovo per confermare")
+    
     with tab_online:
         st.markdown("#### Online")
         try:
@@ -5039,26 +5475,33 @@ elif cur == "Gestione Utenti":
                 st.info("Solo tu online")
         except Exception as e:
             st.error(f"{e}")
+
 # VERBALI - Numero progressivo + Responsabile agganciato Volontari + campo libero
 elif cur == "Verbali":
     hdr_form("VERBALI - Numero progressivo + PDF con logo PC ANA")
+
     if "verbali" not in st.session_state:
         st.session_state.verbali = []
     if "archivio_documenti" not in st.session_state:
         st.session_state.archivio_documenti = []
+
     # Numero progressivo automatico - anno corrente
     anno_corr = datetime.now().year
     num_prog = len(st.session_state.verbali) + 1
     num_verbale_auto = f"{num_prog:03d}/{anno_corr}"
+
     st.markdown(f"""<div style="background:#C8E6C9;padding:8px;border-radius:8px;border-left:5px solid #1A5D1A;margin-bottom:8px;text-align:center;"><b>📝 Verbale {num_verbale_auto}</b> - Totale: {len(st.session_state.verbali)}</div>""", unsafe_allow_html=True)
+
     # Maschera colore di fondo come altri form - verde #C8E6C9 - Richiesta Ezio
     st.markdown("""
     <style>
     /* Verde chiaro #C8E6C9 per form verbali come volontari - Riga maschera */
     </style>
     """, unsafe_allow_html=True)
+
     # Contenitore verde chiaro per maschera verbali - come altri form
     st.markdown('<div style="background:#C8E6C9;padding:15px;border-radius:10px;border:2px solid #1A5D1A;margin-bottom:15px;">', unsafe_allow_html=True)
+
     # Form verbale - 2 colonne
     c1, c2 = st.columns(2)
     with c1:
@@ -5066,6 +5509,7 @@ elif cur == "Verbali":
         data_verbale = st.date_input("Data Verbale", value=date.today(), min_value=date(1950,1,1), max_value=date.today(), format="DD/MM/YYYY", key="verb_data")
         ora_verbale = st.time_input("Ora", value=datetime.now().time(), key="verb_ora")
         luogo_verbale = st.text_input("Luogo *", value="Sede ANA Varese", key="verb_luogo", placeholder="Es: Sede ANA Varese - Via...")
+
     with c2:
         tipo_verbale = st.selectbox("Tipo Verbale *", ["Consiglio Direttivo", "Assemblea Ordinaria", "Assemblea Straordinaria", "Riunione Squadra", "Riunione Emergenza", "Riunione Formazione", "Verbale Intervento", "Altro"], key="verb_tipo")
         oggetto_verbale = st.text_input("Oggetto *", key="verb_oggetto", placeholder="Es: Approvazione bilancio, Organizzazione esercitazione...")
@@ -5085,17 +5529,20 @@ elif cur == "Verbali":
                 st.caption(f"✅ Selezionato da DB Volontari: {responsabile}")
         else:
             responsabile = st.text_input("Responsabile * - Nome Cognome (agganciato Volontari)", key="verb_resp", value=st.session_state.get("nome_utente",""), placeholder="Mario Rossi - Quando aggiungi volontari compariranno qui")
+
     st.divider()
     st.markdown("#### 📋 Contenuto Verbale - Campo libero")
     # Campo verbale mano libera - Richiesta Ezio
     st.markdown("""<div style="background:#e8f5e9;padding:6px;border-radius:6px;border-left:4px solid #1A5D1A;margin-bottom:6px;text-align:center;"><b>✍️ Verbale</b></div>""", unsafe_allow_html=True)
     testo_verbale = st.text_area("Verbale - Scrivi a mano libera * (campo grande)", key="verb_testo_libero", placeholder="Scrivi qui il verbale completo a mano libera...\n\nEs:\nIl giorno ... alle ore ... presso ... si è riunito il Consiglio...\nPresenti: ...\nODG: ...\nSi discute: ...\nSi delibera: ...", height=500)
+
     st.divider()
     st.markdown("#### 📋 Dettagli strutturati (opzionali - per PDF strutturato)")
     odg = st.text_area("Ordine del Giorno (ODG)", key="verb_odg", placeholder="1. Approvazione verbale precedente\n2. Comunicazioni\n3. Varie", height=80)
     delibere = st.text_area("Delibere / Decisioni prese", key="verb_delibere", placeholder="Il consiglio delibera: ...", height=100)
     incarichi = st.text_area("Incarichi assegnati", key="verb_incarichi", placeholder="Mario Rossi: preparazione mezzi...", height=60)
     note_verb = st.text_area("Note finali", key="verb_note", placeholder="Note, allegati...")
+
     st.markdown("</div>", unsafe_allow_html=True)  # chiude contenitore verde maschera
     st.divider()
     col_save, col_pdf = st.columns(2)
@@ -5130,6 +5577,8 @@ elif cur == "Verbali":
                 st.rerun()
             else:
                 st.error("Compila campi obbligatori: Numero, Luogo, Responsabile, Verbale mano libera *")
+
+
     with col_pdf:
         if st.session_state.verbali:
             ultimo = st.session_state.verbali[-1]
@@ -5198,6 +5647,7 @@ elif cur == "Verbali":
                         return buf.getvalue()
                     except Exception as e:
                         return f"Verbale {verb.get('NumVerbale','')} - Errore {e}".encode()
+
                 pdf_ultimo = verbale_to_pdf_logo(ultimo)
                 st.download_button(f"📄 PDF Ultimo Verbale {ultimo.get('NumVerbale','')}", data=pdf_ultimo, file_name=f"Verbale_{ultimo.get('NumVerbale','').replace('/','_')}.pdf", mime="application/pdf", use_container_width=True, key="pdf_ultimo_verbale")
                 if st.button("💾 Salva PDF in Archivio Documenti", use_container_width=True, key="salva_pdf_archivio"):
@@ -5218,6 +5668,7 @@ elif cur == "Verbali":
                     st.success(f"✅ PDF Verbale {ultimo.get('NumVerbale','')} salvato in Archivio Documenti!")
             except Exception as e:
                 st.error(f"Errore PDF: {e}")
+
     st.divider()
     if st.session_state.verbali:
         st.markdown(f"#### 📋 Elenco Verbali ({len(st.session_state.verbali)}) - Numero progressivo + Responsabile agganciato Volontari")
@@ -5240,6 +5691,7 @@ elif cur == "Verbali":
                 if st.button("🗑️", key=f"del_verb_{real_idx}"):
                     st.session_state.verbali.pop(real_idx)
                     st.rerun()
+
         if "verb_view_idx" in st.session_state:
             try:
                 v_idx = st.session_state["verb_view_idx"]
@@ -5252,6 +5704,7 @@ elif cur == "Verbali":
                 st.write(f"**Delibere:** {verb_sel.get('Delibere','')}")
             except:
                 pass
+
         st.divider()
         df_verb = pd.DataFrame([{k:v for k,v in verb.items() if k not in ["FileBytes"]} for verb in st.session_state.verbali])
         st.dataframe(df_verb[["NumVerbale","Data","Tipo","Oggetto","Responsabile"]].head(20) if not df_verb.empty and "NumVerbale" in df_verb.columns else df_verb, use_container_width=True)
@@ -5271,9 +5724,12 @@ elif cur == "Verbali":
         pass  # istruzione rimossa
         pass
         # Istruzione rimossa - form pulito
+
     excel_import_inline("verbali", "Verbali")
+
 elif cur == "Archivio Documenti":
     hdr_form("ARCHIVIO DOCUMENTI - Salva PDF, Word, Excel ecc")
+
     st.markdown("""
     <div style="background:#e8f5e9;padding:12px;border-radius:8px;border-left:4px solid #1A5D1A;margin-bottom:12px;">
     <b>📁 Archivio documenti</b><br>
@@ -5281,15 +5737,18 @@ elif cur == "Archivio Documenti":
     <small>PDF, DOC, XLS, XLSX, JPG, PNG, ZIP</small>
     </div>
     """, unsafe_allow_html=True)
+
     # Inizializza sessione se manca
     if "archivio_documenti" not in st.session_state:
         st.session_state.archivio_documenti = []
+
     c1, c2 = st.columns(2)
     with c1:
         titolo_doc = st.text_input("Titolo Documento *", key="arch_titolo", placeholder="Es: Regolamento ODV 2024")
         tipo_doc = st.selectbox("Tipo Documento", ["Regolamento", "Convenzione", "Attestato", "Verbale", "Circolare", "Manuale Radio", "Modulo", "Autorizzazione", "Altro"], key="arch_tipo")
         categoria_doc = st.selectbox("Categoria", ["Generale", "Volontari", "Radio", "Mezzi", "Emergenze", "Formazione", "Amministrativo", "Sicurezza"], key="arch_cat")
         descrizione_doc = st.text_area("Descrizione", key="arch_desc", placeholder="Descrizione breve del documento")
+    
     with c2:
         data_doc = st.date_input("Data Documento", value=date.today(), format="DD/MM/YYYY", key="arch_data")
         uploader_doc = st.text_input("Caricato da", value=st.session_state.get("nome_utente","Admin"), key="arch_uploader")
@@ -5299,6 +5758,7 @@ elif cur == "Archivio Documenti":
             # Preview se immagine
             if file_doc.type and "image" in file_doc.type:
                 st.image(file_doc.getvalue(), width=200, caption="Anteprima")
+
     if st.button("💾 SALVA DOCUMENTO IN ARCHIVIO", type="primary", use_container_width=True, key="btn_salva_arch"):
         if titolo_doc and file_doc:
             file_bytes = file_doc.getvalue()
@@ -5328,6 +5788,7 @@ elif cur == "Archivio Documenti":
             st.rerun()
         else:
             st.error("Compila Titolo Documento * e carica File *")
+
     st.divider()
     if st.session_state.archivio_documenti:
         st.markdown(f"#### 📁 Archivio Documenti ({len(st.session_state.archivio_documenti)}) - Tutti i file salvati")
@@ -5336,6 +5797,7 @@ elif cur == "Archivio Documenti":
         docs_to_show = st.session_state.archivio_documenti
         if cat_filter != "Tutte":
             docs_to_show = [d for d in docs_to_show if d.get("Categoria")==cat_filter]
+        
         for idx, doc in enumerate(docs_to_show):
             # Trova indice reale in lista completa
             real_idx = st.session_state.archivio_documenti.index(doc)
@@ -5366,10 +5828,12 @@ elif cur == "Archivio Documenti":
                     st.session_state.archivio_documenti.pop(real_idx)
                     st.success("Documento eliminato")
                     st.rerun()
+        
         st.divider()
         # Tabella riepilogo
         df_arch = pd.DataFrame([{k:v for k,v in d.items() if "Bytes" not in k} for d in st.session_state.archivio_documenti])
         st.dataframe(df_arch, use_container_width=True)
+        
         # Export Excel e PDF - SOLO EXCEL XLSX + PDF per tutti i form - Richiesta Ezio
         c_exp1, c_exp2 = st.columns(2)
         with c_exp1:
@@ -5410,242 +5874,222 @@ elif cur == "Archivio Documenti":
         pass  # istruzione rimossa
         pass
         # Istruzione rimossa - form pulito
+
     # Import/Export inline
     excel_import_inline("archivio_documenti", "Archivio Documenti")
+
+
+
 elif cur == "Diplomi Attestati":
-    hdr_form("DIPLOMI ATTESTATI - Impaginazione come da PDF Vigano_Alberto.pdf")
-    st.markdown("""
-    <div style="background:#1A5D1A;color:white;padding:8px;border-radius:8px;text-align:center;margin-bottom:10px;">
-    <b>🏅 Impaginazione IDENTICA al PDF che hai inviato - Bordo blu - 2 loghi - ATTESTATO</b>
-    </div>
-    """, unsafe_allow_html=True)
+    hdr_form("DIPLOMI ATTESTATI - Bordi Tricolore Italiano - Combo Volontari Check-in")
+
+    volontari_all = st.session_state.get("volontari", [])
+    checkin_all = st.session_state.get("checkin", [])
+    nomi_checkin = set()
+    for c in checkin_all:
+        if isinstance(c, dict):
+            for k in ["volontario","nome","nominativo"]:
+                if k in c and c[k]:
+                    nomi_checkin.add(str(c[k]).strip())
+                    break
+        elif isinstance(c, str):
+            nomi_checkin.add(c.strip())
+    if not nomi_checkin and checkin_all:
+        for c in checkin_all:
+            if isinstance(c, dict):
+                for v in c.values():
+                    if isinstance(v, str) and len(v)>3:
+                        nomi_checkin.add(v.strip())
+                        break
+    volontari_filtrati = []
+    if nomi_checkin:
+        for v in volontari_all:
+            full = (str(v.get("nome",""))+" "+str(v.get("cognome",""))).strip().lower()
+            for n in nomi_checkin:
+                if full in n.lower() or n.lower() in full:
+                    volontari_filtrati.append(v)
+                    break
+        if not volontari_filtrati:
+            volontari_filtrati = volontari_all
+    else:
+        volontari_filtrati = volontari_all
+
+    st.info(f"Combo volontari: {len(volontari_filtrati)} filtrati da check-in ({len(checkin_all)} check-in)")
 
     if "diplomi_form_version" not in st.session_state:
         st.session_state["diplomi_form_version"] = 0
     ver_dip = st.session_state.get("diplomi_form_version", 0)
-    def k_dip(base): return f"{base}_v{ver_dip}"
+    def k_dip(b): return f"{b}_v{ver_dip}"
 
-    c1, c2 = st.columns([1, 1.6])
+    c1, c2 = st.columns([1, 1.2])
     with c1:
-        st.markdown("#### ✏️ Dati (modifica e vedi anteprima pari pari)")
-        nome_dip = st.text_input("Nome Volontario *", value="ALBERTO VIGANO'", key=k_dip("dip_nome"))
-        evento_dip = st.text_input("Titolo", value="CAMPO SCUOLA 2026\nCARONNO PERTUSELLA", key=k_dip("dip_evento"), help="Riga 1 e Riga 2")
-        data_dip = st.text_input("Data", value="6 e 7 giugno 2026", key=k_dip("dip_data"))
-        ruolo_dip = st.text_input("Ruolo / Attività", value="VOLONTARIO DI P.C. ANA VARESE (Campo Scuola)", key=k_dip("dip_ruolo"))
-        motto_r1 = st.text_input("Motto riga 1", value="Insieme con Noi ...", key=k_dip("dip_motto1"))
-        motto_r2 = st.text_input("Motto riga 2", value="Addestramento alla Protezione Civile", key=k_dip("dip_motto2"))
-        capogruppo_dip = st.text_input("Capogruppo firma", value="Fiscato Stefano", key=k_dip("dip_capogruppo"))
-        coordinatore_dip = st.text_input("Coordinatore firma", value="", key=k_dip("dip_coord"))
-        if st.button("🧹 Pulisci maschera", use_container_width=True, key=f"btn_pulisci_dip_v{ver_dip}"):
+        st.markdown("#### Combo Volontari (solo check-in)")
+        if volontari_filtrati:
+            opzioni = [f"{v.get('nome','')} {v.get('cognome','')} - {v.get('gruppo','')}".strip() for v in volontari_filtrati]
+            sel_idx = st.selectbox("Volontario COMBO", range(len(volontari_filtrati)), format_func=lambda i: opzioni[i], key=k_dip("combo"))
+            nome_default = f"{volontari_filtrati[sel_idx].get('nome','')} {volontari_filtrati[sel_idx].get('cognome','')}".strip()
+        else:
+            nome_default = "ALBERTO VIGANO'"
+        nome_dip = st.text_input("Nome *", value=nome_default, key=k_dip("nome"))
+        evento_dip = st.text_input("Titolo", value="CAMPO SCUOLA 2026\nCARONNO PERTUSELLA", key=k_dip("evento"))
+        data_dip = st.text_input("Data", value="6 e 7 giugno 2026", key=k_dip("data"))
+        ruolo_dip = st.text_input("Ruolo", value="VOLONTARIO DI P.C. ANA VARESE (Campo Scuola)", key=k_dip("ruolo"))
+        m1 = st.text_input("Motto 1", value="Insieme con Noi ...", key=k_dip("m1"))
+        m2 = st.text_input("Motto 2", value="Addestramento alla Protezione Civile", key=k_dip("m2"))
+        capo = st.text_input("Capogruppo", value="Fiscato Stefano", key=k_dip("capo"))
+        coord = st.text_input("Coordinatore", value="", key=k_dip("coord"))
+        if st.button("Pulisci", key=f"pul_{ver_dip}"):
             st.session_state["diplomi_form_version"] += 1
             st.rerun()
 
-    # Loghi base64
-    def get_logo_b64(paths):
+    def get_b64(paths):
         for p in paths:
             if os.path.exists(p):
                 try:
+                    import base64
                     with open(p, "rb") as fh:
                         return base64.b64encode(fh.read()).decode()
                 except:
                     continue
         return ""
-    logo_ana_b64 = get_logo_b64(["logo.png", "logo_volontario_varese.png", "volontario_varese.png", "gruppo_caronno.png", "gruppo_CPB.jpeg"])
-    logo_pc_b64 = get_logo_b64(["logo2.png", "logo_pc.png", "logo_protezione_civile.png"])
-
-    if not logo_ana_b64:
-        logo_ana_html = '<div style="width:85px;height:85px;border:2px solid #1A5D1A;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:8px;font-weight:bold;text-align:center;background:white;">SEZIONE DI VARESE<br>GRUPPO DI CARONNO<br>PERTUSELLA<br>NAZ. ALPINI</div>'
-    else:
-        logo_ana_html = f'<img src="data:image/png;base64,{logo_ana_b64}" style="width:90px;height:90px;object-fit:contain;">'
-    if not logo_pc_b64:
-        logo_pc_html = '<div style="width:85px;height:85px;border:2px solid #1A5D1A;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:7px;font-weight:bold;text-align:center;background:white;">PROTEZIONE CIVILE<br>NAZIONALE<br>VOLONTARIATO</div>'
-    else:
-        logo_pc_html = f'<img src="data:image/png;base64,{logo_pc_b64}" style="width:90px;height:90px;object-fit:contain;">'
-
-    # Prepara testi per anteprima
-    evento_lines = evento_dip.split("\n")
-    evento_html = "<br>".join([l.strip() for l in evento_lines])
+    logo_a = get_b64(["logo.png","gruppo_caronno.png"])
+    logo_b = get_b64(["logo2.png","logo_pc.png"])
+    logo_a_html = f'<img src="data:image/png;base64,{logo_a}" style="width:92px;height:92px;object-fit:contain;">' if logo_a else '<div style="width:88px;height:88px;border:2px solid #1A5D1A;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:7px;font-weight:bold;background:white;">ANA</div>'
+    logo_b_html = f'<img src="data:image/png;base64,{logo_b}" style="width:92px;height:92px;object-fit:contain;">' if logo_b else '<div style="width:88px;height:88px;border:2px solid #1A5D1A;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:7px;font-weight:bold;background:white;">P.C.</div>'
+    ev_html = "<br>".join([l.strip() for l in evento_dip.split("\n")])
 
     with c2:
-        st.markdown("#### 🖼️ Anteprima PARI PARI al tuo PDF - Bordo blu")
-        preview_html = f"""
-        <div style="background:#c0c0c0;padding:15px;border-radius:5px;">
-            <div style="background:white;width:700px;height:950px;margin:0 auto;box-shadow:0 0 10px rgba(0,0,0,0.3);position:relative;padding:0;overflow:hidden;border:3px solid #6a9bc3;">
-                <div style="padding:25px 30px 20px 30px;height:100%;box-sizing:border-box;display:flex;flex-direction:column;">
-                    <!-- Top row con loghi -->
-                    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:30px;">
-                        <div style="width:90px;text-align:center;">{logo_ana_html}</div>
-                        <div style="flex:1;text-align:center;padding-top:5px;">
-                            <div style="font-family:Arial,Helvetica,sans-serif;font-size:14px;font-weight:bold;color:black;line-height:1.3;letter-spacing:0.3px;">{evento_html}</div>
-                            <div style="font-family:Arial,sans-serif;font-size:13px;font-weight:bold;color:black;margin-top:8px;">{data_dip}</div>
+        st.markdown("#### Anteprima Tricolore Italiano")
+        html = f"""
+        <div style="background:#9aa3b0;padding:18px;border-radius:6px;">
+            <div style="background:white;width:700px;height:980px;margin:0 auto;box-shadow:0 0 12px rgba(0,0,0,0.4);position:relative;overflow:hidden;">
+                <div style="position:absolute;top:0;left:0;right:0;bottom:0;border:8px solid #009246;z-index:10;"></div>
+                <div style="position:absolute;top:8px;left:8px;right:8px;bottom:8px;border:6px solid white;z-index:11;"></div>
+                <div style="position:absolute;top:14px;left:14px;right:14px;bottom:14px;border:8px solid #CE2B37;z-index:12;"></div>
+                <div style="padding:32px 36px 24px 36px;height:100%;box-sizing:border-box;display:flex;flex-direction:column;position:relative;z-index:5;">
+                    <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+                        <div style="width:92px;text-align:center;">{logo_a_html}</div>
+                        <div style="flex:1;text-align:center;padding-top:6px;">
+                            <div style="font-family:Arial,sans-serif;font-size:14px;font-weight:800;color:#000;line-height:1.35;">{ev_html}</div>
+                            <div style="font-family:Arial,sans-serif;font-size:13px;font-weight:700;color:#000;margin-top:10px;">{data_dip}</div>
                         </div>
-                        <div style="width:90px;text-align:center;">{logo_pc_html}</div>
+                        <div style="width:92px;text-align:center;">{logo_b_html}</div>
                     </div>
-
-                    <!-- TITOLO ATTESTATO -->
-                    <div style="text-align:center;margin-top:35px;margin-bottom:45px;">
-                        <div style="font-family:Arial Black,Arial,sans-serif;font-size:36px;font-weight:900;color:black;letter-spacing:1px;">ATTESTATO</div>
+                    <div style="text-align:center;margin-top:48px;margin-bottom:48px;">
+                        <div style="font-family:Arial Black,Arial,sans-serif;font-size:38px;font-weight:900;color:#000;">ATTESTATO</div>
                     </div>
-
-                    <!-- NOME mano -->
-                    <div style="text-align:center;margin:40px 0 50px 0;">
-                        <div style="font-family:'Comic Sans MS','Segoe Script','Brush Script MT',cursive;font-size:28px;color:black;font-style:italic;transform:rotate(-0.5deg);">{nome_dip}</div>
+                    <div style="text-align:center;margin:38px 0 52px 0;">
+                        <div style="font-family:'Comic Sans MS','Segoe Script',cursive;font-size:30px;color:#000;font-style:italic;transform:rotate(-0.6deg);">{nome_dip}</div>
                     </div>
-
-                    <!-- Motto -->
-                    <div style="text-align:center;margin:20px 0 40px 0;">
-                        <div style="font-family:Arial,sans-serif;font-size:16px;font-weight:bold;color:black;font-style:italic;line-height:1.4;">
-                            “{motto_r1} ...<br>
-                            <span style="font-style:italic;font-weight:bold;">{motto_r2}”</span>
-                        </div>
+                    <div style="text-align:center;margin:18px 0 42px 0;">
+                        <div style="font-family:Arial,sans-serif;font-size:17px;font-weight:700;color:#000;font-style:italic;">“{m1} ...<br><span>{m2}”</span></div>
                     </div>
-
-                    <!-- Operativo -->
-                    <div style="text-align:center;margin:30px 0 20px 0;flex-grow:1;">
-                        <div style="font-family:Arial,sans-serif;font-size:14px;color:black;line-height:1.5;">
-                            E' stato operativo per le attività di<br>
-                            <span style="font-size:14px;">{ruolo_dip}</span>
-                        </div>
+                    <div style="text-align:center;margin:28px 0 20px 0;flex-grow:1;">
+                        <div style="font-family:Arial,sans-serif;font-size:14.5px;color:#000;">E' stato operativo per le attività di<br><span>{ruolo_dip}</span></div>
                     </div>
-
-                    <!-- Firme bottom -->
-                    <div style="display:flex;justify-content:space-between;align-items:flex-end;margin-top:auto;padding:0 10px 15px 10px;">
+                    <div style="display:flex;justify-content:space-between;align-items:flex-end;margin-top:auto;padding:0 8px 12px 8px;">
                         <div style="text-align:left;">
-                            <div style="font-family:Arial,sans-serif;font-size:9px;color:black;">Il Capogruppo</div>
-                            <div style="font-family:Arial,sans-serif;font-size:10px;font-weight:bold;color:black;font-style:italic;">{capogruppo_dip}</div>
-                            <div style="font-family:'Segoe Script','Comic Sans MS',cursive;font-size:18px;color:#00008B;margin-top:2px;transform:rotate(-3deg);">{capogruppo_dip.split()[0] if capogruppo_dip else 'Firma'}</div>
+                            <div style="font-size:9.5px;">Il Capogruppo</div>
+                            <div style="font-size:10.5px;font-weight:700;font-style:italic;">{capo}</div>
+                            <div style="font-family:'Segoe Script',cursive;font-size:19px;color:#001a8a;transform:rotate(-3deg);">{capo.split()[0] if capo else 'Firma'}</div>
                         </div>
                         <div style="text-align:right;">
-                            <div style="font-family:Arial,sans-serif;font-size:9px;color:black;">Firma del Coordinatore di P.C.</div>
-                            <div style="font-family:'Segoe Script','Comic Sans MS',cursive;font-size:16px;color:#555;margin-top:15px;transform:rotate(-2deg);">{coordinatore_dip if coordinatore_dip else ''}</div>
+                            <div style="font-size:9.5px;">Firma Coordinatore P.C.</div>
+                            <div style="font-family:'Segoe Script',cursive;font-size:17px;color:#444;margin-top:18px;">{coord}</div>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
         """
-        st.markdown(preview_html, unsafe_allow_html=True)
+        st.components.v1.html(html, height=1080, scrolling=True)
 
     st.divider()
-    if not REPORTLAB_OK:
-        st.error("⚠️ reportlab non installato - aggiungi reportlab in requirements.txt")
-    else:
-        col_pdf1, col_pdf2 = st.columns(2)
-        with col_pdf1:
-            if st.button("📄 Genera PDF IDENTICO al tuo esempio", type="primary", use_container_width=True, key=f"btn_gen_pdf_v{ver_dip}"):
-                try:
-                    from reportlab.lib.pagesizes import A4
-                    from reportlab.lib.units import mm, cm
-                    from reportlab.lib import colors
-                    from reportlab.pdfgen import canvas
-                    from reportlab.lib.utils import ImageReader
-                    import io
-
-                    def crea_pdf_identico(nome, evento_txt, data_txt, ruolo, motto1, motto2, capogruppo, coord, logo_ana_path=None, logo_pc_path=None):
-                        buf = io.BytesIO()
-                        c = canvas.Canvas(buf, pagesize=A4)
-                        w, h = A4
-
-                        # Bordo blu come da PDF
-                        c.setStrokeColor(colors.HexColor("#6a9bc3"))
-                        c.setLineWidth(2)
-                        c.rect(12*mm, 12*mm, w-24*mm, h-24*mm, stroke=1, fill=0)
-
-                        # Loghi (se esistono)
-                        # Logo sinistra
-                        logo_ana_file = None
-                        for p in ["logo.png", "gruppo_caronno.png", "gruppo_CPB.jpeg", "volontario_varese.png"]:
-                            if os.path.exists(p):
-                                logo_ana_file = p
-                                break
-                        if logo_ana_file:
-                            try:
-                                c.drawImage(ImageReader(logo_ana_file), 18*mm, h-38*mm, width=22*mm, height=22*mm, preserveAspectRatio=True, mask='auto')
-                            except:
-                                pass
-                        # Logo destra
-                        logo_pc_file = None
-                        for p in ["logo2.png", "logo_pc.png"]:
-                            if os.path.exists(p):
-                                logo_pc_file = p
-                                break
-                        if logo_pc_file:
-                            try:
-                                c.drawImage(ImageReader(logo_pc_file), w-40*mm, h-38*mm, width=22*mm, height=22*mm, preserveAspectRatio=True, mask='auto')
-                            except:
-                                pass
-
-                        # Top center - CAMPO SCUOLA
-                        c.setFillColor(colors.black)
-                        c.setFont("Helvetica-Bold", 11)
-                        lines = evento_txt.split("\n")
-                        y_top = h - 20*mm
-                        for line in lines:
-                            c.drawCentredString(w/2, y_top, line.strip())
-                            y_top -= 5*mm
-                        y_top -= 2*mm
-                        c.setFont("Helvetica-Bold", 10)
-                        c.drawCentredString(w/2, y_top, data_txt)
-
-                        # ATTESTATO
-                        c.setFont("Helvetica-Bold", 28)
-                        c.drawCentredString(w/2, h/2 + 70*mm, "ATTESTATO")
-
-                        # Nome mano - simile a scritto a mano
-                        c.setFont("Helvetica-Oblique", 18)
-                        c.drawCentredString(w/2, h/2 + 35*mm, nome)
-
-                        # Motto
-                        c.setFont("Helvetica-BoldOblique", 12)
-                        c.drawCentredString(w/2, h/2 + 5*mm, f'"{motto1} ...')
-                        c.drawCentredString(w/2, h/2 - 3*mm, f'{motto2}"')
-
-                        # Operativo
-                        c.setFont("Helvetica", 11)
-                        c.drawCentredString(w/2, h/2 - 20*mm, "E' stato operativo per le attività di")
-                        c.setFont("Helvetica", 11)
-                        c.drawCentredString(w/2, h/2 - 27*mm, ruolo)
-
-                        # Firme bottom
-                        c.setFont("Helvetica", 7)
-                        c.drawString(20*mm, 35*mm, "Il Capogruppo")
-                        c.setFont("Helvetica-BoldOblique", 9)
-                        c.drawString(20*mm, 32*mm, capogruppo)
-                        # Firma simulata
-                        c.setFont("Helvetica-Oblique", 12)
-                        c.setFillColor(colors.HexColor("#00008B"))
-                        c.drawString(20*mm, 22*mm, capogruppo.split()[0] if capogruppo else "Firma")
-
-                        c.setFillColor(colors.black)
-                        c.setFont("Helvetica", 7)
-                        c.drawRightString(w-20*mm, 35*mm, "Firma del Coordinatore di P.C.")
-                        if coord:
-                            c.setFont("Helvetica-Oblique", 10)
-                            c.drawRightString(w-20*mm, 22*mm, coord)
-
-                        c.showPage()
-                        c.save()
-                        buf.seek(0)
-                        return buf
-
-                    pdf_buf = crea_pdf_identico(nome_dip, evento_dip, data_dip, ruolo_dip, motto_r1, motto_r2, capogruppo_dip, coordinatore_dip)
-                    st.download_button("⬇️ Scarica PDF - Impaginazione IDENTICA al tuo", data=pdf_buf, file_name=f"Attestato_{nome_dip.replace(' ', '_')}.pdf", mime="application/pdf", use_container_width=True, key=f"dl_pdf_v{ver_dip}")
-                    st.success("PDF generato identico al tuo esempio!")
-                except Exception as e:
-                    st.error(f"Errore PDF: {e}")
-                    import traceback
-                    st.code(traceback.format_exc())
-
-        with col_pdf2:
-            # Bottone stampa multipla da lista
-            if st.button("📚 Genera PDF multipli da lista volontari", use_container_width=True, key=f"btn_multi_v{ver_dip}"):
-                volontari_list = st.session_state.get("volontari", [])
-                if not volontari_list:
-                    st.warning("Nessun volontario in form Volontari")
-                else:
-                    st.info(f"Verranno generati {len(volontari_list)} attestati con stessa impaginazione")
+    if REPORTLAB_OK:
+        c1p, c2p = st.columns(2)
+        with c1p:
+            if st.button("PDF Tricolore Singolo", type="primary", use_container_width=True, key=f"pdf_tri_{ver_dip}"):
+                from reportlab.lib.pagesizes import A4
+                from reportlab.lib.units import mm
+                from reportlab.lib import colors
+                from reportlab.pdfgen import canvas
+                import io
+                buf = io.BytesIO()
+                c = canvas.Canvas(buf, pagesize=A4)
+                w, h = A4
+                c.setStrokeColor(colors.HexColor("#009246"))
+                c.setLineWidth(6)
+                c.rect(9*mm, 9*mm, w-18*mm, h-18*mm, stroke=1, fill=0)
+                c.setStrokeColor(colors.white)
+                c.setLineWidth(3.5)
+                c.rect(11.5*mm, 11.5*mm, w-23*mm, h-23*mm, stroke=1, fill=0)
+                c.setStrokeColor(colors.HexColor("#CE2B37"))
+                c.setLineWidth(6)
+                c.rect(13*mm, 13*mm, w-26*mm, h-26*mm, stroke=1, fill=0)
+                c.setFillColor(colors.black)
+                c.setFont("Helvetica-Bold", 11)
+                y = h - 18*mm
+                for line in evento_dip.split("\n"):
+                    c.drawCentredString(w/2, y, line.strip())
+                    y -= 5*mm
+                y -= 2*mm
+                c.setFont("Helvetica-Bold", 10)
+                c.drawCentredString(w/2, y, data_dip)
+                c.setFont("Helvetica-Bold", 30)
+                c.drawCentredString(w/2, h/2 + 68*mm, "ATTESTATO")
+                c.setFont("Helvetica-Oblique", 20)
+                c.drawCentredString(w/2, h/2 + 32*mm, nome_dip)
+                c.setFont("Helvetica-BoldOblique", 12.5)
+                c.drawCentredString(w/2, h/2 + 4*mm, f'"{m1} ...')
+                c.drawCentredString(w/2, h/2 - 4*mm, f'{m2}"')
+                c.setFont("Helvetica", 11)
+                c.drawCentredString(w/2, h/2 - 22*mm, "E' stato operativo per le attività di")
+                c.drawCentredString(w/2, h/2 - 29*mm, ruolo_dip)
+                c.showPage()
+                c.save()
+                buf.seek(0)
+                st.download_button("Scarica PDF Tricolore", data=buf, file_name=f"Attestato_{nome_dip.replace(' ', '_')}_Tricolore.pdf", mime="application/pdf", use_container_width=True, key=f"dl_tri_{ver_dip}")
+        with c2p:
+            if st.button(f"PDF Tutti Check-in Tricolore ({len(volontari_filtrati)})", use_container_width=True, key=f"multi_tri_{ver_dip}"):
+                from reportlab.lib.pagesizes import A4
+                from reportlab.lib.units import mm
+                from reportlab.lib import colors
+                from reportlab.pdfgen import canvas
+                import io
+                buf = io.BytesIO()
+                c = canvas.Canvas(buf, pagesize=A4)
+                w, h = A4
+                for vol in volontari_filtrati:
+                    nome_vol = f"{vol.get('nome','')} {vol.get('cognome','')}".strip()
+                    c.setStrokeColor(colors.HexColor("#009246"))
+                    c.setLineWidth(6)
+                    c.rect(9*mm, 9*mm, w-18*mm, h-18*mm, stroke=1, fill=0)
+                    c.setStrokeColor(colors.white)
+                    c.setLineWidth(3.5)
+                    c.rect(11.5*mm, 11.5*mm, w-23*mm, h-23*mm, stroke=1, fill=0)
+                    c.setStrokeColor(colors.HexColor("#CE2B37"))
+                    c.setLineWidth(6)
+                    c.rect(13*mm, 13*mm, w-26*mm, h-26*mm, stroke=1, fill=0)
+                    c.setFillColor(colors.black)
+                    c.setFont("Helvetica-Bold", 11)
+                    y = h - 18*mm
+                    for line in evento_dip.split("\n"):
+                        c.drawCentredString(w/2, y, line.strip())
+                        y -= 5*mm
+                    y -= 2*mm
+                    c.setFont("Helvetica-Bold", 10)
+                    c.drawCentredString(w/2, y, data_dip)
+                    c.setFont("Helvetica-Bold", 30)
+                    c.drawCentredString(w/2, h/2 + 68*mm, "ATTESTATO")
+                    c.setFont("Helvetica-Oblique", 20)
+                    c.drawCentredString(w/2, h/2 + 32*mm, nome_vol)
+                    c.showPage()
+                c.save()
+                buf.seek(0)
+                st.download_button("Scarica Tutti Tricolore", data=buf, file_name="Attestati_Checkin_Tricolore.pdf", mime="application/pdf", use_container_width=True, key=f"dl_all_{ver_dip}")
 
 elif cur == "Report Filtro":
+
     hdr_form("REPORT FILTRO - Verde ANA - Font Nero Times Bold - Tasto Filtro OK")
     st.markdown("""
     <div style="background:linear-gradient(135deg,#1A5D1A 0%,#2e7d32 100%);color:white;padding:12px;border-radius:10px;text-align:center;margin-bottom:14px;border:3px solid #FFD700;">
@@ -5738,11 +6182,14 @@ elif cur == "Report Filtro":
                             doc.build(story); buf.seek(0)
                             st.download_button(f"⬇️ PDF ({len(df_report)})", data=buf.getvalue(), file_name=f"report_{sel_form_key}.pdf", mime="application/pdf", use_container_width=True, key="dl_pdf_report_final")
                         except Exception as e: st.error(f"PDF: {e}")
+
+
+
 elif cur == "Backup":
     hdr_form("BACKUP")
+
     FORM_KEYS = {
         "Volontari (con foto)": "volontari",
-        "Ospiti": "ospiti",
         "DB Radio": "radio_db",
         "Consegna Radio": "consegna_radio",
         "Alias Radio": "alias_radio",
@@ -5758,19 +6205,18 @@ elif cur == "Backup":
         "Libreria Icone": "icone",
         "Turni": "turni",
         "Chat": "chat",
-        "Verbali": "verbali",
-        "Archivio Documenti": "archivio_documenti",
-        "Diplomi Attestati": "diplomi",
-        "Report Filtro": "report_filtro",
         "Posizioni PD785": "posizioni_pd785",
-        "Posizioni Anytone": "posizioni_anytone"
+        "Posizioni Anytone": "posizioni_anytone",
+        "Archivio Documenti": "archivio_documenti"
     }
+
     st.markdown("""
     <div style="background:#e8f5e9;padding:10px;border-radius:8px;border-left:4px solid #1A5D1A;margin-bottom:12px;">
     <b>Template Excel per ODV</b> - Invia file vuoto, ODV compila, importi in Volontari<br>
     <small>Backup Totale | Template ODV | Import Multi-Foglio | Solo Excel</small>
     </div>
     """, unsafe_allow_html=True)
+
     # Riepilogo
     cols = st.columns(4)
     tot_records = 0
@@ -5779,10 +6225,13 @@ elif cur == "Backup":
         tot_records += cnt
         cols[i % 4].metric(label[:18], cnt)
     st.metric("Totale Record", tot_records)
+
     st.divider()
+
     # === SEZIONE 1: TEMPLATE EXCEL PER ODV - VOLONTARI ===
     st.markdown("### 📋 TEMPLATE EXCEL PER ODV - Volontari")
     # Istruzione rimossa - form pulito
+
     def get_volontari_template_df():
         # Template OFFICE 2016 COMPATIBILE - solo header, no righe esempio che danno errore formato
         columns = [
@@ -5793,6 +6242,7 @@ elif cur == "Backup":
         # Office 2016 FIX: DataFrame vuoto solo con colonne, niente righe esempio
         # Office 2016 da errore "formato non valido" se ci sono righe con tipi misti esempio
         return pd.DataFrame(columns=columns)
+
     c_t1, c_t2 = st.columns(2)
     with c_t1:
         df_template_vol = get_volontari_template_df()
@@ -5815,6 +6265,7 @@ elif cur == "Backup":
         4. Lascia prima riga esempio o cancellala
         5. Salva e rimanda file a te
         6. Tu carichi file sotto in "Import Template ODV"
+        
         **Campi obbligatori:** Nome, Cognome, CapoODV
         """)
         # Template anche per altri form
@@ -5837,7 +6288,9 @@ elif cur == "Backup":
                 use_container_width=True,
                 key=f"tpl_{key_other}"
             )
+
     st.divider()
+
     # Backup Totale Excel
     st.markdown("### 💾 Backup Totale Excel")
     c1, c2, c3 = st.columns(3)
@@ -5869,7 +6322,9 @@ elif cur == "Backup":
                 st.session_state[k] = []
             st.success("Azzerati")
             st.rerun()
+
     st.divider()
+
     # Export Singolo Excel
     st.markdown("### 📄 Export Singolo Form - Solo Excel")
     sel_label = st.selectbox("Seleziona Form per Export Excel", list(FORM_KEYS.keys()), key="backup_sel_form_unico")
@@ -5887,14 +6342,18 @@ elif cur == "Backup":
                 st.download_button(f"📄 PDF {sel_label}", data=to_pdf(df_sel, sel_label.upper()), file_name=f"{sel_key}.pdf", mime="application/pdf", use_container_width=True, key=f"exp_pdf_{sel_key}_unico")
     else:
         st.warning(f"{sel_label} vuoto")
+
     st.divider()
+
     # === IMPORT TEMPLATE ODV - NUOVO - PER VOLONTARI ===
     st.markdown("### 📥 IMPORT TEMPLATE ODV - Volontari da Excel")
     st.success("Carica qui il file Excel compilato dalle ODV - Importa tutti i volontari in un click senza inserire uno per uno!")
+
     sel_label_imp_odv = st.selectbox("Form destinazione", ["Volontari (con foto)"] + list(FORM_KEYS.keys()), index=0, key="import_odv_dest")
     sel_key_imp_odv = FORM_KEYS.get(sel_label_imp_odv, "volontari")
     up_mode_odv = st.radio("Modalità", ["Aggiungi a esistenti", "Sostituisci tutto"], key="up_mode_odv", horizontal=True)
     up_file_odv = st.file_uploader(f"Carica Excel ODV compilato per {sel_label_imp_odv}", type=["xlsx", "xls"], key="up_odv_excel")
+
     if up_file_odv:
         try:
             df_odv = None
@@ -5912,6 +6371,7 @@ elif cur == "Backup":
                 except Exception as e:
                     last_err = str(e)
                     continue
+
             if df_odv is not None and not df_odv.empty:
                 # Pulisci colonne vuote e righe vuote
                 df_odv = df_odv.dropna(how='all')
@@ -5920,8 +6380,10 @@ elif cur == "Backup":
                     df_odv = df_odv[~(df_odv["Nome"].astype(str).str.strip().isin(["", "nan", "None"]) & df_odv["Cognome"].astype(str).str.strip().isin(["", "nan", "None"]))]
                 # Rimuovi riga esempio se c'è
                 df_odv = df_odv[~((df_odv.astype(str).apply(lambda x: x.str.contains("Esempio", na=False)).any(axis=1)) | (df_odv.astype(str).apply(lambda x: x.str.contains("gg/mm/aaaa", na=False)).any(axis=1)))]
+
                 st.success(f"✅ {len(df_odv)} volontari trovati nel file Excel ODV")
                 st.dataframe(df_odv.head(30), use_container_width=True)
+
                 # Mappatura colonne -> campi volontari
                 # Converte DataNascita in formato gg/mm/aaaa se necessario
                 if st.button(f"✅ IMPORTA {len(df_odv)} VOLONTARI IN {sel_label_imp_odv}", type="primary", use_container_width=True, key="btn_import_odv_vol"):
@@ -5962,10 +6424,12 @@ elif cur == "Backup":
                         # Solo se ha Nome o Cognome
                         if rec.get("Nome") or rec.get("Cognome"):
                             imported_list.append(rec)
+
                     if up_mode_odv.startswith("Sostituisci"):
                         st.session_state[sel_key_imp_odv] = imported_list
                     else:
                         st.session_state[sel_key_imp_odv] = st.session_state.get(sel_key_imp_odv, []) + imported_list
+
                     st.success(f"🎉 Importati {len(imported_list)} volontari in {sel_label_imp_odv}!")
                     st.balloons()
                     st.rerun()
@@ -5978,7 +6442,9 @@ elif cur == "Backup":
             st.error(f"Errore import ODV: {e}")
             import traceback
             st.code(traceback.format_exc())
+
     st.divider()
+
     # Import Singolo - Solo Excel - FIX DEFINITIVO - Mantenuto per compatibilità
     st.markdown("### 📥 Import Singolo Form - Solo Excel xlsx/xls (Generico)")
     sel_label_imp = st.selectbox("Seleziona Form per Import Excel", list(FORM_KEYS.keys()), key="import_sel_form_excel")
@@ -6001,6 +6467,7 @@ elif cur == "Backup":
                 except Exception as e:
                     last_err = str(e)
                     continue
+
             if df_imp is not None and not df_imp.empty:
                 imported = df_imp.to_dict(orient="records")
                 st.success(f"{len(imported)} record letti da Excel - OK")
@@ -6020,7 +6487,9 @@ elif cur == "Backup":
                     st.error("⚠️ openpyxl non installato - Controlla requirements.txt e Reboot Cloud")
         except Exception as e:
             st.error(f"Errore import Excel: {e}")
+
     st.divider()
+
     # Import Totale - Solo Excel Multi-foglio - Un file con tanti fogli
     st.markdown("### 📥 Import Backup Totale - Solo Excel xlsx/xls Multi-fogli")
     # Istruzione rimossa - form pulito
@@ -6041,6 +6510,7 @@ elif cur == "Backup":
                 except Exception as e:
                     last_err = str(e)
                     continue
+
             if xls is not None:
                 st.write(f"Fogli trovati: {xls.sheet_names}")
                 for sh in xls.sheet_names:
@@ -6074,7 +6544,9 @@ elif cur == "Backup":
                 st.error(f"Errore apertura Excel: {last_err}")
         except Exception as e:
             st.error(f"Errore import totale Excel: {e}")
+
     st.divider()
+
     with st.expander("⚠️ Azzera Singolo Form"):
         sel_zero = st.selectbox("Form da azzerare", ["--"] + list(FORM_KEYS.keys()), key="zero_sel_unico")
         if sel_zero != "--":
@@ -6082,6 +6554,10 @@ elif cur == "Backup":
                 st.session_state[FORM_KEYS[sel_zero]] = []
                 st.success(f"{sel_zero} azzerato")
                 st.rerun()
+
+
+
+
 # Footer
 st.divider()
 st.markdown(
