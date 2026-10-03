@@ -2043,6 +2043,12 @@ if cur == "Dashboard":
                 help=f"Vai a {menu_name}"
             ):
                 st.session_state.menu = menu_name
+                # Forza radio sidebar a aggiornarsi - cancella stato vecchio
+                if "menu_radio" in st.session_state:
+                    try:
+                        del st.session_state["menu_radio"]
+                    except:
+                        pass
                 st.rerun()
 
     st.divider()
