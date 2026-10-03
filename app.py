@@ -1972,6 +1972,7 @@ if cur == "Dashboard":
         st.session_state.menu = form_name
         st.session_state["menu_radio"] = form_name
         st.session_state["cur"] = form_name
+        st.session_state["cur"] = form_name
 
     # CSS bottoni verde ANA - SFONDO PIENO VERDE - FIX DEFINITIVO
     st.markdown(
