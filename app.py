@@ -2043,7 +2043,6 @@ if cur == "Dashboard":
                 help=f"Vai a {menu_name}"
             ):
                 st.session_state.menu = menu_name
-                st.session_state["menu_radio"] = menu_name
                 st.rerun()
 
     st.divider()
