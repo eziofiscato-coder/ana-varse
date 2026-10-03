@@ -1686,7 +1686,38 @@ if st.session_state.page == "entra":
 
 # PAGINA LOGIN - CON INTESTAZIONE - richiesta Ezio: metti intestazione prima pagina anche in login
 if st.session_state.page == "login":
-    hdr()  # Intestazione con 2 loghi + Squadra Volontari... - richiesta Ezio - messa anche in login
+    hdr()  # Intestazione con 2 loghi
+    # CSS login labels bianche - richiesta Ezio
+    st.markdown("""
+    <style>
+    /* Login labels bianche */
+    div[data-testid="stForm"] label, 
+    div[data-testid="stForm"] .stTextInput label,
+    div[data-testid="stForm"] p {
+        color: white !important;
+        font-weight: bold !important;
+    }
+    /* Forza bianco per Utente e Password nella pagina login */
+    #login_form label, 
+    [data-testid="stTextInput"] label {
+        color: white !important;
+    }
+    /* Solo nella pagina login - form verde scuro con labels bianche */
+    </style>
+    """, unsafe_allow_html=True)
+    # Override specifico per login
+    st.markdown("""
+    <style>
+    /* Login form - labels bianche */
+    section[data-testid="stSidebar"] ~ div label {
+    }
+    /* Login page specific */
+    div:has(> div > #login_utente_form) label,
+    div:has(> div > #login_pwd_form) label {
+        color: white !important;
+    }
+    </style>
+    """, unsafe_allow_html=True)
     # Etichetta LOGIN - Gestione Utenti Multi Livello rimossa - richiesta Ezio
     st.write("")
     c1, c2, c3 = st.columns([1, 2, 1])
@@ -1696,8 +1727,10 @@ if st.session_state.page == "login":
         # st.info rimosso - non mostrare utenti configurati demo
         
         with st.form("login_form"):
-            utente = st.text_input("Utente", key="login_utente_form")
-            pwd = st.text_input("Password", type="password", key="login_pwd_form")
+            st.markdown('<p style="color:white !important;font-family:Times New Roman;font-weight:bold;margin-bottom:2px;">Utente</p>', unsafe_allow_html=True)
+            utente = st.text_input("Utente", label_visibility="collapsed", key="login_utente_form")
+            st.markdown('<p style="color:white !important;font-family:Times New Roman;font-weight:bold;margin-bottom:2px;margin-top:8px;">Password</p>', unsafe_allow_html=True)
+            pwd = st.text_input("Password", label_visibility="collapsed", type="password", key="login_pwd_form")
             submitted = st.form_submit_button("Accedi", type="primary", use_container_width=True)
             
             if submitted:
@@ -2055,22 +2088,7 @@ if cur == "Dashboard":
 
     st.divider()
 
-    st.markdown(
-        """
-        <div style="background:linear-gradient(135deg,#e8f5e9,#c8e6c9);
-        padding:16px;border-radius:12px;border:2px solid #1A5D1A;">
-        <h4 style="margin:0;color:#1A5D1A;font-family:Times New Roman;">
-        Fusione Emergenze+Eventi in Mappe: SI ottima idea - Ezio
-        </h4>
-        <p style="margin:8px 0 0 0;font-family:Times New Roman;font-weight:bold;color:black;">
-        Già creato form Mappe Postazioni OLD RIMOSSO con Tipo Emergenza/Evento + mappa unica.
-        Unico form georeferenziato, filtri per Tipo, priorità e stato colorato.
-        Soluzione ottimale per gestione unificata.
-        </p>
-        </div>
-        """,
-        unsafe_allow_html=True
-    )
+    # Blocco informativo rimosso - pulizia etichette - richiesta Ezio
 
     # Statistiche semplici
     st.write("")
