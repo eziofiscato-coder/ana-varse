@@ -1273,6 +1273,10 @@ def pulisci_maschera_form(form_ver_key, keys_prefixes):
 SPLASH_SECONDS = 5  # Fix Ezio - 5 secondi splash manifesto
 
 def inject_popout_splash():
+    # DISABILITATO - causava ritorno su splash dopo click ENTRA - Ezio
+    return
+
+def inject_popout_splash_ORIG_DISABLED():
     try:
         # Se skip_splash è True, non mostrare più splash (fix ritorno su splash)
         if st.session_state.get("skip_splash", False):
