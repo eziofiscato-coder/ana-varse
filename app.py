@@ -49,64 +49,18 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="expanded"
 )
-# --- CSS globale VERDE ANA + font nero Times bold + FIX - versione definitiva ieri ---
+# --- CSS globale pulito + FIX quadratini ---
 def inject_global_css():
     st.markdown("""
     <style>
     #MainMenu {visibility: hidden;}
     footer {visibility: hidden;}
     header[data-testid="stHeader"] {background: transparent;}
-    .stApp {padding-top: 12px; background: #e8f5e9 !important;}
-    [data-testid="stAppViewContainer"] {background: linear-gradient(180deg, #c8e6c9 0%, #a5d6a7 100%) !important;}
-    .stButton>button {border-radius: 8px; font-weight: 600; background: #1A5D1A !important; color: white !important; border: 2px solid #1A5D1A !important;}
-    [data-testid="stForm"], .stForm {
-        background: #1A5D1A !important;
-        border: 3px solid #FFD700 !important;
-        border-radius: 12px !important;
-        padding: 16px !important;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.3) !important;
-    }
-    /* FONT TIMES ROMAN GRASSETTO DEFINITIVO - NERO - EZIO */
-    /* TUTTE LE CELLE FORM - TIMES NEW ROMAN NERO GRASSETTO - FORZATO */
-    .stTextInput input, .stTextArea textarea, .stNumberInput input, .stDateInput input, .stTimeInput input,
-    div[data-baseweb="input"] input, div[data-baseweb="textarea"] textarea,
-    div[data-baseweb="select"] div, input[type="text"], input[type="number"], textarea, select,
-    .stTextInput > div > div > input,
-    .stTextArea > div > div > textarea,
-    .stSelectbox > div > div > div,
-    .stNumberInput > div > div > input,
-    .stDateInput > div > div > input,
-    .stTimeInput > div > div > input {
-        color: black !important;
-        font-family: 'Times New Roman', Times, serif !important;
-        font-weight: bold !important;
-        font-size: 15px !important;
-        background: white !important;
-        border: 1.5px solid #1A5D1A !important;
-        border-radius: 6px !important;
-    }
-    .stTextInput label, .stTextArea label, .stSelectbox label, .stNumberInput label, .stDateInput label, .stTimeInput label, .stRadio label, label {
-        color: black !important;
-        font-family: 'Times New Roman', Times, serif !important;
-        font-weight: bold !important;
-        font-size: 14px !important;
-    }
-    div[data-testid="column"] {
-        background: rgba(46,125,50,0.85) !important;
-        border: 1px solid #FFD700 !important;
-        border-radius: 8px !important;
-        padding: 8px !important;
-    }
-    [data-testid="stDataFrame"] div {
-        font-family: 'Times New Roman', serif !important;
-        font-weight: bold !important;
-        color: black !important;
-    }
+    .stApp {padding-top: 12px;}
+    /* Bottoni più visibili */
+    .stButton>button {border-radius: 8px; font-weight: 600;}
     </style>
     """, unsafe_allow_html=True)
-    st.session_state["css_injected_final"] = True
-def inject_first_page_green():
-    pass
 def inject_fullscreen_kiosk():
     # Versione SICURA senza parent.document - funziona su Streamlit Cloud
     st.markdown("""
@@ -1129,14 +1083,21 @@ def hdr():
             unsafe_allow_html=True
         )
 def hdr_form(t):
+    """
+    h2 Times New Roman bold black - spostato in alto per recuperare spazio ex loghi
+    """
     st.markdown(
         f"""
-        <h2 style="font-family:'Times New Roman',Times,serif;font-weight:bold;color:white;background: linear-gradient(135deg,#1A5D1A 0%,#2e7d32 100%);border: 3px solid #FFD700;padding:12px 16px;margin-top:0px;margin-bottom:14px;font-size:22px;border-radius:10px;">
+        <h2 style="font-family:Times New Roman;
+        font-weight:bold;color:black;
+        border-bottom:3px solid #1A5D1A;
+        padding-bottom:4px;margin-top:0px;margin-bottom:12px;font-size:22px;">
         {t}
         </h2>
         """,
         unsafe_allow_html=True
     )
+    # CSS leggero per maschere in alto - NON toglie verde
 def get_form_key(base, form_ver_key):
     """Restituisce chiave versionata per pulisci maschera che funziona - Ezio"""
     ver = st.session_state.get(form_ver_key, 0)
@@ -1632,7 +1593,6 @@ with st.sidebar:
         menu_base = [
             "Dashboard",
             "Volontari (con foto)",
-            "Ospiti",
             "DB Radio",
             "Consegna Radio",
             "Alias Radio",
@@ -1660,7 +1620,6 @@ with st.sidebar:
         menu_base = [
             "Dashboard",
             "Volontari (con foto)",
-            "Ospiti",
             "DB Radio",
             "Consegna Radio",
             "Alias Radio",
@@ -1757,7 +1716,6 @@ if cur == "Dashboard":
     # st.markdown Seleziona un form rimosso
     form_buttons = [
         ("Volontari (con foto)", "👤 Volontari"),
-        ("Ospiti", "🧑‍🤝‍🧑 Ospiti"),
         ("DB Radio", "📻 DB Radio"),
         ("Consegna Radio", "🤝 Consegna Radio"),
         ("Alias Radio", "🔖 Alias Radio"),
@@ -1775,8 +1733,6 @@ if cur == "Dashboard":
         ("Chat", "💬 Chat"),
         ("Verbali", "📝 Verbali"),
         ("Archivio Documenti", "📁 Archivio Documenti"),
-        ("Diplomi Attestati", "🏅 Diplomi"),
-        ("Report Filtro", "📊 Report Filtro"),
         ("Geolocalizzazione Hytera + Anytone", "📡 Geoloc"),
         ("Backup", "💾 Backup")
     ]
@@ -1816,7 +1772,7 @@ if cur == "Dashboard":
         st.session_state.menu = form_name
         st.session_state["menu_radio"] = form_name
         st.session_state["cur"] = form_name
-        st.session_state["cur"] = form_name
+        # Forza aggiornamento per Archivio Documenti
     # CSS bottoni verde ANA - SFONDO PIENO VERDE - FIX DEFINITIVO
     st.markdown(
         """
@@ -2318,101 +2274,6 @@ elif cur == "Volontari (con foto)":
 # DB RADIO
     # IMPORT/EXPORT
     excel_import_inline("volontari", "Volontari (con foto)")
-elif cur == "Ospiti":
-    hdr_form("DB OSPITI - Visitatori e Ospiti Esterni - Font Nero Times Bold - Verde ANA")
-    edit_mode_osp = False
-    edit_data_osp = {}
-    if st.session_state.get("osp_edit_index") is not None:
-        try:
-            edit_data_osp = st.session_state.ospiti[st.session_state.osp_edit_index]
-            edit_mode_osp = True
-        except:
-            edit_data_osp = {}
-            edit_mode_osp = False
-    if edit_mode_osp:
-        st.warning(f"✏️ Modifica Ospite: {edit_data_osp.get('Nome','')} {edit_data_osp.get('Cognome','')}")
-    tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs(["📋 Anagrafica", "📞 Contatti", "🛡️ Ruolo", "📻 Dotazione", "📄 Documenti", "📸 Foto"])
-    nome_def = edit_data_osp.get("Nome", "")
-    cognome_def = edit_data_osp.get("Cognome", "")
-    comune_def = edit_data_osp.get("Comune", "Varese")
-    via_def = edit_data_osp.get("Via", "")
-    capo_odv_def = edit_data_osp.get("CapoODV", "")
-    odv_app_def = edit_data_osp.get("ODVAppartenenza", "Ospite - Esterno")
-    cell_def = edit_data_osp.get("Cellulare", "")
-    email_def = edit_data_osp.get("Email", "")
-    tel_em_def = edit_data_osp.get("TelEmergenza", "")
-    with tab1:
-        c1, c2 = st.columns(2)
-        with c1:
-            nome = st.text_input("Nome *", value=nome_def, key="osp_nome_tab")
-            cognome = st.text_input("Cognome *", value=cognome_def, key="osp_cognome_tab")
-            comune_res = combo_comune("Comune Residenza", "osp_comune_tab", comune_def)
-            via = combo_vie("Via", comune_res, "osp_via_tab", via_def)
-        with c2:
-            capo_odv = st.text_input("Referente / Capo ODV *", value=capo_odv_def, key="osp_capo_odv")
-            odv_lista = ["Ospite - Esterno", "Visitatore", "Stampa", "Istituzioni", "ANA Varese", "Croce Rossa", "Altro"]
-            if odv_app_def and odv_app_def not in odv_lista:
-                odv_lista = [odv_app_def] + odv_lista
-            odv_app = st.selectbox("Ente / Associazione *", odv_lista, index=odv_lista.index(odv_app_def) if odv_app_def in odv_lista else 0, key="osp_odv_app")
-            data_nascita = st.date_input("Data Nascita", value=date(1970,1,1), min_value=date(1950,1,1), max_value=date.today(), format="DD/MM/YYYY", key="osp_data_nasc")
-            codice_fisc = st.text_input("Codice Fiscale", value=edit_data_osp.get("CodFisc",""), key="osp_cf")
-            foto_file_prima = st.file_uploader("Carica foto ospite", type=["jpg", "jpeg", "png"], key="osp_foto_prima")
-            if foto_file_prima:
-                st.session_state["osp_foto_temp_prima"] = foto_file_prima.getvalue()
-                st.image(st.session_state["osp_foto_temp_prima"], width=120)
-    with tab2:
-        c1, c2 = st.columns(2)
-        with c1:
-            cellulare = st.text_input("Cellulare *", value=cell_def, key="osp_cell_tab")
-            email = st.text_input("Email", value=email_def, key="osp_email_tab")
-        with c2:
-            tel_emerg = st.text_input("Telefono Emergenza", value=tel_em_def, key="osp_tel_em")
-            note_cont = st.text_area("Note Contatti", value=edit_data_osp.get("NoteContatti",""), key="osp_note_cont")
-    with tab3:
-        c1, c2 = st.columns(2)
-        with c1:
-            ruolo = st.selectbox("Ruolo *", ["Ospite", "Visitatore", "Stampa", "Istituzioni", "Osservatore"], key="osp_ruolo_tab")
-            squadra = st.selectbox("Gruppo *", ["Ospiti", "Visitatori", "Stampa"], key="osp_squadra_tab")
-        with c2:
-            data_iscriz = st.date_input("Data Visita", value=date.today(), format="DD/MM/YYYY", key="osp_data_iscr")
-            stato_vol = st.selectbox("Stato", ["Attivo", "In Visita", "Uscito"], key="osp_stato")
-    with tab4:
-        radio_id = st.text_input("ID Badge / Radio Ospite", value=edit_data_osp.get("RadioID",""), key="osp_radio_id")
-        modello_radio = st.selectbox("Tipo Badge", ["Badge Ospite", "Badge Visitatore", "Nessuno"], key="osp_radio_mod")
-        note_dot = st.text_area("Note Dotazione", value=edit_data_osp.get("NoteDotazione",""), key="osp_note_dot")
-    with tab5:
-        doc_tipo = st.text_input("Tipo Documento", value=edit_data_osp.get("Documento",""), key="osp_doc_tipo")
-        doc_num = st.text_input("Numero Documento", value=edit_data_osp.get("DocNum",""), key="osp_doc_num")
-        doc_scad = st.date_input("Scadenza Documento", value=date.today(), format="DD/MM/YYYY", key="osp_doc_scad")
-    with tab6:
-        foto_file = st.file_uploader("Carica foto", type=["jpg", "jpeg", "png"], key="osp_foto_tab")
-        foto_preview = st.session_state.get("osp_foto_temp_prima", None)
-        if foto_file:
-            foto_preview = foto_file.getvalue()
-            st.image(foto_preview, width=150)
-        elif edit_mode_osp and edit_data_osp.get("FotoBytes"):
-            foto_preview = edit_data_osp.get("FotoBytes")
-            st.image(foto_preview, width=150)
-    st.divider()
-    if st.button("💾 Salva Ospite", type="primary", use_container_width=True, key="btn_save_osp"):
-        if not nome or not cognome:
-            st.error("Nome e Cognome obbligatori")
-        else:
-            nuovo_osp = {"Nome": nome, "Cognome": cognome, "Comune": comune_res, "Via": via, "CapoODV": capo_odv, "ODVAppartenenza": odv_app, "DataNascita": str(data_nascita), "CodFisc": codice_fisc, "Cellulare": cellulare, "Email": email, "TelEmergenza": tel_emerg, "NoteContatti": note_cont, "Ruolo": ruolo, "Squadra": squadra, "DataIscrizione": str(data_iscriz), "Stato": stato_vol, "RadioID": radio_id, "ModelloRadio": modello_radio, "NoteDotazione": note_dot, "Documento": doc_tipo, "DocNum": doc_num, "ScadDoc": str(doc_scad), "FotoBytes": foto_preview, "Timestamp": datetime.now().strftime("%d/%m/%Y %H:%M")}
-            if edit_mode_osp:
-                st.session_state.ospiti[st.session_state.osp_edit_index] = nuovo_osp
-                st.session_state.osp_edit_index = None
-                st.success("✅ Ospite modificato!")
-            else:
-                st.session_state.ospiti.append(nuovo_osp)
-                st.success("✅ Ospite aggiunto!")
-            st.rerun()
-    st.divider()
-    st.markdown(f"#### 📋 Elenco Ospiti ({len(st.session_state.get('ospiti', []))})")
-    if st.session_state.get("ospiti"):
-        df_osp = pd.DataFrame([{k:v for k,v in o.items() if "Bytes" not in k} for o in st.session_state.ospiti])
-        st.dataframe(df_osp, use_container_width=True)
-    excel_import_inline("ospiti", "Ospiti")
 elif cur == "DB Radio":
     hdr_form("DB RADIO - Gestione Apparati")
     c1, c2, c3 = st.columns(3)
@@ -5412,242 +5273,345 @@ elif cur == "Archivio Documenti":
     # Import/Export inline
     excel_import_inline("archivio_documenti", "Archivio Documenti")
 elif cur == "Diplomi Attestati":
-    hdr_form("DIPLOMI ATTESTATI - Formato A4 - Anteprima = PDF - Verde ANA - Font Nero Times Bold")
+    hdr_form("DIPLOMI ATTESTATI - Campo Scuola 2026 - Loghi ANA PC e ANA Caronno Pertusella Bariola")
     st.markdown("""
-    <div style="background:linear-gradient(135deg,#1A5D1A 0%,#2e7d32 100%);color:white;padding:12px;border-radius:10px;text-align:center;margin-bottom:14px;border:3px solid #FFD700;">
-    <b>🏅 DIPLOMI A4 - ANTEPRIMA IDENTICA AL PDF - 2 Loghi - Dimensione ieri</b><br>
-    <small style="color:#c8e6c9;">Anteprima come PDF riferimento - 794x1123px - Font nero Times bold - Verde ANA</small>
+    <div style="background:linear-gradient(135deg,#1A5D1A 0%,#2e7d32 100%);color:white;padding:12px;border-radius:10px;text-align:center;margin-bottom:15px;border:2px solid #FFD700;">
+    <b>🏅 GENERATORE DIPLOMI - GRAFICA MIGLIORATA - LOGHI ANA PC + ANA CARONNO PERTUSELLA BARIOLA</b><br>
+    <small>Attestato ufficiale con loghi reali - Stampa professionale</small>
     </div>
     """, unsafe_allow_html=True)
+    # Versionamento per pulisci maschera che funziona davvero
     if "diplomi_form_version" not in st.session_state:
         st.session_state["diplomi_form_version"] = 0
     ver_dip = st.session_state.get("diplomi_form_version", 0)
-    def k_dip(base): return f"{base}_v{ver_dip}"
+    def k_dip(base):
+        return f"{base}_v{ver_dip}"
     c1, c2 = st.columns([1, 1.5])
     with c1:
-        st.markdown("#### ✏️ Dati Diploma - Font Nero Times Bold")
-        nome_dip = st.text_input("Nome Volontario *", value="ALBERTO VIGANO'", key=k_dip("dip_nome"))
+        st.markdown("#### ✏️ Dati Diploma")
+        nome_dip = st.text_input("Nome Volontario *", value="ALBERTO VIGANO'", key=k_dip("dip_nome"), placeholder="Es: ALBERTO VIGANO'")
         evento_dip = st.text_input("Evento", value="CAMPO SCUOLA 2026", key=k_dip("dip_evento"))
         luogo_dip = st.text_input("Luogo", value="CARONNO PERTUSELLA", key=k_dip("dip_luogo"))
         data_dip = st.text_input("Data", value="6 e 7 giugno 2026", key=k_dip("dip_data"))
         ruolo_dip = st.text_input("Ruolo / Attività", value="VOLONTARIO DI P.C. ANA VARESE (Campo Scuola)", key=k_dip("dip_ruolo"))
         capogruppo_dip = st.text_input("Capogruppo", value="Fiscato Stefano", key=k_dip("dip_capogruppo"))
-        coordinatore_dip = st.text_input("Coordinatore P.C.", value="Firma", key=k_dip("dip_coordinatore"))
+        coordinatore_dip = st.text_input("Coordinatore P.C.", value="", key=k_dip("dip_coordinatore"), placeholder="Nome Coordinatore")
         num_attestato = st.text_input("N° Attestato", value=f"{datetime.now().year}/{len(st.session_state.get('diplomi', []))+1:03d}", key=k_dip("dip_num"))
-        lista_nomi = st.text_area("Lista Nomi (uno per riga)", height=100, key=k_dip("dip_lista"), placeholder="ALBERTO VIGANO'\nMARIO ROSSI")
-        if st.button("🧹 Pulisci maschera", use_container_width=True, key=f"btn_pulisci_dip_v{ver_dip}"):
-            st.session_state["diplomi_form_version"] += 1
-            st.rerun()
+        st.markdown("#### 📋 Lista Nomi (uno per riga per generazione multipla)")
+        lista_nomi = st.text_area("Incolla lista nomi", height=120, key=k_dip("dip_lista"), placeholder="ALBERTO VIGANO'\nMARIO ROSSI\nGIUSEPPE VERDI\n...", help="Uno per riga - genera diplomi multipli")
+        col_save1, col_save2 = st.columns([3,1])
+        with col_save1:
+            genera_preview = st.button("👁️ Aggiorna Anteprima", type="primary", use_container_width=True, key=f"btn_preview_dip_v{ver_dip}")
+        with col_save2:
+            if st.button("🧹 Pulisci maschera", use_container_width=True, key=f"btn_pulisci_dip_v{ver_dip}"):
+                st.session_state["diplomi_form_version"] += 1
+                try:
+                    st.query_params.clear()
+                except:
+                    pass
+                st.rerun()
+        # Seleziona volontari da DB
+        st.markdown("#### 👥 Seleziona da DB Volontari")
+        if st.session_state.get("volontari"):
+            vol_names = [f"{v.get('Cognome','')} {v.get('Nome','')}".strip() for v in st.session_state.volontari if v.get('Cognome') or v.get('Nome')]
+            vol_names = sorted(list(set([n for n in vol_names if n])))
+            sel_vols = st.multiselect("Scegli volontari per diplomi", vol_names, key=k_dip("dip_vol_sel"))
+            if sel_vols and st.button("📋 Usa selezionati per lista", key=f"btn_use_sel_v{ver_dip}"):
+                st.session_state[k_dip("dip_lista")] = "\n".join([s.upper() for s in sel_vols])
+                st.rerun()
     with c2:
-        st.markdown("#### 🖼️ Anteprima A4 - IDENTICA al PDF - Dimensione ieri - Si vede bene")
-        # Cache loghi
-        def get_logo_b64(paths):
-            for p in paths:
+        st.markdown("#### 🖼️ Anteprima - Loghi Reali ANA PC + Caronno Pertusella Bariola")
+        # Carica loghi reali se esistono
+        logo_ana_b64 = ""
+        logo_caronno_b64 = ""
+        logo_pc_b64 = ""
+        try:
+            for p in ["logo.png", "/mnt/data/logo.png", "gruppo_caronno.png", "/mnt/data/gruppo_caronno.png", "logo2.png", "/mnt/data/logo2.png"]:
                 if os.path.exists(p):
-                    try:
-                        with open(p, "rb") as fh:
-                            return base64.b64encode(fh.read()).decode()
-                    except:
-                        continue
-            return ""
-        logo_vol_b64 = get_logo_b64(["logo_volontario_varese.png", "volontario_varese.png", "logo_varese.png", "logo.png"])
-        logo_cpb_b64 = get_logo_b64(["gruppo_CPB.jpeg", "gruppoCPB.png", "gruppo_caronno.png", "Gruppo_Caronno.png"])
-        if not logo_vol_b64:
-            logo_vol_html = '<div style="width:75px;height:75px;background:white;border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#1A5D1A;font-weight:bold;border:2px solid #1A5D1A;font-size:6px;text-align:center;">VOLONTARIO<br>VARESE</div>'
+                    with open(p, "rb") as fh:
+                        b64 = base64.b64encode(fh.read()).decode()
+                        if "logo.png" in p and not logo_ana_b64:
+                            logo_ana_b64 = b64
+                        if "caronno" in p.lower() and not logo_caronno_b64:
+                            logo_caronno_b64 = b64
+                        if "logo2" in p and not logo_pc_b64:
+                            logo_pc_b64 = b64
+        except:
+            pass
+        # Se non troviamo loghi, usa placeholder ma con testo corretto
+        if not logo_ana_b64:
+            logo_ana_html = f'<div style="width:85px;height:85px;background:#1A5D1A;border-radius:50%;display:flex;align-items:center;justify-content:center;color:white;font-weight:bold;border:3px solid #FFD700;font-size:9px;text-align:center;">ANA<br>VARESE</div>'
         else:
-            logo_vol_html = f'<img src="data:image/png;base64,{logo_vol_b64}" style="width:75px;height:75px;object-fit:contain;border-radius:50%;border:2px solid #1A5D1A;background:white;padding:2px;">'
-        if not logo_cpb_b64:
-            logo_cpb_html = '<div style="width:75px;height:75px;background:white;border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#0D47A1;font-weight:bold;border:2px solid #0D47A1;font-size:5px;text-align:center;">GRUPPO<br>CPB</div>'
+            logo_ana_html = f'<img src="data:image/png;base64,{logo_ana_b64}" style="width:85px;height:85px;object-fit:contain;border-radius:50%;border:3px solid #FFD700;background:white;padding:3px;">'
+        if not logo_caronno_b64:
+            logo_caronno_html = f'<div style="width:85px;height:85px;background:#0D47A1;border-radius:50%;display:flex;align-items:center;justify-content:center;color:white;font-weight:bold;border:3px solid #FFD700;font-size:7px;text-align:center;">CARONNO<br>PERTUSELLA<br>BARIOLA</div>'
         else:
-            logo_cpb_html = f'<img src="data:image/png;base64,{logo_cpb_b64}" style="width:75px;height:75px;object-fit:contain;border-radius:50%;border:2px solid #0D47A1;background:white;padding:2px;">'
+            logo_caronno_html = f'<img src="data:image/png;base64,{logo_caronno_b64}" style="width:85px;height:85px;object-fit:contain;border-radius:50%;border:3px solid #FFD700;background:white;padding:3px;">'
+        if not logo_pc_b64:
+            logo_pc_html = f'<div style="width:85px;height:85px;background:#1a3c6e;border-radius:50%;display:flex;align-items:center;justify-content:center;color:white;font-weight:bold;border:3px solid #FFD700;font-size:7px;text-align:center;">PROTEZIONE<br>CIVILE</div>'
+        else:
+            logo_pc_html = f'<img src="data:image/png;base64,{logo_pc_b64}" style="width:85px;height:85px;object-fit:contain;border-radius:50%;border:3px solid #FFD700;background:white;padding:3px;">'
         preview_html = f"""
-        <div style="background:#2c3e50;padding:10px;border-radius:8px;">
-            <div style="background:white;width:794px;height:1123px;margin:0 auto;box-shadow:0 0 30px rgba(0,0,0,0.5);position:relative;overflow:hidden;transform:scale(0.85);transform-origin:top center;margin-bottom:-170px;">
-                <div style="position:absolute;top:15px;left:15px;right:15px;bottom:15px;border:3px solid #1e3a5f;">
-                    <div style="position:absolute;top:6px;left:6px;right:6px;bottom:6px;border:1.5px solid #c9a86a;padding:25px 30px;display:flex;flex-direction:column;">
-                        <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:180px;opacity:0.03;font-weight:bold;color:#1A5D1A;">ANA</div>
-                        <div style="display:flex;justify-content:space-between;align-items:flex-start;z-index:1;">
-                            <div style="text-align:center;width:90px;">{logo_vol_html}</div>
-                            <div style="text-align:center;flex:1;padding:0 15px;margin-top:5px;">
-                                <div style="font-weight:bold;font-size:13px;color:#1A5D1A;font-family:'Times New Roman',serif;">{evento_dip}</div>
-                                <div style="font-weight:bold;font-size:13px;color:black;margin-top:3px;font-family:'Times New Roman',serif;">{luogo_dip}</div>
-                                <div style="font-size:11px;color:black;margin-top:2px;font-family:'Times New Roman',serif;font-weight:bold;">{data_dip}</div>
-                            </div>
-                            <div style="text-align:center;width:90px;">{logo_cpb_html}</div>
-                        </div>
-                        <div style="text-align:center;margin:25px 0 10px 0;z-index:1;">
-                            <div style="font-family:'Times New Roman',serif;font-size:32px;font-weight:bold;color:#1A5D1A;">ATTESTATO</div>
-                            <div style="height:2px;background:linear-gradient(90deg, #c9a86a, #e8d5a3, #c9a86a);margin:8px 120px 0 120px;"></div>
-                        </div>
-                        <div style="text-align:center;margin:40px 0 15px 0;z-index:1;">
-                            <div style="font-family:'Times New Roman',serif;font-size:28px;color:#1e3a5f;font-style:italic;font-weight:bold;">{nome_dip}</div>
-                            <div style="height:1px;background:linear-gradient(90deg, transparent, #c9a86a, transparent);margin:12px 80px 0 80px;"></div>
-                        </div>
-                        <div style="text-align:center;margin:10px 0;z-index:1;"><div style="font-style:italic;font-size:11px;color:black;font-family:'Times New Roman',serif;font-weight:bold;">"Insieme con Noi ... Addestramento alla Protezione Civile"</div></div>
-                        <div style="text-align:center;margin:20px 0;z-index:1;"><div style="font-size:12px;color:black;font-family:'Times New Roman',serif;font-weight:bold;">E' stato operativo per le attività di<br><b style="color:#1A5D1A;font-size:13px;">{ruolo_dip}</b></div></div>
-                        <div style="flex-grow:1;"></div>
-                        <div style="display:flex;justify-content:space-between;margin-top:60px;padding:0 40px;z-index:1;">
-                            <div style="text-align:center;"><div style="font-family:cursive;font-size:13px;color:#1A5D1A;margin-bottom:5px;font-style:italic;">{capogruppo_dip}</div><div style="border-top:1.5px solid #000;width:150px;margin:0 auto;"></div><div style="font-size:9px;font-weight:bold;margin-top:5px;color:black;font-family:'Times New Roman',serif;">Il Capogruppo</div></div>
-                            <div style="text-align:center;"><div style="font-family:cursive;font-size:13px;color:#1A5D1A;margin-bottom:5px;font-style:italic;">{coordinatore_dip}</div><div style="border-top:1.5px solid #000;width:150px;margin:0 auto;"></div><div style="font-size:9px;font-weight:bold;margin-top:5px;color:black;font-family:'Times New Roman',serif;">Coordinatore P.C.</div></div>
-                        </div>
-                    </div>
+        <div style="border:4px solid #1a3c6e;border-radius:12px;padding:4px;background:white;box-shadow:0 6px 25px rgba(0,0,0,0.2);">
+        <div style="border:2px solid #d4af37;border-radius:8px;padding:18px;background:linear-gradient(180deg,white 0%,#f9f9f9 100%);position:relative;overflow:hidden;">
+            <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:140px;opacity:0.03;font-weight:bold;color:#1A5D1A;pointer-events:none;letter-spacing:10px;">ANA</div>
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;position:relative;z-index:1;">
+                <div style="text-align:center;">{logo_ana_html}<div style="font-size:7px;font-weight:bold;margin-top:3px;">SEZIONE DI VARESE</div></div>
+                <div style="text-align:center;flex:1;padding:0 10px;">
+                    <div style="font-weight:bold;font-size:15px;color:#1A5D1A;letter-spacing:0.8px;">{evento_dip}</div>
+                    <div style="font-weight:bold;font-size:13px;color:#333;">{luogo_dip}</div>
+                    <div style="font-size:11px;color:#555;">{data_dip}</div>
+                </div>
+                <div style="text-align:center;">{logo_caronno_html}<div style="font-size:6px;font-weight:bold;margin-top:3px;">GRUPPO CARONNO PERTUSELLA BARIOLA</div></div>
+                <div style="text-align:center;margin-left:10px;">{logo_pc_html}<div style="font-size:6px;font-weight:bold;margin-top:3px;">VOLONTARIATO</div></div>
+            </div>
+            <div style="text-align:center;margin:18px 0;position:relative;z-index:1;">
+                <div style="font-family:Times New Roman,serif;font-size:38px;font-weight:bold;color:#1A5D1A;letter-spacing:4px;text-shadow:1px 1px 2px rgba(0,0,0,0.1);">ATTESTATO</div>
+                <div style="height:3px;background:linear-gradient(90deg,transparent,#d4af37 20%,#d4af37 80%,transparent);margin:8px 0;"></div>
+                <div style="height:1px;background:#d4af37;margin:0 25%;"></div>
+            </div>
+            <div style="text-align:center;margin:22px 0;position:relative;z-index:1;">
+                <div style="font-family:Brush Script MT,cursive;font-size:46px;color:#1a3c6e;font-style:italic;font-weight:bold;text-shadow:1px 1px 1px rgba(0,0,0,0.1);">{nome_dip}</div>
+                <div style="height:2px;background:linear-gradient(90deg,transparent,#d4af37,transparent);margin:12px 15%;"></div>
+            </div>
+            <div style="text-align:center;margin:14px 0;position:relative;z-index:1;">
+                <div style="font-style:italic;font-size:13px;color:#444;font-weight:bold;letter-spacing:0.5px;">“Insieme con Noi … Addestramento alla Protezione Civile”</div>
+            </div>
+            <div style="text-align:center;margin:18px 0;padding:0 15px;position:relative;z-index:1;">
+                <div style="font-family:Times New Roman;font-size:13px;line-height:1.7;color:#222;">E' stato operativo per le attività di<br><b style="color:#1A5D1A;font-size:14px;">{ruolo_dip}</b></div>
+            </div>
+            <div style="display:flex;justify-content:space-between;margin-top:35px;padding:0 10px;position:relative;z-index:1;">
+                <div style="text-align:center;">
+                    <div style="font-family:cursive;font-size:15px;color:#1A5D1A;margin-bottom:4px;">{capogruppo_dip}</div>
+                    <div style="border-top:1.5px solid #222;width:155px;margin:0 auto;"></div>
+                    <div style="font-size:9px;font-weight:bold;margin-top:4px;line-height:1.2;">Il Capogruppo<br>{capogruppo_dip}<br><small style="color:#666;">Gruppo Caronno Pertusella Bariola</small></div>
+                </div>
+                <div style="width:75px;height:75px;border:2px dashed #1A5D1A;border-radius:50%;display:flex;align-items:center;justify-content:center;opacity:0.25;transform:rotate(-12deg);background:rgba(26,93,26,0.05);">
+                    <div style="font-size:7px;text-align:center;font-weight:bold;color:#1A5D1A;line-height:1.1;">A.N.A.<br>VARESE<br>PROTEZIONE<br>CIVILE</div>
+                </div>
+                <div style="text-align:center;">
+                    <div style="font-family:cursive;font-size:15px;color:#1A5D1A;margin-bottom:4px;">{coordinatore_dip or "Firma"}</div>
+                    <div style="border-top:1.5px solid #222;width:155px;margin:0 auto;"></div>
+                    <div style="font-size:9px;font-weight:bold;margin-top:4px;">Firma del Coordinatore di P.C.<br><small style="color:#666;">Sezione di Varese</small></div>
                 </div>
             </div>
+            <div style="display:flex;justify-content:space-between;margin-top:18px;font-size:8px;color:#777;position:relative;z-index:1;border-top:1px solid #eee;padding-top:6px;">
+                <div>N° {num_attestato} - ANA Varese - Caronno Pertusella Bariola</div>
+                <div style="display:flex;align-items:center;gap:5px;"><span>PC ANA Varese</span><span style="background:#1A5D1A;color:white;padding:1px 5px;border-radius:3px;font-size:7px;">2026</span></div>
+            </div>
+        </div>
         </div>
         """
         st.markdown(preview_html, unsafe_allow_html=True)
     st.divider()
-    if not REPORTLAB_OK:
-        st.error("⚠️ reportlab non installato")
-    else:
-        if st.button("📄 Genera PDF A4 - IDENTICO Anteprima - Dimensione ieri", type="primary", use_container_width=True, key=f"btn_gen_pdf_dip_v{ver_dip}"):
-            try:
-                from reportlab.lib.pagesizes import A4
-                from reportlab.lib.units import mm
-                from reportlab.lib import colors
-                from reportlab.pdfgen import canvas
-                from reportlab.lib.utils import ImageReader
-                import io
-                def crea_pdf(nome, evento, luogo, data_txt, ruolo, capogruppo, coordinatore, num_att):
-                    buf = io.BytesIO()
-                    c = canvas.Canvas(buf, pagesize=A4)
-                    w, h = A4
-                    c.setStrokeColor(colors.HexColor("#1e3a5f")); c.setLineWidth(2.5); c.rect(15*mm, 15*mm, w-30*mm, h-30*mm, stroke=1, fill=0)
-                    c.setStrokeColor(colors.HexColor("#c9a86a")); c.setLineWidth(1); c.rect(21*mm, 21*mm, w-42*mm, h-42*mm, stroke=1, fill=0)
-                    c.saveState(); c.setFillColor(colors.HexColor("#1A5D1A")); c.setFillAlpha(0.03); c.setFont("Times-Bold", 180); c.drawCentredString(w/2, h/2, "ANA"); c.restoreState()
-                    y_logo = h - 35*mm
-                    for p in ["logo_volontario_varese.png", "volontario_varese.png", "logo.png"]:
-                        if os.path.exists(p):
-                            try: c.drawImage(ImageReader(p), 28*mm, y_logo, width=20*mm, height=20*mm, preserveAspectRatio=True, mask='auto'); break
-                            except: pass
-                    for p in ["gruppo_CPB.jpeg", "gruppoCPB.png"]:
-                        if os.path.exists(p):
-                            try: c.drawImage(ImageReader(p), w - 48*mm, y_logo, width=20*mm, height=20*mm, preserveAspectRatio=True, mask='auto'); break
-                            except: pass
-                    y = h - 40*mm; c.setFillColor(colors.HexColor("#1A5D1A")); c.setFont("Helvetica-Bold", 12); c.drawCentredString(w/2, y, evento); y -= 6*mm
-                    c.setFillColor(colors.black); c.setFont("Helvetica-Bold", 12); c.drawCentredString(w/2, y, luogo); y -= 5*mm
-                    c.setFillColor(colors.HexColor("#555555")); c.setFont("Helvetica", 10); c.drawCentredString(w/2, y, data_txt); y -= 18*mm
-                    c.setFillColor(colors.HexColor("#1A5D1A")); c.setFont("Times-Bold", 28); c.drawCentredString(w/2, y, "ATTESTATO"); y -= 6*mm
-                    c.setStrokeColor(colors.HexColor("#c9a86a")); c.setLineWidth(1.5); c.line(w/2 - 55*mm, y, w/2 + 55*mm, y); y -= 20*mm
-                    c.setFillColor(colors.HexColor("#1e3a5f")); c.setFont("Times-BoldItalic", 24); c.drawCentredString(w/2, y, nome); y -= 8*mm
-                    c.setStrokeColor(colors.HexColor("#c9a86a")); c.setLineWidth(0.5); c.line(w*0.15, y, w*0.85, y); y -= 10*mm
-                    c.setFillColor(colors.black); c.setFont("Helvetica-Oblique", 10); c.drawCentredString(w/2, y, '"Insieme con Noi ... Addestramento alla Protezione Civile"'); y -= 14*mm
-                    c.setFont("Helvetica", 11); c.drawCentredString(w/2, y, "E' stato operativo per le attività di"); y -= 7*mm
-                    c.setFillColor(colors.HexColor("#1A5D1A")); c.setFont("Times-Bold", 12); c.drawCentredString(w/2, y, ruolo)
-                    y_firma = 65*mm
-                    c.setFillColor(colors.HexColor("#1A5D1A")); c.setFont("Helvetica-Oblique", 11); c.drawCentredString(55*mm, y_firma + 10*mm, capogruppo)
-                    c.setStrokeColor(colors.black); c.line(30*mm, y_firma + 7*mm, 80*mm, y_firma + 7*mm)
-                    c.setFillColor(colors.black); c.setFont("Helvetica-Bold", 8); c.drawCentredString(55*mm, y_firma + 2*mm, "Il Capogruppo")
-                    c.setFillColor(colors.HexColor("#1A5D1A")); c.setFont("Helvetica-Oblique", 11); c.drawCentredString(w - 55*mm, y_firma + 10*mm, coordinatore)
-                    c.setStrokeColor(colors.black); c.line(w - 80*mm, y_firma + 7*mm, w - 30*mm, y_firma + 7*mm)
-                    c.setFillColor(colors.black); c.setFont("Helvetica-Bold", 8); c.drawCentredString(w - 55*mm, y_firma + 2*mm, "Coordinatore P.C.")
-                    c.showPage(); c.save(); buf.seek(0); return buf.getvalue()
-                if lista_nomi.strip():
-                    import zipfile; nomi_list = [n.strip() for n in lista_nomi.split('\\n') if n.strip()]; zip_buf = io.BytesIO()
-                    with zipfile.ZipFile(zip_buf, 'w') as zf:
-                        for n in nomi_list:
-                            pdf_bytes = crea_pdf(n, evento_dip, luogo_dip, data_dip, ruolo_dip, capogruppo_dip, coordinatore_dip, num_attestato)
-                            zf.writestr(f"Attestato_{n.replace(' ', '_')}_A4.pdf", pdf_bytes)
-                    zip_buf.seek(0); st.download_button(f"⬇️ ZIP {len(nomi_list)} Diplomi A4", data=zip_buf.getvalue(), file_name="diplomi_A4.zip", mime="application/zip", use_container_width=True, type="primary", key=f"dl_zip_dip_v{ver_dip}")
-                else:
-                    pdf_single = crea_pdf(nome_dip, evento_dip, luogo_dip, data_dip, ruolo_dip, capogruppo_dip, coordinatore_dip, num_attestato)
-                    st.download_button(f"⬇️ Diploma A4 {nome_dip}", data=pdf_single, file_name=f"Attestato_{nome_dip}_A4.pdf", mime="application/pdf", use_container_width=True, type="primary", key=f"dl_pdf_dip_v{ver_dip}")
-            except Exception as e:
-                st.error(f"Errore PDF: {e}"); import traceback; st.code(traceback.format_exc())
+    # Generazione PDF con loghi reali ANA PC e Caronno Pertusella Bariola
+    if st.button("📄 Genera PDF Diploma - Loghi Reali ANA PC + Caronno Pertusella Bariola", type="primary", use_container_width=True, key=f"btn_gen_pdf_dip_v{ver_dip}"):
+        try:
+            from reportlab.lib.pagesizes import A4
+            from reportlab.lib.units import cm
+            from reportlab.lib import colors
+            from reportlab.pdfgen import canvas
+            from reportlab.lib.utils import ImageReader
+            import io
+            def crea_diploma_pdf_loghi_reali(nome, evento, luogo, data_txt, ruolo, capogruppo, coordinatore, num_att):
+                buf = io.BytesIO()
+                c = canvas.Canvas(buf, pagesize=A4)
+                w, h = A4
+                # Bordi
+                c.setStrokeColor(colors.HexColor("#1a3c6e"))
+                c.setLineWidth(4)
+                c.rect(1*cm, 1*cm, w-2*cm, h-2*cm, stroke=1, fill=0)
+                c.setStrokeColor(colors.HexColor("#d4af37"))
+                c.setLineWidth(1.2)
+                c.rect(1.2*cm, 1.2*cm, w-2.4*cm, h-2.4*cm, stroke=1, fill=0)
+                # Carica loghi reali
+                logo_paths = {
+                    "ana": None,
+                    "caronno": None,
+                    "pc": None
+                }
+                for p in ["logo.png", "/mnt/data/logo.png"]:
+                    if os.path.exists(p):
+                        logo_paths["ana"] = p
+                        break
+                for p in ["gruppo_caronno.png", "/mnt/data/gruppo_caronno.png", "logo2.png", "/mnt/data/logo2.png", "gruppo_CPB.jpeg", "/mnt/data/gruppo_CPB.jpeg"]:
+                    if os.path.exists(p):
+                        if "caronno" in p.lower() or "CPB" in p:
+                            if not logo_paths["caronno"]:
+                                logo_paths["caronno"] = p
+                        else:
+                            if not logo_paths["pc"]:
+                                logo_paths["pc"] = p
+                # Se non trovato pc, usa caronno come pc o viceversa
+                if not logo_paths["pc"] and logo_paths["caronno"]:
+                    logo_paths["pc"] = logo_paths["caronno"]
+                if not logo_paths["caronno"] and logo_paths["pc"]:
+                    logo_paths["caronno"] = logo_paths["pc"]
+                # Disegna loghi reali
+                try:
+                    if logo_paths["ana"]:
+                        c.drawImage(ImageReader(logo_paths["ana"]), 1.8*cm, h-3.2*cm, width=2*cm, height=2*cm, preserveAspectRatio=True, mask='auto')
+                        c.setFont("Helvetica-Bold", 6)
+                        c.setFillColor(colors.HexColor("#1A5D1A"))
+                        c.drawCentredString(2.8*cm, h-3.6*cm, "SEZIONE DI VARESE")
+                except:
+                    c.setFillColor(colors.HexColor("#1A5D1A"))
+                    c.circle(2.8*cm, h-2.5*cm, 1*cm, stroke=1, fill=1)
+                    c.setFillColor(colors.white)
+                    c.setFont("Helvetica-Bold", 8)
+                    c.drawCentredString(2.8*cm, h-2.5*cm, "ANA")
+                try:
+                    if logo_paths["caronno"]:
+                        c.drawImage(ImageReader(logo_paths["caronno"]), 5*cm, h-3.2*cm, width=2*cm, height=2*cm, preserveAspectRatio=True, mask='auto')
+                        c.setFont("Helvetica-Bold", 5)
+                        c.setFillColor(colors.HexColor("#0D47A1"))
+                        c.drawCentredString(6*cm, h-3.6*cm, "CARONNO PERTUSELLA BARIOLA")
+                except:
+                    pass
+                try:
+                    if logo_paths["pc"]:
+                        c.drawImage(ImageReader(logo_paths["pc"]), w-4*cm, h-3.2*cm, width=2*cm, height=2*cm, preserveAspectRatio=True, mask='auto')
+                except:
+                    c.setFillColor(colors.HexColor("#1a3c6e"))
+                    c.circle(w-3*cm, h-2.5*cm, 1*cm, stroke=1, fill=1)
+                    c.setFillColor(colors.white)
+                    c.setFont("Helvetica-Bold", 6)
+                    c.drawCentredString(w-3*cm, h-2.5*cm, "PC")
+                # Centro evento
+                c.setFillColor(colors.HexColor("#1A5D1A"))
+                c.setFont("Helvetica-Bold", 11)
+                c.drawCentredString(w/2, h-2.8*cm, evento.upper())
+                c.setFont("Helvetica-Bold", 9)
+                c.setFillColor(colors.black)
+                c.drawCentredString(w/2, h-3.2*cm, luogo.upper())
+                c.setFont("Helvetica", 8)
+                c.drawCentredString(w/2, h-3.5*cm, data_txt)
+                # Titolo
+                c.setFont("Times-Bold", 30)
+                c.setFillColor(colors.HexColor("#1A5D1A"))
+                c.drawCentredString(w/2, h-5.8*cm, "ATTESTATO")
+                c.setStrokeColor(colors.HexColor("#d4af37"))
+                c.setLineWidth(2)
+                c.line(w/2-3*cm, h-6*cm, w/2+3*cm, h-6*cm)
+                c.setLineWidth(0.5)
+                c.line(w/2-2*cm, h-6.2*cm, w/2+2*cm, h-6.2*cm)
+                # Nome
+                c.setFont("Times-Italic", 26)
+                c.setFillColor(colors.HexColor("#1a3c6e"))
+                c.drawCentredString(w/2, h-8*cm, nome.upper())
+                c.setStrokeColor(colors.HexColor("#d4af37"))
+                c.setLineWidth(1)
+                c.line(w/2-4.5*cm, h-8.3*cm, w/2+4.5*cm, h-8.3*cm)
+                # Sottotitolo
+                c.setFont("Times-Italic", 10)
+                c.setFillColor(colors.black)
+                c.drawCentredString(w/2, h-9.5*cm, "“Insieme con Noi … Addestramento alla Protezione Civile”")
+                # Ruolo
+                c.setFont("Times-Roman", 11)
+                c.drawCentredString(w/2, h-11*cm, "E' stato operativo per le attività di")
+                c.setFont("Times-Bold", 11)
+                c.drawCentredString(w/2, h-11.5*cm, ruolo)
+                # Firme
+                c.setFont("Times-Italic", 11)
+                c.setFillColor(colors.HexColor("#1A5D1A"))
+                c.drawCentredString(4.5*cm, h-14.5*cm, capogruppo)
+                c.setFont("Helvetica", 7)
+                c.setFillColor(colors.black)
+                c.line(3*cm, h-14.8*cm, 6*cm, h-14.8*cm)
+                c.drawCentredString(4.5*cm, h-15.1*cm, "Il Capogruppo")
+                c.drawCentredString(4.5*cm, h-15.4*cm, capogruppo)
+                c.setFont("Helvetica", 6)
+                c.drawCentredString(4.5*cm, h-15.7*cm, "Gruppo Caronno Pertusella Bariola")
+                c.setFont("Times-Italic", 11)
+                c.setFillColor(colors.HexColor("#1A5D1A"))
+                c.drawCentredString(w-4.5*cm, h-14.5*cm, coordinatore or "Firma")
+                c.setFont("Helvetica", 7)
+                c.setFillColor(colors.black)
+                c.line(w-6*cm, h-14.8*cm, w-3*cm, h-14.8*cm)
+                c.drawCentredString(w-4.5*cm, h-15.1*cm, "Firma del Coordinatore di P.C.")
+                c.drawCentredString(w-4.5*cm, h-15.4*cm, "Sezione di Varese")
+                # Timbro
+                c.setStrokeColor(colors.HexColor("#1A5D1A"))
+                c.circle(w/2, h-14.5*cm, 1*cm, stroke=1, fill=0)
+                c.setFont("Helvetica-Bold", 5)
+                c.setFillColor(colors.HexColor("#1A5D1A"))
+                c.drawCentredString(w/2, h-14.3*cm, "A.N.A.")
+                c.drawCentredString(w/2, h-14.5*cm, "VARESE")
+                c.drawCentredString(w/2, h-14.7*cm, "PC")
+                # Numero
+                c.setFont("Helvetica", 7)
+                c.setFillColor(colors.gray)
+                c.drawString(1.5*cm, 1.5*cm, f"N° {num_att} - ANA Varese - Caronno Pertusella Bariola {datetime.now().year}")
+                c.showPage()
+                c.save()
+                buf.seek(0)
+                return buf.getvalue()
+            # Generazione multipla o singola
+            if lista_nomi.strip():
+                import zipfile
+                nomi_list = [n.strip() for n in lista_nomi.split('\n') if n.strip()]
+                if not nomi_list:
+                    nomi_list = [nome_dip]
+                zip_buf = io.BytesIO()
+                with zipfile.ZipFile(zip_buf, 'w') as zf:
+                    for n in nomi_list:
+                        pdf_bytes = crea_diploma_pdf_loghi_reali(n, evento_dip, luogo_dip, data_dip, ruolo_dip, capogruppo_dip, coordinatore_dip, num_attestato)
+                        zf.writestr(f"Attestato_{n.replace(' ', '_')}.pdf", pdf_bytes)
+                zip_buf.seek(0)
+                st.download_button(
+                    f"⬇️ Scarica {len(nomi_list)} Diplomi ZIP - Loghi Reali",
+                    data=zip_buf.getvalue(),
+                    file_name=f"diplomi_{evento_dip.replace(' ', '_')}_{datetime.now().strftime('%Y%m%d')}.zip",
+                    mime="application/zip",
+                    use_container_width=True,
+                    type="primary",
+                    key=f"dl_zip_dip_v{ver_dip}"
+                )
+                st.success(f"✅ Generati {len(nomi_list)} diplomi con loghi ANA PC + Caronno Pertusella Bariola!")
+            else:
+                pdf_single = crea_diploma_pdf_loghi_reali(nome_dip, evento_dip, luogo_dip, data_dip, ruolo_dip, capogruppo_dip, coordinatore_dip, num_attestato)
+                st.download_button(
+                    f"⬇️ Scarica Diploma {nome_dip} - Loghi Reali",
+                    data=pdf_single,
+                    file_name=f"Attestato_{nome_dip.replace(' ', '_')}.pdf",
+                    mime="application/pdf",
+                    use_container_width=True,
+                    type="primary",
+                    key=f"dl_pdf_dip_v{ver_dip}"
+                )
+                if "diplomi" not in st.session_state:
+                    st.session_state.diplomi = []
+                st.session_state.diplomi.append({
+                    "Nome": nome_dip,
+                    "Evento": evento_dip,
+                    "Luogo": luogo_dip,
+                    "Data": data_dip,
+                    "Ruolo": ruolo_dip,
+                    "Num": num_attestato,
+                    "DataGen": datetime.now().strftime("%d/%m/%Y %H:%M"),
+                    "PDFBytes": pdf_single
+                })
+                st.success(f"✅ Diploma {nome_dip} con loghi reali generato!")
+        except Exception as e:
+            st.error(f"Errore generazione PDF: {e}")
+            import traceback
+            st.code(traceback.format_exc())
+    st.divider()
+    if st.session_state.get("diplomi"):
+        st.markdown(f"#### 📜 Diplomi Generati ({len(st.session_state.diplomi)})")
+        df_dip = pd.DataFrame([{k:v for k,v in d.items() if "Bytes" not in k} for d in st.session_state.diplomi])
+        st.dataframe(df_dip, use_container_width=True)
+        try:
+            excel_data = to_excel(df_dip)
+            if excel_data:
+                st.download_button("⬇️ Excel Diplomi", data=excel_data, file_name=f"diplomi_{datetime.now().strftime('%Y%m%d')}.xlsx", mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", use_container_width=True, key="exp_excel_diplomi")
+        except:
+            pass
+        if st.button("🗑️ Pulisci Tutti i Diplomi", key="btn_clear_diplomi"):
+            st.session_state.diplomi = []
+            st.success("Tutti i diplomi rimossi")
+            st.rerun()
     excel_import_inline("diplomi", "Diplomi Attestati")
-elif cur == "Report Filtro":
-    hdr_form("REPORT FILTRO - Verde ANA - Font Nero Times Bold - Tasto Filtro OK")
-    st.markdown("""
-    <div style="background:linear-gradient(135deg,#1A5D1A 0%,#2e7d32 100%);color:white;padding:12px;border-radius:10px;text-align:center;margin-bottom:14px;border:3px solid #FFD700;">
-    <b>📊 REPORT FILTRATI - Verde ANA - Font Nero Times Bold</b>
-    </div>
-    """, unsafe_allow_html=True)
-    FORM_KEYS_REPORT = {
-        "Volontari (con foto)": "volontari",
-        "Ospiti": "ospiti",
-        "DB Radio": "radio_db",
-        "Consegna Radio": "consegna_radio",
-        "Alias Radio": "alias_radio",
-        "Brogliaccio": "brogliaccio",
-        "Eventi": "eventi",
-        "Emergenze": "emergenze",
-        "Check-in": "checkin",
-        "Interventi Emergenza": "interventi",
-        "Mezzi": "mezzi",
-        "Attrezzature": "attrezzature",
-        "Turni": "turni",
-        "Verbali": "verbali",
-        "Diplomi Attestati": "diplomi"
-    }
-    c1, c2 = st.columns([1, 1.6])
-    with c1:
-        sel_form_label = st.selectbox("Form per report", list(FORM_KEYS_REPORT.keys()), key="report_form_sel_final")
-        sel_form_key = FORM_KEYS_REPORT[sel_form_label]
-        data_list = st.session_state.get(sel_form_key, [])
-        if not data_list:
-            st.warning(f"Nessun dato in {sel_form_label}")
-            all_fields = []; selected_fields = []; filtro_testo=""; campo_filtro="-- Nessuno --"; valore_filtro=""
-        else:
-            st.success(f"{len(data_list)} record")
-            all_fields = set()
-            for item in data_list[:20]:
-                if isinstance(item, dict):
-                    all_fields.update([k for k in item.keys() if "Bytes" not in k and "Foto" not in k])
-            all_fields = sorted(list(all_fields))
-            selected_fields = st.multiselect("Campi da includere", all_fields, default=all_fields[:8] if len(all_fields)>8 else all_fields, key="report_fields_sel_final")
-            filtro_testo = st.text_input("🔍 Filtro testo libero", key="report_filtro_testo_final", placeholder="Mario, Varese...")
-            campo_filtro="-- Nessuno --"; valore_filtro=""
-            if selected_fields:
-                campo_filtro = st.selectbox("Filtra per campo", ["-- Nessuno --"] + selected_fields, key="report_campo_filtro_final")
-                if campo_filtro != "-- Nessuno --":
-                    valore_filtro = st.text_input(f"Valore per '{campo_filtro}'", key="report_valore_filtro_final")
-    with c2:
-        if not data_list:
-            st.info("👈 Seleziona form con dati")
-        else:
-            filtered = data_list
-            if filtro_testo:
-                filtered = [r for r in filtered if isinstance(r, dict) and any(filtro_testo.lower() in str(v).lower() for v in r.values())]
-            if campo_filtro != "-- Nessuno --" and valore_filtro:
-                filtered = [r for r in filtered if isinstance(r, dict) and valore_filtro.lower() in str(r.get(campo_filtro,"")).lower()]
-            filtered_display = [{k: r.get(k,"") for k in selected_fields} if isinstance(r, dict) else {"Valore": r} for r in filtered] if selected_fields else filtered
-            st.markdown(f"#### 📄 Anteprima - {len(filtered_display)} record")
-            if filtered_display:
-                df_report = pd.DataFrame(filtered_display)
-                st.dataframe(df_report, use_container_width=True, height=400)
-                col1, col2, col3 = st.columns(3)
-                with col1:
-                    try:
-                        excel_bytes = to_excel_bytes({sel_form_label[:25]: df_report})
-                        st.download_button(f"⬇️ Excel ({len(df_report)})", data=excel_bytes, file_name=f"report_{sel_form_key}.xlsx", mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", use_container_width=True, key="dl_excel_report_final")
-                    except Exception as e: st.error(f"Excel: {e}")
-                with col2:
-                    try:
-                        csv_data = df_report.to_csv(index=False).encode('utf-8')
-                        st.download_button("⬇️ CSV", data=csv_data, file_name=f"report_{sel_form_key}.csv", mime="text/csv", use_container_width=True, key="dl_csv_report_final")
-                    except Exception as e: st.error(f"CSV: {e}")
-                with col3:
-                    if REPORTLAB_OK:
-                        try:
-                            from reportlab.lib.pagesizes import landscape, A4
-                            from reportlab.platypus import SimpleDocTemplate, Table, TableStyle
-                            from reportlab.lib import colors
-                            import io
-                            buf = io.BytesIO()
-                            doc = SimpleDocTemplate(buf, pagesize=landscape(A4), leftMargin=1*cm, rightMargin=1*cm)
-                            df_pdf = df_report.copy()
-                            for col in df_pdf.columns: df_pdf[col] = df_pdf[col].astype(str).apply(lambda x: x[:35])
-                            cols = list(df_pdf.columns)[:12]
-                            data = [cols] + df_pdf[cols].values.tolist()[:60]
-                            t = Table(data, repeatRows=1)
-                            t.setStyle(TableStyle([('BACKGROUND', (0,0), (-1,0), colors.HexColor("#1A5D1A")), ('TEXTCOLOR', (0,0), (-1,0), colors.whitesmoke), ('FONTSIZE', (0,0), (-1,-1), 6), ('GRID', (0,0), (-1,-1), 0.4, colors.grey)]))
-                            from reportlab.platypus import Paragraph, Spacer
-                            from reportlab.lib.styles import getSampleStyleSheet
-                            styles = getSampleStyleSheet()
-                            story = [Paragraph(f"Report {sel_form_label} - {len(filtered_display)} record", styles['Normal']), Spacer(1,12), t]
-                            doc.build(story); buf.seek(0)
-                            st.download_button(f"⬇️ PDF ({len(df_report)})", data=buf.getvalue(), file_name=f"report_{sel_form_key}.pdf", mime="application/pdf", use_container_width=True, key="dl_pdf_report_final")
-                        except Exception as e: st.error(f"PDF: {e}")
 elif cur == "Backup":
     hdr_form("BACKUP")
     FORM_KEYS = {
