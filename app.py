@@ -49,10 +49,15 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="expanded"
 )
+def vai_a_form_callback(form_name):
+    st.session_state.menu = form_name
+    st.session_state["menu_radio"] = form_name
+    st.session_state["cur"] = form_name
+    st.session_state.page = "dashboard"
+    st.session_state.logged = True
+
 # --- CSS globale VERDE ANA + font nero Times bold + FIX - versione definitiva ieri ---
 def inject_global_css():
-    if st.session_state.get("css_injected_final"):
-        return
     st.markdown("""
     <style>
     #MainMenu {visibility: hidden;}
@@ -104,7 +109,7 @@ def inject_global_css():
     }
     </style>
     """, unsafe_allow_html=True)
-    st.session_state["css_injected_final"] = True
+    # CSS sempre reiniettato - fix sfondo sparito
 def inject_first_page_green():
     pass
 def inject_fullscreen_kiosk():
@@ -1816,7 +1821,8 @@ if cur == "Dashboard":
         st.session_state.menu = form_name
         st.session_state["menu_radio"] = form_name
         st.session_state["cur"] = form_name
-        st.session_state["cur"] = form_name
+        st.session_state.page = "dashboard"
+        st.session_state.logged = True
     # CSS bottoni verde ANA - SFONDO PIENO VERDE - FIX DEFINITIVO
     st.markdown(
         """
@@ -5462,7 +5468,7 @@ elif cur == "Diplomi Attestati":
             logo_cpb_html = f'<img src="data:image/png;base64,{logo_cpb_b64}" style="width:75px;height:75px;object-fit:contain;border-radius:50%;border:2px solid #0D47A1;background:white;padding:2px;">'
         preview_html = f"""
         <div style="background:#2c3e50;padding:10px;border-radius:8px;">
-            <div style="background:white;width:794px;height:1123px;margin:0 auto;box-shadow:0 0 30px rgba(0,0,0,0.5);position:relative;overflow:hidden;transform:scale(0.85);transform-origin:top center;margin-bottom:-170px;">
+            <div style="background:white;width:794px;height:1123px;margin:0 auto;box-shadow:0 0 30px rgba(0,0,0,0.5);position:relative;overflow:hidden;transform:scale(0.65);transform-origin:top center;margin-bottom:-380px;">
                 <div style="position:absolute;top:15px;left:15px;right:15px;bottom:15px;border:3px solid #1e3a5f;">
                     <div style="position:absolute;top:6px;left:6px;right:6px;bottom:6px;border:1.5px solid #c9a86a;padding:25px 30px;display:flex;flex-direction:column;">
                         <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:180px;opacity:0.03;font-weight:bold;color:#1A5D1A;">ANA</div>
