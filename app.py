@@ -66,15 +66,17 @@ def inject_global_css():
         padding: 16px !important;
         box-shadow: 0 4px 12px rgba(0,0,0,0.3) !important;
     }
-    /* FONT TIMES ROMAN GRASSETTO DEFINITIVO IERI - NERO */
-    /* FONT NERO GRASSETTO TIMES ROMAN PER TUTTE LE CELLE FORM - RICHIESTA EZIO DEFINITIVA */
+    /* FONT TIMES ROMAN GRASSETTO DEFINITIVO - NERO - EZIO */
+    /* TUTTE LE CELLE FORM - TIMES NEW ROMAN NERO GRASSETTO - FORZATO */
+    .stTextInput input, .stTextArea textarea, .stNumberInput input, .stDateInput input, .stTimeInput input,
+    div[data-baseweb="input"] input, div[data-baseweb="textarea"] textarea,
+    div[data-baseweb="select"] div, input[type="text"], input[type="number"], textarea, select,
     .stTextInput > div > div > input,
     .stTextArea > div > div > textarea,
     .stSelectbox > div > div > div,
     .stNumberInput > div > div > input,
     .stDateInput > div > div > input,
-    .stTimeInput > div > div > input,
-    input[type="text"], input[type="number"], textarea, select {
+    .stTimeInput > div > div > input {
         color: black !important;
         font-family: 'Times New Roman', Times, serif !important;
         font-weight: bold !important;
@@ -102,7 +104,7 @@ def inject_global_css():
     }
     </style>
     """, unsafe_allow_html=True)
-    # CSS sempre attivo - fix sfondo sparito
+    st.session_state["css_injected_final"] = True
 def inject_first_page_green():
     pass
 def inject_fullscreen_kiosk():
@@ -1650,7 +1652,6 @@ with st.sidebar:
             "Verbali",
             "Archivio Documenti",
             "Diplomi Attestati",
-            "Report Filtro",
             "Geolocalizzazione Hytera + Anytone",
             "Gestione Utenti",
             "Backup"
@@ -1679,7 +1680,6 @@ with st.sidebar:
             "Verbali",
             "Archivio Documenti",
             "Diplomi Attestati",
-            "Report Filtro",
             "Geolocalizzazione Hytera + Anytone",
             "Backup"
         ]
@@ -1816,8 +1816,7 @@ if cur == "Dashboard":
         st.session_state.menu = form_name
         st.session_state["menu_radio"] = form_name
         st.session_state["cur"] = form_name
-        st.session_state.page = "dashboard"
-        st.session_state.logged = True
+        st.session_state["cur"] = form_name
     # CSS bottoni verde ANA - SFONDO PIENO VERDE - FIX DEFINITIVO
     st.markdown(
         """
@@ -5463,7 +5462,7 @@ elif cur == "Diplomi Attestati":
             logo_cpb_html = f'<img src="data:image/png;base64,{logo_cpb_b64}" style="width:75px;height:75px;object-fit:contain;border-radius:50%;border:2px solid #0D47A1;background:white;padding:2px;">'
         preview_html = f"""
         <div style="background:#2c3e50;padding:10px;border-radius:8px;">
-            <div style="background:white;width:794px;height:1123px;margin:0 auto;box-shadow:0 0 30px rgba(0,0,0,0.5);position:relative;overflow:hidden;transform:scale(0.75);transform-origin:top center;margin-bottom:-280px;">
+            <div style="background:white;width:794px;height:1123px;margin:0 auto;box-shadow:0 0 30px rgba(0,0,0,0.5);position:relative;overflow:hidden;transform:scale(0.85);transform-origin:top center;margin-bottom:-170px;">
                 <div style="position:absolute;top:15px;left:15px;right:15px;bottom:15px;border:3px solid #1e3a5f;">
                     <div style="position:absolute;top:6px;left:6px;right:6px;bottom:6px;border:1.5px solid #c9a86a;padding:25px 30px;display:flex;flex-direction:column;">
                         <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:180px;opacity:0.03;font-weight:bold;color:#1A5D1A;">ANA</div>
@@ -5653,7 +5652,6 @@ elif cur == "Backup":
     hdr_form("BACKUP")
     FORM_KEYS = {
         "Volontari (con foto)": "volontari",
-        "Ospiti": "ospiti",
         "DB Radio": "radio_db",
         "Consegna Radio": "consegna_radio",
         "Alias Radio": "alias_radio",
@@ -5669,12 +5667,9 @@ elif cur == "Backup":
         "Libreria Icone": "icone",
         "Turni": "turni",
         "Chat": "chat",
-        "Verbali": "verbali",
-        "Archivio Documenti": "archivio_documenti",
-        "Diplomi Attestati": "diplomi",
-        "Report Filtro": "report_filtro",
         "Posizioni PD785": "posizioni_pd785",
-        "Posizioni Anytone": "posizioni_anytone"
+        "Posizioni Anytone": "posizioni_anytone",
+        "Archivio Documenti": "archivio_documenti"
     }
     st.markdown("""
     <div style="background:#e8f5e9;padding:10px;border-radius:8px;border-left:4px solid #1A5D1A;margin-bottom:12px;">
