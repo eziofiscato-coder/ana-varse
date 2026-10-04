@@ -107,7 +107,7 @@ def inject_global_css():
         font-weight: bold !important;
         color: black !important;
     }
-    /* --- COLORI LINGUETTE VOLONTARI - ogni linguetta colore diverso --- */
+        /* --- COLORI LINGUETTE VOLONTARI --- */
     button[data-baseweb="tab"]:nth-of-type(1) {background:#1A5D1A !important; color:white !important; border-radius:8px 8px 0 0;}
     button[data-baseweb="tab"]:nth-of-type(2) {background:#1976d2 !important; color:white !important; border-radius:8px 8px 0 0;}
     button[data-baseweb="tab"]:nth-of-type(3) {background:#d32f2f !important; color:white !important; border-radius:8px 8px 0 0;}
