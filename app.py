@@ -2246,7 +2246,7 @@ elif cur == "Volontari (con foto)":
     scad_def = edit_data.get("ScadDoc", "")
 
     if show_tab1:
-        st.markdown("#### 📋 Anagrafica + Capo ODV")
+        st.markdown("#### Anagrafica Volontario")
         c1, c2 = st.columns(2)
         with c1:
             nome = st.text_input("Nome *", value=nome_def, key="vol_nome_tab")
