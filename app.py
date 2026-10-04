@@ -6712,8 +6712,8 @@ st.divider()
 st.markdown(
     """
     <div style="text-align:center;padding:8px;background:linear-gradient(135deg,#1A5D1A,#2e7d32);border-radius:8px;color:white;font-size:12px;">
-    ANA Varese - Dashboard rosso + bottoni OK | Volontari linguette + ODV | Date gg/mm/aaaa | Backup Import/Export<br>
-    Sviluppato per Ezio
+    ANA Varese Gestionale Protesione civile<br>
+    Sviluèatore Ezio F.
     </div>
     """,
     unsafe_allow_html=True
