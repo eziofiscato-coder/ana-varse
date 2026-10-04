@@ -116,13 +116,7 @@ def inject_global_css():
     button[data-baseweb="tab"]:nth-of-type(6) {background:#00796b !important; color:white !important; border-radius:8px 8px 0 0;}
     button[data-baseweb="tab"][aria-selected="true"] {border:3px solid #FFD700 !important; font-weight:bold !important;}
     </style>
-    """, unsafe_allow_html=True)       
-       ; color:white !important; border-radius:8px 8px 0 0;}
-    button[data-baseweb="tab"]:nth-of-type(6) {background:#00796b !important; color:white !important; border-radius:8px 8px 0 0;}
-    /* Attiva */
-    button[data-baseweb="tab"][aria-selected="true"] {border:3px solid #FFD700 !important; font-weight:bold !important;}
-    </style>
-    """, unsafe_allow_html=True)
+
 
 
 def inject_first_page_green():
