@@ -2128,7 +2128,7 @@ if cur == "Dashboard":
 
 # VOLONTARI FORM CON SOTTOMASCHERE A LINGUETTE + CAMPO ODV - NUOVA VERSIONE FINALE
 elif cur == "Volontari (con foto)":
-    hdr_form("DB VOLONTARI")
+    hdr_form("SCHEDA VOLONTARI")
 
     edit_mode = False
     edit_data = {}
