@@ -1483,12 +1483,11 @@ if st.session_state.page == "entra":
 
         st.markdown(
             """
-            <h2 style="text-align:center;font-family:Times New Roman;
-            font-weight:bold;color:black;margin-top:20px;">
+            <h2 style="text-align:center;font-family:Times New Roman; font-weight:bold; color:black; margin-top:20px; white-space:nowrap; font-size:28px;">
             GESTIONALE DI PROTEZIONE CIVILE
             </h2>
             <p style="text-align:center;">
-            Versione BETA
+            Versione 1.0
             </p>
             """,
             unsafe_allow_html=True
