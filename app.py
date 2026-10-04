@@ -1512,7 +1512,7 @@ if st.session_state.page == "entra":
             GESTIONALE DI PROTEZIONE CIVILE
             </h2>
             <p style="text-align:center;">
-            Versione BETA
+            Versione 1.0
             </p>
             """,
             unsafe_allow_html=True
