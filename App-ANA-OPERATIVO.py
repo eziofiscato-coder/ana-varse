@@ -1536,7 +1536,7 @@ def hdr_form(t):
     # Etichetta verde scuro font Times New Roman come prima, ma larga 100% - Ezio richiesta
     st.markdown(
         f"""
-        <div style="font-family:'Times New Roman',Times,serif;font-weight:900;color:white;background:#1A5D1A;background: linear-gradient(135deg,#1A5D1A 0%,#2e7d32 100%);border:3px solid #FFD700;padding:28px 60px;margin-top:0px;margin-bottom:14px;font-size:30px;border-radius:12px;width:100%;display:block;box-sizing:border-box;letter-spacing:1px;text-transform:uppercase;box-shadow:0 4px 12px rgba(0,0,0,0.3);text-align:left;">
+        <div style="font-family:'Times New Roman',Times,serif;font-weight:900;color:white;background:#1A5D1A;background: linear-gradient(135deg,#1A5D1A 0%,#2e7d32 100%);border:3px solid #FFD700;padding:28px 60px;margin-top:0px;margin-bottom:14px;font-size:25px;border-radius:12px;width:100%;display:block;box-sizing:border-box;letter-spacing:1px;text-transform:uppercase;box-shadow:0 4px 12px rgba(0,0,0,0.3);text-align:left;">
         {t}
         </div>
         """,
