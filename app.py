@@ -114,7 +114,7 @@ def set_background_varese():
             background-repeat: no-repeat;
             background-position: center;
             background-size: contain;
-            opacity: 0.28;
+            opacity: 0.35;
             pointer-events: none;
             z-index: 0;
         }}
