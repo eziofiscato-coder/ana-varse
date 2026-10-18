@@ -4974,7 +4974,7 @@ elif cur == "Mappe Postazioni":
         marker_nome_vol = st.text_input("Nome Volontario", key=k_map("adv_marker_nome_vol"), placeholder="Es: Mario")
         marker_cognome_vol = st.text_input("Cognome Volontario", key=k_map("adv_marker_cognome_vol"), placeholder="Es: Rossi")
         # ODV combo da volontari esistenti
-    with c2:
+    with c3:
         odv_list = sorted(list(set([v.get("ODV","") for v in st.session_state.get("volontari", []) if v.get("ODV")])))
         odv_list = ["ANA Varese", "Carono Pertusella", "Bariola", "GAE", "Protezione Civile"]
         odv_options = ["-- Seleziona ODV --"] + odv_list + ["-- Altro --"]
