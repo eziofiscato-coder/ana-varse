@@ -60,7 +60,7 @@ MENU_ADMINISTRATIVO = [
     "Dashboard","Volontari (con foto)","Ospiti","Verbali","Archivio Documenti","Diplomi Attestati","Spese ODV per Evento","Note Spese","Report Filtro","Statistiche","Impostazioni","Gestione Utenti","Backup"
 ]
 MENU_OPERATIVO = [
-    "Dashboard","Volontari (con foto)","DB Radio","Consegna Radio","Alias Radio","Brogliaccio","Eventi","Tabella Emergenze","Check-in","Interventi Emergenza","Tabella Interventi Emergenza","Mezzi","Attrezzature","Mappe Postazioni","Libreria Icone","Turni","Chat","Backup Eventi"
+    "Dashboard","Volontari (con foto)","Ospiti","DB Radio","Consegna Radio","Alias Radio","Brogliaccio","Eventi","Tabella Emergenze","Check-in","Interventi Emergenza","Tabella Interventi Emergenza","Mezzi","Attrezzature","Mappe Postazioni","Libreria Icone","Turni","Chat","Backup Eventi"
 ]
 st.set_page_config(
     page_title="ANA Varese - Caronno Pertusella - Dashboard",
