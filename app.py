@@ -47,6 +47,10 @@ if "spese_odv" not in st.session_state:
 if "spese_edit_index" not in st.session_state:
     st.session_state.spese_edit_index = None
 
+if os.path.exists("logo_volontari_ana.jpeg"):
+    st.image("logo_volontari_ana.jpeg", width=80)
+else:
+    st.markdown("**ANA**")
 if "page" not in st.session_state:
     st.session_state.page = "entra"
 if "logged" not in st.session_state:
