@@ -133,65 +133,6 @@ def set_background_varese():
 
 set_background_varese()
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 # --- CSS globale VERDE ANA + font nero Times bold + FIX - versione definitiva ieri ---
 
 def inject_fullscreen_button():
