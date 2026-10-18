@@ -69,16 +69,6 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-
-
-
-
-
-
-
-
-
-
 def set_background_varese():
     try:
         # FILIGRANA - path locale per Streamlit Cloud - legge da file se presente, altrimenti base64
@@ -114,7 +104,7 @@ def set_background_varese():
             background-repeat: no-repeat;
             background-position: center;
             background-size: contain;
-            opacity: 0.50;
+            opacity: 0.60;
             pointer-events: none;
             z-index: 0;
         }}
