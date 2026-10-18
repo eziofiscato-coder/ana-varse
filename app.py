@@ -4976,6 +4976,7 @@ elif cur == "Mappe Postazioni":
         # ODV combo da volontari esistenti
         odv_list = sorted(list(set([v.get("ODV","") for v in st.session_state.get("volontari", []) if v.get("ODV")])))
         if not odv_list:
+    with c2:
             odv_list = ["ANA Varese", "Carono Pertusella", "Bariola", "GAE", "Protezione Civile"]
         odv_options = ["-- Seleziona ODV --"] + odv_list + ["-- Altro --"]
         sel_odv_combo = st.selectbox("ODV (combo)", odv_options, key=k_map("adv_odv_combo"))
