@@ -4969,6 +4969,7 @@ elif cur == "Mappe Postazioni":
         nome_emergenza = st.selectbox("Nome Emergenza (combo)", nomi_emergenze, index=0, key=k_map("nome_emergenza_combo"))
         nome_evento = st.selectbox("Nome Evento (combo)", nomi_eventi, index=0, key=k_map("nome_evento_combo"))
         # NUOVO: Nome, Cognome, ODV combo per assegnare marker - Richiesta Ezio - 3 GPX
+    with c1:
         st.markdown("**👤 Assegna Volontario a Postazione**")
         marker_nome_vol = st.text_input("Nome Volontario", key=k_map("adv_marker_nome_vol"), placeholder="Es: Mario")
         marker_cognome_vol = st.text_input("Cognome Volontario", key=k_map("adv_marker_cognome_vol"), placeholder="Es: Rossi")
