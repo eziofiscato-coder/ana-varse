@@ -2019,10 +2019,10 @@ if st.session_state.page == "entra":
     c1, c2, c3 = st.columns([1, 2, 1])
     with c2:
         try:
-            if os.path.exists("logo_volontario_ana.jpeg"):
-                st.image("logo_volontario_ana.jpeg", width=280)
-            elif os.path.exists("logo_volontari_ana.jpeg"):
-                st.image("logo_volontari_ana.jpeg", width=280)
+            if os.path.exists("copertina.png"):
+                st.image("copertina.png", width=280)
+            elif os.path.exists("copertina.png.jpeg"):
+                st.image("copertina.png", width=280)
             elif os.path.exists("copertina.png"):
                 st.image("copertina.png", width=350)
             else:
