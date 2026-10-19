@@ -2328,8 +2328,8 @@ if not st.session_state.logged:
 # SIDEBAR - MENU
 with st.sidebar:
     try:
-        if os.path.exists("logo.png"):
-            st.image("logo.png", width=120)
+        if os.path.exists("logo_volontario_ana.jpeg"):
+            st.image("logo_volontario_ana.jpeg", width=120)
         else:
             st.markdown(
                 """
