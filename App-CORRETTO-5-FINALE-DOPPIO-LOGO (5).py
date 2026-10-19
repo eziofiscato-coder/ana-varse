@@ -1607,11 +1607,11 @@ def hdr():
         # cerca con tutti i nomi possibili + case insensitive
         possibili_logo1 = [
             "logo_volontario_ana.jpeg", "logo_volontari_ana.jpeg", 
-            "logo_volontario_ana.jpg", "logo_volontari_ana.jpg",
-            "logo_volontariato_ana.jpeg", "logo_volontariato_ana.jpg",
-            "LOGO_VOLONTARIO_ANA.JPEG", "logo.png",
+            "logo_volontario_ana.jpeg", "logo_volontari_ana.jpeg",
+            "logo_volontariato_ana.jpeg", "logo_volontariato_ana.jpeg",
+            "LOGO_VOLONTARIO_ANA.JPEG", "logo_volontariato_ana.jpeg",
             "/mnt/data/logo_volontario_ana.jpeg", "/mnt/data/logo_volontari_ana.jpeg",
-            "logo_volontario_ana.png", "logo_volontari_ana.png"
+            "logo_volontario_ana.jpeg", "logo_volontari_ana.jpeg"
         ]
         for p in possibili_logo1:
             if os.path.exists(p):
