@@ -1,3 +1,5 @@
+from modules.segnalazioni_bp import segnalazioni_bp
+app.register_blueprint(segnalazioni_bp)
 # FIX EXE PyInstaller
 try:
     import importlib.metadata
