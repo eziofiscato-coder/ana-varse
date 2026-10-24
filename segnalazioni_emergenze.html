@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html><head><meta charset="UTF-8"><title>ProtezioNET v15.1 - Segnalazioni Emergenze - Schede 118 a SX - StreetMap Default + Icone Esterno</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.0.3/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.0.3/dist/leaflet.js"></script>
+<style>
+*{box-sizing:border-box}
+body{font-family:Arial, Tahoma, sans-serif;margin:0;background:#eef2f7;font-size:11px;color:#1e293b}
+.topbar{background:linear-gradient(90deg, #ea580c 0%, #dc2626 100%);color:white;padding:10px 20px;display:flex;justify-content:space-between;align-items:center;box-shadow:0 2px 6px rgba(0,0,0,0.2);position:sticky;top:0;z-index:100}
+.topbar .logo{display:flex;align-items:center;gap:10px;font-size:15px;font-weight:bold}
+.container{padding:10px;max-width:100%;margin:0 auto}
+.main-layout{display:flex;flex-direction:row;gap:10px;align-items:flex-start}
+.left-form{width:360px;min-width:360px;max-width:360px;flex-shrink:0;display:flex;flex-direction:column;gap:10px}
+.right-content{flex:1;min-width:0;overflow:hidden;display:flex;flex-direction:column;gap:10px}
+@media (max-width:1100px){ .main-layout{flex-direction:column} .left-form{width:100%;min-width:100%;max-width:100%} }
+.card{background:#fff;border-radius:8px;padding:10px;box-shadow:0 1px 4px rgba(0,0,0,0.1);border:1px solid #e2e8f0}
+.card-header{font-size:12px;font-weight:bold;color:#0d2a54;border-bottom:2px solid #e2e8f0;padding-bottom:6px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center}
+.form-group{margin-bottom:6px}
+.form-group label{font-size:9px;font-weight:bold;color:#334155;display:block;margin-bottom:2px;text-transform:uppercase}
+.form-group input, .form-group select, .form-group textarea{width:100%;padding:6px 8px;border:1px solid #cbd5e1;border-radius:4px;font-size:11px;font-family:Arial}
+.btn{padding:5px 10px;border:none;border-radius:4px;cursor:pointer;font-size:10px;font-weight:bold;display:inline-flex;align-items:center;gap:4px}
+.btn-red{background:#dc2626;color:white}.btn-blue{background:#0d6efd;color:white}.btn-green{background:#16a34a;color:white}.btn-yellow{background:#f59e0b;color:#000}.btn-light{background:#f1f5f9;color:#334155;border:1px solid #cbd5e1}.btn-sky{background:#0ea5e9;color:white}.btn-dark{background:#1e293b;color:white}.btn-purple{background:#8b5cf6;color:white}
+.table-wrap{overflow:auto;border:2px solid #0d2a54;background:white;border-radius:6px;max-height:60vh;min-height:300px;width:100%;display:block}
+table{width:100%;border-collapse:collapse;min-width:1800px;display:table}
+th{font-size:9px;color:#fff;padding:6px;border:1px solid #0d2a54;background:#0d2a54;text-align:left;position:sticky;top:0;z-index:2}
+td{padding:0;border:1px solid #e2e8f0;font-size:10px}
+td input, td select{width:100%;border:none;padding:5px 6px;font-size:10px;background:transparent}
+.icon-badge{display:inline-block;padding:2px 6px;border-radius:4px;color:white;font-weight:bold;font-size:9px;min-width:55px;text-align:center}
+.icon-INCENDIO{background:#dc2626}.icon-ALLUVIONE{background:#0d6efd}.icon-CROLLO{background:#6c757d}.icon-SOCCORSO{background:#f97316}.icon-RICERCA{background:#16a34a}.icon-ALTRO{background:#1e293b}
+.meteo-link{background:#0ea5e9;color:white;padding:2px 5px;border-radius:10px;font-size:8px;text-decoration:none;display:inline-block;margin:1px}
+.map-link{background:#4285f4;color:white;padding:2px 5px;border-radius:10px;font-size:8px;text-decoration:none;display:inline-block;margin:1px}
+.filter{background:#f1f5f9;padding:6px;display:flex;gap:4px;border-radius:4px;flex-wrap:wrap;align-items:center;border:1px solid #e2e8f0}
+#map{width:100%;height:550px;border-radius:6px;border:3px solid #0d2a54;display:block;background:#dbeafe;min-height:550px}
+.libreria-panel{background:#f0f9ff;padding:10px;border-radius:6px;border:2px solid #0ea5e9;margin-bottom:10px}
+.icon-library{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0;max-height:150px;overflow:auto;border:1px solid #ddd;padding:8px;border-radius:4px;background:#fafafa}
+.library-item{border:2px solid #ccc;border-radius:6px;padding:6px;background:white;cursor:pointer;text-align:center;min-width:65px;position:relative}
+.library-item:hover{border-color:#0d6efd;background:#e8f4ff}
+.library-item.selected{border-color:#0d6efd;background:#0d6efd;color:white}
+.library-item img{width:28px;height:28px;object-fit:contain;display:block;margin:0 auto 3px}
+.library-item .icon-name{font-size:8px;font-weight:bold;display:block}
+.library-item .delete-btn{position:absolute;top:-5px;right:-5px;background:#dc2626;color:white;border:none;border-radius:50%;width:16px;height:16px;font-size:8px;cursor:pointer;display:none}
+.library-item:hover .delete-btn{display:block}
+.upload-area{border:2px dashed #0ea5e9;border-radius:6px;padding:10px;text-align:center;background:#f0f9ff;margin:6px 0}
+.upload-area.dragover{border-color:#0d6efd;background:#e0f2fe}
+.custom-marker-img{width:32px;height:32px;border-radius:50%;border:2px solid white;box-shadow:0 2px 5px rgba(0,0,0,0.4);background:white;object-fit:contain}
+.fullscreen-table{position:fixed !important;top:0 !important;left:0 !important;width:100vw !important;height:100vh !important;z-index:9999 !important;background:white !important;padding:10px !important;margin:0 !important;overflow:auto !important;border-radius:0 !important}
+.fullscreen-table .table-wrap{max-height:85vh !important;height:85vh !important}
+#toast{position:fixed;bottom:15px;right:15px;background:#16a34a;color:white;padding:10px 16px;border-radius:6px;display:none;z-index:10000;font-weight:bold}
+.segnalatore-card{background:linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);border:2px solid #f59e0b;border-radius:8px;padding:10px;margin-bottom:8px}
+.luogo-card{background:linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);border:2px solid #0ea5e9;border-radius:8px;padding:10px;margin-bottom:8px}
+.tipologia-card{background:linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);border:2px solid #dc2626;border-radius:8px;padding:10px;margin-bottom:8px}
+</style></head><body>
+<div class="topbar">
+<div class="logo"><i class="fa fa-exclamation-triangle"></i> SEGNALAZIONI EMERGENZE - ProtezioNET v15.1 - Schede 118 a SX - StreetMap Default + Icone Esterno</div>
+<div style="display:flex;gap:10px;align-items:center"><span id="clock"></span><span id="totSegnalazioniTop" style="background:white;color:#dc2626;padding:4px 10px;border-radius:12px;font-weight:bold">0 SEGNALAZIONI</span></div>
+</div>
+
+<div class="container">
+
+<div class="card libreria-panel">
+<div class="card-header"><span><i class="fa fa-photo"></i> Libreria Icone da Esterno - Carica PNG JPG SVG - Crea Libreria Personalizzata</span><span id="libraryCount" style="background:#0ea5e9;color:white;padding:3px 8px;border-radius:12px;font-size:10px">0 icone</span></div>
+<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
+<div style="border:1px solid #ccc;border-radius:4px;padding:8px;background:#fff">
+<b style="font-size:10px"><i class="fa fa-upload"></i> Carica da PC:</b>
+<div class="upload-area" id="uploadArea" ondrop="handleDrop(event)" ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)">
+<i class="fa fa-cloud-upload" style="color:#0ea5e9"></i> Trascina qui o <button class="btn btn-blue" onclick="document.getElementById('fileInput').click()" style="padding:2px 6px;font-size:9px">Sfoglia</button><br><small>PNG JPG SVG</small>
+<input type="file" id="fileInput" accept="image/*,.svg" multiple style="display:none" onchange="handleFiles(this.files)">
+</div>
+<div style="display:flex;gap:4px;margin-top:4px"><input id="iconNameInput" placeholder="Nome ES: DRONE" style="flex:1;padding:4px;font-size:10px;text-transform:uppercase"><select id="iconColorSelect" style="padding:4px;font-size:10px"><option value="INCENDIO">Rosso</option><option value="ALLUVIONE">Blu</option><option value="CROLLO">Grigio</option><option value="SOCCORSO">Arancione</option><option value="RICERCA">Verde</option></select></div>
+</div>
+<div style="border:1px solid #ccc;border-radius:4px;padding:8px;background:#fff">
+<b style="font-size:10px"><i class="fa fa-link"></i> Da URL:</b><input id="iconUrlInput" placeholder="https://.../icona.png" style="width:100%;padding:4px;margin:4px 0;font-size:10px"><div style="display:flex;gap:4px"><input id="iconUrlName" placeholder="Nome" style="flex:1;padding:4px;font-size:10px"><button class="btn btn-sky" onclick="addIconFromUrl()" style="padding:3px 8px"><i class="fa fa-download"></i> URL</button></div>
+</div>
+<div style="border:1px solid #ccc;border-radius:4px;padding:8px;background:#fff">
+<b style="font-size:10px"><i class="fa fa-star"></i> Pronte:</b><div style="display:flex;flex-wrap:wrap;gap:3px;margin-top:4px"><button class="btn btn-light" onclick="addPresetIcon('ELICOTTERO','fa-helicopter','INCENDIO')" style="padding:2px 5px;font-size:9px"><i class="fa fa-helicopter"></i> Elicottero</button><button class="btn btn-light" onclick="addPresetIcon('DRONE','fa-fighter-jet','RICERCA')" style="padding:2px 5px;font-size:9px">Drone</button><button class="btn btn-light" onclick="addPresetIcon('CANI','fa-paw','RICERCA')" style="padding:2px 5px;font-size:9px"><i class="fa fa-paw"></i> Cani</button><button class="btn btn-light" onclick="addPresetIcon('AMBULANZA','fa-ambulance','SOCCORSO')" style="padding:2px 5px;font-size:9px">Ambulanza</button></div><div style="margin-top:6px"><button class="btn btn-purple" onclick="exportLibrary()" style="padding:3px 8px;font-size:9px"><i class="fa fa-download"></i> Esporta</button><button class="btn btn-light" onclick="document.getElementById('importLibraryFile').click()" style="padding:3px 8px;font-size:9px">Importa</button><input type="file" id="importLibraryFile" accept=".json" style="display:none" onchange="importLibrary(this.files[0])"></div>
+</div>
+</div>
+<div style="margin-top:8px"><b style="font-size:10px"><i class="fa fa-book"></i> Libreria (clicca per usare):</b><div class="icon-library" id="iconLibrary"></div></div>
+</div>
+
+<div class="main-layout" id="mainLayout">
+<div class="left-form" id="leftForm">
+
+<div class="card">
+<div class="card-header"><span><i class="fa fa-file-text-o"></i> NUOVA SEGNALAZIONE - Segnalazioni Emergenze</span> <button class="btn btn-light" onclick="resetForm()" style="padding:2px 6px;font-size:9px"><i class="fa fa-refresh"></i> Nuova</button></div>
+
+<!-- SCHEDA SEGNALATORE come 118 - Gialla -->
+<div class="segnalatore-card" style="background:linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);border:2px solid #f59e0b;border-radius:8px;padding:10px;margin-bottom:8px">
+<div style="font-weight:bold;color:#92400e;margin-bottom:6px;font-size:11px"><i class="fa fa-user"></i> CHI HA SEGNALATO - Dati Segnalatore</div>
+<div style="display:flex;gap:6px"><div class="form-group" style="flex:1"><label><i class="fa fa-user"></i> NOME *</label><input id="f_nome" placeholder="Es: Mario"></div><div class="form-group" style="flex:1"><label><i class="fa fa-user"></i> COGNOME *</label><input id="f_cognome" placeholder="Es: Rossi"></div></div>
+<div style="display:flex;gap:6px"><div class="form-group" style="flex:1"><label><i class="fa fa-phone"></i> TELEFONO *</label><input id="f_tel" placeholder="Es: 333 1234567" type="tel"></div><div class="form-group" style="flex:1"><label><i class="fa fa-building-o"></i> ENTE / RUOLO</label><select id="f_ente"><option value="">Cittadino</option><option value="Protezione Civile">Protezione Civile</option><option value="Vigili del Fuoco">Vigili del Fuoco</option><option value="118">118 - Sanitario</option><option value="Carabinieri">Carabinieri</option><option value="Polizia">Polizia</option><option value="Comune">Comune</option><option value="Volontario">Volontario</option></select></div></div>
+<div class="form-group"><label><i class="fa fa-envelope-o"></i> EMAIL (OPZ.)</label><input id="f_email" placeholder="mario.rossi@email.it"></div>
+</div>
+
+<!-- DATA ORA -->
+<div style="display:flex;gap:6px"><div class="form-group" style="flex:1"><label><i class="fa fa-calendar"></i> DATA SEGNALAZIONE *</label><input id="f_data" type="date"></div><div class="form-group" style="flex:1"><label><i class="fa fa-clock-o"></i> ORA SEGNALAZIONE *</label><input id="f_ora" type="time"></div></div>
+
+<!-- SCHEDA DOVE come 118 - Azzurra -->
+<div class="luogo-card" style="background:linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);border:2px solid #0ea5e9;border-radius:8px;padding:10px;margin-bottom:8px">
+<div style="font-weight:bold;color:#0c4a6e;margin-bottom:6px;font-size:11px"><i class="fa fa-map-marker"></i> DOVE - Luogo Evento - Via Città</div>
+<div class="form-group"><label><i class="fa fa-road"></i> VIA / INDIRIZZO *</label><input id="f_via" placeholder="Es: Via Boschetti 12, Via del Corso 10"></div>
+<div style="display:flex;gap:6px"><div class="form-group" style="flex:1"><label><i class="fa fa-map-o"></i> LOCALITÀ / FRAZIONE</label><input id="f_localita" placeholder="Es: bosco, Centro Storico"></div><div class="form-group" style="flex:1"><label><i class="fa fa-building"></i> CITTÀ / COMUNE *</label><input id="f_comune" placeholder="Es: Narni, Caronno Pertusella"></div></div>
+<div style="display:flex;gap:6px"><div class="form-group" style="flex:1"><label>PROVINCIA</label><input id="f_provincia" placeholder="TR, VA, PG, RM" style="text-transform:uppercase"></div><div class="form-group" style="flex:1"><label><i class="fa fa-crosshairs"></i> COORDINATE (AUTO)</label><input id="f_coord" placeholder="Lat, Lng auto" readonly style="background:#f0f0f0"></div></div>
+</div>
+
+<!-- SCHEDA COSA come 118 - Rossa -->
+<div class="tipologia-card" style="background:linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);border:2px solid #dc2626;border-radius:8px;padding:10px;margin-bottom:8px">
+<div style="font-weight:bold;color:#991b1b;margin-bottom:6px;font-size:11px"><i class="fa fa-exclamation-triangle"></i> COSA - Tipologia Segnalazione</div>
+<div class="form-group"><label><i class="fa fa-flag"></i> TIPOLOGIA *</label><select id="f_tipologia"><option value="">Seleziona tipologia...</option><option value="INCENDIO">🔥 INCENDIO - Incendio Boschivo / Urbano</option><option value="ALLUVIONE">💧 ALLUVIONE - Allagamento / Esondazione</option><option value="CROLLO">🏚️ CROLLO - Crollo Struttura</option><option value="FRANA">⛰️ FRANA - Frana / Smottamento</option><option value="INCIDENTE">🚗 INCIDENTE - Incidente Stradale</option><option value="SOCCORSO">🚑 SOCCORSO - Soccorso Persona</option><option value="RICERCA">🔍 RICERCA - Persona Dispersa</option><option value="NEVE">❄️ NEVE - Neve / Ghiaccio</option><option value="VENTO">💨 VENTO - Vento Forte</option><option value="ALTRO">⚠️ ALTRO</option></select></div>
+<div style="display:flex;gap:6px"><div class="form-group" style="flex:1"><label><i class="fa fa-dashboard"></i> PRIORITÀ</label><select id="f_priorita"><option value="Media">Media - Giallo</option><option value="Alta">Alta - Arancione</option><option value="Critica">Critica - Rosso</option><option value="Bassa">Bassa - Verde</option></select></div><div class="form-group" style="flex:1"><label><i class="fa fa-info-circle"></i> STATO</label><select id="f_stato"><option value="Aperto">Aperto - Da verificare</option><option value="In corso">In corso</option><option value="Verifica">In verifica</option><option value="Chiuso">Chiuso</option></select></div></div>
+<div class="form-group"><label><i class="fa fa-comment-o"></i> DESCRIZIONE DETTAGLIATA</label><textarea id="f_note" rows="3" placeholder="Descrivi cosa è successo, persone coinvolte, danni, accessibilità, pericoli..."></textarea></div>
+</div>
+
+<div style="display:flex;gap:6px"><button class="btn btn-red" onclick="salvaSegnalazione()" style="flex:1;padding:10px;font-size:12px"><i class="fa fa-save"></i> SALVA SEGNALAZIONE</button><button class="btn btn-blue" onclick="cercaSuMappa()" style="flex:1;padding:10px;font-size:12px"><i class="fa fa-map-marker"></i> Cerca su Mappa</button></div>
+<div style="display:flex;gap:4px;margin-top:6px"><button class="btn btn-light" onclick="pulisciForm()" style="flex:1"><i class="fa fa-eraser"></i> Pulisci</button><button class="btn btn-light" onclick="compilaEsempio()" style="flex:1"><i class="fa fa-magic"></i> Esempio</button></div>
+
+</div>
+
+</div>
+
+<div class="right-content" id="rightContent">
+
+<div class="card" id="tableCard">
+<div class="card-header"><span><i class="fa fa-list"></i> SEGNALAZIONI EMERGENZE RICEVUTE</span><div style="display:flex;gap:4px;align-items:center"><span id="totRighe" style="background:#dc2626;color:white;padding:3px 8px;border-radius:12px;font-size:10px">0</span><button class="btn btn-dark" onclick="toggleFullscreen()" id="fullscreenBtn"><i class="fa fa-arrows-alt"></i> Schermo Intero</button><button class="btn btn-light" onclick="toggleForm()" id="formToggleBtn"><i class="fa fa-eye-slash"></i> Nascondi Form</button></div></div>
+<div style="background:#dcfce7;padding:5px;border-radius:4px;margin-bottom:5px;font-size:10px;border:1px solid #16a34a"><i class="fa fa-check"></i> <b>FIX:</b> Tabella grande con scroll orizzontale NOME COGNOME TEL VIA CITTÀ - Mappa default StreetMap OSM DE senza API key - Libreria icone esterna PNG JPG SVG!</div>
+<div class="filter">
+<select id="f_field" style="padding:4px;border-radius:4px;font-size:10px"><option value="">Tutti</option><option value="nome">Nome</option><option value="via">Via</option><option value="comune">Città</option></select>
+<input id="f_val" placeholder="Filtra..." style="flex:1;min-width:80px;padding:4px;border:1px solid #ccc;border-radius:4px;font-size:10px">
+<button class="btn btn-blue" onclick="filtra()" style="padding:4px 8px">Filtra</button><button class="btn btn-light" onclick="resetFiltro()" style="padding:4px 8px">Reset</button><button class="btn btn-green" onclick="exportExcel()" style="padding:4px 8px"><i class="fa fa-file-excel-o"></i> Excel</button>
+</div>
+<div class="table-wrap"><table><thead id="thead"></thead><tbody id="tbody"></tbody></table></div>
+</div>
+
+<div class="card">
+<div class="card-header"><span><i class="fa fa-map"></i> MAPPA STREETMAP DEFAULT - OSM - Senza API Key - Visibile di default</span><div style="display:flex;gap:4px;align-items:center"><button class="btn btn-red" onclick="loadMapNow()" style="padding:4px 8px"><i class="fa fa-refresh"></i> Ricarica Mappa</button><button class="btn btn-blue" onclick="showMapWithMarkers()" style="padding:4px 8px"><i class="fa fa-map-marker"></i> Marker</button><button class="btn btn-sky" onclick="showFallbackMap()" style="padding:4px 8px">Google Lista</button><span id="geocodeStatus" style="padding:3px 6px;background:#e0f2fe;border-radius:4px;font-size:9px">Carico StreetMap...</span></div></div>
+<div id="map"></div>
+<div id="mapFallback" style="display:none;width:100%;height:550px;border:3px solid #0d2a54;border-radius:6px;overflow:auto;padding:10px;background:white"></div>
+<div style="background:#fff8e1;padding:4px;border-radius:4px;margin-top:4px;font-size:9px;border:1px solid #f59e0b"><b>StreetMap Default:</b> OSM DE (OpenStreetMap Germania) senza API key - funziona da file:// su Win7 - Se non vedi, clicca Ricarica Mappa o Google Lista - Cambia layer in alto a destra su mappa: OSM DE, Esri, OpenTopoMap</div>
+</div>
+
+</div>
+</div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+let rows=[];
+let customIcons=[
+  {code:'INCENDIO', label:'INCENDIO', icon:'fa-fire', color:'INCENDIO', type:'fa', src:''},
+  {code:'ALLUVIONE', label:'ALLUVIONE', icon:'fa-tint', color:'ALLUVIONE', type:'fa', src:''},
+  {code:'CROLLO', label:'CROLLO', icon:'fa-building', color:'CROLLO', type:'fa', src:''},
+  {code:'SOCCORSO', label:'SOCCORSO', icon:'fa-ambulance', color:'SOCCORSO', type:'fa', src:''},
+  {code:'RICERCA', label:'RICERCA', icon:'fa-search', color:'RICERCA', type:'fa', src:''},
+];
+const ESEMPIO=[
+  {id:1, nome:'Mario', cognome:'Rossi', tel:'333 1234567', ente:'Cittadino', data:'2026-10-24', ora:'05:15', via:'Via Boschetti 12', localita:'bosco', comune:'Caronno Pertusella', provincia:'VA', tipologia:'ALLUVIONE', priorita:'Media', stato:'Aperto', note:'Acqua alta 30cm', lat:45.6, lng:9.05, meteo:null},
+  {id:2, nome:'Anna', cognome:'Bianchi', tel:'347 7654321', ente:'Protezione Civile', data:'2026-10-23', ora:'16:00', via:'Via del Corso 10', localita:'Centro Storico', comune:'Narni', provincia:'TR', tipologia:'CROLLO', priorita:'Alta', stato:'In corso', note:'Crollo cornicione', lat:42.5119, lng:12.5165, meteo:null},
+  {id:3, nome:'Giuseppe', cognome:'Verdi', tel:'328 1112223', ente:'Vigili del Fuoco', data:'2026-10-23', ora:'14:30', via:'Via del Bosco 12', localita:'Monte Subasio', comune:'Assisi', provincia:'PG', tipologia:'INCENDIO', priorita:'Critica', stato:'Aperto', note:'Fumo denso', lat:43.0707, lng:12.6196, meteo:null},
+];
+let map=null; let markers=[]; let isFullscreen=false; let isFormHidden=false;
+
+function save(){ localStorage.setItem('protezionet_v15_rows', JSON.stringify(rows)); localStorage.setItem('protezionet_v15_icons', JSON.stringify(customIcons)); }
+function load(){ let s=localStorage.getItem('protezionet_v15_rows'); if(s){ try{ rows=JSON.parse(s); }catch(e){ rows=[...ESEMPIO]; } } else { rows=[...ESEMPIO]; } let s2=localStorage.getItem('protezionet_v15_icons'); if(s2){ try{ customIcons=JSON.parse(s2); }catch(e){} } }
+
+function getIconObj(code){ return customIcons.find(i=>i.code===code)||{code:code,label:code,icon:'fa-flag',color:'ALTRO',type:'fa',src:''}; }
+function iconBadgeHtml(code){ let o=getIconObj(code); if(o.type==='image'&&o.src){ return '<span class="icon-badge icon-'+o.color+'" style="display:inline-flex;align-items:center;gap:3px"><img src="'+o.src+'" style="width:12px;height:12px;object-fit:contain;background:white;border-radius:2px"> '+o.label+'</span>'; } else { return '<span class="icon-badge icon-'+o.color+'"><i class="fa '+o.icon+'"></i> '+o.label+'</span>'; } }
+function googleMapsLink(via, loc, com, prov){ let q=[via, loc, com, prov].filter(x=>x).join(', '); return 'https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(q); }
+function meteoLinks(comune){ let q=encodeURIComponent(comune||''); return {'3BMeteo':'https://www.3bmeteo.com/meteo/'+q.toLowerCase(),'MeteoSvizzera':'https://www.meteosvizzera.admin.ch/servizi-e-pubblicazioni/applicazioni/precipitazioni.html','Google Meteo':'https://www.google.com/search?q=meteo+'+q}; }
+
+function updateClock(){ let now=new Date(); let el=document.getElementById('clock'); if(el) el.innerText=now.toLocaleString('it-IT'); }
+setInterval(updateClock,1000); updateClock();
+
+// Libreria icone esterna
+function renderLibrary(){
+  let lib=document.getElementById('iconLibrary');
+  let html='';
+  customIcons.forEach((ic)=>{
+    let imgHtml=ic.type==='image'&&ic.src?'<img src="'+ic.src+'" alt="'+ic.label+'">':'<i class="fa '+ic.icon+'" style="font-size:20px;color:'+(ic.color==='INCENDIO'?'#dc2626':ic.color==='ALLUVIONE'?'#0d6efd':'#333')+'"></i>';
+    html+='<div class="library-item" onclick="selectIconFromLibrary(\''+ic.code+'\')" title="'+ic.label+'"><button class="delete-btn" onclick="deleteIconFromLibrary(\''+ic.code+'\', event)"><i class="fa fa-times"></i></button>'+imgHtml+'<span class="icon-name">'+ic.label+'</span></div>';
+  });
+  lib.innerHTML=html;
+  document.getElementById('libraryCount').innerText='('+customIcons.length+' icone)';
+}
+function selectIconFromLibrary(code){ document.getElementById('f_tipologia').value=code; toast('Icona '+code+' selezionata - Usata come tipologia'); }
+function deleteIconFromLibrary(code, e){ e.stopPropagation(); if(!confirm('Eliminare '+code+'?')) return; customIcons=customIcons.filter(i=>i.code!==code); save(); renderLibrary(); render(); }
+function handleDragOver(e){ e.preventDefault(); document.getElementById('uploadArea').classList.add('dragover'); }
+function handleDragLeave(e){ document.getElementById('uploadArea').classList.remove('dragover'); }
+function handleDrop(e){ e.preventDefault(); document.getElementById('uploadArea').classList.remove('dragover'); handleFiles(e.dataTransfer.files); }
+function handleFiles(files){
+  for(let file of files){
+    if(!file.type.startsWith('image/')) continue;
+    if(file.size>500*1024){ toast('File troppo grande: '+file.name); continue; }
+    let reader=new FileReader();
+    reader.onload=function(ev){
+      let src=ev.target.result;
+      let name=file.name.replace(/\.[^/.]+$/, '').toUpperCase().replace(/[^A-Z0-9]/g,'_').substring(0,20)||'ICONA_'+Date.now();
+      let existing=document.getElementById('iconNameInput').value.trim().toUpperCase();
+      if(existing) name=existing;
+      addCustomImageIcon(name, src, document.getElementById('iconColorSelect').value);
+    };
+    reader.readAsDataURL(file);
+  }
+}
+function addCustomImageIcon(name, src, color){
+  if(!name) name='ICONA_'+Date.now();
+  name=name.toUpperCase();
+  let existing=customIcons.find(i=>i.code===name);
+  if(existing){ existing.src=src; existing.type='image'; existing.color=color; }
+  else { customIcons.push({code:name, label:name, icon:'fa-image', color:color, type:'image', src:src}); }
+  save(); renderLibrary(); render();
+  toast('Icona '+name+' caricata da esterno!');
+  document.getElementById('iconNameInput').value='';
+}
+async function addIconFromUrl(){
+  let url=document.getElementById('iconUrlInput').value.trim();
+  let name=document.getElementById('iconUrlName').value.trim().toUpperCase()||'ICONA_URL_'+Date.now();
+  if(!url){ alert('URL?'); return; }
+  try{
+    let resp=await fetch(url);
+    let blob=await resp.blob();
+    let reader=new FileReader();
+    reader.onload=function(e){ addCustomImageIcon(name, e.target.result, document.getElementById('iconColorSelect').value); };
+    reader.readAsDataURL(blob);
+  }catch(e){
+    customIcons.push({code:name, label:name, icon:'fa-link', color:document.getElementById('iconColorSelect').value, type:'image', src:url});
+    save(); renderLibrary(); render();
+    toast('Icona URL aggiunta (serve internet): '+name);
+  }
+  document.getElementById('iconUrlInput').value=''; document.getElementById('iconUrlName').value='';
+}
+function addPresetIcon(code, faIcon, color){
+  if(customIcons.find(i=>i.code===code)){ toast(code+' già presente'); return; }
+  customIcons.push({code:code, label:code, icon:faIcon, color:color, type:'fa', src:''});
+  save(); renderLibrary(); render();
+  toast(code+' aggiunta!');
+}
+function exportLibrary(){
+  let dataStr=JSON.stringify(customIcons, null, 2);
+  let blob=new Blob([dataStr], {type:'application/json'});
+  let url=URL.createObjectURL(blob);
+  let a=document.createElement('a'); a.href=url; a.download='Libreria_Icone_Segnalazioni_'+new Date().toISOString().slice(0,10)+'.json'; a.click();
+}
+function importLibrary(file){
+  if(!file) return;
+  let reader=new FileReader();
+  reader.onload=function(e){
+    try{
+      let imported=JSON.parse(e.target.result);
+      if(Array.isArray(imported)){
+        imported.forEach(ic=>{ if(!customIcons.find(i=>i.code===ic.code)){ customIcons.push(ic); } });
+        save(); renderLibrary(); render();
+        toast('Libreria importata: '+imported.length+' icone');
+      }
+    }catch(err){ alert('Errore: '+err.message); }
+  };
+  reader.readAsText(file);
+}
+
+// Mappa - FIX API KEY + Default StreetMap OSM DE
+function loadMapNow(){
+  let mapDiv=document.getElementById('map');
+  let fallback=document.getElementById('mapFallback');
+  mapDiv.style.display='block';
+  fallback.style.display='none';
+  mapDiv.style.height='550px';
+  mapDiv.innerHTML='<div style="padding:20px;text-align:center"><i class="fa fa-spinner fa-spin"></i> Carico StreetMap OSM DE senza API key...</div>';
+  setTimeout(()=>{
+    try{
+      if(map){ map.remove(); map=null; }
+      mapDiv.innerHTML='';
+      // DEFAULT STREET MAP - OSM DE senza API key che funziona da file:// su Win7
+      map = L.map('map').setView([42.5,12.5], 6);
+      
+      let baseMaps = {
+        "StreetMap OSM DE (Default - No API Key)": L.tileLayer('https://{s}.tile.openstreetmap.de/{z}/{x}/{y}.png', {
+          attribution: '&copy; OpenStreetMap DE - ProtezioNET StreetMap Default',
+          maxZoom: 19
+        }),
+        "Esri Stradale": L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', {
+          attribution: 'Tiles &copy; Esri'
+        }),
+        "OpenTopoMap": L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', {
+          attribution: '&copy; OpenTopoMap'
+        }),
+        "OSM Standard": L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+          attribution: '&copy; OpenStreetMap'
+        })
+      };
+      
+      baseMaps["StreetMap OSM DE (Default - No API Key)"].addTo(map);
+      L.control.layers(baseMaps).addTo(map);
+      
+      document.getElementById('geocodeStatus').innerText='StreetMap OSM DE caricata - Default senza API key!';
+      toast('StreetMap default OSM DE caricata!');
+      setTimeout(()=>{ showMapWithMarkers(); }, 500);
+      setTimeout(()=>{ if(map) map.invalidateSize(); }, 300);
+      setTimeout(()=>{ if(map) map.invalidateSize(); }, 1000);
+    }catch(e){
+      mapDiv.innerHTML='<div style="padding:20px;text-align:center;background:#fee2e2;border:2px solid #dc2626;border-radius:6px"><b>Errore mappa:</b> '+e.message+'<br><button class="btn btn-blue" onclick="showFallbackMap()">Google Maps Lista</button></div>';
+    }
+  }, 200);
+}
+
+function showFallbackMap(){
+  let mapDiv=document.getElementById('map');
+  let fallback=document.getElementById('mapFallback');
+  mapDiv.style.display='none';
+  fallback.style.display='block';
+  let html='<div style="padding:10px"><h3><i class="fa fa-google"></i> Google Maps Lista - Segnalazioni Emergenze</h3>';
+  rows.forEach(r=>{
+    let url=googleMapsLink(r.via, r.localita, r.comune, r.provincia);
+    let links=meteoLinks(r.comune);
+    html+='<div style="padding:8px;border:1px solid #ddd;border-radius:4px;margin:6px 0;display:flex;justify-content:space-between;align-items:center"><div><b>'+iconBadgeHtml(r.tipologia)+' '+r.nome+' '+r.cognome+'</b> - '+r.tel+'<br>'+r.via+', '+r.comune+' - '+r.tipologia+'</div><div><a href="'+url+'" target="_blank" class="btn btn-blue"><i class="fa fa-map-marker"></i> Google</a> <a href="'+links.MeteoSvizzera+'" target="_blank" class="btn btn-red" style="background:#d32f2f">MeteoSvizzera</a></div></div>';
+  });
+  html+='</div>';
+  fallback.innerHTML=html;
+  document.getElementById('geocodeStatus').innerText='Google Maps Lista - '+rows.length+' link';
+}
+
+function createCustomIcon(code){
+  let obj=getIconObj(code);
+  if(obj.type==='image'&&obj.src){
+    let html='<img src="'+obj.src+'" class="custom-marker-img" style="border-color:'+(obj.color==='INCENDIO'?'#dc2626':'#0d6efd')+'">';
+    return L.divIcon({html:html, className:'custom-div-icon-img', iconSize:[32,32], iconAnchor:[16,32], popupAnchor:[0,-32]});
+  } else {
+    let color=obj.color==='INCENDIO'?'#dc2626':obj.color==='ALLUVIONE'?'#0d6efd':obj.color==='CROLLO'?'#6c757d':'#f97316';
+    let html='<div style="width:36px;height:36px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);display:flex;align-items:center;justify-content:center;color:white;box-shadow:0 2px 6px rgba(0,0,0,0.3);border:2px solid white;background:'+color+'"><i class="fa '+obj.icon+'" style="transform:rotate(45deg);font-size:16px"></i></div>';
+    return L.divIcon({html:html, className:'custom-div-icon', iconSize:[36,36], iconAnchor:[18,36], popupAnchor:[0,-32]});
+  }
+}
+function addMarkerWithIcon(row){
+  if(!map) return null;
+  let lat=row.lat||42.5+Math.random(); let lng=row.lng||12.5+Math.random();
+  let icon=createCustomIcon(row.tipologia||row.icona);
+  try{
+    let marker=L.marker([lat,lng],{icon:icon}).addTo(map);
+    let links=meteoLinks(row.comune);
+    let linksHtml=''; for(let n in links){ let bg=n.includes('Svizzera')?'background:#d32f2f':''; linksHtml+='<a class="meteo-link" href="'+links[n]+'" target="_blank" style="'+bg+'">'+n+'</a> '; }
+    let popupHtml='<div style="min-width:220px">'+iconBadgeHtml(row.tipologia)+' <b>'+row.nome+' '+row.cognome+'</b><br>Tel: '+row.tel+'<br>'+row.via+', '+row.comune+'<br>'+row.data+' '+row.ora+' - '+row.priorita+'<br><small>'+(row.note||'')+'</small><br><br>'+linksHtml+'<br><a href="'+googleMapsLink(row.via,row.localita,row.comune,row.provincia)+'" target="_blank" style="background:#4285f4;color:white;padding:5px 10px;border-radius:4px;text-decoration:none">Google Maps</a></div>';
+    marker.bindPopup(popupHtml);
+    markers.push({marker:marker, rowId:row.id});
+    return marker;
+  }catch(e){ return null; }
+}
+function showMapWithMarkers(){
+  let m=document.getElementById('map');
+  if(m.style.display==='none'){ loadMapNow(); setTimeout(()=>{ showMapWithMarkers(); }, 1000); return; }
+  if(!map){ loadMapNow(); setTimeout(()=>{ showMapWithMarkers(); }, 1000); return; }
+  clearMarkers();
+  rows.forEach((r,i)=>{ setTimeout(()=>{ addMarkerWithIcon(r); if(i===rows.length-1){ fitMap(); } }, i*80); });
+  document.getElementById('geocodeStatus').innerText='Marker '+rows.length+' su StreetMap OSM DE!';
+  toast(rows.length+' marker su StreetMap default!');
+}
+function fitMap(){ if(!map||markers.length===0) return; try{ let group=new L.featureGroup(markers.map(m=>m.marker)); map.fitBounds(group.getBounds().pad(0.1)); }catch(e){} }
+function clearMarkers(){ markers.forEach(m=>{ try{ map.removeLayer(m.marker); }catch(e){} }); markers=[]; }
+function toggleFullscreen(){
+  let tableCard=document.getElementById('tableCard');
+  if(!isFullscreen){ tableCard.classList.add('fullscreen-table'); document.getElementById('fullscreenBtn').innerHTML='<i class="fa fa-compress"></i> Esci'; isFullscreen=true; }
+  else { tableCard.classList.remove('fullscreen-table'); document.getElementById('fullscreenBtn').innerHTML='<i class="fa fa-arrows-alt"></i> Schermo Intero'; isFullscreen=false; }
+}
+function toggleForm(){
+  let leftForm=document.getElementById('leftForm');
+  if(!isFormHidden){ leftForm.style.display='none'; document.getElementById('formToggleBtn').innerHTML='<i class="fa fa-eye"></i> Mostra Form'; isFormHidden=true; setTimeout(()=>{ if(map) try{ map.invalidateSize(); }catch(e){} }, 300); }
+  else { leftForm.style.display='flex'; document.getElementById('formToggleBtn').innerHTML='<i class="fa fa-eye-slash"></i> Nascondi Form'; isFormHidden=false; setTimeout(()=>{ if(map) try{ map.invalidateSize(); }catch(e){} }, 300); }
+}
+function resetForm(){
+  document.getElementById('f_nome').value=''; document.getElementById('f_cognome').value=''; document.getElementById('f_tel').value=''; try{document.getElementById('f_ente').value='';}catch(e){} try{document.getElementById('f_email').value='';}catch(e){} try{document.getElementById('f_coord').value='';}catch(e){} try{document.getElementById('f_stato').value='Aperto';}catch(e){} document.getElementById('f_via').value=''; document.getElementById('f_localita').value=''; document.getElementById('f_comune').value=''; document.getElementById('f_provincia').value=''; document.getElementById('f_tipologia').value=''; document.getElementById('f_note').value='';
+  let now=new Date(); document.getElementById('f_data').value=now.toISOString().slice(0,10); document.getElementById('f_ora').value=now.toTimeString().slice(0,5);
+}
+function compilaEsempio(){ document.getElementById('f_nome').value='Mario'; document.getElementById('f_cognome').value='Rossi'; document.getElementById('f_tel').value='333 1234567'; document.getElementById('f_via').value='Via Boschetti 12'; document.getElementById('f_localita').value='bosco'; document.getElementById('f_comune').value='Caronno Pertusella'; document.getElementById('f_provincia').value='VA'; document.getElementById('f_tipologia').value='ALLUVIONE'; toast('Esempio'); }
+function pulisciForm(){ resetForm(); }
+function salvaSegnalazione(){
+  let nome=document.getElementById('f_nome').value.trim(); let cognome=document.getElementById('f_cognome').value.trim(); let tel=document.getElementById('f_tel').value.trim(); let via=document.getElementById('f_via').value.trim(); let comune=document.getElementById('f_comune').value.trim(); let tipologia=document.getElementById('f_tipologia').value; let data=document.getElementById('f_data').value; let ora=document.getElementById('f_ora').value;
+  if(!nome||!cognome||!tel||!via||!comune||!tipologia||!data||!ora){ alert('Compila Nome, Cognome, Tel, Via, Città, Tipologia, Data, Ora'); return; }
+  let newId=rows.length>0?Math.max(...rows.map(r=>r.id))+1:1;
+  rows.push({id:newId, nome:nome, cognome:cognome, tel:tel, ente:document.getElementById('f_ente').value, data:data, ora:ora, via:via, localita:document.getElementById('f_localita').value, comune:comune, provincia:document.getElementById('f_provincia').value.toUpperCase(), tipologia:tipologia, icona:tipologia, priorita:document.getElementById('f_priorita').value, stato:'Aperto', note:document.getElementById('f_note').value, lat:42.5+Math.random(), lng:12.5+Math.random(), meteo:null});
+  save(); render(); if(map) addMarkerWithIcon(rows[rows.length-1]); toast('Salvata ID '+newId);
+}
+function cercaSuMappa(){
+  let via=document.getElementById('f_via').value; let com=document.getElementById('f_comune').value;
+  if(!via||!com){ toast('Inserisci Via e Città!'); return; }
+  let q=[via, document.getElementById('f_localita').value, com, document.getElementById('f_provincia').value].filter(x=>x).join(', ');
+  document.getElementById('geocodeStatus').innerText='Cerco: '+q+'...';
+  // Geocodifica per coordinate
+  fetch('https://nominatim.openstreetmap.org/search?format=json&q='+encodeURIComponent(q+', Italia')+'&limit=1')
+    .then(r=>r.json())
+    .then(data=>{
+      if(data&&data.length>0){
+        let lat=parseFloat(data[0].lat); let lng=parseFloat(data[0].lon);
+        try{ document.getElementById('f_coord').value=lat.toFixed(5)+', '+lng.toFixed(5); }catch(e){}
+        document.getElementById('geocodeStatus').innerText='Trovato: '+data[0].display_name;
+        toast('Coordinate trovate: '+lat.toFixed(5)+', '+lng.toFixed(5));
+        if(!map) loadMapNow();
+        setTimeout(()=>{ try{ map.setView([lat,lng],15); L.marker([lat,lng]).addTo(map).bindPopup(q).openPopup(); }catch(e){} }, 500);
+      } else {
+        document.getElementById('geocodeStatus').innerText='Non trovato, apro Google Maps';
+        let url=googleMapsLink(via, document.getElementById('f_localita').value, com, document.getElementById('f_provincia').value);
+        window.open(url, '_blank');
+        toast('Non trovato su OSM, aperto Google Maps: '+q);
+      }
+    })
+    .catch(e=>{
+      let url=googleMapsLink(via, document.getElementById('f_localita').value, com, document.getElementById('f_provincia').value);
+      window.open(url, '_blank');
+      toast('Aperto Google Maps: '+q);
+    });
+}
+function render(filterText='', filterField=''){
+  let filtered=rows;
+  if(filterText){ let ft=filterText.toLowerCase(); filtered=rows.filter(r=>{ if(filterField){return (r[filterField]||'').toString().toLowerCase().includes(ft);} else {return Object.values(r).join(' ').toLowerCase().includes(ft);} }); }
+  let cols=['id','nome','cognome','tel','data','ora','via','comune','tipologia','priorita','stato'];
+  let th='<tr>'; cols.forEach(c=>{ th+='<th>'+c.toUpperCase()+'</th>'; }); th+='<th>NOTE</th><th>METEO</th><th>MAPPA</th><th>X</th></tr>';
+  document.getElementById('thead').innerHTML=th;
+  let html='';
+  filtered.forEach(r=>{
+    html+='<tr>';
+    cols.forEach(col=>{
+      let val=r[col]||'';
+      if(col==='id'){ html+='<td style="text-align:center;background:#fee2e2;font-weight:bold;color:#991b1b">'+val+'</td>'; }
+      else if(col==='tipologia'){ html+='<td style="text-align:center">'+iconBadgeHtml(val)+'</td>'; }
+      else if(col==='priorita'){ html+='<td style="background:'+(val==='Alta'||val==='Critica'?'#fecaca':'#fef3c7')+'"><b>'+val+'</b></td>'; }
+      else { html+='<td><input value="'+val+'" onchange="updateCell('+r.id+',\''+col+'\',this.value)"></td>'; }
+    });
+    html+='<td><input value="'+(r.note||'')+'" onchange="updateCell('+r.id+',\'note\',this.value)" style="font-size:10px"></td>';
+    let links=meteoLinks(r.comune);
+    html+='<td><a class="meteo-link" href="'+links.MeteoSvizzera+'" target="_blank" style="background:#d32f2f">MeteoSvizzera</a> <a class="meteo-link" href="'+links['3BMeteo']+'" target="_blank">3BMeteo</a></td>';
+    html+='<td><a class="map-link" href="'+googleMapsLink(r.via, r.localita, r.comune, r.provincia)+'" target="_blank">Maps</a> <button onclick="addSingleMarker('+r.id+')" style="background:#16a34a;color:white;border:none;padding:2px 6px;border-radius:4px;cursor:pointer"><i class="fa fa-map-pin"></i></button></td>';
+    html+='<td><button onclick="deleteRow('+r.id+')" style="background:#dc2626;color:white;border:none;padding:3px 6px;border-radius:4px;cursor:pointer"><i class="fa fa-times"></i></button></td></tr>';
+  });
+  if(filtered.length===0) html='<tr><td colspan=20 style="text-align:center;padding:20px">Nessuna segnalazione</td></tr>';
+  document.getElementById('tbody').innerHTML=html;
+  document.getElementById('totRighe').innerText=filtered.length+' SEGNALAZIONI';
+  document.getElementById('totSegnalazioniTop').innerText=filtered.length+' SEGNALAZIONI';
+  window.filteredRows=filtered;
+}
+function updateCell(id, field, value){ let row=rows.find(r=>r.id===id); if(row){ row[field]=value; if(field==='tipologia') row.icona=value; save(); } }
+function deleteRow(id){ if(!confirm('Eliminare ID '+id+'?')) return; rows=rows.filter(r=>r.id!==id); save(); render(); }
+function addSingleMarker(rowId){ let row=rows.find(r=>r.id===rowId); if(row){ if(!map) loadMapNow(); setTimeout(()=>{ addMarkerWithIcon(row); fitMap(); }, 500); } }
+function filtra(){ render(document.getElementById('f_val').value, document.getElementById('f_field').value); }
+function resetFiltro(){ document.getElementById('f_val').value=''; document.getElementById('f_field').value=''; render(); }
+function exportExcel(){
+  let csv='ID,Nome,Cognome,Tel,Ente,Data,Ora,Via,Localita,Comune,Provincia,Tipologia,Priorita,Stato,Note,Google Maps,MeteoSvizzera\n';
+  (window.filteredRows||rows).forEach(r=>{
+    let maps=googleMapsLink(r.via, r.localita, r.comune, r.provincia);
+    let links=meteoLinks(r.comune);
+    csv+=[r.id, r.nome, r.cognome, r.tel, r.ente, r.data, r.ora, r.via, r.localita, r.comune, r.provincia, r.tipologia, r.priorita, r.stato, r.note, maps, links.MeteoSvizzera].map(v=>'"'+(v||'').toString().replace(/"/g,'""')+'"').join(',')+'\n';
+  });
+  let blob=new Blob([csv], {type:'text/csv'}); let url=URL.createObjectURL(blob); let a=document.createElement('a'); a.href=url; a.download='Segnalazioni_Emergenze_'+new Date().toISOString().slice(0,10)+'.csv'; a.click();
+}
+function toast(m){ let t=document.getElementById('toast'); t.innerText=m; t.style.display='block'; setTimeout(()=>t.style.display='none',3000); }
+
+load();
+renderLibrary();
+render();
+let now=new Date();
+document.getElementById('f_data').value=now.toISOString().slice(0,10);
+document.getElementById('f_ora').value=now.toTimeString().slice(0,5);
+setTimeout(()=>{ loadMapNow(); }, 600);
+</script>
+</body></html>
