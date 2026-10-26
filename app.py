@@ -3692,165 +3692,31 @@ elif cur == "DB Radio":
     excel_import_inline("radio_db", "DB Radio")
 
 # CONSEGNA RADIO
-
-
 elif cur == "Consegna Radio":
-    # hdr() rimosso - richiesta Ezio: su form non mettere in alto intestazione con i loghi
-    hdr_form("CONSEGNA RADIO - Consegna e Riconsegna con note problemi + Scanner CF")
-
-    # CAMPI BARCODE - CF + MATRICOLA RADIO - Richiesta Ezio - Matricola associata a DB Radio
-    # Etichetta DOPPIO SCANNER rimossa - pulizia Ezio
-    
-    c_scan1, c_scan2 = st.columns(2)
-    with c_scan1:
-        cf_radio = st.text_input("🔍 CF Volontario - SCANNER TESSERA SANITARIA", key="cons_cf", placeholder="Spara su tessera sanitaria...", help="Pistola barcode - legge CF e trova volontario")
-    with c_scan2:
-        barcode_radio = st.text_input("📻 Matricola Radio - SCANNER BARCODE RADIO (DB Radio)", key="cons_barcode_radio", placeholder="Spara su barcode matricola radio...", help="Associato a DB Radio - legge matricola e trova radio in DB")
-    
-    vol_radio_trovato = None
-    radio_trovata_barcode = None
-    
-    if cf_radio:
-        cf_clean_radio = cf_radio.strip().upper()
-        for v in st.session_state.volontari:
-            cf_v = (v.get('CodiceFiscale','') or v.get('CF','') or '').strip().upper()
-            if cf_v and cf_v == cf_clean_radio:
-                vol_radio_trovato = f"{v.get('Cognome','').strip()} {v.get('Nome','').strip()}"
-                st.success(f"✅ Volontario trovato da CF per radio: {vol_radio_trovato}")
-                break
-        if not vol_radio_trovato:
-            if len(cf_clean_radio) >= 16:
-                for v in st.session_state.volontari:
-                    cf_v = (v.get('CodiceFiscale','') or v.get('CF','') or '').strip().upper()
-                    if cf_v and cf_v in cf_clean_radio:
-                        vol_radio_trovato = f"{v.get('Cognome','').strip()} {v.get('Nome','').strip()}"
-                        st.success(f"✅ Volontario trovato (estratto CF): {vol_radio_trovato}")
-                        break
-            if not vol_radio_trovato:
-                st.warning(f"⚠️ CF {cf_clean_radio} non trovato - inserisci manuale")
-    
-    if barcode_radio:
-        mat_clean = barcode_radio.strip().upper()
-        for r in st.session_state.radio_db:
-            mat_r = (r.get('Matricola','') or r.get('Seriale','') or '').strip().upper()
-            if mat_r and (mat_r == mat_clean or mat_clean in mat_r or mat_r in mat_clean):
-                radio_trovata_barcode = f"{r.get('Matricola','')} - {r.get('Modello','')} - {r.get('Alias','')}"
-                st.success(f"✅ Radio trovata da matricola barcode: {radio_trovata_barcode} (DB Radio)")
-                break
-        if not radio_trovata_barcode:
-            # Prova match parziale
-            for r in st.session_state.radio_db:
-                mat_r = (r.get('Matricola','') or '').strip().upper()
-                if mat_r and mat_clean and (mat_clean.startswith(mat_r) or mat_r.startswith(mat_clean)):
-                    radio_trovata_barcode = f"{r.get('Matricola','')} - {r.get('Modello','')} - {r.get('Alias','')}"
-                    st.success(f"✅ Radio trovata (parziale): {radio_trovata_barcode}")
-                    break
-        if not radio_trovata_barcode:
-            st.warning(f"⚠️ Matricola {mat_clean} non trovata in DB Radio - inserisci manuale")
-
-    # Maschera verde come altri form
-    st.markdown('<div style="background:#C8E6C9;padding:10px;border-radius:10px;border:2px solid #1A5D1A;margin:0;">', unsafe_allow_html=True)
-
-    c1, c2 = st.columns(2)
+    hdr_form("CONSEGNA RADIO - Solo volontari da check-in")
+    checkin_volontari = []
+    seen = set()
+    for c in st.session_state.get("checkin",[]):
+        nome = c.get("Volontario","") or c.get("Volontario/Ospite","")
+        if nome and nome not in seen:
+            checkin_volontari.append(nome)
+            seen.add(nome)
+    if not checkin_volontari:
+        st.warning("Nessun check-in - Registra prima in Check-in")
+        checkin_volontari = [f"{v.get('Cognome','')} {v.get('Nome','')}" for v in st.session_state.volontari[:5]]
+    c1, c2 = st.columns([1,1])
     with c1:
-        st.markdown("#### 📻 Consegna")
-        vol_list = [f"{v.get('Cognome','').strip()} {v.get('Nome','').strip()}" for v in st.session_state.volontari if v.get('Cognome') or v.get('Nome')]
-        vol_list = sorted(list(set([x for x in vol_list if x.strip()])))
-        if vol_list:
-            if vol_radio_trovato and vol_radio_trovato in vol_list:
-                idx_vol_radio = vol_list.index(vol_radio_trovato)
-                sel_vol = st.selectbox("Volontario *", vol_list, index=idx_vol_radio, key="cons_vol")
-            else:
-                sel_vol = st.selectbox("Volontario *", vol_list, key="cons_vol")
-        else:
-            sel_vol = st.text_input("Volontario * (manuale)", value=vol_radio_trovato if vol_radio_trovato else "", key="cons_vol_man", placeholder="Cognome Nome")
-
-        radio_list = [f"{r.get('Matricola','')} - {r.get('Modello','')} - {r.get('Alias','')}" for r in st.session_state.radio_db]
-        if radio_list:
-            if radio_trovata_barcode and radio_trovata_barcode in radio_list:
-                idx_radio = radio_list.index(radio_trovata_barcode)
-                sel_radio = st.selectbox("Radio * (da DB Radio - associata a barcode matricola)", radio_list, index=idx_radio, key="cons_radio")
-            else:
-                sel_radio = st.selectbox("Radio * (da DB Radio)", radio_list, key="cons_radio")
-        else:
-            sel_radio = st.text_input("Radio * manuale", value=radio_trovata_barcode if radio_trovata_barcode else "", key="cons_radio_man", placeholder="Matricola - Modello")
-
-        data_cons = st.date_input("Data Consegna *", value=date.today(), format="DD/MM/YYYY", key="cons_data")
-        ora_cons = st.time_input("Ora Consegna", value=datetime.now().time(), key="cons_ora")
-        motivo = st.text_input("Motivo / Evento", key="cons_motivo", placeholder="Esercitazione, Emergenza...")
-
+        sel_radio_vol = st.selectbox("Volontario (solo da check-in)", checkin_volontari, key="radio_vol_checkin_only")
+        radio_id = st.text_input("ID Radio / Alias (solo check-in)", key="radio_id_consegna")
+        modello_radio = st.selectbox("Modello Radio", ["Hytera PD685", "Anytone 878", "Motorola DP4400", "Altro"], key="radio_modello")
     with c2:
-        st.markdown("#### 🔄 Riconsegna")
-        data_ricons = st.date_input("Data Riconsegna", value=date.today(), format="DD/MM/YYYY", key="ricons_data")
-        ora_ricons = st.time_input("Ora Riconsegna", value=datetime.now().time(), key="ricons_ora")
-        stato_ricons = st.selectbox("Stato alla Riconsegna", ["Da riconsegnare", "Riconsegnata - OK", "Riconsegnata - Guasta", "Riconsegnata - Batteria scarica", "Riconsegnata - Antenna rotta", "Riconsegnata - Problemi audio", "Persa", "In Manutenzione"], key="ricons_stato")
-        # Campo note problemi radio - richiesta Ezio
-        note_problemi = st.text_area("Note - Problemi Radio *", key="cons_note_problemi", placeholder="Descrivi se radio ha avuto problemi: es. batteria scarica dopo 2h, audio gracchiante, tasto PTT bloccato, antenna piegata, display spento...", height=120)
+        data_consegna = st.date_input("Data Consegna", value=date.today(), format="DD/MM/YYYY", key="radio_data_consegna")
+        stato_radio = st.selectbox("Stato", ["Consegnata", "Restituita", "In Uso", "Guasta"], key="radio_stato")
 
-    st.markdown("</div>", unsafe_allow_html=True)
-
-    if st.button("Registra Consegna + Riconsegna", type="primary", use_container_width=True, key="btn_cons_reg"):
-        if sel_vol and sel_radio:
-            cf_to_save_radio = cf_radio.strip().upper() if cf_radio else ""
-            barcode_to_save = barcode_radio.strip().upper() if barcode_radio else ""
-            if vol_radio_trovato:
-                sel_vol_final = vol_radio_trovato
-            else:
-                sel_vol_final = sel_vol
-            if radio_trovata_barcode:
-                sel_radio_final = radio_trovata_barcode
-            else:
-                sel_radio_final = sel_radio
-            st.session_state.consegna_radio.append({
-                "Volontario": sel_vol_final,
-                "CodiceFiscale": cf_to_save_radio,
-                "Radio": sel_radio_final,
-                "MatricolaBarcode": barcode_to_save,
-                "Matricola": barcode_to_save or sel_radio_final.split(" - ")[0],
-                "DataConsegna": str(data_cons),
-                "OraConsegna": str(ora_cons),
-                "Motivo": motivo,
-                "DataRiconsegna": str(data_ricons),
-                "OraRiconsegna": str(ora_ricons),
-                "StatoRiconsegna": stato_ricons,
-                "NoteProblemi": note_problemi,
-                "Stato": stato_ricons,
-                "Data": str(data_cons),
-                "Ora": str(ora_cons)
-            })
-            st.success(f"Consegna registrata: {sel_vol_final} - CF: {cf_to_save_radio} - Radio: {sel_radio_final} - Matricola: {barcode_to_save} - {stato_ricons}")
-            if "cons_cf" in st.session_state:
-                del st.session_state["cons_cf"]
-            if "cons_barcode_radio" in st.session_state:
-                del st.session_state["cons_barcode_radio"]
-            st.rerun()
-        else:
-            st.error("Seleziona Volontario e Radio *")
-
-    if st.session_state.consegna_radio:
-        st.divider()
-        st.markdown(f"#### 📋 Elenco Consegne ({len(st.session_state.consegna_radio)})")
-        df_cr = pd.DataFrame(st.session_state.consegna_radio)
-        # Mostra colonne importanti
-        cols_show = [c for c in ["Volontario","Radio","DataConsegna","OraConsegna","DataRiconsegna","StatoRiconsegna","NoteProblemi","Motivo"] if c in df_cr.columns]
-        if cols_show:
-            st.dataframe(df_cr[cols_show], use_container_width=True)
-        else:
-            st.dataframe(df_cr, use_container_width=True)
-        
-        c_exp1, c_exp2 = st.columns(2)
-        with c_exp1:
-            st.download_button("Excel Consegne", to_excel(df_cr), "consegne.xlsx", use_container_width=True, key="dl_excel_cons")
-        with c_exp2:
-            if REPORTLAB_OK:
-                st.download_button("PDF Consegne", to_pdf(df_cr, "CONSEGNA RADIO - RICONSEGNA + NOTE PROBLEMI"), "consegne.pdf", use_container_width=True, key="dl_pdf_cons")
-
-# ALIAS RADIO
-
-
-    # IMPORT/EXPORT INLINE - Ezio - TUTTI I FORM - Excel + PDF + Template ODV
+   # IMPORT/EXPORT INLINE - Ezio - TUTTI I FORM - Excel + PDF + Template ODV
     excel_import_inline("consegna_radio", "Consegna Radio")
-
+    
+# ALIAS RADIO
 
 elif cur == "Alias Radio":
     hdr_form("ALIAS RADIO - Alias + Volontario Cognome Nome + Canale Radio")
@@ -4322,139 +4188,56 @@ elif cur == "Tabella Emergenze":
     excel_import_inline("tabella_emergenze", "Tabella Emergenze")
 
 # CHECK-IN
-elif cur == "Mappe":
-    hdr_form("MAPPE PER POSTAZIONI/CANTIERI/EMERGENZE IN CORSO")
-    c1, c2 = st.columns(2)
-    with c1:
-        tipo_mappa = st.selectbox("Tipo Mappa *", ["Emergenza", "Evento"], key="mappa_tipo_old2")
-        nome_mappa = st.text_input("Nome / Titolo *", key="mappa_nome_old2")
-    with c2:
-        comune_mappa = combo_comune("Comune", "mappa_comune_old2", "Varese")
-        via_mappa = combo_vie("Via", comune_mappa, "mappa_via_old2", "")
-        lat_mappa = st.text_input("Latitudine", value="45.8167", key="mappa_lat_old2")
-        lon_mappa = st.text_input("Longitudine", value="8.8333", key="mappa_lon_old2")
-    if st.button("Salva in Mappe", type="primary", use_container_width=True):
-        if nome_mappa:
-            st.session_state.mappe.append({"Tipo": tipo_mappa, "Nome": nome_mappa, "Comune": comune_mappa, "Via": via_mappa, "Lat": lat_mappa, "Lon": lon_mappa})
-            st.success("Salvata")
-            st.rerun()
-    if st.session_state.mappe:
-        st.dataframe(pd.DataFrame(st.session_state.mappe), use_container_width=True)
-
 elif cur == "Check-in":
-    hdr_form("CHECK-IN - Presenze Operative - Scanner Tessera Sanitaria")
-
-    # CAMPO CODICE FISCALE CON PISTOLA BARCODE - Richiesta Ezio
-    st.markdown("""
-    <div style="background:#FFD700;padding:10px;border-radius:8px;border:2px solid #1A5D1A;margin-bottom:10px;">
-    <b>📷 SCANNER TESSERA SANITARIA - Pistola Barcode CF</b><br>
-    Posiziona cursore nel campo sotto e spara con pistola - Legge CF da barcode tessera sanitaria
-    </div>
-    """, unsafe_allow_html=True)
-    
-    cf_check = st.text_input("🔍 Codice Fiscale - SCANNER PISTOLA (tessera sanitaria) *", key="check_cf", placeholder="Scansiona barcode tessera sanitaria con pistola...", help="Spara con pistola barcode sulla tessera sanitaria - Legge CF e cerca volontario")
-    
-    # Auto-lookup volontario da CF
+    hdr_form("CHECK-IN - Presenze - Volontari o Ospiti")
+    tipo_persona_check = st.radio("Tipo Check-in", ["Volontari", "Ospiti"], horizontal=True, key="check_tipo_vol_osp")
+    cf_check = st.text_input("CF - Scanner pistola", key="check_cf")
     vol_check_trovato = None
     if cf_check:
         cf_clean = cf_check.strip().upper()
-        # Cerca CF in volontari
-        for v in st.session_state.volontari:
-            cf_v = (v.get('CodiceFiscale','') or v.get('CF','') or '').strip().upper()
+        lista_cerca = st.session_state.volontari if tipo_persona_check=="Volontari" else st.session_state.get("ospiti", [])
+        for v in lista_cerca:
+            cf_v = (v.get('CodiceFiscale','') or '').strip().upper()
             if cf_v and cf_v == cf_clean:
                 vol_check_trovato = f"{v.get('Cognome','')} {v.get('Nome','')}"
-                st.success(f"✅ Volontario trovato da CF: {vol_check_trovato}")
+                st.success(f"Trovato: {vol_check_trovato}")
                 break
-        if not vol_check_trovato:
-            # Prova anche se CF è lungo (barcode potrebbe avere altri dati)
-            if len(cf_clean) >= 16:
-                possible_cf = cf_clean[-16:] if len(cf_clean) > 16 else cf_clean[:16]
-                for v in st.session_state.volontari:
-                    cf_v = (v.get('CodiceFiscale','') or v.get('CF','') or '').strip().upper()
-                    if cf_v and possible_cf in cf_clean:
-                        vol_check_trovato = f"{v.get('Cognome','')} {v.get('Nome','')}"
-                        st.success(f"✅ Volontario trovato da CF (estratto): {vol_check_trovato}")
-                        break
-            if not vol_check_trovato:
-                st.warning(f"⚠️ CF {cf_clean} non trovato in anagrafica volontari - Inserisci manuale sotto")
-
     c1, c2, c3 = st.columns([1,1,1])
     with c1:
-        vol_check_list = [f"{v.get('Cognome','')} {v.get('Nome','')}" for v in st.session_state.volontari]
-        if vol_check_list:
-            if vol_check_trovato and vol_check_trovato in vol_check_list:
-                idx_vol = vol_check_list.index(vol_check_trovato)
-                sel_check_vol = st.selectbox("Volontario", vol_check_list, index=idx_vol, key="check_vol")
-            else:
-                sel_check_vol = st.selectbox("Volontario", vol_check_list, key="check_vol")
+        if tipo_persona_check == "Volontari":
+            vol_check_list = [f"{v.get('Cognome','')} {v.get('Nome','')} - {v.get('Squadra','')}" for v in st.session_state.volontari]
+            sel_check_vol = st.selectbox("Volontario (blindato da anagrafica)", vol_check_list, key="check_vol_blindato") if vol_check_list else st.text_input("Volontario", key="check_vol_man")
         else:
-            sel_check_vol = st.text_input("Volontario", value=vol_check_trovato if vol_check_trovato else "", key="check_vol_man")
-
-        ev_check_list = [e.get("Nome", "") for e in st.session_state.eventi]
-        em_check_list = [em.get("Nome", "") for em in st.session_state.emergenze]
-        all_ref = ev_check_list + em_check_list
-        if all_ref:
-            sel_check_ref = st.selectbox("Evento/Emergenza", all_ref, key="check_ref")
-        else:
-            sel_check_ref = st.text_input("Evento/Emergenza", key="check_ref_man")
-
+            osp_check_list = [f"{o.get('Cognome','')} {o.get('Nome','')} - {o.get('Ruolo','')}" for o in st.session_state.get("ospiti", [])]
+            sel_check_vol = st.selectbox("Ospite (blindato da Ospiti)", osp_check_list, key="check_osp_blindato") if osp_check_list else st.text_input("Ospite", key="check_osp_man")
+        all_ref = [e.get("Nome","") for e in st.session_state.eventi] + [em.get("Nome","") for em in st.session_state.emergenze]
+        sel_check_ref = st.selectbox("Evento/Emergenza", all_ref, key="check_ref") if all_ref else st.text_input("Evento", key="check_ref_man")
     with c2:
-        data_check = st.date_input("Data Check-in", value=date.today(), format="DD/MM/YYYY", key="check_data")
-        ora_check = st.time_input("Ora Entrata", value=datetime.now().time(), key="check_ora")
-        ora_uscita = st.time_input("Ora Uscita", value=datetime.now().time(), key="check_ora_uscita")
-        # Calcolo ore automatiche
+        data_check = st.date_input("Data Check-in (Entrata)", value=date.today(), format="DD/MM/YYYY", key="check_data_fix")
+        ora_check = st.time_input("Ora Entrata", value=datetime.now().time(), key="check_ora_fix")
+        data_uscita = st.date_input("Data Check-out (Uscita)", value=date.today(), format="DD/MM/YYYY", key="check_data_uscita_fix", help="Puo essere dopo giorni!")
+        ora_uscita = st.time_input("Ora Uscita", value=datetime.now().time(), key="check_ora_uscita_fix")
+        ore_calc = 0.0
         try:
             from datetime import datetime as dt
-            d1 = dt.combine(date.today(), ora_check)
-            d2 = dt.combine(date.today(), ora_uscita)
-            diff = (d2 - d1).total_seconds() / 3600
-            if diff < 0:
-                diff += 24
-            ore_calc = round(diff, 2)
+            dt_entrata = dt.combine(data_check, ora_check)
+            dt_uscita = dt.combine(data_uscita, ora_uscita)
+            diff_sec = (dt_uscita - dt_entrata).total_seconds()
+            if diff_sec < 0:
+                diff_sec = 0
+            ore_calc = round(diff_sec / 3600.0, 2)
+            if ore_calc >= 24:
+                st.success(f"TOTALE ORE: {int(ore_calc//24)} giorni = {ore_calc} ore totali")
+            else:
+                st.success(f"TOTALE ORE: {ore_calc} ore")
         except:
-            ore_calc = 0
-        ore_lavorate = st.number_input("Ore Lavorate", min_value=0.0, max_value=24.0, value=float(ore_calc), step=0.5, key="check_ore", help="Calcolate da Ora Entrata/Uscita - modificabili")
-
+            ore_calc = 0.0
+        st.markdown("Totale Ore Lavorate (per Statistica)")
+        ore_lavorate = st.number_input("Ore Lavorate - TOTALE per Statistica", min_value=0.0, max_value=10000.0, value=float(ore_calc), step=0.5, key="check_ore_totale_fix")
+        st.metric("Totale Calcolato", f"{ore_calc} ore")
     with c3:
         stato_check = st.selectbox("Stato", ["Presente", "Assente", "Ritardo"], key="check_stato")
-        art39 = st.checkbox("🛡️ Richiede Art.39 (benefici legge)", key="check_art39", help="Art.39 D.Lgs 1/2018 - benefici di legge per datore lavoro")
-        art39_tipo = st.selectbox("Tipo Art.39", ["--", "Permesso retribuito", "Recupero", "Rimborso datore", "Altro"], key="check_art39_tipo")
-        art39_note = st.text_area("Note Art.39 / Datore", key="check_art39_note", placeholder="Datore lavoro, note per richiesta benefici...", height=68)
-
-    if st.button("Registra Check-in", type="primary", use_container_width=True):
-        cf_to_save = cf_check.strip().upper() if cf_check else ""
-        if vol_check_trovato:
-            sel_vol_final = vol_check_trovato
-        else:
-            sel_vol_final = sel_check_vol
-        st.session_state.checkin.append({
-            "Volontario": sel_vol_final,
-            "CodiceFiscale": cf_to_save,
-            "Riferimento": sel_check_ref,
-            "Data": str(data_check),
-            "Ora Entrata": str(ora_check),
-            "Ora Uscita": str(ora_uscita),
-            "Ore Lavorate": ore_lavorate,
-            "Stato": stato_check,
-            "Art39": "Si" if art39 else "No",
-            "Art39_Tipo": art39_tipo,
-            "Art39_Note": art39_note
-        })
-        st.success(f"Check-in registrato: {sel_vol_final} - CF: {cf_to_save}")
-        # Pulisci CF per prossimo scan
-        if "check_cf" in st.session_state:
-            del st.session_state["check_cf"]
-        st.rerun()
-
-    if st.session_state.checkin:
-        df_ch = pd.DataFrame(st.session_state.checkin)
-        st.dataframe(df_ch, use_container_width=True)
-        st.download_button("Excel Check-in", to_excel(df_ch), "checkin.xlsx", use_container_width=True)
-
-# INTERVENTI EMERGENZA - MODIFICA 4 STATO COLORE FONDO CAMPO
-    # IMPORT/EXPORT INLINE - Ezio - TUTTI I FORM - Excel + PDF + Template ODV
-    excel_import_inline("checkin", "Check-in")
-
+        art39 = st.checkbox("Richiede Art.39", key="check_art39")
 
 elif cur == "Interventi Emergenza":
     hdr_form("INTERVENTI EMERGENZA")
