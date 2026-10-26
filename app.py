@@ -1521,11 +1521,8 @@ def excel_import_inline(form_key, form_label):
 
 
 def to_pdf(df, tit):
-    """
-    PDF con logo SX e DX Volontari PC ANA - FIX DEFINITIVO - Sempre visibile - Richiesta Ezio
-    """
     global REPORTLAB_OK
-    import io
+    import io, os
     try:
         buf = io.BytesIO()
         if not REPORTLAB_OK:
@@ -1536,91 +1533,60 @@ def to_pdf(df, tit):
         from reportlab.lib import colors
         from reportlab.lib.units import cm
         from reportlab.lib.enums import TA_CENTER
-
-        doc = SimpleDocTemplate(buf, pagesize=landscape(A4), leftMargin=1*cm, rightMargin=1*cm, topMargin=1.5*cm, bottomMargin=1*cm)
+        doc = SimpleDocTemplate(buf, pagesize=landscape(A4), leftMargin=0.8*cm, rightMargin=0.8*cm, topMargin=1*cm, bottomMargin=0.8*cm)
         styles = getSampleStyleSheet()
         story = []
-        
-        # LOGO SX E DX SEMPRE VISIBILI - Volontari PC ANA a dx - FIX DEFINITIVO
         try:
-            style_logo = ParagraphStyle('logo_fix', parent=styles["Normal"], fontSize=8, alignment=TA_CENTER, textColor=colors.HexColor("#1A5D1A"))
-            style_title_center = ParagraphStyle('title_center_fix', parent=styles["Title"], alignment=TA_CENTER, fontSize=14)
-            
+            style_logo = ParagraphStyle('logo_fix', parent=styles["Normal"], fontSize=7, alignment=TA_CENTER, textColor=colors.HexColor("#1A5D1A"), leading=8)
+            style_title_center = ParagraphStyle('title_center_fix', parent=styles["Title"], alignment=TA_CENTER, fontSize=13, leading=14)
             logo_sx = None
-            try:
-                if os.path.exists("logo.png"):
-                    logo_sx = Image("logo.png", width=65, height=65)
-            except:
-                pass
+            for p in ["logo.png", "/mnt/data/Alpini_Volunteers_Varese_Logo"]:
+                try:
+                    if os.path.exists(p):
+                        logo_sx = Image(p, width=75, height=75)
+                        break
+                except:
+                    pass
             if not logo_sx:
-                logo_sx = Paragraph("<b>ANA<br/>VARESE</b><br/>VOLONTARIATO", style_logo)
-            
+                logo_sx = Paragraph("<b>VOLONTARIATO<br/>Sezione di VARESE</b>", style_logo)
             logo_dx = None
-            try:
-                if os.path.exists("logo_volontari_pc_ana.png"):
-                    logo_dx = Image("logo_volontari_pc_ana.png", width=65, height=65)
-                elif os.path.exists("logo2.png"):
-                    logo_dx = Image("logo2.png", width=65, height=65)
-                elif os.path.exists("logo.png"):
-                    logo_dx = Image("logo.png", width=65, height=65)
-            except:
-                pass
+            for p in ["logo2.png", "/mnt/data/Alpini_Group_Emblem_Logo"]:
+                try:
+                    if os.path.exists(p):
+                        logo_dx = Image(p, width=75, height=75)
+                        break
+                except:
+                    pass
             if not logo_dx:
-                logo_dx = Paragraph("<b>VOLONTARIATO<br/>PC ANA<br/>Varese</b>", style_logo)
-            
+                logo_dx = Paragraph("<b>GRUPPO DI<br/>CARONNO<br/>PERTUSELLA</b>", style_logo)
             hdr_data = [[logo_sx, Paragraph(f"<b>{tit}</b>", style_title_center), logo_dx]]
-            hdr_table = Table(hdr_data, colWidths=[80, 370, 80])
-            hdr_table.setStyle(TableStyle([
-                ('ALIGN', (0,0), (-1,-1), 'CENTER'),
-                ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
-                ('BOX', (0,0), (-1,-1), 1, colors.HexColor("#1A5D1A")),
-                ('BACKGROUND', (0,0), (-1,-1), colors.HexColor("#e8f5e9")),
-            ]))
+            hdr_table = Table(hdr_data, colWidths=[85, 600, 85])
+            hdr_table.setStyle(TableStyle([('ALIGN', (0,0), (-1,-1), 'CENTER'),('VALIGN', (0,0), (-1,-1), 'MIDDLE'),('BOX', (0,0), (-1,-1), 1.2, colors.HexColor("#1A5D1A")),('BACKGROUND', (0,0), (-1,-1), colors.HexColor("#e8f5e9"))]))
             story.append(hdr_table)
-            story.append(Spacer(1, 12))
-        except Exception as e:
-            try:
-                story.append(Paragraph(f"<b>{tit}</b> - ANA Varese | Volontari PC ANA", styles["Title"]))
-                story.append(Spacer(1, 12))
-            except:
-                pass
-
+            story.append(Spacer(1, 10))
+        except:
+            story.append(Paragraph(f"<b>{tit}</b>", styles["Title"]))
+            story.append(Spacer(1, 8))
         if df.empty:
             story.append(Paragraph("Nessun dato", styles["Normal"]))
         else:
             df_clean = df.copy()
+            n_cols = len(df_clean.columns)
+            total_width = 760
+            col_widths = [total_width / max(n_cols, 1)] * n_cols
             for col in df_clean.columns:
-                df_clean[col] = df_clean[col].astype(str).apply(lambda x: x[:40])
+                df_clean[col] = df_clean[col].astype(str).apply(lambda x: x[:60])
             data = [list(df_clean.columns)] + df_clean.values.tolist()
-            if len(data) > 60:
-                data = data[:60]
-            t = Table(data)
-            t.setStyle(TableStyle([
-                ('BACKGROUND', (0,0), (-1,0), colors.HexColor("#1A5D1A")),
-                ('TEXTCOLOR', (0,0), (-1,0), colors.whitesmoke),
-                ('ALIGN', (0,0), (-1,-1), 'CENTER'),
-                ('FONTSIZE', (0,0), (-1,-1), 7),
-                ('GRID', (0,0), (-1,-1), 0.5, colors.grey),
-            ]))
+            if len(data) > 80:
+                data = data[:80]
+            t = Table(data, colWidths=col_widths, repeatRows=1)
+            t.setStyle(TableStyle([('BACKGROUND', (0,0), (-1,0), colors.HexColor("#1A5D1A")),('TEXTCOLOR', (0,0), (-1,0), colors.whitesmoke),('ALIGN', (0,0), (-1,-1), 'CENTER'),('FONTSIZE', (0,0), (-1,-1), 7),('GRID', (0,0), (-1,-1), 0.5, colors.grey),('ROWBACKGROUNDS', (0,1), (-1,-1), [colors.white, colors.HexColor("#eef6ee")])]))
             story.append(t)
-
         doc.build(story)
         buf.seek(0)
         return buf.getvalue()
     except Exception as e:
-        try:
-            buf2 = io.BytesIO()
-            from reportlab.lib.pagesizes import landscape, A4
-            from reportlab.platypus import SimpleDocTemplate, Paragraph
-            from reportlab.lib.styles import getSampleStyleSheet
-            doc2 = SimpleDocTemplate(buf2, pagesize=landscape(A4))
-            styles2 = getSampleStyleSheet()
-            story2 = [Paragraph(f"{tit} - Errore PDF: {str(e)[:200]}", styles2["Title"])]
-            doc2.build(story2)
-            buf2.seek(0)
-            return buf2.getvalue()
-        except:
-            return b"%PDF-1.4 fake"
+        return b"%PDF-1.4 fake"
 
 def get_file_prefix():
     """Restituisce prefisso per nome file download: app, amministrativo, operativo"""
