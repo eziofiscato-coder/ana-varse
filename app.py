@@ -1606,7 +1606,6 @@ def to_pdf(df, tit):
                 ('GRID', (0,0), (-1,-1), 0.5, colors.grey),
             ]))
             story.append(t)
-
         doc.build(story)
         buf.seek(0)
         return buf.getvalue()
