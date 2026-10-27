@@ -4417,8 +4417,6 @@ elif cur == "Check-in":
 
     c1, c2, c3 = st.columns([1,1,1])
     with c1:       
-         c1, c2, c3 = st.columns([1,1,1])
-    with c1:
         # DEBUG - mostra quanti volontari/ospiti hai
         n_vol = len(st.session_state.get("volontari", []))
         n_osp = len(st.session_state.get("ospiti", []))
@@ -4451,22 +4449,8 @@ elif cur == "Check-in":
           
         # Se lista vuota, usa lista fallback per non restare vuoto
         if not vol_check_list:
-            vol_check_list = [f"{v.get('Cognome','')} {v.get('Nome','')}" for v in st.session_state.get("volontari", []) if v.get("Cognome") or v.get("Nome")]
+        vol_check_list = [f"{v.get('Cognome','')} {v.get('Nome','')}" for v in st.session_state.get("volontari", []) if v.get("Cognome") or v.get("Nome")]
         vol_check_list = sorted(list(set(vol_check_list))) if vol_check_list else []
-
-        if vol_check_list:
-            if vol_check_trovato and vol_check_trovato in vol_check_list:
-                idx_vol = vol_check_list.index(vol_check_trovato)
-                sel_check_vol = st.selectbox("Volontario (Volontari+Ospiti)", vol_check_list, index=idx_vol, key="check_vol")
-            else:
-                sel_check_vol = st.selectbox("Volontario (Volontari+Ospiti)", vol_check_list, key="check_vol")
-        else:
-            # Fallback manuale se nessun volontario in memoria
-            st.warning("Nessun volontario/ospite in memoria - Carica da Backup o inserisci manuale")
-            sel_check_vol = st.text_input("Volontario manuale", value=vol_check_trovato if vol_check_trovato else "", key="check_vol_man")
-        else:
-            sel_check_vol = st.text_input("Volontario", value=vol_check_trovato if vol_check_trovato else "", key="check_vol_man")
-
         ev_check_list = [e.get("Nome", "") for e in st.session_state.eventi]
         em_check_list = [em.get("Nome", "") for em in st.session_state.emergenze]
         all_ref = ev_check_list + em_check_list
