@@ -4417,7 +4417,9 @@ elif cur == "Check-in":
 
     c1, c2, c3 = st.columns([1,1,1])
     with c1:
-        vol_check_list = [f"{v.get('Cognome','')} {v.get('Nome','')}" for v in st.session_state.volontari]
+        vol_list_check = st.session_state.get("volontari", []) + st.session_state.get("ospiti", [])
+        vol_check_list = [f"{v.get('Cognome','')} {v.get('Nome','')} - {v.get('ODVAppartenenza','')[:10]} {'[OSPITE]' if v in st.session_state.get('ospiti', []) else '[VOL]}" for v in vol_list_check if v.get('Cognome') or v.get('Nome')]
+        vol_check_list = sorted(list(set(vol_check_list))) if vol_check_list else []
         if vol_check_list:
             if vol_check_trovato and vol_check_trovato in vol_check_list:
                 idx_vol = vol_check_list.index(vol_check_trovato)
