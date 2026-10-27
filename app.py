@@ -4417,21 +4417,37 @@ elif cur == "Check-in":
 
     c1, c2, c3 = st.columns([1,1,1])
     with c1:       
-    vol_list_check = st.session_state.get("volontari", []) + st.session_state.get("ospiti", [])
-    vol_check_list = []
-    for v in vol_list_check:
-        if v.get("Cognome") or v.get("Nome"):
-            cognome = v.get("Cognome","")
-            nome = v.get("Nome","")
-            tipo = "OSPITE" if v in st.session_state.get("ospiti", []) else "VOL"
-            vol_check_list.append(f"{cognome} {nome} - {tipo}")
-    vol_check_list = sorted(list(set(vol_check_list))) if vol_check_list else []
+        c1, c2, c3 = st.columns([1,1,1])
+    with c1:
+        # DEBUG - mostra quanti volontari/ospiti hai
+        n_vol = len(st.session_state.get("volontari", []))
+        n_osp = len(st.session_state.get("ospiti", []))
+        st.caption(f"DEBUG: {n_vol} volontari + {n_osp} ospiti in memoria")
+
+        vol_list_check = st.session_state.get("volontari", []) + st.session_state.get("ospiti", [])
+        vol_check_list = []
+        for v in vol_list_check:
+            cog = v.get("Cognome","").strip()
+            nom = v.get("Nome","").strip()
+            if cog or nom:
+                tipo = "OSPITE" if v in st.session_state.get("ospiti", []) else "VOL"
+                vol_check_list.append(f"{cog} {nom} - {tipo}")
+
+        # Se lista vuota, usa lista fallback per non restare vuoto
+        if not vol_check_list:
+            vol_check_list = [f"{v.get('Cognome','')} {v.get('Nome','')}" for v in st.session_state.get("volontari", []) if v.get("Cognome") or v.get("Nome")]
+        vol_check_list = sorted(list(set(vol_check_list))) if vol_check_list else []
+
         if vol_check_list:
             if vol_check_trovato and vol_check_trovato in vol_check_list:
                 idx_vol = vol_check_list.index(vol_check_trovato)
-                sel_check_vol = st.selectbox("Volontario", vol_check_list, index=idx_vol, key="check_vol")
+                sel_check_vol = st.selectbox("Volontario (Volontari+Ospiti)", vol_check_list, index=idx_vol, key="check_vol")
             else:
-                sel_check_vol = st.selectbox("Volontario", vol_check_list, key="check_vol")
+                sel_check_vol = st.selectbox("Volontario (Volontari+Ospiti)", vol_check_list, key="check_vol")
+        else:
+            # Fallback manuale se nessun volontario in memoria
+            st.warning("Nessun volontario/ospite in memoria - Carica da Backup o inserisci manuale")
+            sel_check_vol = st.text_input("Volontario manuale", value=vol_check_trovato if vol_check_trovato else "", key="check_vol_man")
         else:
             sel_check_vol = st.text_input("Volontario", value=vol_check_trovato if vol_check_trovato else "", key="check_vol_man")
 
