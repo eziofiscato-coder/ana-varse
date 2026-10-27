@@ -1590,7 +1590,6 @@ def to_pdf(df, tit):
         else:
             df_clean = df.copy()
             for col in df_clean.columns:
-                           for col in df_clean.columns:
                 df_clean[col] = df_clean[col].astype(str).apply(lambda x: x[:60])
             data = [list(df_clean.columns)] + df_clean.values.tolist()
             if len(data) > 60:
