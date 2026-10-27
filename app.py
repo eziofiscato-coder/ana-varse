@@ -1569,7 +1569,7 @@ def to_pdf(df, tit):
                 logo_dx = Paragraph("<b>VOLONTARIATO<br/>PC ANA<br/>Varese</b>", style_logo)
             
             hdr_data = [[logo_sx, Paragraph(f"<b>{tit}</b>", style_title_center), logo_dx]]
-            hdr_table = Table(hdr_data, colWidths=[80, 370, 80])
+            hdr_table = Table(hdr_data, colWidths=[85, 600, 85])
             hdr_table.setStyle(TableStyle([
                 ('ALIGN', (0,0), (-1,-1), 'CENTER'),
                 ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
@@ -1590,11 +1590,18 @@ def to_pdf(df, tit):
         else:
             df_clean = df.copy()
             for col in df_clean.columns:
-                df_clean[col] = df_clean[col].astype(str).apply(lambda x: x[:40])
+                           for col in df_clean.columns:
+                df_clean[col] = df_clean[col].astype(str).apply(lambda x: x[:60])
             data = [list(df_clean.columns)] + df_clean.values.tolist()
             if len(data) > 60:
                 data = data[:60]
-            t = Table(data)
+            n_cols = len(df_clean.columns)
+            total_width = 760
+            col_widths = [total_width / max(n_cols, 1)] * n_cols
+            t = Table(data, colWidths=col_widths, repeatRows=1)
+            t.setStyle(TableStyle([
+    col_widths = [total_width / max(n_cols, 1)] * n_cols
+    t = Table(data, colWidths=col_widths, repeatRows=1)
             t.setStyle(TableStyle([
                 ('BACKGROUND', (0,0), (-1,0), colors.HexColor("#1A5D1A")),
                 ('TEXTCOLOR', (0,0), (-1,0), colors.whitesmoke),
