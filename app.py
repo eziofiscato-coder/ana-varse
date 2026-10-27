@@ -1599,9 +1599,6 @@ def to_pdf(df, tit):
             col_widths = [total_width / max(n_cols, 1)] * n_cols
             t = Table(data, colWidths=col_widths, repeatRows=1)
             t.setStyle(TableStyle([
-    col_widths = [total_width / max(n_cols, 1)] * n_cols
-    t = Table(data, colWidths=col_widths, repeatRows=1)
-            t.setStyle(TableStyle([
                 ('BACKGROUND', (0,0), (-1,0), colors.HexColor("#1A5D1A")),
                 ('TEXTCOLOR', (0,0), (-1,0), colors.whitesmoke),
                 ('ALIGN', (0,0), (-1,-1), 'CENTER'),
