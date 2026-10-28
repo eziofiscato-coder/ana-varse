@@ -4417,45 +4417,40 @@ elif cur == "Check-in":
             sel_check_ref = st.text_input("Evento/Emergenza", key="check_ref_man")
     
     c1, c2, c3 = st.columns([1,1,1])
-    with c1:       
-        # DEBUG - mostra quanti volontari/ospiti hai
+        with c1:       
         n_vol = len(st.session_state.get("volontari", []))
         n_osp = len(st.session_state.get("ospiti", []))
-        st.caption(f"DEBUG: {n_vol} volontari + {n_osp} ospiti in memoria")
+        st.caption(f"Volontari: {n_vol} - Ospiti: {n_osp}")
 
-        # FLAG PER SCEGLIERE - come avevi chiesto prima!
-        col_f1, col_f2 = st.columns(2)
-        with col_f1:
-            show_vol = st.checkbox("✅ Volontari", value=True, key="check_show_vol")
-        with col_f2:
-            show_osp = st.checkbox("✅ Ospiti", value=True, key="check_show_osp")
-
-        vol_list_check = []
-        if show_vol:
-            vol_list_check.extend(st.session_state.get("volontari", []))
-        if show_osp:
-            vol_list_check.extend(st.session_state.get("ospiti", []))
+        filtro_tipo = st.radio("Mostra:", ["Volontari+Ospiti", "Solo Volontari", "Solo Ospiti"], horizontal=True, key="check_filtro_tipo")
         
+        if filtro_tipo == "Solo Volontari":
+            lista_origine = st.session_state.get("volontari", [])
+        elif filtro_tipo == "Solo Ospiti":
+            lista_origine = st.session_state.get("ospiti", [])
+        else:
+            lista_origine = st.session_state.get("volontari", []) + st.session_state.get("ospiti", [])
+
         vol_check_list = []
-        for v in vol_list_check:
-            cog = v.get("Cognome","").strip()
-            nom = v.get("Nome","").strip()
-            # Fallback se campi vuoti - prova VolontarioCompleto
+        for v in lista_origine:
+            cog = str(v.get("Cognome","") or "").strip()
+            nom = str(v.get("Nome","") or "").strip()
             if not cog and not nom:
-                vc = v.get("VolontarioCompleto","") or v.get("Nome","")
-                if vc:
-                    parts = vc.split()
-                    if len(parts) >= 2:
-                        cog = parts[0]
-                        nom = " ".join(parts[1:])
-                    else:
-                        nom = vc
+                cog = str(v.get("VolontarioCompleto","") or v.get("CodFisc","") or "Volontario").strip()
             if cog or nom:
-                tipo = "OSPITE" if v in st.session_state.get("ospiti", []) else "VOL"
-                vol_check_list.append(f"{cog} {nom} - {tipo}")
+                is_osp = v in st.session_state.get("ospiti", [])
+                tipo = "OSPITE" if is_osp else "VOL"
+                if filtro_tipo == "Solo Volontari":
+                    tipo = "VOL"
+                if filtro_tipo == "Solo Ospiti":
+                    tipo = "OSPITE"
+                vol_check_list.append(f"{cog} {nom} - {tipo}".strip())
         vol_check_list = sorted(list(set(vol_check_list))) if vol_check_list else []
         if vol_check_list:
-            sel_check_vol = st.selectbox(f"Volontario ({len(vol_check_list)} trovati - Vol+Ospiti)", vol_check_list, key="check_vol")
+            sel_check_vol = st.selectbox(f"Volontario ({len(vol_check_list)} trovati - {filtro_tipo})", vol_check_list, key="check_vol")
+        else:
+            st.warning(f"Nessun dato per {filtro_tipo}")
+            sel_check_vol = st.text_input("Volontario manuale", key="check_vol_man")
         else:
             st.warning("Nessun volontario/ospite - Carica Backup o spunta flag sopra")
             sel_check_vol = st.text_input("Volontario manuale", value=vol_check_trovato if vol_check_trovato else "", key="check_vol_man")
