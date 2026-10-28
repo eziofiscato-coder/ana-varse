@@ -4415,64 +4415,33 @@ elif cur == "Check-in":
             if not vol_check_trovato:
                 st.warning(f"⚠️ CF {cf_clean} non trovato in anagrafica volontari - Inserisci manuale sotto")
             sel_check_ref = st.text_input("Evento/Emergenza", key="check_ref_man")
-c1, c2, c3 = st.columns([1,1,1])
-     with c1:       
-         n_vol = len(st.session_state.get("volontari", []))
-         n_osp = len(st.session_state.get("ospiti", []))
-         st.caption(f"Volontari: {n_vol} - Ospiti: {n_osp}")
+    c1, c2, c3 = st.columns([1,1,1])
+    with c1:       
+        n_vol = len(st.session_state.get("volontari", []))
+        n_osp = len(st.session_state.get("ospiti", []))
+        st.caption(f"Volontari: {n_vol} - Ospiti: {n_osp}")
 
         filtro_tipo = st.radio("Mostra:", ["Volontari+Ospiti", "Solo Volontari", "Solo Ospiti"], horizontal=True, key="check_filtro_tipo")
-         
+        
         if filtro_tipo == "Solo Volontari":
-             lista_origine = st.session_state.get("volontari", [])
-         elif filtro_tipo == "Solo Ospiti":
-             lista_origine = st.session_state.get("ospiti", [])
-         else:
-             lista_origine = st.session_state.get("volontari", []) + st.session_state.get("ospiti", [])
- 
-         vol_check_list = []
-         for v in lista_origine:
-             cog = str(v.get("Cognome","") or "").strip()
-             nom = str(v.get("Nome","") or "").strip()
-             if not cog and not nom:
-                 cog = str(v.get("VolontarioCompleto","") or v.get("CodFisc","") or "Volontario").strip()
-             if cog or nom:
-                 is_osp = v in st.session_state.get("ospiti", [])
-                 tipo = "OSPITE" if is_osp else "VOL"
-             if filtro_tipo == "Solo Volontari":
-                     tipo = "VOL"
-             if filtro_tipo == "Solo Ospiti":
-                     tipo = "OSPITE"
-                 vol_check_list.append(f"{cog} {nom} - {tipo}".strip())
-         vol_check_list = sorted(list(set(vol_check_list))) if vol_check_list else []
-         if vol_check_list:
-             sel_check_vol = st.selectbox(f"Volontario ({len(vol_check_list)} trovati - {filtro_tipo})", vol_check_list, key="check_vol")
-         else:
-             st.warning(f"Nessun dato per {filtro_tipo}")
-             sel_check_vol = st.text_input("Volontario manuale", value=vol_check_trovato if vol_check_trovato else "", key="check_vol_man")
-         ev_check_list = [e.get("Nome", "") for e in st.session_state.get("eventi", [])]
-         em_check_list = [em.get("Nome", "") for em in st.session_state.get("emergenze", [])]
-         all_ref = ev_check_list + em_check_list
-         if all_ref:
-             sel_check_ref = st.selectbox("Evento/Emergenza", all_ref, key="check_ref")
-         else:
-             sel_check_ref = st.text_input("Evento/Emergenza", key="check_ref_man")
- 
-     with c2:
-         data_check = st.date_input("Data Check-in", value=date.today(), format="DD/MM/YYYY", key="check_data")
-         ora_check = st.time_input("Ora Entrata", value=datetime.now().time(), key="check_ora")
-         ora_uscita = st.time_input("Ora Uscita", value=datetime.now().time(), key="check_ora_uscita")
-         try:
-             from datetime import datetime as dt
-             d1 = dt.combine(date.today(), ora_check)
-             d2 = dt.combine(date.today(), ora_uscita)
-             diff = (d2 - d1).total_seconds() / 3600
-             if diff < 0:
-                 diff += 24
-             ore_calc = round(diff, 2)
-         except:
-             ore_calc = 0
-         ore_lavorate = st.number_input("Ore Lavorate", min_value=0.0, max_value=24.0, value=float(ore_calc), step=0.5, key="check_ore")
+            lista_origine = st.session_state.get("volontari", [])
+        elif filtro_tipo == "Solo Ospiti":
+            lista_origine = st.session_state.get("ospiti", [])
+        else:
+            lista_origine = st.session_state.get("volontari", []) + st.session_state.get("ospiti", [])
+
+        vol_check_list = []
+        for v in lista_origine:
+            cog = str(v.get("Cognome","") or "").strip()
+            nom = str(v.get("Nome","") or "").strip()
+            if not cog and not nom:
+                cog = str(v.get("VolontarioCompleto","") or v.get("CodFisc","") or "Volontario").strip()
+            if cog or nom:
+                is_osp = v in st.session_state.get("ospiti", [])
+                tipo = "OSPITE" if is_osp else "VOL"
+                if filtro_tipo == "Solo Volontari":
+                    tipo = "VOL"
+                if filtro_tipo == "Solo Ospiti":
                     tipo = "OSPITE"
                 vol_check_list.append(f"{cog} {nom} - {tipo}".strip())
         vol_check_list = sorted(list(set(vol_check_list))) if vol_check_list else []
@@ -4480,23 +4449,19 @@ c1, c2, c3 = st.columns([1,1,1])
             sel_check_vol = st.selectbox(f"Volontario ({len(vol_check_list)} trovati - {filtro_tipo})", vol_check_list, key="check_vol")
         else:
             st.warning(f"Nessun dato per {filtro_tipo}")
-            sel_check_vol = st.text_input("Volontario manuale", key="check_vol_man")
-        else:
-            st.warning("Nessun volontario/ospite - Carica Backup o spunta flag sopra")
             sel_check_vol = st.text_input("Volontario manuale", value=vol_check_trovato if vol_check_trovato else "", key="check_vol_man")
-            ev_check_list = [e.get("Nome", "") for e in st.session_state.get("eventi", [])]
-            em_check_list = [em.get("Nome", "") for em in st.session_state.get("emergenze", [])]
-            all_ref = ev_check_list + em_check_list
+        ev_check_list = [e.get("Nome", "") for e in st.session_state.get("eventi", [])]
+        em_check_list = [em.get("Nome", "") for em in st.session_state.get("emergenze", [])]
+        all_ref = ev_check_list + em_check_list
         if all_ref:
             sel_check_ref = st.selectbox("Evento/Emergenza", all_ref, key="check_ref")
         else:
             sel_check_ref = st.text_input("Evento/Emergenza", key="check_ref_man")
-       
+
     with c2:
         data_check = st.date_input("Data Check-in", value=date.today(), format="DD/MM/YYYY", key="check_data")
         ora_check = st.time_input("Ora Entrata", value=datetime.now().time(), key="check_ora")
         ora_uscita = st.time_input("Ora Uscita", value=datetime.now().time(), key="check_ora_uscita")
-        # Calcolo ore automatiche
         try:
             from datetime import datetime as dt
             d1 = dt.combine(date.today(), ora_check)
@@ -4507,7 +4472,10 @@ c1, c2, c3 = st.columns([1,1,1])
             ore_calc = round(diff, 2)
         except:
             ore_calc = 0
-        ore_lavorate = st.number_input("Ore Lavorate", min_value=0.0, max_value=24.0, value=float(ore_calc), step=0.5, key="check_ore", help="Calcolate da Ora Entrata/Uscita - modificabili")
+        ore_lavorate = st.number_input("Ore Lavorate", min_value=0.0, max_value=24.0, value=float(ore_calc), step=0.5, key="check_ore")
+
+    with c3:
+        stato_check = st.selectbox("Stato", ["Presente", "Assente", "Ritardo"], key="check_stato")ore_lavorate = st.number_input("Ore Lavorate", min_value=0.0, max_value=24.0, value=float(ore_calc), step=0.5, key="check_ore", help="Calcolate da Ora Entrata/Uscita - modificabili")
 
     with c3:
         stato_check = st.selectbox("Stato", ["Presente", "Assente", "Ritardo"], key="check_stato")
