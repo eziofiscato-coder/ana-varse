@@ -4414,7 +4414,8 @@ elif cur == "Check-in":
                         break
             if not vol_check_trovato:
                 st.warning(f"⚠️ CF {cf_clean} non trovato in anagrafica volontari - Inserisci manuale sotto")
-   sel_check_ref = st.text_input("Evento/Emergenza", key="check_ref_man")
+            sel_check_ref = st.text_input("Evento/Emergenza", key="check_ref_man")
+    
     c1, c2, c3 = st.columns([1,1,1])
     with c1:       
         # DEBUG - mostra quanti volontari/ospiti hai
