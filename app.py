@@ -4414,7 +4414,7 @@ elif cur == "Check-in":
                         break
             if not vol_check_trovato:
                 st.warning(f"⚠️ CF {cf_clean} non trovato in anagrafica volontari - Inserisci manuale sotto")
-
+   sel_check_ref = st.text_input("Evento/Emergenza", key="check_ref_man")
     c1, c2, c3 = st.columns([1,1,1])
     with c1:       
         # DEBUG - mostra quanti volontari/ospiti hai
@@ -4422,19 +4422,41 @@ elif cur == "Check-in":
         n_osp = len(st.session_state.get("ospiti", []))
         st.caption(f"DEBUG: {n_vol} volontari + {n_osp} ospiti in memoria")
 
-        vol_list_check = st.session_state.get("volontari", []) + st.session_state.get("ospiti", [])
+        # FLAG PER SCEGLIERE - come avevi chiesto prima!
+        col_f1, col_f2 = st.columns(2)
+        with col_f1:
+            show_vol = st.checkbox("✅ Volontari", value=True, key="check_show_vol")
+        with col_f2:
+            show_osp = st.checkbox("✅ Ospiti", value=True, key="check_show_osp")
+
+        vol_list_check = []
+        if show_vol:
+            vol_list_check.extend(st.session_state.get("volontari", []))
+        if show_osp:
+            vol_list_check.extend(st.session_state.get("ospiti", []))
+        
         vol_check_list = []
         for v in vol_list_check:
             cog = v.get("Cognome","").strip()
             nom = v.get("Nome","").strip()
+            # Fallback se campi vuoti - prova VolontarioCompleto
+            if not cog and not nom:
+                vc = v.get("VolontarioCompleto","") or v.get("Nome","")
+                if vc:
+                    parts = vc.split()
+                    if len(parts) >= 2:
+                        cog = parts[0]
+                        nom = " ".join(parts[1:])
+                    else:
+                        nom = vc
             if cog or nom:
                 tipo = "OSPITE" if v in st.session_state.get("ospiti", []) else "VOL"
                 vol_check_list.append(f"{cog} {nom} - {tipo}")
         vol_check_list = sorted(list(set(vol_check_list))) if vol_check_list else []
         if vol_check_list:
-            sel_check_vol = st.selectbox("Volontario (Vol+Ospiti)", vol_check_list, key="check_vol")
+            sel_check_vol = st.selectbox(f"Volontario ({len(vol_check_list)} trovati - Vol+Ospiti)", vol_check_list, key="check_vol")
         else:
-            st.warning("Nessun volontario/ospite - Carica Backup")
+            st.warning("Nessun volontario/ospite - Carica Backup o spunta flag sopra")
             sel_check_vol = st.text_input("Volontario manuale", value=vol_check_trovato if vol_check_trovato else "", key="check_vol_man")
         ev_check_list = [e.get("Nome", "") for e in st.session_state.get("eventi", [])]
         em_check_list = [em.get("Nome", "") for em in st.session_state.get("emergenze", [])]
@@ -4443,7 +4465,6 @@ elif cur == "Check-in":
             sel_check_ref = st.selectbox("Evento/Emergenza", all_ref, key="check_ref")
         else:
             sel_check_ref = st.text_input("Evento/Emergenza", key="check_ref_man")
-
        
     with c2:
         data_check = st.date_input("Data Check-in", value=date.today(), format="DD/MM/YYYY", key="check_data")
