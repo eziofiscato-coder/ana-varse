@@ -4417,7 +4417,7 @@ elif cur == "Check-in":
             sel_check_ref = st.text_input("Evento/Emergenza", key="check_ref_man")
     
     c1, c2, c3 = st.columns([1,1,1])
-        with c1:       
+    with c1:       
         n_vol = len(st.session_state.get("volontari", []))
         n_osp = len(st.session_state.get("ospiti", []))
         st.caption(f"Volontari: {n_vol} - Ospiti: {n_osp}")
