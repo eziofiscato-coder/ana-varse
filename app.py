@@ -4430,35 +4430,21 @@ elif cur == "Check-in":
             if cog or nom:
                 tipo = "OSPITE" if v in st.session_state.get("ospiti", []) else "VOL"
                 vol_check_list.append(f"{cog} {nom} - {tipo}")
-
-        # Se lista vuota, usa lista fallback per non restare vuoto
-        if not vol_check_list:
-            vol_check_list = [f"{v.get('Cognome','')} {v.get('Nome','')}" for v in st.session_state.get("volontari", []) if v.get("Cognome") or v.get("Nome")]
         vol_check_list = sorted(list(set(vol_check_list))) if vol_check_list else []
-
         if vol_check_list:
-            if vol_check_trovato and vol_check_trovato in vol_check_list:
-                idx_vol = vol_check_list.index(vol_check_trovato)
-                sel_check_vol = st.selectbox("Volontario (Volontari+Ospiti)", vol_check_list, index=idx_vol, key="check_vol")
-            else:
-                sel_check_vol = st.selectbox("Volontario (Volontari+Ospiti)", vol_check_list, key="check_vol")
+            sel_check_vol = st.selectbox("Volontario (Vol+Ospiti)", vol_check_list, key="check_vol")
         else:
-            # Fallback manuale se nessun volontario in memoria
-            st.warning("Nessun volontario/ospite in memoria - Carica da Backup o inserisci manuale")
+            st.warning("Nessun volontario/ospite - Carica Backup")
             sel_check_vol = st.text_input("Volontario manuale", value=vol_check_trovato if vol_check_trovato else "", key="check_vol_man")
-          
-        # Se lista vuota, usa lista fallback per non restare vuoto
-        if not vol_check_list:
-        vol_check_list = [f"{v.get('Cognome','')} {v.get('Nome','')}" for v in st.session_state.get("volontari", []) if v.get("Cognome") or v.get("Nome")]
-        vol_check_list = sorted(list(set(vol_check_list))) if vol_check_list else []
-        ev_check_list = [e.get("Nome", "") for e in st.session_state.eventi]
-        em_check_list = [em.get("Nome", "") for em in st.session_state.emergenze]
+        ev_check_list = [e.get("Nome", "") for e in st.session_state.get("eventi", [])]
+        em_check_list = [em.get("Nome", "") for em in st.session_state.get("emergenze", [])]
         all_ref = ev_check_list + em_check_list
         if all_ref:
             sel_check_ref = st.selectbox("Evento/Emergenza", all_ref, key="check_ref")
         else:
             sel_check_ref = st.text_input("Evento/Emergenza", key="check_ref_man")
 
+       
     with c2:
         data_check = st.date_input("Data Check-in", value=date.today(), format="DD/MM/YYYY", key="check_data")
         ora_check = st.time_input("Ora Entrata", value=datetime.now().time(), key="check_ora")
@@ -7948,7 +7934,7 @@ elif cur == "Turni":
     st.markdown("---")
     st.markdown("### 📄📊 Export PDF/Excel - Postazione, Alias, IdRadio, Nome, Cognome, Cell + Logo ANA Caronno Pertusella")
     
-    if all_markers:
+    if 'all_markers' in globals() and globals().get('all_markers'):
         # Prepara dati con campi richiesti
         export_data = []
         for m in all_markers:
@@ -8326,9 +8312,18 @@ elif cur == "Libreria Icone":
     st.markdown("---")
     st.markdown("### 📄📊 Export PDF/Excel - Postazione, Alias, IdRadio, Nome, Cognome, Cell + Logo ANA Caronno Pertusella")
     
-    if all_markers:
-        # Prepara dati con campi richiesti
+    # Prepara dati con campi richiesti
+        if 'all_markers' in globals() and globals().get('all_markers'):
         export_data = []
+        for m in all_markers:
+            ...
+        df_export = pd.DataFrame(export_data)
+        col_exp1, col_exp2, col_exp3 = st.columns(3)
+        with col_exp1:
+            def to_excel_with_logo(df):
+                try:
+                    from io import BytesIO
+                    output = BytesIO()
         for m in all_markers:
             # IdRadio potrebbe essere in Alias o in campo specifico
             id_radio = m.get("IdRadio","") or m.get("Alias","") or m.get("RadioId","") or ""
@@ -8348,15 +8343,12 @@ elif cur == "Libreria Icone":
         
         import pandas as pd
         df_export = pd.DataFrame(export_data)
-        
         col_exp1, col_exp2, col_exp3 = st.columns(3)
-        
         with col_exp1:
             # Excel con logo info
             def to_excel_with_logo(df):
                 try:
-                    from io import BytesIO
-                    output = BytesIO()
+                           output = BytesIO()
                     # Usa openpyxl se disponibile
                     try:
                         import openpyxl
