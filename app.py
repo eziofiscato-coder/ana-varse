@@ -8313,7 +8313,7 @@ elif cur == "Libreria Icone":
     st.markdown("### 📄📊 Export PDF/Excel - Postazione, Alias, IdRadio, Nome, Cognome, Cell + Logo ANA Caronno Pertusella")
     
     # Prepara dati con campi richiesti
-        if 'all_markers' in globals() and globals().get('all_markers'):
+    if 'all_markers' in globals() and globals().get('all_markers'):
         export_data = []
         for m in all_markers:
             ...
