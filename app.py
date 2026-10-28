@@ -4454,9 +4454,9 @@ elif cur == "Check-in":
         else:
             st.warning("Nessun volontario/ospite - Carica Backup o spunta flag sopra")
             sel_check_vol = st.text_input("Volontario manuale", value=vol_check_trovato if vol_check_trovato else "", key="check_vol_man")
-        ev_check_list = [e.get("Nome", "") for e in st.session_state.get("eventi", [])]
-        em_check_list = [em.get("Nome", "") for em in st.session_state.get("emergenze", [])]
-        all_ref = ev_check_list + em_check_list
+            ev_check_list = [e.get("Nome", "") for e in st.session_state.get("eventi", [])]
+            em_check_list = [em.get("Nome", "") for em in st.session_state.get("emergenze", [])]
+            all_ref = ev_check_list + em_check_list
         if all_ref:
             sel_check_ref = st.selectbox("Evento/Emergenza", all_ref, key="check_ref")
         else:
