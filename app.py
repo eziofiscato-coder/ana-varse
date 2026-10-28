@@ -4473,10 +4473,7 @@ elif cur == "Check-in":
         except:
             ore_calc = 0
         ore_lavorate = st.number_input("Ore Lavorate", min_value=0.0, max_value=24.0, value=float(ore_calc), step=0.5, key="check_ore")
-
-    with c3:
-        stato_check = st.selectbox("Stato", ["Presente", "Assente", "Ritardo"], key="check_stato")ore_lavorate = st.number_input("Ore Lavorate", min_value=0.0, max_value=24.0, value=float(ore_calc), step=0.5, key="check_ore", help="Calcolate da Ora Entrata/Uscita - modificabili")
-
+        
     with c3:
         stato_check = st.selectbox("Stato", ["Presente", "Assente", "Ritardo"], key="check_stato")
         art39 = st.checkbox("🛡️ Richiede Art.39 (benefici legge)", key="check_art39", help="Art.39 D.Lgs 1/2018 - benefici di legge per datore lavoro")
