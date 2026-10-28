@@ -8308,7 +8308,7 @@ elif cur == "Libreria Icone":
 # CHAT
     # IMPORT/EXPORT INLINE - Ezio - TUTTI I FORM - Excel + PDF + Template ODV
     
-    # === EXPORT PDF/EXCEL CON CAMPI RICHIESTI + LOGO ANA CARONNO PERTUSELLA - RICHIESTA EZIO ===
+      # === EXPORT PDF/EXCEL CON CAMPI RICHIESTI + LOGO ANA CARONNO PERTUSELLA - RICHIESTA EZIO ===
     st.markdown("---")
     st.markdown("### 📄📊 Export PDF/Excel - Postazione, Alias, IdRadio, Nome, Cognome, Cell + Logo ANA Caronno Pertusella")
     
@@ -8316,23 +8316,12 @@ elif cur == "Libreria Icone":
     if 'all_markers' in globals() and globals().get('all_markers'):
         export_data = []
         for m in all_markers:
-            ...
-        df_export = pd.DataFrame(export_data)
-        col_exp1, col_exp2, col_exp3 = st.columns(3)
-        with col_exp1:
-            def to_excel_with_logo(df):
-                try:
-                    from io import BytesIO
-                    output = BytesIO()
-        for m in all_markers:
-            # IdRadio potrebbe essere in Alias o in campo specifico
             id_radio = m.get("IdRadio","") or m.get("Alias","") or m.get("RadioId","") or ""
-            # Se Alias contiene IdRadio, usa quello
             export_data.append({
                 "Postazione": m.get("Nome",""),
                 "Alias": m.get("Alias",""),
                 "IdRadio": id_radio,
-                "Nome": m.get("NomeVolontario","") or m.get("VolontarioCompleto","").split(" ")[0] if m.get("VolontarioCompleto") else "",
+                "Nome": m.get("NomeVolontario","") or (m.get("VolontarioCompleto","").split(" ")[0] if m.get("VolontarioCompleto") else ""),
                 "Cognome": m.get("CognomeVolontario","") or (" ".join(m.get("VolontarioCompleto","").split(" ")[1:]) if m.get("VolontarioCompleto") else ""),
                 "Cell": m.get("CellVolontario","") or m.get("Cell","") or m.get("CellVol",""),
                 "Comune": m.get("Comune",""),
@@ -8345,28 +8334,22 @@ elif cur == "Libreria Icone":
         df_export = pd.DataFrame(export_data)
         col_exp1, col_exp2, col_exp3 = st.columns(3)
         with col_exp1:
-            # Excel con logo info
             def to_excel_with_logo(df):
                 try:
-                           output = BytesIO()
-                    # Usa openpyxl se disponibile
+                    from io import BytesIO
+                    output = BytesIO()
                     try:
                         import openpyxl
-                        from openpyxl.styles import Font, Alignment
+                        from openpyxl.styles import Font
                         from openpyxl.drawing.image import Image as OpenpyxlImage
-                        
                         with pd.ExcelWriter(output, engine='openpyxl') as writer:
-                            # Scrivi intestazione con logo info
                             ws = writer.book.create_sheet("Postazioni Presidio")
-                            # Header ANA
-                            ws['A1'] = "Squadra di Volontari di protezione civile - GRUPPO ALPINI DI CARONNO PERTUSELLA BARIOLA - Associazione Nazionale Alpini - Sez. di Varese"
+                            ws['A1'] = "Squadra di Volontari di protezione civile - GRUPPO ALPINI DI CARONNO PERTUSELLA BARIOLA"
                             ws['A1'].font = Font(bold=True, size=12)
                             ws['A2'] = f"Export Postazioni Presidio - {datetime.now().strftime('%d/%m/%Y %H:%M')} - {len(df)} postazioni"
                             ws['A2'].font = Font(bold=True, size=10)
                             ws['A3'] = ""
-                            # Scrivi dati da riga 4
                             df.to_excel(writer, sheet_name="Postazioni Presidio", startrow=3, index=False)
-                            # Larghezza colonne
                             for col in ws.columns:
                                 max_len = 0
                                 col_letter = col[0].column_letter
@@ -8376,29 +8359,14 @@ elif cur == "Libreria Icone":
                                             max_len = max(max_len, len(str(cell.value)))
                                     except:
                                         pass
-                                adjusted = min(max_len + 2, 30)
-                                ws.column_dimensions[col_letter].width = adjusted
-                            
-                            # Prova ad aggiungere logo se esiste
-                            for logo_path in ["logo_volontario_ana.jpeg", "copertina_5.png", "background_varese.jpg", "copertina.png"]:
-                                if os.path.exists(logo_path):
-                                    try:
-                                        img = OpenpyxlImage(logo_path)
-                                        img.width = 100
-                                        img.height = 100
-                                        ws.add_image(img, 'H1')
-                                        break
-                                    except:
-                                        pass
+                                ws.column_dimensions[col_letter].width = min(max_len + 2, 30)
                     except:
-                        # Fallback xlsxwriter
                         with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
                             df.to_excel(writer, sheet_name="Postazioni", index=False)
-                    
                     output.seek(0)
                     return output.getvalue()
-                except Exception as e:
-                    # Fallback semplice
+                except:
+                    from io import BytesIO
                     output = BytesIO()
                     df.to_excel(output, index=False)
                     return output.getvalue()
@@ -8414,6 +8382,7 @@ elif cur == "Libreria Icone":
             )
         
         with col_exp2:
+            
             # PDF con logo
             def to_pdf_with_logo(df):
                 try:
